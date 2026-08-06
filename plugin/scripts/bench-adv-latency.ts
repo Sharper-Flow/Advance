@@ -1,9 +1,8 @@
 /**
  * ADV latency benchmark (rq-advLatencyBench01, advance-meta v1.12).
  *
- * Default mode is a documented isolated substitute backed by the
- * Temporal-free `createDiskStore`, so the harness initializes under the
- * Temporal-only store contract without requiring a live Temporal worker.
+ * Runs against an isolated `createDiskStore` so benchmark state never mutates
+ * the operator's real ADV data.
  *
  * The disk substitute exercises the same tool surfaces that ADV agents
  * hit most often:
@@ -14,20 +13,9 @@
  *   - `adv_change_show`                            (phase-start read)
  *   - `adv_run_test` (fast no-op + timed sample)   (TDD hot path)
  *
- * Tools that require a live Temporal worker (e.g. `adv_task_list`,
- * `adv_task_show`) are skipped in `--mode disk` because the disk store
- * does not expose a Temporal handle. They run when `--mode temporal` is
- * used with a real bundle.
- *
- * The substitute does NOT measure Temporal RTT — that requires a real
- * Temporal worker. When you need the authoritative number, run the same
- * harness with `--mode temporal` after starting `temporal server
- * start-dev`; the script will refuse to start without a real bundle so
- * results cannot be silently confused with the substitute path.
- *
  * Usage (from `plugin/` root):
  *   pnpm exec tsx scripts/bench-adv-latency.ts \
- *     --change-id <change-id> [--iterations 10] [--warmup 2] [--mode disk] \
+ *     --change-id <change-id> [--iterations 10] [--warmup 2] \
  *     [--out reports/latency.md]
  *
  * Output: Markdown report on stdout (and optionally to `--out`).
@@ -47,24 +35,20 @@ import {
   type LatencyMeasurement,
 } from "../src/perf/latency";
 
-type BenchMode = "disk" | "temporal";
-
 interface Args {
   repoRoot: string;
   changeId: string;
   iterations: number;
   warmup: number;
-  mode: BenchMode;
   out?: string;
 }
 
 function parseArgs(argv: string[]): Args {
   const args: Args = {
     repoRoot: resolve(process.cwd(), ".."),
-    changeId: "reduceTemporalRoundTrip",
+    changeId: "reduceDiskRoundTrip",
     iterations: 10,
     warmup: 2,
-    mode: "disk",
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -75,12 +59,6 @@ function parseArgs(argv: string[]): Args {
     if (arg === "--iterations" && next) args.iterations = Number(next);
     if (arg === "--warmup" && next) args.warmup = Number(next);
     if (arg === "--out" && next) args.out = resolve(next);
-    if (arg === "--mode" && next) {
-      if (next !== "disk" && next !== "temporal") {
-        throw new Error(`Unknown bench mode: ${next}; expected disk|temporal`);
-      }
-      args.mode = next;
-    }
   }
 
   if (args.iterations <= 0) {
@@ -90,17 +68,9 @@ function parseArgs(argv: string[]): Args {
 }
 
 async function buildStore(
-  mode: BenchMode,
   repoRoot: string,
   externalRoot: string,
 ): Promise<Store> {
-  if (mode === "temporal") {
-    throw temporalModeFailure();
-  }
-  // Documented disk substitute: same Store interface as the Temporal
-  // backend without requiring a live worker. Surfaces under test
-  // (adv_status views, adv_change_list, adv_change_show, adv_run_test)
-  // exercise the same code paths the agent hits in production.
   return createDiskStore(repoRoot, { externalRoot });
 }
 
@@ -152,30 +122,6 @@ async function ensureBenchmarkFixture(
   };
 }
 
-function temporalModeFailure(): Error {
-  return new Error(
-    "[bench] --mode temporal requires a running Temporal worker and a real Temporal client bundle. " +
-      "Remediation: start `temporal server start-dev`, start the ADV worker, " +
-      "then run an operator-owned wrapper that constructs createStore() with the live bundle. " +
-      "No disk substitute was used.",
-  );
-}
-
-async function maybeCreateDummyTask(
-  store: Store,
-  changeId: string,
-): Promise<string | null> {
-  try {
-    const tasks = await store.tasks.list(changeId);
-    if (tasks.length > 0) {
-      return tasks[0].id;
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
-
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const tempBenchHome = await mkdtemp(join(tmpdir(), "adv-bench-"));
@@ -183,7 +129,6 @@ async function main(): Promise<void> {
   process.env.XDG_DATA_HOME = tempBenchHome;
 
   const store = await buildStore(
-    args.mode,
     args.repoRoot,
     join(tempBenchHome, "state"),
   );
@@ -192,14 +137,7 @@ async function main(): Promise<void> {
   const initMs = performance.now() - initStartedAt;
 
   try {
-    const fixture =
-      args.mode === "disk"
-        ? await ensureBenchmarkFixture(store, args.changeId)
-        : {
-            changeId: args.changeId,
-            taskId: await maybeCreateDummyTask(store, args.changeId),
-            source: "existing",
-          };
+    const fixture = await ensureBenchmarkFixture(store, args.changeId);
     const taskId = fixture.taskId;
     const operations: LatencyMeasurement[] = [];
 
@@ -262,18 +200,16 @@ async function main(): Promise<void> {
       ),
     );
 
-    if (args.mode === "disk") {
-      operations.push(
-        await runTimedSamples(
-          "store.tasks.list (disk)",
-          async () => {
-            await store.tasks.list(fixture.changeId);
-          },
-          args.iterations,
-          args.warmup,
-        ),
-      );
-    }
+    operations.push(
+      await runTimedSamples(
+        "store.tasks.list",
+        async () => {
+          await store.tasks.list(fixture.changeId);
+        },
+        args.iterations,
+        args.warmup,
+      ),
+    );
 
     if (taskId) {
       operations.push(
@@ -321,14 +257,12 @@ async function main(): Promise<void> {
         change_id_used: fixture.changeId,
         iterations: args.iterations,
         warmup: args.warmup,
-        mode: args.mode,
-        substitute: args.mode === "disk" ? "createDiskStore" : "createStore",
+        backend: "createDiskStore",
         fixture_source: fixture.source,
         task_id_used: taskId ?? "(no task — adv_run_test samples skipped)",
         runtime: `node ${process.version}`,
         platform: `${process.platform}/${process.arch}`,
         xdg_data_home_isolated: true,
-        temporal_setup: args.mode === "disk" ? "not_required" : "live_required",
         adv_profile: process.env.ADV_PROFILE === "1",
       },
       operations,

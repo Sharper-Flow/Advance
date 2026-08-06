@@ -164,7 +164,7 @@ function reachableModules(entry: string): ModuleRef[] {
 function isTemporalModule(ref: ModuleRef): boolean {
   if (ref.kind === "package") {
     return (
-      ref.name.startsWith("@temporalio") || ref.name.includes("/temporal/")
+      ref.name.includes("/temporal/")
     );
   }
   // Match the dedicated Temporal source directory, not storage/store-temporal.

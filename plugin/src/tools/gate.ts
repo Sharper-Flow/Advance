@@ -63,15 +63,15 @@ import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   evaluateGateReadiness,
   renderAcceptanceProjection,
-} from "../temporal/gate-readiness";
+} from "../gates/gate-readiness";
 import {
   isRequiredOpsFollowupLink,
   reconcileOpsFollowupLinks,
 } from "./ops-followup-reconciliation";
 import {
-  inspectArtifactActivity,
-  writeArtifactActivity,
-} from "../temporal/activities";
+  inspectArtifact,
+  writeArtifact,
+} from "../storage/disk-operations";
 import {
   changeToDirectiveState,
   changeToState,
@@ -575,7 +575,7 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
   if (!input.recoveryState.contract?.reviewMatrix) {
     return { ok: true, artifactEvidence: input.fallbackEvidence };
   }
-  const acceptanceWrite = await writeArtifactActivity({
+  const acceptanceWrite = await writeArtifact({
     changesDir: input.store.paths.changes,
     changeId: input.changeId,
     kind: "acceptance",
@@ -604,7 +604,7 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       }),
     };
   }
-  const executiveSummary = await inspectArtifactActivity({
+  const executiveSummary = await inspectArtifact({
     changesDir: input.store.paths.changes,
     changeId: input.changeId,
     kind: "executiveSummary",
@@ -648,7 +648,7 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       }),
     };
   }
-  const acceptanceArtifact = await inspectArtifactActivity({
+  const acceptanceArtifact = await inspectArtifact({
     changesDir: input.store.paths.changes,
     changeId: input.changeId,
     kind: "acceptance",

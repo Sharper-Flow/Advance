@@ -1,20 +1,11 @@
 /**
- * Temporal activities for ADV plugin.
+ * Disk operations for artifacts, specs, projections, cross-repository files,
+ * and archive summaries.
  *
- * Activities are the canonical Temporal pattern for side-effecting I/O.
- * They run on workers (not in workflow code) and survive worker restarts
- * via Temporal's at-least-once retry semantics.
- *
- * Two families live here:
- *
- * 1. Disk-artifact activities (P2.1 — Phase 2 of completeTemporalOnlyMigration).
- *    Read/write `.adv/changes/{id}/{kind}.md`, `.adv/specs/`, and cross-repo
- *    files. Migrating these off the legacy in-process store is the gating
- *    step for retiring `legacy.*` callsites in store-temporal.ts (P2.2-P2.6).
- *
- * All activities return a discriminated `{ ok: true, ... } | { ok: false, error }`
- * shape. Activities never throw across the workflow boundary — the workflow
- * layer decides retry vs surface vs fail.
+ * Every operation returns a discriminated `{ ok: true, ... } | { ok: false,
+ * error }` result and never throws across this boundary. Callers can therefore
+ * decide whether to surface, retry, or fail closed without catching an
+ * operation-specific exception.
  */
 
 import { mkdir, readFile, stat, unlink } from "fs/promises";
@@ -37,8 +28,8 @@ import {
   summaryPaths,
   type SummaryIndexPaths,
 } from "../storage/change-summary-shard-reader";
-import type { ChangeWorkflowState } from "./contracts";
-import { CHANGE_BRANCH_PREFIX } from "./contracts";
+import type { ChangeState } from "../types/change-state";
+import { CHANGE_BRANCH_PREFIX } from "../types";
 import {
   ChangeStatusSchema,
   normalizeLegacyChangeStatus,
@@ -53,10 +44,10 @@ import {
   type ArchiveProjectionProofReceipt,
 } from "../types";
 
-const logger = createLogger("activities");
+const logger = createLogger("disk-operations");
 
 // =============================================================================
-// Disk-artifact activities (P2.1)
+// Disk artifact operations
 // =============================================================================
 
 /**
@@ -81,7 +72,7 @@ export type ReadArtifactResult =
   | { ok: true; content: string }
   | { ok: false; error: string; content?: undefined };
 
-export async function readArtifactActivity(
+export async function readArtifact(
   input: ReadArtifactInput,
 ): Promise<ReadArtifactResult> {
   const filename = ARTIFACT_FILENAME[input.kind];
@@ -126,7 +117,7 @@ export type InspectArtifactResult =
       checkedAt: string;
     };
 
-export async function inspectArtifactActivity(
+export async function inspectArtifact(
   input: InspectArtifactInput,
 ): Promise<InspectArtifactResult> {
   const filename = ARTIFACT_FILENAME[input.kind];
@@ -170,7 +161,7 @@ export type WriteArtifactResult =
   | { ok: true; path: string }
   | { ok: false; error: string; path?: undefined };
 
-export async function writeArtifactActivity(
+export async function writeArtifact(
   input: WriteArtifactInput,
 ): Promise<WriteArtifactResult> {
   const filename = ARTIFACT_FILENAME[input.kind];
@@ -187,7 +178,7 @@ export async function writeArtifactActivity(
 }
 
 // =============================================================================
-// T13 / KD-13 — materializeBundleArtifactsActivity
+// T13 / KD-13 — materializeBundleArtifacts
 //
 // Reads `state.documents` from the workflow at archive time and writes the
 // six markdown files into the bundle directory for the git commit. This is
@@ -214,7 +205,7 @@ export interface MaterializeBundleArtifactsResult {
   errors: Array<{ kind: ArtifactKind; error: string }>;
 }
 
-export async function materializeBundleArtifactsActivity(
+export async function materializeBundleArtifacts(
   input: MaterializeBundleArtifactsInput,
 ): Promise<MaterializeBundleArtifactsResult> {
   const written: ArtifactKind[] = [];
@@ -272,13 +263,13 @@ const ARTIFACT_KIND_ORDER: ReadonlyArray<ArtifactKind> = [
   "acceptance",
 ];
 
-export async function listSpecsActivity(
+export async function listSpecs(
   input: ListSpecsInput,
 ): Promise<ListSpecsResult> {
   return listSpecsFilesystem(input);
 }
 
-export async function showSpecActivity(
+export async function showSpec(
   input: ShowSpecInput,
 ): Promise<ShowSpecResult> {
   return readSpecFilesystem(input);
@@ -300,7 +291,7 @@ export type CrossRepoArtifactResult =
 
 /**
  * Standalone validation that a `target_path` is suitable for cross-repo
- * I/O. Used both by `crossRepoArtifactActivity` (before file operations)
+ * I/O. Used both by `crossRepoArtifact` (before file operations)
  * and by upstream tools (e.g. `adv_change_create` cross-project flow) to
  * reject invalid targets before opening any store.
  *
@@ -354,7 +345,7 @@ export async function validateCrossRepoTarget(
  * Failures return structured `{ ok: false, error }` — never throw. The
  * workflow caller decides retry vs surface.
  */
-export async function crossRepoArtifactActivity(
+export async function crossRepoArtifact(
   input: CrossRepoArtifactInput,
 ): Promise<CrossRepoArtifactResult> {
   const { target_path, relative_path, operation, content } = input;
@@ -424,14 +415,14 @@ export async function crossRepoArtifactActivity(
 }
 
 // =============================================================================
-// Change projection activities (signal-driven workflow disk cache)
+// Change projection operations
 // =============================================================================
 
 export interface WriteChangeProjectionInput {
   /** External mutable-state changes dir: `$stateRoot/{projectId}/changes`. */
   projectionChangesDir: string;
   /** Full in-memory workflow state to expose to external readers. */
-  state: ChangeWorkflowState;
+  state: ChangeState;
   /** Deterministic workflow timestamp for idempotent payload rendering. */
   projectedAt: string;
 }
@@ -585,8 +576,8 @@ export interface ArchiveProjectInput {
   projectPath: string;
 }
 
-export interface ArchiveChangeActivityInput {
-  state: ChangeWorkflowState;
+export interface ArchiveChangeInput {
+  state: ChangeState;
   projects: ArchiveProjectInput[];
   status: "archived" | "cancelled";
   archivedAt: string;
@@ -597,7 +588,7 @@ export interface ArchiveChangeActivityInput {
   projectionProof?: ArchiveProjectionProofReceipt;
 }
 
-export type ArchiveChangeActivityResult =
+export type ArchiveChangeResult =
   | {
       ok: true;
       changeId: string;
@@ -643,9 +634,9 @@ async function commitDurableTrinity(
   return (await execGit(["rev-parse", "HEAD"], projectPath)).trim();
 }
 
-export async function archiveChangeActivity(
-  input: ArchiveChangeActivityInput,
-): Promise<ArchiveChangeActivityResult> {
+export async function archiveChange(
+  input: ArchiveChangeInput,
+): Promise<ArchiveChangeResult> {
   if (input.projects.length === 0) {
     return { ok: false, phase: "preflight", error: "No projects to archive" };
   }
@@ -675,7 +666,7 @@ export async function archiveChangeActivity(
   }
 
   const archivedProjects: Exclude<
-    ArchiveChangeActivityResult,
+    ArchiveChangeResult,
     { ok: false }
   >["projects"] = [];
 

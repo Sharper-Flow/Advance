@@ -15,7 +15,7 @@ import {
   evaluateGateReadiness,
   type GateReadinessOptions,
   type GateReadinessResult,
-} from "../temporal/gate-readiness";
+} from "../gates/gate-readiness";
 import { changeToState } from "../types/change-state-helpers";
 import type { ChangeState } from "../types/change-state";
 import type { GateId, GateReadinessBlocker } from "../types";

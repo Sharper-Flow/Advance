@@ -290,7 +290,6 @@ describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
   test("status live client does not import workflow sandbox modules", () => {
     const content = readFileSync(ADV_STATUS_LIVE, "utf8");
     const forbidden = [
-      "@temporalio/workflow",
       "temporal/messages",
       "temporal/workflows",
       "./messages",

@@ -14,6 +14,7 @@ import {
   type VerificationEvidenceDisposition,
   type AcceptanceCriteriaFreshness,
   type AcceptanceCriteriaProjection,
+  type ContractEvidenceStatus,
   type Change,
   isProofBearingEvidencePolicy,
 } from "../types";
@@ -21,9 +22,22 @@ import {
   resolveTaskEvidence,
   validateTaskEvidenceForStage,
 } from "../validator/task-classifier";
-import type { ChangeWorkflowState } from "./contracts";
-import { isFailingContractReviewStatus } from "./recovery-classification";
+import type { ChangeState } from "../types/change-state";
 import { resolveTypedVerificationWarnings } from "../utils/typed-verification-evidence";
+
+const FAILING_CONTRACT_REVIEW_STATUSES = [
+  "fail",
+  "violated",
+  "unknown",
+] as const satisfies readonly ContractEvidenceStatus[];
+
+export function isFailingContractReviewStatus(
+  status: ContractEvidenceStatus,
+): boolean {
+  return FAILING_CONTRACT_REVIEW_STATUSES.includes(
+    status as (typeof FAILING_CONTRACT_REVIEW_STATUSES)[number],
+  );
+}
 
 const HANDOFF_OPS_RELATIONSHIPS: OpsRelationship[] = [
   "follows_release",
@@ -85,7 +99,7 @@ function makeBlocker(
 }
 
 function priorGateBlockers(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   const gateIndex = GATE_ORDER.indexOf(gateId);
@@ -114,26 +128,12 @@ function compatibilityEvidence(
   };
 }
 
-function artifactStoreBlocker(
-  gateId: GateId,
-  artifactKind: GateArtifactKind,
-): GateReadinessBlocker {
-  return makeBlocker({
-    code: "ARTIFACT_STORE_UNAVAILABLE",
-    gateId,
-    artifactKind,
-    message: `Artifact store is unavailable for ${artifactKind}.`,
-    remediation:
-      "Provide a workflow artifact store or use an explicit compatibility rationale for replay/migration fixtures.",
-  });
-}
-
 function nonWhitespaceCount(text: string): number {
   return text.replace(/\s/g, "").length;
 }
 
 function readableArtifactPath(
-  metadata: ChangeWorkflowState["artifacts"][GateArtifactKind] | undefined,
+  metadata: ChangeState["artifacts"][GateArtifactKind] | undefined,
 ): string | undefined {
   if (!metadata?.path) return undefined;
   return metadata.readable === true ? metadata.path : undefined;
@@ -150,7 +150,7 @@ function readableArtifactPath(
  * must not contradict earlier ones without explicit amendment.
  */
 export function artifactCascadeWarnings(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessWarning[] {
   const warnings: GateReadinessWarning[] = [];
@@ -205,7 +205,7 @@ export function artifactCascadeWarnings(
 }
 
 export function stateBackedArtifactEvidence(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
   artifactKind: GateArtifactKind,
   checkedAt: string,
@@ -221,7 +221,7 @@ export function stateBackedArtifactEvidence(
           artifactKind,
           message: `${artifactKind} artifact is missing from workflow state.`,
           remediation:
-            "Persist the required artifact through the Temporal artifact update path before retrying gate completion.",
+            "Persist the required artifact through the disk artifact update path before retrying gate completion.",
         }),
       ],
     };
@@ -279,7 +279,7 @@ export function stateBackedArtifactEvidence(
  * time before inspecting it.
  */
 export function stateBackedAcceptanceProof(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   checkedAt: string,
 ): GateReadinessResult {
   const content = state.documents?.executiveSummary;
@@ -294,7 +294,7 @@ export function stateBackedAcceptanceProof(
           message:
             "Acceptance requires executive-summary content in workflow state.",
           remediation:
-            "Persist executive-summary content through the Temporal artifact update path before retrying acceptance.",
+            "Persist executive-summary content through the disk artifact update path before retrying acceptance.",
         }),
       ],
     };
@@ -329,13 +329,13 @@ export function stateBackedAcceptanceProof(
   return { ready: true, blockers: [], evidence };
 }
 
-function agreementExists(state: ChangeWorkflowState): boolean {
+function agreementExists(state: ChangeState): boolean {
   if (state.documents?.agreement?.trim()) return true;
   return Boolean(state.artifacts.agreement ?? state.artifacts.discovery);
 }
 
 function discoveryContractBlockers(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "discovery") return [];
@@ -354,7 +354,7 @@ function discoveryContractBlockers(
 }
 
 function acceptanceContractBlockers(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
   options?: Pick<GateReadinessOptions, "strictReviewMatrixUnknownRows">,
 ): GateReadinessBlocker[] {
@@ -401,7 +401,7 @@ function acceptanceContractBlockers(
   const executiveSummary = state.artifacts.executiveSummary;
   const executiveSummaryContent = state.documents?.executiveSummary;
   const executiveSummaryBlockers: GateReadinessBlocker[] = [];
-  // Resilience: Temporal-only metadata intentionally omits path. Legacy state
+  // Resilience: stored metadata intentionally omits path. Legacy state
   // may still have a path, so metadata readiness keys off hash plus source /
   // readability signals instead of requiring filesystem path evidence.
   const hasContentHash = Boolean(executiveSummary?.contentHash?.trim());
@@ -483,7 +483,7 @@ function acceptanceContractBlockers(
   );
 }
 
-function contractItemsCoveredByTasks(state: ChangeWorkflowState): Set<string> {
+function contractItemsCoveredByTasks(state: ChangeState): Set<string> {
   const covered = new Set<string>();
   for (const task of state.tasks) {
     if (task.status === "cancelled") continue;
@@ -496,7 +496,7 @@ function contractItemsCoveredByTasks(state: ChangeWorkflowState): Set<string> {
 }
 
 export function checkRequiredObligationReleaseBlockers(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "release") return [];
@@ -527,7 +527,7 @@ export function checkRequiredObligationReleaseBlockers(
 }
 
 export function checkRequiredObligationRouting(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "release") return [];
@@ -584,7 +584,7 @@ function designerReportTaskId(
 }
 
 function latestDesignerReportsByTask(
-  state: ChangeWorkflowState,
+  state: ChangeState,
 ): Map<string, DesignerSubagentReport> {
   const latest = new Map<string, DesignerSubagentReport>();
   for (const report of state.subagent_reports ?? []) {
@@ -601,7 +601,7 @@ function latestDesignerReportsByTask(
 }
 
 export function checkUnresolvedDesignConcerns(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "acceptance" && gateId !== "release") return [];
@@ -689,7 +689,7 @@ function verificationReportTaskId(
 // Latest task-scoped report per agent for a task (latest-wins by attempt so a
 // newer warning-free report supersedes an older warning-bearing one).
 function latestVerificationReportsForTask(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   taskId: string,
 ): ScopedSubagentReport[] {
   const latestByAgent = new Map<string, ScopedSubagentReport>();
@@ -704,7 +704,7 @@ function latestVerificationReportsForTask(
 }
 
 export function checkUnresolvedVerificationEvidence(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "acceptance" && gateId !== "release") return [];
@@ -794,7 +794,7 @@ export function checkUnresolvedVerificationEvidence(
 // own gate authority here; they are evaluated separately by
 // checkUnresolvedVerificationEvidence.
 export function checkCompletedTaskEvidencePlan(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "acceptance" && gateId !== "release") return [];
@@ -829,7 +829,7 @@ export function checkCompletedTaskEvidencePlan(
 // release (no grandfathering); existing recorded review evidence is accepted,
 // not re-litigated (OOS2).
 export function checkRespectsEvidenceAuthority(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "acceptance" && gateId !== "release") return [];
@@ -982,7 +982,7 @@ export function makeOpsResolutionBlocker(
  *   that must be completed (or handed off) before release.
  */
 export function checkOpsFollowupReleaseBlockers(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateReadinessBlocker[] {
   if (gateId !== "release") return [];
@@ -1043,7 +1043,7 @@ export function getOpenOpsFollowupObligations(
     }));
 }
 
-export function renderAcceptanceProjection(state: ChangeWorkflowState): string {
+export function renderAcceptanceProjection(state: ChangeState): string {
   const contract = state.contract;
   if (!contract?.reviewMatrix) {
     return "# Acceptance\n\nNo typed acceptance proof available.\n";
@@ -1085,7 +1085,7 @@ export function renderAcceptanceProjection(state: ChangeWorkflowState): string {
  *   `{source_sha, build_run_id, replay_run_id}` AND both run IDs match typed,
  *   passing test runs in `state.testRuns` by `evidence_kind` (KD3).
  */
-export function evaluateWorkerBundleProvenance(state: ChangeWorkflowState): {
+export function evaluateWorkerBundleProvenance(state: ChangeState): {
   ok: boolean;
   blockers: GateReadinessBlocker[];
 } {
@@ -1206,38 +1206,38 @@ export function evaluateWorkerBundleProvenance(state: ChangeWorkflowState): {
  * same proof validation without rebuilding a full workflow state.
  *
  * Accepts either a `Change` loaded from disk or the workflow reducer's
- * `ChangeWorkflowState`; only the worker-bundle fields are inspected.
+ * `ChangeState`; only the worker-bundle fields are inspected.
  */
 export function evaluateWorkerBundleProvenanceForChange(
   change:
     | Change
     | Pick<
-        ChangeWorkflowState,
+        ChangeState,
         "worker_bundle_impact" | "workerBundleProvenance" | "testRuns"
       >,
 ): { ok: boolean; blockers: GateReadinessBlocker[] } {
   const stateLike = {
     worker_bundle_impact: (change as Partial<Change>).worker_bundle_impact,
     workerBundleProvenance:
-      (change as Partial<ChangeWorkflowState>).workerBundleProvenance ??
+      (change as Partial<ChangeState>).workerBundleProvenance ??
       (
         change as unknown as {
-          workerBundleProvenance?: ChangeWorkflowState["workerBundleProvenance"];
+          workerBundleProvenance?: ChangeState["workerBundleProvenance"];
         }
       ).workerBundleProvenance,
     testRuns:
-      (change as Partial<ChangeWorkflowState>).testRuns ??
-      (change as unknown as { test_runs?: ChangeWorkflowState["testRuns"] })
+      (change as Partial<ChangeState>).testRuns ??
+      (change as unknown as { test_runs?: ChangeState["testRuns"] })
         .test_runs,
   } as Pick<
-    ChangeWorkflowState,
+    ChangeState,
     "worker_bundle_impact" | "workerBundleProvenance" | "testRuns"
   >;
-  return evaluateWorkerBundleProvenance(stateLike as ChangeWorkflowState);
+  return evaluateWorkerBundleProvenance(stateLike as ChangeState);
 }
 
 export function evaluateGateReadiness(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
   options: GateReadinessOptions = {},
 ): GateReadinessResult {
@@ -1247,17 +1247,6 @@ export function evaluateGateReadiness(
 
   if (artifactKind && options.compatibilityReason) {
     evidence = compatibilityEvidence(artifactKind, options.compatibilityReason);
-  }
-
-  if (artifactKind === "acceptance" && !state.projectionChangesDir) {
-    if (options.compatibilityReason) {
-      evidence = compatibilityEvidence(
-        artifactKind,
-        options.compatibilityReason,
-      );
-    } else {
-      blockers.push(artifactStoreBlocker(gateId, artifactKind));
-    }
   }
 
   if (gateId === "discovery" && options.enforceDiscoveryContract !== false) {
@@ -1317,7 +1306,7 @@ import { GATE_CRITERIA_DEFINITIONS } from "../types";
  * acceptance readiness blocker semantics.
  */
 function validateReviewMatrixRowCoverage(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   { strictUnknownRows = true }: { strictUnknownRows?: boolean } = {},
 ):
   | { valid: true; rowCount: number; itemCount: number }
@@ -1371,17 +1360,17 @@ function validateReviewMatrixRowCoverage(
 
 /**
  * Criterion evaluator function.
- * Inspects ChangeWorkflowState and returns pass/fail/na with optional evidence.
- * Must be synchronous and deterministic for Temporal replay safety.
+ * Inspects ChangeState and returns pass/fail/na with optional evidence.
+ * Must be synchronous and deterministic.
  */
 export type CriterionEvaluator = (
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ) => { status: "pass" | "fail" | "na"; evidence?: string };
 
 /**
  * Criterion evaluators — implementation functions keyed by criterion ID.
- * Each evaluator inspects ChangeWorkflowState and returns evaluation result.
+ * Each evaluator inspects ChangeState and returns evaluation result.
  * Errors are caught by evaluateGateCriteria and converted to status: 'na'.
  */
 export const CRITERION_EVALUATORS: Record<string, CriterionEvaluator> = {
@@ -1567,7 +1556,7 @@ export const CRITERION_EVALUATORS: Record<string, CriterionEvaluator> = {
  * @returns Array of evaluated criteria with pass/fail/na status
  */
 export function evaluateGateCriteria(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   gateId: GateId,
 ): GateCriterion[] {
   const definitions = GATE_CRITERIA_DEFINITIONS[gateId];
@@ -1619,7 +1608,7 @@ export function evaluateGateCriteria(
  * never appear as current truth.
  */
 export function deriveAcceptanceCriteriaProjection(
-  state: ChangeWorkflowState,
+  state: ChangeState,
 ): AcceptanceCriteriaProjection {
   const current = evaluateGateCriteria(state, "acceptance");
   const basisRevision = state.acceptanceReadinessRevision ?? 0;

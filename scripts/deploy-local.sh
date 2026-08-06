@@ -22,7 +22,6 @@
 #
 # What it does:
 #   0. Ensures plugin/dist is fresh, then syncs plugin/ -> ~/.local/share/Advance/plugin
-#      and bounces exact-path deployed Temporal worker.js processes after sync
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
 #   2. Removes stale commands from global that no longer exist in repo
 #   3. Removes legacy non-ADV commands
@@ -221,7 +220,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/mcp-server.js dist/plugin-bundle-manifest.json dist/temporal/worker.js dist/temporal/workflows.js dist/temporal/bundle-manifest.json; do
+	for output_rel in dist/index.js dist/mcp-server.js dist/plugin-bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
@@ -283,8 +282,6 @@ check_rsync() {
 }
 
 PLUGIN_BUNDLE_MANIFEST_BASENAME="plugin-bundle-manifest.json"
-TEMPORAL_BUNDLE_MANIFEST_BASENAME="bundle-manifest.json"
-
 # Validate that the copied plugin bundle artifacts match the SHA-256s recorded
 # in the manifest. Requires jq and sha256sum (or shasum on macOS). Returns
 # non-zero on mismatch, missing manifest, or missing tools. Older manifests
@@ -345,59 +342,6 @@ validate_plugin_bundle_manifest() {
 			return 1
 		fi
 	fi
-
-	return 0
-}
-
-# Validate the Temporal worker bundle manifest and its worker payload. The
-# manifest is a runtime publication marker and must only be copied after both
-# worker files were copied and validated against its recorded hashes.
-validate_temporal_bundle_manifest() {
-	local manifest_path="$1"
-	local temporal_dist_dir="$2"
-	local expected_worker_hash actual_hash
-
-	if [ ! -f "$manifest_path" ]; then
-		echo "    ✗  Temporal bundle manifest missing: $manifest_path"
-		return 1
-	fi
-
-	if ! command -v jq &>/dev/null; then
-		echo "    ✗  jq not found — Temporal bundle manifest validation requires jq"
-		echo "    Install: sudo apt-get install -y jq  (or brew install jq)"
-		return 1
-	fi
-
-	if ! jq -e '.schema_version == 1 and (.generation | type == "string" and length > 0)' "$manifest_path" >/dev/null 2>&1; then
-		echo "    ✗  Temporal bundle manifest has invalid schema or generation: $manifest_path"
-		return 1
-	fi
-
-	for file_name in worker.js workflows.js; do
-		expected_worker_hash="$(jq -r --arg file_name "$file_name" '.files[$file_name] // empty' "$manifest_path" 2>/dev/null)"
-		if [ -z "$expected_worker_hash" ] || ! [[ "$expected_worker_hash" =~ ^[0-9a-f]{64}$ ]]; then
-			echo "    ✗  Temporal bundle manifest has no valid files.$file_name hash: $manifest_path"
-			return 1
-		fi
-		if [ ! -f "$temporal_dist_dir/$file_name" ]; then
-			echo "    ✗  Temporal bundle payload missing: $temporal_dist_dir/$file_name"
-			return 1
-		fi
-		if command -v sha256sum &>/dev/null; then
-			actual_hash="$(sha256sum "$temporal_dist_dir/$file_name" | awk '{print $1}')"
-		elif command -v shasum &>/dev/null; then
-			actual_hash="$(shasum -a 256 "$temporal_dist_dir/$file_name" | awk '{print $1}')"
-		else
-			echo "    ✗  sha256sum or shasum required to validate Temporal bundle"
-			return 1
-		fi
-		if [ "$expected_worker_hash" != "$actual_hash" ]; then
-			echo "    ✗  Temporal bundle $file_name hash mismatch"
-			echo "       manifest: $expected_worker_hash"
-			echo "       actual:   $actual_hash"
-			return 1
-		fi
-	done
 
 	return 0
 }
@@ -903,14 +847,14 @@ is_recognized_adv_cli_target() {
 			return 0
 			;;
 		esac
-		if [ -f "$resolved" ] && grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|Live Status|Temporal-backed' "$resolved" 2>/dev/null; then
+		if [ -f "$resolved" ] && grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|Live Status' "$resolved" 2>/dev/null; then
 			return 0
 		fi
 		return 1
 	fi
 
 	if [ -f "$target" ]; then
-		if grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|Live Status|Temporal-backed' "$target" 2>/dev/null; then
+		if grep -Eq 'adv — ADV|ADV \(Advance\)|Sharper-Flow/Advance|Live Status' "$target" 2>/dev/null; then
 			return 0
 		fi
 	fi
@@ -972,9 +916,8 @@ verify_adv_cli_live_json() {
 	# on success OR fail-closed error metadata — and reject stale disk-only
 	# `schema_version: 1` output.
 	#
-	# Temporal was removed; disk projections are the sole read authority, so
-	# the CLI now reports `source: "disk"`. Asserting `"temporal"` here would
-	# require the CLI to report a source it no longer reads from.
+	# Disk projections are the sole read authority, so the CLI reports
+	# `source: "disk"`.
 	#
 	# Assert structurally on the parsed document, not by substring. A previous
 	# whole-document grep for `"schema_version": 1` matched
@@ -1011,13 +954,6 @@ verify_adv_cli_live_json() {
 	observed_schema="$(printf '%s' "$output" | jq -r '.schema_version // "absent"' 2>/dev/null)"
 	ADV_CLI_LIVE_JSON_DIAGNOSTIC="observed source=${observed_source} top-level schema_version=${observed_schema}"
 	return 1
-}
-
-verify_adv_cli_runtime_imports() {
-	[ -f "$ADV_RUNTIME_PLUGIN_PATH/src/temporal/client.ts" ] || return 1
-	[ -f "$ADV_RUNTIME_PLUGIN_PATH/src/temporal/list-change-workflows.ts" ] || return 1
-	[ -f "$ADV_RUNTIME_PLUGIN_PATH/src/temporal/contracts.ts" ] || return 1
-	return 0
 }
 
 check_adv_cli_install() {
@@ -1058,14 +994,6 @@ check_adv_cli_install() {
 		;;
 	esac
 
-	if verify_adv_cli_runtime_imports; then
-		echo "    ✓  runtime imports: Temporal client sources available"
-	else
-		echo "    ✗  runtime imports: missing Temporal client sources under $ADV_RUNTIME_PLUGIN_PATH/src/temporal"
-		echo "       Run scripts/deploy-local.sh --fix to sync the runtime plugin before the CLI"
-		((cli_issues++)) || true
-	fi
-
 	local resolved_adv=""
 	resolved_adv="$(command -v adv 2>/dev/null || true)"
 	if [ -z "$resolved_adv" ]; then
@@ -1087,13 +1015,10 @@ check_adv_cli_install() {
 
 	if [ -e "$ADV_CLI_TARGET" ] || [ -L "$ADV_CLI_TARGET" ]; then
 		if verify_adv_cli_live_json; then
-			echo "    ✓  status JSON: live Temporal metadata"
+			echo "    ✓  status JSON: disk metadata"
 		else
-			# Wording note: liveness is NOT required here. rq-advCliLocalInstall01
-			# accepts fail-closed live error metadata, so the check rejects only a
-			# non-temporal source or a stale disk-only payload.
-			echo "    ✗  status JSON: installed adv did not emit live-status metadata"
-			echo "       Expected source:\"temporal\" and no top-level schema_version:1 (disk-only payload)"
+			echo "    ✗  status JSON: installed adv did not emit disk metadata"
+			echo "       Expected source:\"disk\" and no top-level schema_version:1"
 			if [ -n "${ADV_CLI_LIVE_JSON_DIAGNOSTIC:-}" ]; then
 				echo "       Got: $ADV_CLI_LIVE_JSON_DIAGNOSTIC"
 			fi
@@ -1317,190 +1242,12 @@ fix_config() {
 	return 0
 }
 
-# ---------------------------------------------------------------------------
-# Runtime worker refresh helpers
-# ---------------------------------------------------------------------------
-list_deployed_temporal_worker_matches() {
-	local worker_script="$1"
-	local proc pid arg cmd found
-
-	[ -d /proc ] || return 0
-	for proc in /proc/[0-9]*; do
-		[ -d "$proc" ] || continue
-		pid="${proc##*/}"
-		[ "$pid" = "$$" ] && continue
-		[ "$pid" = "${BASHPID:-$$}" ] && continue
-		[ -r "$proc/cmdline" ] || continue
-
-		cmd=""
-		found=false
-		while IFS= read -r -d '' arg; do
-			if [ "$arg" = "$worker_script" ]; then
-				found=true
-			fi
-			if [ -z "$cmd" ]; then
-				cmd="$arg"
-			else
-				cmd="$cmd $arg"
-			fi
-		done <"$proc/cmdline" || true
-
-		if [ "$found" = true ]; then
-			printf '%s\t%s\n' "$pid" "$cmd"
-		fi
-	done
-}
-
-# Classifies a matched /proc/PID entry as self-roll capable. Parses the
-# NUL-separated /proc/PID/environ and recognizes only the exact entry
-# ADV_TEMPORAL_WORKER_SELF_ROLL=1. Missing, malformed, or unreadable environ
-# falls through to the legacy SIGTERM path.
-worker_has_self_roll_capability() {
-	local proc="$1"
-	local entry
-
-	[ -r "$proc/environ" ] || return 1
-	while IFS= read -r -d '' entry; do
-		if [ "$entry" = "ADV_TEMPORAL_WORKER_SELF_ROLL=1" ]; then
-			return 0
-		fi
-	done <"$proc/environ"
-	return 1
-}
-
-print_worker_action_required() {
-	local worker_script="$1"
-	local reason="$2"
-	local matches="${3:-}"
-
-	echo ""
-	echo "    [ADV:ACTION_REQUIRED] Deployed Temporal workers must be bounced / sessions restarted"
-	echo "      Reason: $reason"
-	echo "      Worker script: $worker_script"
-	if [ -n "$matches" ]; then
-		echo "      Matching worker processes:"
-		while IFS=$'\t' read -r pid cmd; do
-			[ -n "$pid" ] || continue
-			echo "        PID $pid — $cmd"
-		done <<<"$matches"
-	else
-		echo "      Matching worker processes: unknown"
-	fi
-	echo "      Restart OpenCode sessions or rerun deploy after workers exit."
-}
-
-refresh_deployed_temporal_workers() {
-	local mode="$1"
-	local runtime_plugin_path worker_script
-	local matches advisory legacy pid cmd
-	local bounce_grace_seconds=6
-
-	if runtime_plugin_path="$(cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P)"; then
-		worker_script="$runtime_plugin_path/dist/temporal/worker.js"
-	else
-		worker_script="$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js"
-	fi
-
-	if [ ! -d /proc ]; then
-		print_worker_action_required "$worker_script" "process enumeration via /proc is unavailable; deployed worker refresh cannot be proven"
-		case "$mode" in
-		check | dry-run)
-			echo "      No worker processes were signaled."
-			return 0
-			;;
-		esac
-		return 1
-	fi
-
-	matches="$(list_deployed_temporal_worker_matches "$worker_script")"
-	if [ -z "$matches" ]; then
-		echo "    no running deployed Temporal workers found for: $worker_script"
-		return 0
-	fi
-
-	advisory=""
-	legacy=""
-	while IFS=$'\t' read -r pid cmd; do
-		[ -n "$pid" ] || continue
-		if worker_has_self_roll_capability "/proc/$pid"; then
-			advisory+="$pid"$'\t'"$cmd"$'\n'
-		else
-			legacy+="$pid"$'\t'"$cmd"$'\n'
-		fi
-	done <<<"$matches"
-
-	if [ -n "$advisory" ]; then
-		echo "    advisory: the following deployed Temporal workers advertise self-roll capability (ADV_TEMPORAL_WORKER_SELF_ROLL=1) and will not be signaled:"
-		while IFS=$'\t' read -r pid cmd; do
-			[ -n "$pid" ] || continue
-			echo "      PID $pid — $cmd"
-		done <<<"$advisory"
-	fi
-
-	case "$mode" in
-	check | dry-run)
-		if [ -n "$legacy" ]; then
-			print_worker_action_required "$worker_script" "running legacy workers match the deployed worker bundle; $mode mode is read-only" "$legacy"
-		fi
-		echo "      No worker processes were signaled."
-		return 0
-		;;
-	esac
-
-	if [ -z "$legacy" ]; then
-		echo "    no legacy deployed Temporal workers require signaling; self-roll capable workers skipped"
-		return 0
-	fi
-
-	# Replay-verification gate: refuse to bounce if the candidate bundle
-	# fails replay against committed histories. ADV_FORCE_DEPLOY=1 overrides.
-	if [ "${ADV_FORCE_DEPLOY:-0}" != "1" ]; then
-		if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run verify:worker-bundle); then
-			echo "    ✗  Candidate worker bundle failed replay verification — refusing to bounce"
-			echo "    Set ADV_FORCE_DEPLOY=1 to override (operator accepts poisoning risk)"
-			return 1
-		fi
-	else
-		echo "    [ADV:FORCE_DEPLOY] Replay verification skipped — operator accepted poisoning risk"
-	fi
-	echo "    [ADV:RESIDUAL_RISK] Fixture corpus is advance-repo-only; cross-project workflow shapes may not be represented."
-
-	echo "    bouncing legacy deployed Temporal worker(s) for: $worker_script"
-	local failures=""
-	while IFS=$'\t' read -r pid cmd; do
-		[ -n "$pid" ] || continue
-		if kill -TERM "$pid" 2>/dev/null; then
-			echo "      SIGTERM sent to PID $pid"
-		else
-			failures+="$pid"$'\t'"$cmd"$'\n'
-		fi
-	done <<<"$legacy"
-
-	sleep "$bounce_grace_seconds"
-	local remaining=""
-	while IFS=$'\t' read -r pid cmd; do
-		[ -n "$pid" ] || continue
-		if kill -0 "$pid" 2>/dev/null; then
-			remaining+="$pid"$'\t'"$cmd"$'\n'
-		fi
-	done <<<"$legacy"
-
-	if [ -n "$failures" ] || [ -n "$remaining" ]; then
-		print_worker_action_required "$worker_script" "one or more matching legacy workers could not be bounced" "${failures}${remaining}"
-		return 1
-	fi
-
-	echo "    deployed Temporal worker bounce complete"
-	return 0
-}
-
 # ===========================================================================
 # Check-only mode: just validate config and exit
 # ===========================================================================
 if [ "$MODE" = "check" ]; then
 	check_config
 	check_adv_cli_install
-	refresh_deployed_temporal_workers "check"
 	if [ "$config_issues" -gt 0 ] || [ "$cli_issues" -gt 0 ]; then
 		exit 1
 	fi
@@ -1525,31 +1272,20 @@ ensure_plugin_dist_fresh
 # Guard: a production build must produce the plugin bundle manifest before we
 # publish the bundle. The manifest is the LAST file published (see below).
 PLUGIN_BUNDLE_MANIFEST="$ADV_SOURCE_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
-TEMPORAL_BUNDLE_MANIFEST="$ADV_SOURCE_PLUGIN_PATH/dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME"
 if [ "$DRY_RUN" != true ] && [ ! -f "$PLUGIN_BUNDLE_MANIFEST" ]; then
 	echo "    ✗  plugin bundle manifest missing: $PLUGIN_BUNDLE_MANIFEST"
 	echo "       Run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build) and retry."
 	exit 1
 fi
-if [ "$DRY_RUN" != true ] && [ ! -f "$TEMPORAL_BUNDLE_MANIFEST" ]; then
-	echo "    ✗  Temporal bundle manifest missing: $TEMPORAL_BUNDLE_MANIFEST"
-	echo "       Run (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build) and retry."
-	exit 1
-fi
-# Tracks the post-sync worker bounce so a stuck deployed worker stays loud
-# (nonzero final exit, named in the summary) without aborting the remaining
-# independent asset/config sync under `set -e`.
-worker_refresh_exit=0
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    dry-run: would exclude plugin bundle manifest from payload rsync"
 	echo "    dry-run: would validate copied plugin bundle index"
 	echo "    dry-run: would publish plugin bundle manifest last"
-	refresh_deployed_temporal_workers "dry-run"
 else
 	check_rsync || exit 1
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
-	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" --exclude="dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
+	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin payload: $ADV_RUNTIME_PLUGIN_PATH"
 	if ! validate_plugin_bundle_manifest "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist"; then
 		echo "    ✗  refusing to publish plugin bundle manifest: copied index validation failed"
@@ -1566,19 +1302,6 @@ else
 	fi
 	mv -f "$plugin_manifest_tmp" "$ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
 	echo "    published plugin bundle manifest: $ADV_RUNTIME_PLUGIN_PATH/dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"
-	if ! validate_temporal_bundle_manifest "$TEMPORAL_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist/temporal"; then
-		echo "    ✗  refusing to publish Temporal bundle manifest: copied worker validation failed"
-		exit 1
-	fi
-	temporal_manifest_tmp="$(mktemp "$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/.bundle-manifest.XXXXXX.tmp")"
-	if ! cp "$TEMPORAL_BUNDLE_MANIFEST" "$temporal_manifest_tmp"; then
-		rm -f "$temporal_manifest_tmp"
-		echo "    ✗  refusing to publish Temporal bundle manifest: temporary copy failed"
-		exit 1
-	fi
-	mv -f "$temporal_manifest_tmp" "$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME"
-	echo "    published Temporal bundle manifest: $ADV_RUNTIME_PLUGIN_PATH/dist/temporal/$TEMPORAL_BUNDLE_MANIFEST_BASENAME"
-	refresh_deployed_temporal_workers "after-sync" || worker_refresh_exit=$?
 fi
 
 # ---------------------------------------------------------------------------
@@ -1926,21 +1649,13 @@ else
 	fi
 fi
 
-if [ "$worker_refresh_exit" -ne 0 ]; then
-	echo "    Worker refresh: ❌ stale deployed Temporal worker(s) survived the SIGTERM grace period — see [ADV:ACTION_REQUIRED] above (exit $worker_refresh_exit)"
-fi
-
 echo "    Restart OpenCode sessions to pick up changes."
 
 # Propagate failures in deterministic precedence: CLI install, then --fix
-# config drift, then worker refresh. A stale deployed worker fails the run
-# but never masks an earlier CLI/config exit code.
+# config drift.
 if [ "$fix_adv_cli_exit" -ne 0 ]; then
 	exit "$fix_adv_cli_exit"
 fi
 if [ "$MODE" = "fix" ] && [ "$fix_config_exit" -ne 0 ]; then
 	exit "$fix_config_exit"
-fi
-if [ "$worker_refresh_exit" -ne 0 ]; then
-	exit "$worker_refresh_exit"
 fi

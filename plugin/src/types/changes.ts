@@ -1308,8 +1308,8 @@ export const ChangeSchema = z
      * Workflow document content — authoritative source for the six change
      * artifacts (proposal, problemStatement, agreement, design,
      * executiveSummary, acceptance). Populated by content signals into
-     * `state.documents`. Used by `readArtifact` for Temporal-first reads and
-     * by `materializeBundleArtifactsActivity` for archive bundle writes.
+     * `state.documents`. Used by `readArtifact` for disk reads and by
+     * `materializeBundleArtifacts` for archive bundle writes.
      *
      * Additive optional fields — Temporal replay-safe.
      */
