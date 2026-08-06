@@ -73,7 +73,7 @@ async function withContractStore<T>(
       target_path: input.target_path,
       target_confirmed: input.target_confirmed,
       confirmationEvidence: input.confirmationEvidence,
-      stateRequirement: "temporal-required",
+      stateRequirement: "authoritative",
     },
     async ({ context, store: targetStore }) =>
       fn(targetStore, formatTargetProjectContext(context)),

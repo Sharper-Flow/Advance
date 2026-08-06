@@ -901,7 +901,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: false,
           }),
           expect.any(Function),
@@ -2477,7 +2477,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: false,
           }),
           expect.any(Function),
@@ -2533,7 +2533,7 @@ describe("change tools — signal-driven lifecycle", () => {
           expect.objectContaining({
             currentProjectPath: "/tmp/test",
             target_path: "/tmp/target",
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed: true,
             confirmationEvidence: "user approved target artifact update",
           }),
@@ -3583,7 +3583,7 @@ describe("change tools — signal-driven lifecycle", () => {
     });
 
     describe("target_path routing", () => {
-      test("routes target close through target store with temporal-required and confirmation fields", async () => {
+      test("routes target close through target store with authoritative and confirmation fields", async () => {
         const store = createMockStore();
         const sourceChange = (await store.changes.get("test-change"))
           .data as Change;
@@ -3618,7 +3618,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: true,
             target_confirmed: true,
             confirmationEvidence: "user approved target close",
@@ -3675,7 +3675,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: false,
           }),
           expect.any(Function),
@@ -4171,7 +4171,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: true,
             target_confirmed: true,
             confirmationEvidence: "user approved target bulk close",
@@ -4260,7 +4260,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
           expect.objectContaining({
             target_path: "/tmp/target",
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: false,
           }),
           expect.any(Function),
@@ -5054,7 +5054,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect.objectContaining({
           currentProjectPath: "/tmp/test",
           target_path: "/tmp/target",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: false,
           target_confirmed: true,
           confirmationEvidence: "user approved target mutation",
@@ -5109,7 +5109,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
         expect.objectContaining({
           target_path: "/tmp/target",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: false,
         }),
         expect.any(Function),
@@ -6205,7 +6205,7 @@ describe("change tools — signal-driven lifecycle", () => {
           target_path: "/tmp/target",
           target_confirmed: true,
           confirmationEvidence: "User approved target reentry",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
         }),
         expect.any(Function),
       );

@@ -1,24 +1,14 @@
 /**
- * Store — Temporal-Only Backend Selector / Composition Root
+ * Store — Composition Root
  *
- * Creates a Temporal-backed store. The disk-only backend is constructed
- * internally as the file-backed persistence layer, but the returned Store
- * is always the Temporal adapter.
+ * Creates the disk-backed store. `store-disk.ts` declares
+ * `const store: Store = {...}`, so its conformance to the full `Store`
+ * interface (`store-types.ts`) is proven by the compiler.
  *
- * Temporal-only runtime: `temporalBundle` is required. Callers that do
- * not have a Temporal bundle must not call `createStore`.
- *
- * P2.7: SQLite-backed `createLegacyStore` deleted; replaced by the
- * SQLite-free `createDiskStore`. See `store-disk.ts` for the migration
- * rationale.
+ * There is one persistence backend. Callers must not construct a store any
+ * other way.
  */
 
-import { getProjectId } from "../utils/project-id";
-import {
-  TemporalOperationsOwner,
-  type TemporalOperations,
-} from "../temporal/operations";
-import { createTemporalStoreBackend } from "./store-temporal";
 import { createDiskStore } from "./store-disk";
 
 // Re-export public types and helpers
@@ -41,51 +31,18 @@ import type { ProductContext } from "./product-context";
 
 export interface CreateStoreOptions {
   externalRoot?: string;
-  temporalBundle: TemporalOperations;
-  projectIdOverride?: string;
   productContext?: ProductContext;
-}
-
-function asTemporalOperations(bundle: TemporalOperations): TemporalOperations {
-  if (bundle instanceof TemporalOperationsOwner) {
-    return bundle;
-  }
-  return bundle;
 }
 
 export async function createStore(
   directory: string,
-  options: CreateStoreOptions,
+  options: CreateStoreOptions = {},
 ): Promise<Store> {
-  if (!options?.temporalBundle) {
-    throw new Error(
-      "temporalBundle is required — ADV runtime is Temporal-only. " +
-        "If you see this in tests, supply a mock temporalBundle.",
-    );
-  }
-
-  const legacy = await createDiskStore(directory, {
+  const store = await createDiskStore(directory, {
     externalRoot: options.externalRoot,
-  });
-
-  const projectId =
-    options.projectIdOverride ?? (await getProjectId(directory));
-  if (!projectId) {
-    throw new Error(
-      "projectId could not be resolved — required for Temporal-backed store",
-    );
-  }
-
-  const store = createTemporalStoreBackend({
-    legacy,
-    temporal: asTemporalOperations(options.temporalBundle),
-    projectId,
   });
   store.productContext = options.productContext;
   return store;
 }
 
-// Back-compat: tools/change.ts cross-project flow needs a non-Temporal
-// Store for target repos that may not have a workflow bundle running.
-// `createDiskStore` is the canonical name; alias here for migration ease.
-export { createDiskStore as createLegacyStore } from "./store-disk";
+export { createDiskStore } from "./store-disk";

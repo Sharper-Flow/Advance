@@ -20,7 +20,7 @@ import {
   cleanupTempDir,
   parseToolOutput,
 } from "../__tests__/setup";
-import { createLegacyStore } from "../storage/store";
+import { createDiskStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import { GRPC_NOT_FOUND } from "../temporal/retry-wrapper";
 import type { StatusReadOptions } from "../storage/store-types";
@@ -223,7 +223,7 @@ describe("Status Tools", () => {
       },
     });
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
   });
 
   afterEach(async () => {
@@ -1775,7 +1775,7 @@ Vague in-flight work.
             { recursive: true },
           );
 
-          extStore = await createLegacyStore(tempDir, { externalRoot });
+          extStore = await createDiskStore(tempDir, { externalRoot });
 
           const result = await statusTools.adv_status.execute(
             { view: "hygiene" },

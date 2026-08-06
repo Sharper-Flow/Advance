@@ -272,7 +272,7 @@ async function readCrossProjectChild(input: {
       {
         currentProjectPath: store.paths.root,
         target_path: link.target_path,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed: true,
         confirmationEvidence: "ops follow-up reconciliation",
       } as WithTargetPathStoreInput,

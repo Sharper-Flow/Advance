@@ -391,7 +391,7 @@ describe("adv_change_repair_origin", () => {
     const call = mocks.withTargetPathStore.mock.calls[0][0];
     expect(call.target_path).toBe("/target/project");
     expect(call.target_confirmed).toBe(true);
-    expect(call.stateRequirement).toBe("temporal-required");
+    expect(call.stateRequirement).toBe("authoritative");
     expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.fireSignalAndRefresh.mock.calls[0][1]).toBe(targetStore);
   });

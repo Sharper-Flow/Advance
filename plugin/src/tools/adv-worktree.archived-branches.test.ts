@@ -676,7 +676,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target cleanup",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );

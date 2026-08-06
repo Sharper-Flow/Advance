@@ -173,7 +173,7 @@ export const advChangeSetWorkerBundleImpactHandler = async (
         {
           currentProjectPath: store.paths.root,
           target_path,
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: true,
           target_confirmed,
           confirmationEvidence,
@@ -282,7 +282,7 @@ export const advChangeSetReleaseNotesHandler = async (
         {
           currentProjectPath: store.paths.root,
           target_path,
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: true,
           target_confirmed,
           confirmationEvidence,
@@ -482,7 +482,7 @@ export const advChangeReenterHandler = async (
           target_path,
           target_confirmed,
           confirmationEvidence,
-          stateRequirement: dryRun ? "snapshot-ok" : "temporal-required",
+          stateRequirement: dryRun ? "snapshot-ok" : "authoritative",
           mutation: dryRun ? false : undefined,
         },
         async ({ context, store: targetStore }) =>

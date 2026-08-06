@@ -669,7 +669,7 @@ export const advChangeUpdateHandler = async (
       {
         currentProjectPath: store.paths.root,
         target_path,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed,
         confirmationEvidence,
       },
@@ -923,7 +923,7 @@ export const advChangeCloseHandler = async (
         {
           currentProjectPath: store.paths.root,
           target_path,
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: !dryRun,
           target_confirmed,
           confirmationEvidence,
@@ -1287,7 +1287,7 @@ export const advChangeBulkCloseHandler = async (
         {
           currentProjectPath: store.paths.root,
           target_path,
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: !dryRun,
           target_confirmed,
           confirmationEvidence,

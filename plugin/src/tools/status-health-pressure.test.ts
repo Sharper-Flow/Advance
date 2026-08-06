@@ -19,7 +19,7 @@ import {
   cleanupTempDir,
   parseToolOutput,
 } from "../__tests__/setup";
-import { createLegacyStore } from "../storage/store";
+import { createDiskStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import type { ProjectStatus } from "../types";
 import * as worktree from "./worktree";
@@ -196,7 +196,7 @@ describe("health view bounded pressure contract", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
 
     mockGetTemporalHealth.mockReset();
     mockGetTemporalHealth.mockResolvedValue(buildTemporalHealth(true));

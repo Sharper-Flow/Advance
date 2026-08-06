@@ -928,7 +928,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1029,7 +1029,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1136,7 +1136,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1227,7 +1227,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1328,7 +1328,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1429,7 +1429,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },

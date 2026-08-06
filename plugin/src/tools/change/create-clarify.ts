@@ -349,7 +349,7 @@ async function validateTargetEpic(input: {
       {
         currentProjectPath: input.sourceStore.paths.root,
         target_path: input.epic_owner_target_path!,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed: input.epic_owner_target_confirmed,
         confirmationEvidence: input.epic_owner_confirmationEvidence,
       },
@@ -748,7 +748,7 @@ export async function createCrossProjectFollowUp({
       {
         currentProjectPath: store.paths.root,
         target_path,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed,
         confirmationEvidence,
       },

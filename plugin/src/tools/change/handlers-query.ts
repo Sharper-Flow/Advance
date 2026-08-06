@@ -514,7 +514,7 @@ export const advChangeShowHandler = async (
       {
         currentProjectPath: store.paths.root,
         target_path,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         mutation: false,
       },
       async ({ context, store: targetStore }) =>

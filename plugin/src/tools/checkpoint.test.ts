@@ -1144,7 +1144,7 @@ describe("checkpoint tools — signal-driven", () => {
         expect.objectContaining({
           currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           target_confirmed: true,
           confirmationEvidence: "user approved target mutation",
         }),

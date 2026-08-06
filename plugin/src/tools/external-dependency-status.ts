@@ -1,4 +1,4 @@
-import { createDiskStore as createLegacyStore } from "../storage/store-disk";
+import { createDiskStore } from "../storage/store-disk";
 import { validateCrossRepoTarget } from "../temporal/activities";
 import { createDefaultGates, type ExternalDependency } from "../types";
 import { getExternalRootForProject, getProjectId } from "../utils/project-id";
@@ -93,7 +93,7 @@ export async function buildExternalDependencyStatus(
       }
 
       const targetProjectId = await getProjectId(dependency.target_path);
-      const targetStore = await createLegacyStore(dependency.target_path, {
+      const targetStore = await createDiskStore(dependency.target_path, {
         externalRoot: targetProjectId
           ? getExternalRootForProject(targetProjectId)
           : undefined,

@@ -11,7 +11,7 @@ import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { changeTools } from "../tools/change";
 import { statusTools } from "../tools/status";
-import { createLegacyStore, type Store } from "../storage/store";
+import { createDiskStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -95,7 +95,7 @@ mechanisms introduced.
       ),
     );
 
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
     await store.init();
     await store.sync();
   });
@@ -197,7 +197,7 @@ mechanisms introduced.
   });
 
   // adv_gate_complete e2e check removed: gate completion now requires a
-  // Temporal-backed Store (signal-driven mutation), and createLegacyStore
+  // Temporal-backed Store (signal-driven mutation), and createDiskStore
   // is a disk-only adapter without a Temporal bundle. The clarify-readiness
   // invariant on clean changes is covered by the change-create, change-show,
   // and status tests above. Gate-complete clarify behavior is covered by

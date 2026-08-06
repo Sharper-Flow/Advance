@@ -1282,7 +1282,7 @@ export const subagentReportTools = {
               target_path: args.target_path,
               target_confirmed: args.target_confirmed,
               confirmationEvidence: args.confirmationEvidence,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
             },
             async ({ context, store: targetStore }) =>
               executeSubmit(

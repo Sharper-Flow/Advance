@@ -11,7 +11,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { AdvancePlugin } from "../index";
 import { createTempDir, cleanupTempDir, createTestProject } from "./setup";
-import { createDiskStore as createLegacyStore } from "../storage/store-disk";
+import { createDiskStore } from "../storage/store-disk";
 
 // Mock plugin-init to bypass Temporal requirement
 vi.mock("../plugin-init", async () => {
@@ -21,7 +21,7 @@ vi.mock("../plugin-init", async () => {
     ...actual,
     tryInitStore: async (effectiveDir: string, externalRoot?: string) => {
       try {
-        const store = await createLegacyStore(effectiveDir, { externalRoot });
+        const store = await createDiskStore(effectiveDir, { externalRoot });
         await store.init();
         return { store, initError: null };
       } catch (e) {
@@ -122,7 +122,7 @@ describe("experimental.session.compacting enrichment", () => {
     );
 
     // Use disk store directly to create the change and tasks
-    const store = await createLegacyStore(tempDir, {
+    const store = await createDiskStore(tempDir, {
       externalRoot: undefined,
     });
     await store.init();
@@ -188,7 +188,7 @@ describe("experimental.session.compacting enrichment", () => {
     );
 
     // Use disk store directly to set up change + tasks
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
 
     const { changeId } = await store.changes.create("Progress test");
@@ -253,7 +253,7 @@ describe("experimental.session.compacting enrichment", () => {
       { system: [] } as any,
     );
 
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
 
     const { changeId } = await store.changes.create("Long title test");

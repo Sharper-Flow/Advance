@@ -1,7 +1,7 @@
 import { resolve } from "path";
 import { z } from "zod";
 
-import { createLegacyStore, createStore } from "../storage/store";
+import { createDiskStore, createStore } from "../storage/store";
 import type { Store } from "../storage/store-types";
 import { loadProjectConfig } from "../storage/json";
 import { validateCrossRepoTarget } from "../temporal/activities";
@@ -31,13 +31,13 @@ import {
 
 export type TargetStateRequirement =
   | "snapshot-ok"
-  | "temporal-required"
+  | "authoritative"
   | "scaffold";
 
 export type TargetProjectStateMode =
   | "current"
   | "disk-snapshot"
-  | "temporal"
+  | "authoritative"
   | "scaffold";
 
 export interface TargetProjectContext {
@@ -303,7 +303,7 @@ export async function withTargetPathStore<T>(
 
   if (input.stateRequirement === "snapshot-ok") {
     // rq-targetReadAuthority01.2: snapshot-ok reads must not mutate target worker lifecycle or state.
-    const store = await createLegacyStore(context.root, {
+    const store = await createDiskStore(context.root, {
       externalRoot: context.externalRoot,
     });
     try {
@@ -317,7 +317,7 @@ export async function withTargetPathStore<T>(
   }
 
   if (input.stateRequirement === "scaffold") {
-    const store = await createLegacyStore(context.root, {
+    const store = await createDiskStore(context.root, {
       externalRoot: context.externalRoot,
     });
     try {
@@ -331,7 +331,7 @@ export async function withTargetPathStore<T>(
     }
   }
 
-  // rq-targetReadAuthority01.3: authoritative target mutation requires the temporal-required path.
+  // rq-targetReadAuthority01.3: authoritative target mutation requires the authoritative path.
   const temporalBundle = getService();
   if (!temporalBundle) {
     throw new TargetProjectError(
@@ -352,7 +352,7 @@ export async function withTargetPathStore<T>(
   });
   try {
     await store.init();
-    return await fn({ context: { ...context, stateMode: "temporal" }, store });
+    return await fn({ context: { ...context, stateMode: "authoritative" }, store });
   } finally {
     closeStore(store);
   }

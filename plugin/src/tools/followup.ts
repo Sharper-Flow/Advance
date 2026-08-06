@@ -662,7 +662,7 @@ export const followupTools = {
           {
             currentProjectPath: sourcePath,
             target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed,
             confirmationEvidence,
           },

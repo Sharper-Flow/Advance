@@ -1307,7 +1307,7 @@ export const advChangeArchiveHandler = async (
       {
         currentProjectPath: store.paths.root,
         target_path,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         mutation: dryRun ? false : undefined,
         target_confirmed,
         confirmationEvidence,
@@ -2313,7 +2313,7 @@ export const advChangeRepairOriginHandler = async (
         {
           currentProjectPath: store.paths.root,
           target_path,
-          stateRequirement: dryRun ? "snapshot-ok" : "temporal-required",
+          stateRequirement: dryRun ? "snapshot-ok" : "authoritative",
           target_confirmed,
           confirmationEvidence,
         },

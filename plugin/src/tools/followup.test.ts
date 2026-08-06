@@ -356,7 +356,7 @@ describe("adv_followup_promote", () => {
       expect.objectContaining({
         currentProjectPath: "/tmp/source",
         target_path: "/tmp/target",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed: true,
         confirmationEvidence: "user approved target mutation",
       }),

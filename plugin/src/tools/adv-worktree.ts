@@ -837,7 +837,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
           },
           async ({ context, store: targetStore }) =>
             executeWorktreeResume(args, targetStore, context),
@@ -876,7 +876,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: !args.dryRun,
           },
           async ({ context, store: targetStore }) =>
@@ -940,7 +940,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: !args.dryRun,
           },
           async ({ context, store: targetStore }) =>
@@ -989,7 +989,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: args.mode === "apply",
           },
           async ({ context, store: targetStore }) =>

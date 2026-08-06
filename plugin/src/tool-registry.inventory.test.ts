@@ -9,7 +9,7 @@ import {
   getToolSurface,
 } from "./tool-registry";
 import { hasExplicitAdvToolTitle } from "./utils/tool-title";
-import { createLegacyStore } from "./storage/store";
+import { createDiskStore } from "./storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -203,7 +203,7 @@ describe("public tool inventory — DDC1 name-set parity", () => {
   });
 
   test("runtime createToolMap keys exactly equal derived inventory names", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda);
@@ -271,7 +271,7 @@ describe("public tool inventory — DDC3 argument parity", () => {
   });
 
   test("warrant-surface argument keys equal registered (bound) argument keys for every tool", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<

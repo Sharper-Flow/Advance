@@ -1308,7 +1308,7 @@ export const taskTools = {
           {
             currentProjectPath: store.paths.root,
             target_path: args.target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
           },
@@ -1672,7 +1672,7 @@ export const taskTools = {
             {
               currentProjectPath: store.paths.root,
               target_path: args.target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed: args.target_confirmed,
               confirmationEvidence: args.confirmationEvidence,
             },
@@ -1933,7 +1933,7 @@ export const taskTools = {
           {
             currentProjectPath: store.paths.root,
             target_path: args.target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: args.dryRun ? false : undefined,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
@@ -2100,7 +2100,7 @@ export const taskTools = {
           {
             currentProjectPath: store.paths.root,
             target_path: args.target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
           },

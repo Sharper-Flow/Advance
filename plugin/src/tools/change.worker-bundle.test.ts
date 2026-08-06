@@ -363,7 +363,7 @@ describe("adv_change_set_worker_bundle_impact", () => {
       sessionStore,
     );
 
-    // withTargetPathStore received mutation:true + stateRequirement:"temporal-required"
+    // withTargetPathStore received mutation:true + stateRequirement:"authoritative"
     // + the three trust fields.
     expect(mocks.withTargetPathStore).toHaveBeenCalledTimes(1);
     const wrapperCall = mocks.withTargetPathStore.mock.calls[0][0] as Record<
@@ -371,7 +371,7 @@ describe("adv_change_set_worker_bundle_impact", () => {
       unknown
     >;
     expect(wrapperCall.mutation).toBe(true);
-    expect(wrapperCall.stateRequirement).toBe("temporal-required");
+    expect(wrapperCall.stateRequirement).toBe("authoritative");
     expect(wrapperCall.target_path).toBe("/tmp/target-project");
     expect(wrapperCall.target_confirmed).toBe(true);
     expect(wrapperCall.confirmationEvidence).toBe(

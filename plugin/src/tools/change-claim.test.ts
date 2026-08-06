@@ -9,7 +9,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { createLegacyStore, type Store } from "../storage/store";
+import { createDiskStore, type Store } from "../storage/store";
 import {
   cleanupTempDir,
   createTempDir,
@@ -27,7 +27,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     // withChanges:false — avoid the default `addFeature` fixture so we can
     // assert exact change-list state after each claim-check scenario.
     await createTestProject(dir, { withChanges: false });
-    store = await createLegacyStore(dir);
+    store = await createDiskStore(dir);
     await store.init();
   });
 

@@ -1059,7 +1059,7 @@ export const checkpointTools = {
           {
             currentProjectPath: store.paths.root,
             target_path: args.target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
           },

@@ -735,7 +735,7 @@ async function resolveChildStore(
     {
       currentProjectPath: store.paths.root,
       target_path: args.target_path,
-      stateRequirement: "temporal-required",
+      stateRequirement: "authoritative",
       target_confirmed: args.target_confirmed,
       confirmationEvidence: args.confirmationEvidence,
     },
@@ -798,7 +798,7 @@ export async function resolveEpicOwnerStore(input: {
     {
       currentProjectPath: input.store.paths.root,
       target_path: input.epic_owner_target_path,
-      stateRequirement: "temporal-required",
+      stateRequirement: "authoritative",
       target_confirmed: input.epic_owner_target_confirmed,
       confirmationEvidence: input.epic_owner_confirmationEvidence,
     },

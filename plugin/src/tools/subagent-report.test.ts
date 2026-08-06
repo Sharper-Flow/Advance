@@ -2532,7 +2532,7 @@ describe("subagentReportTools", () => {
     expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
       expect.objectContaining({
         target_path: "/target",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );

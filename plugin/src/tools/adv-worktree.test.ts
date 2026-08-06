@@ -617,7 +617,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target worktree resume",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );
@@ -766,7 +766,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target cleanup",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );
@@ -944,7 +944,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target cleanup",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );
@@ -1358,7 +1358,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target detach",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );

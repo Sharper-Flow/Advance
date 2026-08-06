@@ -2325,7 +2325,7 @@ describe("task tools — signal/query adapters", () => {
         expect.objectContaining({
           currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           target_confirmed: true,
           confirmationEvidence: "user approved target mutation",
         }),
@@ -2579,7 +2579,7 @@ describe("task tools — signal/query adapters", () => {
         expect.objectContaining({
           currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           target_confirmed: true,
           confirmationEvidence: "user approved target mutation",
         }),
@@ -2654,7 +2654,7 @@ describe("task tools — signal/query adapters", () => {
         expect.objectContaining({
           currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: false,
         }),
         expect.any(Function),
@@ -2836,7 +2836,7 @@ describe("task tools — signal/query adapters", () => {
         expect.objectContaining({
           currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           target_confirmed: true,
           confirmationEvidence: "user approved target mutation",
         }),

@@ -10,7 +10,7 @@ import {
   toolCatalogTools,
 } from "./tool-registry";
 import { hasExplicitAdvToolTitle } from "./utils/tool-title";
-import { createLegacyStore } from "./storage/store";
+import { createDiskStore } from "./storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -216,7 +216,7 @@ describe("tool catalog registration parity", () => {
   });
 
   test("new tools are in the runtime tool map", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda);

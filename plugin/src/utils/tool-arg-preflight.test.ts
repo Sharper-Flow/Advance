@@ -7,7 +7,7 @@ import {
   validateToolArgsBeforeExecute,
 } from "./tool-arg-preflight";
 import { createToolMap } from "../tool-registry";
-import { createLegacyStore } from "../storage/store";
+import { createDiskStore } from "../storage/store";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import { ReleaseNotesContentSchema } from "../types";
 
@@ -1513,7 +1513,7 @@ describe("tool arg preflight", () => {
     test("FIELD_POLICIES entries reference live registered tool args", async () => {
       const storeTempDir = await createTempDir();
       const mapTempDir = await createTempDir();
-      const store = await createLegacyStore(storeTempDir);
+      const store = await createDiskStore(storeTempDir);
       await store.init();
 
       try {
@@ -1547,7 +1547,7 @@ describe("tool arg preflight", () => {
     test("optional top-level strict-mode placeholders have reviewed omission coverage", async () => {
       const storeTempDir = await createTempDir();
       const mapTempDir = await createTempDir();
-      const store = await createLegacyStore(storeTempDir);
+      const store = await createDiskStore(storeTempDir);
       await store.init();
 
       try {

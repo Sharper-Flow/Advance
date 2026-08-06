@@ -18,7 +18,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { createLegacyStore, type Store } from "../storage/store";
+import { createDiskStore, type Store } from "../storage/store";
 import { cleanupTempDir, createTempDir, createTestProject } from "./setup";
 import { changeTools } from "../tools/change";
 import { buildChangeSearchAttributes } from "../temporal/search-attributes";
@@ -66,7 +66,7 @@ describe("RL-1: duplicate work prevented by pre-create claim check", () => {
   beforeEach(async () => {
     dir = await createTempDir("rl1-");
     await createTestProject(dir, { withChanges: false });
-    store = await createLegacyStore(dir);
+    store = await createDiskStore(dir);
     await store.init();
   });
   afterEach(async () => {

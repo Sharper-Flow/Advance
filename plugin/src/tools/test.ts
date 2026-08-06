@@ -438,7 +438,7 @@ export const testTools = {
             {
               currentProjectPath: store.paths.root,
               target_path: targetPath,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed: args.target_confirmed,
               confirmationEvidence: args.confirmationEvidence,
             },

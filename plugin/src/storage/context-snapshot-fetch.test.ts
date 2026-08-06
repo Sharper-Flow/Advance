@@ -4,7 +4,7 @@ import {
   fetchChangeContextTicker,
   maybeAttachChangeTicker,
 } from "./context-snapshot-fetch";
-import { createLegacyStore, type Store } from "./store";
+import { createDiskStore, type Store } from "./store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -18,7 +18,7 @@ describe("fetchChangeContextSnapshot", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
   });
 
   afterEach(async () => {
@@ -98,7 +98,7 @@ describe("maybeAttachChangeTicker", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
   });
 
   afterEach(async () => {
