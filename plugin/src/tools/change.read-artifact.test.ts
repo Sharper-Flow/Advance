@@ -301,9 +301,7 @@ describe("readArtifact — active projection fallback", () => {
       );
       const store = buildMockStore({ changesDir, rootDir: dir });
 
-      const result = await readArtifact(store, "test-change", "proposal", {
-        deadline: { budgetMs: 8_000, deadlineAt: Date.now() - 1 },
-      });
+      const result = await readArtifact(store, "test-change", "proposal");
 
       expect(result).toEqual({
         content: "after deadline",

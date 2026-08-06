@@ -18,9 +18,6 @@ import {
   readBoundedProjectionDocument,
   type LoadResult,
 } from "../../storage/change-projection-reader";
-import {
-  type ReadDeadline,
-} from "./validation-projection";
 import { createLogger } from "../../utils/debug-log";
 const logger = createLogger("change-artifacts");
 
@@ -32,11 +29,6 @@ type ArtifactReadSource = Extract<
 export interface ArtifactReadResult {
   content: string;
   source: ArtifactReadSource;
-}
-
-export interface ArtifactReadOptions {
-  /** Retained for callers that share a bounded-read options object. */
-  deadline?: ReadDeadline;
 }
 
 async function readArtifactFile(filePath: string): Promise<string | null> {
@@ -141,7 +133,6 @@ export async function readArtifact(
   store: Store,
   changeId: string,
   kind: ArtifactKind,
-  options?: ArtifactReadOptions,
 ): Promise<ArtifactReadResult | null> {
   // 1. Durable active projection.
   const projectionDocuments = await readProjectionDocuments(
@@ -232,7 +223,6 @@ export async function readArtifacts(
   store: Store,
   changeId: string,
   kinds: ArtifactKind[],
-  options?: ArtifactReadOptions,
 ): Promise<Partial<Record<ArtifactKind, ArtifactReadResult>>> {
   const result: Partial<Record<ArtifactKind, ArtifactReadResult>> = {};
   // 1. Read the durable projection once.

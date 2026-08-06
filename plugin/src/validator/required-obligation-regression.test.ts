@@ -14,8 +14,7 @@
 
 import { describe, expect, test, vi } from "vitest";
 import { createDefaultGates } from "../types";
-import type { Change, ChangeState, EngineerSubagentReport } from "../types";
-import type { Store } from "../storage/store-types";
+import type { Change, ChangeState } from "../types";
 import {
   checkCriticalOpsCoverage,
   runPrepReadinessChecks,
@@ -159,52 +158,6 @@ function buildChangeWithContract(
       ...(t.contract_refs && { contract_refs: t.contract_refs }),
     })),
   } as unknown as Change;
-}
-
-function engineerReport(
-  overrides: Partial<EngineerSubagentReport> = {},
-): EngineerSubagentReport {
-  return {
-    schema_version: "1.0",
-    change_id: "change-1",
-    task_id: "tk-1",
-    attempt: 1,
-    agent: "adv-engineer",
-    status: "complete",
-    scope: { kind: "task", task_id: "tk-1" },
-    workdir_used: "/repo",
-    files_touched: ["src/a.ts"],
-    verification: [{ command: "pnpm test", exit_code: 0, summary: "passed" }],
-    decisions: [{ what: "Used typed tool", why: "Durable state" }],
-    blockers: [],
-    scope_drift: null,
-    follow_ups: [],
-    required_main_agent_actions: [],
-    related_scan: "No same-pattern issues",
-    context_update_for_adv: {
-      what_ads_needs_to_know: "Report submitted",
-      suggested_next_action: "Continue",
-    },
-    ...overrides,
-  };
-}
-
-function storeFor(baseChange: Change): Store {
-  return {
-    paths: {
-      root: "/repo",
-      agenda: "/state/agenda.jsonl",
-    } as Store["paths"],
-    config: null,
-    init: vi.fn(),
-    sync: vi.fn(),
-    close: vi.fn(),
-    flush: vi.fn(),
-    changes: {
-      get: vi.fn(async () => ({ success: true, data: baseChange })),
-      refresh: vi.fn(async () => undefined),
-    },
-  } as unknown as Store;
 }
 
 // =============================================================================

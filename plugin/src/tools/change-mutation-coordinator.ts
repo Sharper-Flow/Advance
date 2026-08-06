@@ -39,7 +39,7 @@ export type MutationOutcome<T> =
   | { kind: "stale_revision"; expected: number; actual: number }
   | { kind: "operator_required"; reason: string };
 
-export interface MutationIntent<T> {
+export interface MutationIntent {
   changeId: string;
   mutationKind: string;
   /** Apply the field-local mutation to the latest locked projection. */
@@ -48,10 +48,10 @@ export interface MutationIntent<T> {
   verifyProjection: (readback: Change) => ProjectionCommitVerifyResult;
 }
 
-interface CoordinateOptions<T> {
+interface CoordinateOptions {
   /** Evidence retained in the projection commit audit. */
   authority: DiskMutationAuthorization;
-  intent: MutationIntent<T>;
+  intent: MutationIntent;
   changesDir?: string;
   expectedRevision?: number;
 }
@@ -64,7 +64,7 @@ interface CoordinateOptions<T> {
  * directory remains a fail-closed operator-required result.
  */
 export async function coordinateChangeMutation<T>(
-  options: CoordinateOptions<T>,
+  options: CoordinateOptions,
 ): Promise<MutationOutcome<T>> {
   return executeDiskPath(options);
 }
@@ -74,7 +74,7 @@ async function executeDiskPath<T>({
   intent,
   changesDir,
   expectedRevision,
-}: CoordinateOptions<T>): Promise<MutationOutcome<T>> {
+}: CoordinateOptions): Promise<MutationOutcome<T>> {
   if (!changesDir) {
     return {
       kind: "operator_required",

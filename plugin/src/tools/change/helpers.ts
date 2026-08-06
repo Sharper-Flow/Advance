@@ -31,7 +31,6 @@ import { coordinateChangeMutation } from "../change-mutation-coordinator";
 import { type D3EnforcementError } from "../../validator/work-graph-enforcement";
 import { nodeRefKey } from "../../validator/work-graph-validation";
 import { findArchiveBundle } from "../../archive";
-import { formatToolOutput } from "../../utils/tool-output";
 import { classifyBriefingFacts } from "../../utils/briefing-fact-classifier";
 import { type BriefingPacketRendererInput } from "../../utils/briefing-packet-renderer";
 import type { GitFinalizeOutcome } from "../archive-helpers/git-finalize";
@@ -333,7 +332,10 @@ export async function saveRecoveredArchiveConvergence(input: {
           failures.push("phase9_status");
         return failures.length === 0
           ? true
-          : { ok: false, error: `readback did not converge: ${failures.join(", ")}` };
+          : {
+              ok: false,
+              error: `readback did not converge: ${failures.join(", ")}`,
+            };
       },
     },
   });
@@ -365,14 +367,18 @@ export async function saveRecoveredArchiveConvergence(input: {
   return { kind: "writeFailed", error: outcome.reason };
 }
 
-function subagentReportTaskId(report: ScopedSubagentReport): string | undefined {
+function subagentReportTaskId(
+  report: ScopedSubagentReport,
+): string | undefined {
   if (typeof report.scope !== "string" && report.scope.kind === "task") {
     return report.scope.task_id;
   }
   return "task_id" in report ? report.task_id : undefined;
 }
 
-export function subagentReportReadbackKey(report: ScopedSubagentReport): string {
+export function subagentReportReadbackKey(
+  report: ScopedSubagentReport,
+): string {
   return subagentReportKey({
     changeId: report.change_id,
     taskId: subagentReportTaskId(report),
@@ -483,7 +489,9 @@ export async function buildBriefingPacketForChange(
     affected_files: Array.from(affectedFiles),
     epic_membership: change.epic_membership ?? null,
     verification_expectations:
-      verificationExpectations.length > 0 ? verificationExpectations : undefined,
+      verificationExpectations.length > 0
+        ? verificationExpectations
+        : undefined,
     durable_facts: collectBriefingFactsForReadback(change),
     archive_digest: undefined,
     generated_by: briefingPacketGeneratedBy(lane, request),

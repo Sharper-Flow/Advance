@@ -1008,7 +1008,7 @@ async function convergeEpicOnShow(
       childObservation = change
         ? { kind: "present", change }
         : { kind: "absent" };
-    } catch (err) {
+    } catch {
       childObservation = { kind: "unreachable" };
     }
 

@@ -51,7 +51,6 @@ import {
 import { includeSnapshotSchema } from "./shared-args";
 import { readChangeProjectionState } from "../storage/read-change-projection";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
-import { extractStructuredOutput } from "../utils/extract-structured-output";
 import {
   appendDraft,
   maybeCreateWisdomDraftFromErrorRecovery,
@@ -101,7 +100,9 @@ function listTasksFromProjection(
   const hasKeyMatch = filter?.match(/^has_metadata_key:(.+)$/);
   const kvMatch = filter?.match(/^metadata:([^=]+)=(.+)$/);
   if (hasKeyMatch) {
-    tasks = tasks.filter((task) => task.metadata && hasKeyMatch[1] in task.metadata);
+    tasks = tasks.filter(
+      (task) => task.metadata && hasKeyMatch[1] in task.metadata,
+    );
   } else if (kvMatch) {
     tasks = tasks.filter((task) => task.metadata?.[kvMatch[1]] === kvMatch[2]);
   }
@@ -116,8 +117,14 @@ function getReadyTasksFromProjection(state: { tasks: Task[] }) {
     const blockers = (task.deps ?? [])
       .filter((dep) => dep.type === "blocked_by")
       .filter((dep) => {
-        const blocking = state.tasks.find((candidate) => candidate.id === dep.target);
-        return blocking && blocking.status !== "done" && blocking.status !== "cancelled";
+        const blocking = state.tasks.find(
+          (candidate) => candidate.id === dep.target,
+        );
+        return (
+          blocking &&
+          blocking.status !== "done" &&
+          blocking.status !== "cancelled"
+        );
       })
       .map((dep) => dep.target);
     if (blockers.length === 0) ready.push(task);
@@ -147,8 +154,12 @@ async function mutateTaskProjection(
         ),
       }),
       verifyProjection: (readback) => {
-        const task = readback.tasks.find((candidate) => candidate.id === taskId);
-        return task ? JSON.stringify(task) === JSON.stringify(mutate(task)) : false;
+        const task = readback.tasks.find(
+          (candidate) => candidate.id === taskId,
+        );
+        return task
+          ? JSON.stringify(task) === JSON.stringify(mutate(task))
+          : false;
       },
     },
   });
@@ -171,7 +182,10 @@ async function addTaskToProjection(
     intent: {
       changeId,
       mutationKind: "task_add",
-      mutateLatestProjection: (latest) => ({ ...latest, tasks: [...latest.tasks, task] }),
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        tasks: [...latest.tasks, task],
+      }),
       verifyProjection: (readback) =>
         readback.tasks.some((candidate) => candidate.id === task.id),
     },
@@ -909,11 +923,6 @@ export const taskTools = {
           args.error_recovery,
           now,
         );
-        const existingTaskReports =
-          taskRecord?.task.subagent_reports ??
-          changeForGuard?.tasks.find((task) => task.id === args.taskId)
-            ?.subagent_reports ??
-          [];
         const shouldPatchExistingDoneTask =
           Boolean(args.contract_refs) &&
           args.status === "done" &&
@@ -1041,6 +1050,9 @@ export const taskTools = {
             }),
             ...(args.error_recovery && {
               error_recovery: args.error_recovery,
+            }),
+            ...(clearedDelegationRecovery && {
+              delegation_recovery: clearedDelegationRecovery,
             }),
             ...(args.contract_refs && {
               contract_refs: args.contract_refs,

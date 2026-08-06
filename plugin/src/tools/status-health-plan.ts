@@ -582,9 +582,7 @@ export async function runHealthStatus(
   };
 }
 
-export function buildHealthStatusReadOptions(
-  request: HealthRequestContext = createHealthRequestContext(),
-): {
+export function buildHealthStatusReadOptions(): {
   recentLimit: number;
   sourceRanked: true;
 } {

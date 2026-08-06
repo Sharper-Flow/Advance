@@ -6,14 +6,9 @@
  * Temporal workflow queries, signals, or disk writes on the read path.
  */
 
-import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import type { Store } from "../storage/store";
 import type { Change } from "../types";
-
-let readContextBudgetMs = 2_000;
-function setReadContextBudgetMs(ms: number) {
-  readContextBudgetMs = ms;
-}
 
 const mocks = vi.hoisted(() => {
   return {

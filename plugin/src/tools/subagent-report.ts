@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
 import {
-  SUBAGENT_REPORT_MAX_RETRIES,
   formatApplyContextBindingHint,
   subagentReportImplementationCycleId,
   subagentReportKey,
@@ -13,7 +12,6 @@ import {
   ScopedSubagentReportSchema,
   DelegationRecoverySchema,
   type Change,
-  type ErrorRecovery,
   type ScopedSubagentReport,
   type Task,
   type RequiredFollowUp,
@@ -131,7 +129,9 @@ async function persistReportProjection(input: {
             : input.report.scope,
         agent: input.report.agent,
         attempt: input.report.attempt,
-        implementationCycleId: subagentReportImplementationCycleId(input.report),
+        implementationCycleId: subagentReportImplementationCycleId(
+          input.report,
+        ),
       }),
     },
     changesDir: input.store.paths.changes,
@@ -158,10 +158,13 @@ async function persistReportProjection(input: {
               changeId: candidate.change_id,
               taskId: reportTaskId(candidate),
                scope:
-                 typeof candidate.scope === "string" ? undefined : candidate.scope,
+                typeof candidate.scope === "string"
+                  ? undefined
+                  : candidate.scope,
               agent: candidate.agent,
               attempt: candidate.attempt,
-              implementationCycleId: subagentReportImplementationCycleId(candidate),
+              implementationCycleId:
+                subagentReportImplementationCycleId(candidate),
             }) ===
             subagentReportKey({
               changeId: input.report.change_id,
@@ -172,7 +175,9 @@ async function persistReportProjection(input: {
                    : input.report.scope,
               agent: input.report.agent,
               attempt: input.report.attempt,
-              implementationCycleId: subagentReportImplementationCycleId(input.report),
+              implementationCycleId: subagentReportImplementationCycleId(
+                input.report,
+              ),
             }),
         ),
     },
@@ -422,7 +427,10 @@ async function recordMalformedDelegationRecovery(input: {
     }
 
     const outcome = await coordinateChangeMutation<Change>({
-      authority: { reason: "record malformed report recovery", evidence: input.code },
+      authority: {
+        reason: "record malformed report recovery",
+        evidence: input.code,
+      },
       changesDir: input.store.paths.changes,
       intent: {
         changeId: identity.changeId,
@@ -431,7 +439,10 @@ async function recordMalformedDelegationRecovery(input: {
           ...latest,
           tasks: latest.tasks.map((candidate) =>
             candidate.id === identity.taskId
-              ? { ...candidate, delegation_recovery: DelegationRecoverySchema.parse(next) }
+              ? {
+                  ...candidate,
+                  delegation_recovery: DelegationRecoverySchema.parse(next),
+                }
               : candidate,
           ),
         }),
@@ -471,92 +482,6 @@ function reportIdentity(rawReport: unknown): {
     agent: parsed.data.agent,
     attempt: parsed.data.attempt ?? 1,
   };
-}
-
-function submitFailureRecovery(input: {
-  code: string;
-  message: string;
-  identity: NonNullable<ReturnType<typeof reportIdentity>>;
-  recordedAt: string;
-}): ErrorRecovery {
-  const agent = input.identity.agent ?? "unknown-agent";
-  return {
-    last_error: input.message.slice(0, 200),
-    // Clamp for the same reason the reducer does: retry_count is bounded by
-    // max_retries on read. This site records a single attempt so it cannot
-    // breach the attempts-length ceiling, but an unclamped counter is still
-    // wrong and would trip the invariant if attempts were ever absent.
-    retry_count: Math.min(input.identity.attempt, SUBAGENT_REPORT_MAX_RETRIES),
-    max_retries: SUBAGENT_REPORT_MAX_RETRIES,
-    error_class: "SEMANTIC",
-    next_strategy:
-      "Fix sub-agent report payload and retry",
-    attempts: [
-      {
-        attempt_number: input.identity.attempt,
-        error: input.message,
-        diagnosis: input.code,
-        fix_tried: "adv_subagent_report_submit",
-        strategy_label: `${agent}-report-submit-failure`,
-        outcome: "failed",
-        attempted_at: input.recordedAt,
-      },
-    ],
-  };
-}
-
-async function recordSubmitFailure(input: {
-  store: Store;
-  rawReport: unknown;
-  code: string;
-  message: string;
-}): Promise<{ recorded: boolean; reason?: string }> {
-  const identity = reportIdentity(input.rawReport);
-  if (!identity || !identity.taskId) {
-    return { recorded: false, reason: "report identity unavailable" };
-  }
-
-  const recordedAt = new Date().toISOString();
-  try {
-    const recovery = submitFailureRecovery({
-      code: input.code,
-      message: input.message,
-      identity,
-      recordedAt,
-    });
-    const outcome = await coordinateChangeMutation<Change>({
-      authority: { reason: "record report submission failure", evidence: input.code },
-      changesDir: input.store.paths.changes,
-      intent: {
-        changeId: identity.changeId,
-        mutationKind: "subagent_report_submission_failure",
-        mutateLatestProjection: (latest) => ({
-          ...latest,
-          tasks: latest.tasks.map((candidate) =>
-            candidate.id === identity.taskId
-              ? { ...candidate, error_recovery: recovery }
-              : candidate,
-          ),
-        }),
-        verifyProjection: (readback) =>
-          readback.tasks.find((candidate) => candidate.id === identity.taskId)
-            ?.error_recovery?.last_error === recovery.last_error,
-      },
-    });
-    if (outcome.kind !== "verified") {
-      throw new Error(
-        outcome.kind === "unverified" || outcome.kind === "operator_required"
-          ? outcome.reason
-          : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
-      );
-    }
-    return { recorded: true };
-  } catch (error) {
-    return {
-      recorded: false,
-      reason: error instanceof Error ? error.message : String(error),
-    };
-  }
 }
 
 /**
@@ -1173,14 +1098,19 @@ async function executeSubmit(
           report,
           taskId: taskIdForSignal,
           delegationRecovery:
-            updatedRecovery && task && updatedRecovery !== task.delegation_recovery
+            updatedRecovery &&
+            task &&
+            updatedRecovery !== task.delegation_recovery
               ? DelegationRecoverySchema.parse(updatedRecovery)
               : undefined,
         });
       } catch (error) {
         return appendProjectContext(
           formatToolOutput({
-            error: error instanceof Error ? error.message : "Failed to persist sub-agent report",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to persist sub-agent report",
             code: "SUBMIT_SIGNAL_FAILED",
             reportId: id,
           }),

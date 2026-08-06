@@ -145,8 +145,7 @@ export const advChangeShowHandler = async (
       };
       if (requestedKinds.length > 0) {
         const artifactRead = await subread.runLocalCapable("artifacts", () =>
-          readArtifacts(activeStore, changeId, requestedKinds, {
-          }),
+          readArtifacts(activeStore, changeId, requestedKinds),
         );
         if (artifactRead.ok) {
           applyArtifactContentToOutput(output, artifactRead.value);
@@ -466,8 +465,7 @@ export const advChangeShowHandler = async (
       // query covers all requested kinds (KD-6 readArtifacts).
       if (requestedKinds.length > 0) {
         const artifactRead = await subread.runLocalCapable("artifacts", () =>
-          readArtifacts(activeStore, changeId, requestedKinds, {
-          }),
+          readArtifacts(activeStore, changeId, requestedKinds),
         );
         if (artifactRead.ok) {
           applyArtifactContentToOutput(output, artifactRead.value);
@@ -554,13 +552,11 @@ export const advChangeListHandler = async (
   return withOptionalTargetPathStore(
     { store, target_path },
     async (activeStore, projectContext) => {
-      const result = (await activeStore.changes.list({
+      const result = await activeStore.changes.list({
         status: status === "in-flight" ? undefined : status,
         includeArchived,
         includeClosed,
-      })) as Awaited<ReturnType<Store["changes"]["list"]>> & {
-        changes: Array<Record<string, any>>;
-      };
+      });
       // Enrich with last-activity data from the store-computed timestamp.
       const now = new Date();
       const withLastActivity = result.changes.map((change) => {

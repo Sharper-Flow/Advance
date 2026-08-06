@@ -336,14 +336,16 @@ export const opsEvidenceTools = {
               : undefined,
           }),
           verifyProjection: (readback) =>
-            readback.ops_followup?.evidence.some((candidate) => candidate.id === entry.id) ??
-            false,
+            readback.ops_followup?.evidence.some(
+              (candidate) => candidate.id === entry.id,
+            ) ?? false,
         },
       });
       if (outcome.kind !== "verified") {
         return formatToolOutput({
           error:
-            outcome.kind === "unverified" || outcome.kind === "operator_required"
+            outcome.kind === "unverified" ||
+            outcome.kind === "operator_required"
               ? outcome.reason
               : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
           changeId: input.changeId,
@@ -440,7 +442,6 @@ export const opsEvidenceTools = {
         });
       }
 
-      const recordedAt = new Date().toISOString();
       const resolution: OpsFollowupResolution = {
         status: input.status,
         verified_at: input.verifiedAt,
@@ -496,14 +497,17 @@ export const opsEvidenceTools = {
           }),
           verifyProjection: (readback) =>
             readback.ops_followup_links?.some(
-              (link) => link.id === input.linkId && link.resolution?.verified_at === resolution.verified_at,
+              (link) =>
+                link.id === input.linkId &&
+                link.resolution?.verified_at === resolution.verified_at,
             ) ?? false,
         },
       });
       if (outcome.kind !== "verified") {
         return formatToolOutput({
           error:
-            outcome.kind === "unverified" || outcome.kind === "operator_required"
+            outcome.kind === "unverified" ||
+            outcome.kind === "operator_required"
               ? outcome.reason
               : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
           changeId: input.changeId,
@@ -605,21 +609,25 @@ export const opsEvidenceTools = {
                   ...latest.ops_followup,
                   updated_at: now,
                   runs: [
-                    ...latest.ops_followup.runs.filter((candidate) => candidate.id !== run.id),
+                    ...latest.ops_followup.runs.filter(
+                      (candidate) => candidate.id !== run.id,
+                    ),
                     run,
                   ],
                 }
               : undefined,
           }),
           verifyProjection: (readback) =>
-            readback.ops_followup?.runs.some((candidate) => candidate.id === run.id) ??
-            false,
+            readback.ops_followup?.runs.some(
+              (candidate) => candidate.id === run.id,
+            ) ?? false,
         },
       });
       if (outcome.kind !== "verified") {
         return formatToolOutput({
           error:
-            outcome.kind === "unverified" || outcome.kind === "operator_required"
+            outcome.kind === "unverified" ||
+            outcome.kind === "operator_required"
               ? outcome.reason
               : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
           changeId: input.changeId,
@@ -784,7 +792,11 @@ export const opsEvidenceTools = {
                   updated_at: recordedAt,
                   runs: latest.ops_followup.runs.map((candidate) =>
                     candidate.id === input.runId
-                      ? { ...candidate, status: input.next_status, evidence: [...candidate.evidence, entry] }
+                      ? {
+                          ...candidate,
+                          status: input.next_status,
+                          evidence: [...candidate.evidence, entry],
+                        }
                       : candidate,
                   ),
                 }
@@ -801,7 +813,8 @@ export const opsEvidenceTools = {
       if (outcome.kind !== "verified") {
         return formatToolOutput({
           error:
-            outcome.kind === "unverified" || outcome.kind === "operator_required"
+            outcome.kind === "unverified" ||
+            outcome.kind === "operator_required"
               ? outcome.reason
               : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
           changeId: input.changeId,

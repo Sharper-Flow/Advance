@@ -273,16 +273,14 @@ export const statusTools = {
                   recentLimit: STATUS_SUMMARY_RECENT_LIMIT,
                 }
               : view === "health"
-                ? buildHealthStatusReadOptions(healthRequest)
+                ? buildHealthStatusReadOptions()
                 : undefined;
-           const { status: loadedStatus } =
-            await withRecordedPhase("adv_status", "statusLoad", () =>
-              loadStatusWithBootstrapRetry(
-                activeStore,
-                statusReadOptions,
-              ),
+          const { status: loadedStatus } = await withRecordedPhase(
+            "adv_status",
+            "statusLoad",
+            () => loadStatusWithBootstrapRetry(activeStore, statusReadOptions),
             );
-          let status = loadedStatus;
+          const status = loadedStatus;
           // Request-local resolved documents: extracted for
           // enrichment reuse and stripped before output serialization —
           // the map is transport-only, never response payload.
@@ -465,8 +463,7 @@ export const statusTools = {
               async () => {
                 let primaryAssigned = false;
                 if (view === "health") {
-                  const cutoffAt =
-                    postStatusCutoffAt;
+                  const cutoffAt = postStatusCutoffAt;
                   const patches: CandidateEnrichmentPatch[] = [];
                   let rank = 0;
                   for (const rc of recentChanges) {
@@ -925,7 +922,6 @@ export const statusTools = {
               healthResult._health_execution,
             );
             toolLaneProjections = healthResult.tool_lane_projections;
-
           }
 
           const recommendationSummary = buildStatusRecommendationGroups(

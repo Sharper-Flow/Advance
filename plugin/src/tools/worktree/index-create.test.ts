@@ -49,7 +49,7 @@ import {
 } from "./index";
 
 import { runHooksWithSafety } from "./hooks";
-import { getWorktreePath, worktreeExistsForChange } from "./state";
+import { getWorktreePath } from "./state";
 
 // Legacy notification sentinels remain only so retired no-signal assertions
 // can state their boundary without importing removed notification modules.

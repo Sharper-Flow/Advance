@@ -1,6 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
 import {
-  mkdirSync,
   readFileSync,
   readdirSync,
   rmSync,
@@ -42,7 +41,6 @@ function sha256(input: string): string {
 const FAKE_INDEX = "// fake build\n";
 const FAKE_INDEX_SHA256 = sha256(FAKE_INDEX);
 
-const FRESH_MTIME = new Date("2030-01-01T00:00:00Z");
 const INDEX_MTIME = new Date("2020-01-01T00:00:00Z");
 const MANIFEST_MTIME = new Date("2030-01-01T00:00:00Z");
 

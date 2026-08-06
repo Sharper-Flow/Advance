@@ -15,7 +15,6 @@ import {
   type AcceptanceCriteriaFreshness,
   type AcceptanceCriteriaProjection,
   type ContractEvidenceStatus,
-  type Change,
   isProofBearingEvidencePolicy,
 } from "../types";
 import {

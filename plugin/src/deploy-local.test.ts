@@ -8,7 +8,6 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const POST_COMMIT_HOOK_PATH = join(REPO_ROOT, ".githooks/post-commit");
 const PRE_PUSH_HOOK_PATH = join(REPO_ROOT, ".githooks/pre-push");
-const SETUP_DOC_PATH = join(REPO_ROOT, "SETUP.md");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
 const PROVIDER_ASSEMBLY_DOC_PATH = join(
@@ -79,7 +78,6 @@ describe("deploy-local.sh", () => {
   const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
   const postCommitHook = readFileSync(POST_COMMIT_HOOK_PATH, "utf8");
   const prePushHook = readFileSync(PRE_PUSH_HOOK_PATH, "utf8");
-  const setupDoc = readFileSync(SETUP_DOC_PATH, "utf8");
 
   test("script exists and is non-empty", () => {
     expect(existsSync(DEPLOY_SCRIPT_PATH)).toBe(true);

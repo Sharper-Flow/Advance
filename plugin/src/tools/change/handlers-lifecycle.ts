@@ -1,7 +1,12 @@
 /** Handler definitions for lifecycle change tools. */
 import { z } from "zod";
 import { join, resolve } from "path";
-import type { FastFollowOf, ChangeOrigin, WorkNodeRef, Change } from "../../types";
+import type {
+  FastFollowOf,
+  ChangeOrigin,
+  WorkNodeRef,
+  Change,
+} from "../../types";
 import {
   createDefaultGates,
   ChangeOriginKindSchema,
@@ -49,10 +54,7 @@ import {
 } from "../target-project";
 import { includeSnapshotSchema } from "../shared-args";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
-import {
-  logger,
-  formatD3Error,
-} from "./helpers";
+import { logger, formatD3Error } from "./helpers";
 
 export const advChangeCreateHandler = async (
   {
@@ -232,8 +234,7 @@ export const advChangeCreateHandler = async (
   // semantics reframed by rq-backlogCoord02.
   const issueNumberForClaim = origin?.issue_number;
   const shouldClaimCheck =
-    issueNumberForClaim !== undefined &&
-    issueNumberForClaim > 0;
+    issueNumberForClaim !== undefined && issueNumberForClaim > 0;
   if (shouldClaimCheck && issueNumberForClaim !== undefined) {
     const projectId = (await getProjectId(store.paths.root)) ?? "";
     const existing = await claimChecker(projectId, issueNumberForClaim);
@@ -512,7 +513,6 @@ export const advChangeUpdateHandler = async (
         hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
       });
     }
-    let result;
     const artifactUpdates = {
       ...(proposal !== undefined ? { proposal } : {}),
       ...(problemStatement !== undefined ? { problemStatement } : {}),
@@ -536,7 +536,11 @@ export const advChangeUpdateHandler = async (
         verifyProjection: (readback) =>
           Object.entries(artifactUpdates).every(
             ([kind, content]) =>
-              (readback.documents as Record<string, string | undefined> | undefined)?.[kind] === content,
+              (
+                readback.documents as
+                  | Record<string, string | undefined>
+                  | undefined
+              )?.[kind] === content,
           ),
       },
     });
@@ -549,13 +553,28 @@ export const advChangeUpdateHandler = async (
         changeId,
       });
     }
-    result = {
+    const result = {
       success: true,
-      proposalPath: proposal !== undefined ? join(activeStore.paths.changes, changeId, "proposal.md") : undefined,
-      problemStatementPath: problemStatement !== undefined ? join(activeStore.paths.changes, changeId, "problem-statement.md") : undefined,
-      agreementPath: agreement !== undefined ? join(activeStore.paths.changes, changeId, "agreement.md") : undefined,
-      designPath: design !== undefined ? join(activeStore.paths.changes, changeId, "design.md") : undefined,
-      executiveSummaryPath: executiveSummary !== undefined ? join(activeStore.paths.changes, changeId, "executive-summary.md") : undefined,
+      proposalPath:
+        proposal !== undefined
+          ? join(activeStore.paths.changes, changeId, "proposal.md")
+          : undefined,
+      problemStatementPath:
+        problemStatement !== undefined
+          ? join(activeStore.paths.changes, changeId, "problem-statement.md")
+          : undefined,
+      agreementPath:
+        agreement !== undefined
+          ? join(activeStore.paths.changes, changeId, "agreement.md")
+          : undefined,
+      designPath:
+        design !== undefined
+          ? join(activeStore.paths.changes, changeId, "design.md")
+          : undefined,
+      executiveSummaryPath:
+        executiveSummary !== undefined
+          ? join(activeStore.paths.changes, changeId, "executive-summary.md")
+          : undefined,
     };
     return formatToolOutput({
       changeId,
@@ -593,8 +612,6 @@ export const advChangeCloseHandler = async (
     target_path,
     target_confirmed,
     confirmationEvidence,
-    recoveryMode,
-    recoveryEvidence,
   }: {
     changeId: string;
     reason: "cancelled" | "superseded" | "not_planned";
@@ -605,8 +622,6 @@ export const advChangeCloseHandler = async (
     target_path?: string;
     target_confirmed?: true;
     confirmationEvidence?: string;
-    recoveryMode?: "normal" | "poisoned_history";
-    recoveryEvidence?: string;
   },
   store: Store,
 ) => {
@@ -674,7 +689,8 @@ export const advChangeCloseHandler = async (
             },
           }),
           verifyProjection: (readback) =>
-            readback.status === "closed" && readback.lifecycleState === "closed",
+            readback.status === "closed" &&
+            readback.lifecycleState === "closed",
         },
       });
       if (outcome.kind !== "verified") {
@@ -751,8 +767,6 @@ export const advChangeBulkCloseHandler = async (
     target_path,
     target_confirmed,
     confirmationEvidence,
-    recoveryMode,
-    recoveryEvidence,
   }: {
     selector: import("../../types").BulkCloseSelector;
     reason: "cancelled" | "superseded" | "not_planned";
@@ -763,8 +777,6 @@ export const advChangeBulkCloseHandler = async (
     target_path?: string;
     target_confirmed?: true;
     confirmationEvidence?: string;
-    recoveryMode?: "normal" | "poisoned_history";
-    recoveryEvidence?: string;
   },
   store: Store,
 ) => {
@@ -859,7 +871,8 @@ export const advChangeBulkCloseHandler = async (
                 },
               }),
               verifyProjection: (readback) =>
-                readback.status === "closed" && readback.lifecycleState === "closed",
+                readback.status === "closed" &&
+                readback.lifecycleState === "closed",
             },
           });
           if (outcome.kind === "verified") {
@@ -1225,19 +1238,6 @@ export const lifecycleChangeTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
-      recoveryMode: z
-        .enum(["normal", "poisoned_history"])
-        .optional()
-        .default("normal")
-        .describe(
-          "Recovery mode. 'poisoned_history' allows the operator to supply precise recovery evidence to skip the workflow describe precheck and fall through to the disk projection on signal failure.",
-        ),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Operator-supplied precise recovery evidence (e.g. TMPRL1100, WorkflowNotFoundError, WorkflowExecutionAlreadyCompleted). Required when recoveryMode is 'poisoned_history'.",
-        ),
     },
     execute: advChangeCloseHandler,
   },
@@ -1270,19 +1270,6 @@ export const lifecycleChangeTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
-      recoveryMode: z
-        .enum(["normal", "poisoned_history"])
-        .optional()
-        .default("normal")
-        .describe(
-          "Recovery mode. 'poisoned_history' allows the operator to supply precise recovery evidence to skip the per-change workflow describe precheck and fall through to the disk projection on signal failure.",
-        ),
-      recoveryEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Operator-supplied precise recovery evidence (e.g. TMPRL1100, WorkflowNotFoundError, WorkflowExecutionAlreadyCompleted). Required when recoveryMode is 'poisoned_history'.",
-        ),
     },
     execute: advChangeBulkCloseHandler,
   },
