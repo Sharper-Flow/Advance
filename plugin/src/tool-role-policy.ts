@@ -69,11 +69,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Operator-only quarantine for corrupt or oversized active change projections. Atomically moves the bad change.json outside the active read path, preserves original bytes/metadata, and appends a purpose-specific audit entry (approvedByUser + approvalEvidence + changeId). Refuses healthy, missing, or Temporal-reconstructable records.",
   },
-  adv_change_workflow_terminate: {
-    class: "operator-only",
-    rationale:
-      "Terminates the exact describe-pinned wedged run of a shipped change's workflow (not a Temporal Reset); approvedByUser + approvalEvidence + shipped acceptance/release gate proof + poisoned-history describe evidence required.",
-  },
   adv_store_cleanup: {
     class: "operator-only",
     rationale:

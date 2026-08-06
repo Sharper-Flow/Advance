@@ -17,12 +17,6 @@
 
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import {
-  createTemporalReadDeadline,
-  remainingDeadlineMs,
-  TemporalQueryTimeoutError,
-  type TemporalReadDeadline,
-} from "../temporal/retry-wrapper";
 import { listChangeDirs, loadChange, isSchemaError } from "../storage/json";
 import { readBoundedProjectionDocument } from "../storage/change-projection-reader";
 import { computeLastActivity, firstOpenGate } from "../storage/store-types";
@@ -48,6 +42,27 @@ import type { EpicMembership } from "../types/epics";
 import type { ProjectionDocumentReadOutcome } from "../storage/change-projection-reader";
 
 export const TERMINAL_HISTORY_DEADLINE_BUDGET_MS = 20_000;
+
+interface ReadDeadline {
+  readonly budgetMs: number;
+  readonly deadlineAt: number;
+}
+
+class ReadDeadlineExceededError extends Error {
+  override readonly name = "ReadDeadlineExceeded";
+
+  constructor(public readonly timeoutMs: number) {
+    super(`Disk terminal history read exceeded ${timeoutMs}ms budget`);
+  }
+}
+
+function createReadDeadline(budgetMs: number): ReadDeadline {
+  return { budgetMs, deadlineAt: Date.now() + budgetMs };
+}
+
+function remainingReadDeadlineMs(deadline: ReadDeadline): number {
+  return deadline.deadlineAt - Date.now();
+}
 
 function projectionReadError(
   outcome: Exclude<ProjectionDocumentReadOutcome, { kind: "ok" }>,
@@ -83,7 +98,7 @@ export interface RenderTerminalHistoryOptions {
   changesPath?: string;
   includeArchived?: boolean;
   includeClosed?: boolean;
-  deadline?: TemporalReadDeadline;
+  deadline?: ReadDeadline;
 }
 
 export interface TerminalHistoryRenderResult {
@@ -94,11 +109,11 @@ export interface TerminalHistoryRenderResult {
 
 async function raceWithDeadline<T>(
   op: Promise<T>,
-  deadline: TemporalReadDeadline,
+  deadline: ReadDeadline,
 ): Promise<T> {
-  const remaining = remainingDeadlineMs(deadline);
+  const remaining = remainingReadDeadlineMs(deadline);
   if (remaining <= 0) {
-    throw new TemporalQueryTimeoutError(deadline.budgetMs);
+    throw new ReadDeadlineExceededError(deadline.budgetMs);
   }
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -106,7 +121,7 @@ async function raceWithDeadline<T>(
       op,
       new Promise<T>((_, reject) => {
         timer = setTimeout(
-          () => reject(new TemporalQueryTimeoutError(deadline.budgetMs)),
+          () => reject(new ReadDeadlineExceededError(deadline.budgetMs)),
           remaining,
         );
       }),
@@ -166,7 +181,7 @@ function changeToRow(change: Change): TerminalHistoryRow {
 async function loadArchiveBundleRow(
   archivePath: string,
   bundleDir: string,
-  deadline: TemporalReadDeadline,
+  deadline: ReadDeadline,
 ): Promise<TerminalHistoryRow | null> {
   const bundlePath = join(archivePath, bundleDir);
 
@@ -205,7 +220,7 @@ async function loadArchiveBundleRow(
       return summaryToRow(summary);
     }
   } catch (err) {
-    if (err instanceof TemporalQueryTimeoutError) throw err;
+    if (err instanceof ReadDeadlineExceededError) throw err;
     // Fall through to legacy change.json exactly once.
   }
 
@@ -225,7 +240,7 @@ async function loadArchiveBundleRow(
       return changeToRow(loaded.data);
     }
   } catch (err) {
-    if (err instanceof TemporalQueryTimeoutError) throw err;
+    if (err instanceof ReadDeadlineExceededError) throw err;
   }
 
   return null;
@@ -234,7 +249,7 @@ async function loadArchiveBundleRow(
 async function loadDiskTerminalRow(
   changesPath: string,
   dir: string,
-  deadline: TemporalReadDeadline,
+  deadline: ReadDeadline,
   archivePath: string | undefined,
   archiveBundleDirs: string[],
 ): Promise<TerminalHistoryRow | null> {
@@ -259,7 +274,7 @@ async function loadDiskTerminalRow(
         );
         if (fromArchive) return fromArchive;
       } catch (err) {
-        if (err instanceof TemporalQueryTimeoutError) throw err;
+        if (err instanceof ReadDeadlineExceededError) throw err;
       }
     }
   }
@@ -294,9 +309,8 @@ export async function renderTerminalHistory(
   options: RenderTerminalHistoryOptions,
 ): Promise<TerminalHistoryRenderResult> {
   const deadline =
-    options.deadline ??
-    createTemporalReadDeadline(TERMINAL_HISTORY_DEADLINE_BUDGET_MS);
-  const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
+    options.deadline ?? createReadDeadline(TERMINAL_HISTORY_DEADLINE_BUDGET_MS);
+  const expired = (): boolean => remainingReadDeadlineMs(deadline) <= 0;
 
   const rows = new Map<string, TerminalHistoryRow>();
   const archiveOmittedIds: string[] = [];
@@ -318,7 +332,7 @@ export async function renderTerminalHistory(
         deadline,
       );
     } catch (err) {
-      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+      const hitDeadline = err instanceof ReadDeadlineExceededError || expired();
       degradedSources.add("archive");
       if (hitDeadline) markDeadline("archive");
       logger.warn(
@@ -350,7 +364,7 @@ export async function renderTerminalHistory(
         archiveOmittedIds.push(extractCandidateIdFromArchiveDir(dir));
       }
     } catch (err) {
-      if (err instanceof TemporalQueryTimeoutError || expired()) {
+      if (err instanceof ReadDeadlineExceededError || expired()) {
         markDeadline("archive");
         archiveOmittedIds.push(
           ...archiveBundleDirs.slice(i).map(extractCandidateIdFromArchiveDir),
@@ -369,7 +383,7 @@ export async function renderTerminalHistory(
         deadline,
       );
     } catch (err) {
-      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+      const hitDeadline = err instanceof ReadDeadlineExceededError || expired();
       degradedSources.add("active_disk");
       if (hitDeadline) markDeadline("active_disk");
       logger.warn(
@@ -398,7 +412,7 @@ export async function renderTerminalHistory(
       }
       // Non-terminal active rows are not omissions.
     } catch (err) {
-      if (err instanceof TemporalQueryTimeoutError || expired()) {
+      if (err instanceof ReadDeadlineExceededError || expired()) {
         markDeadline("active_disk");
         diskOmittedIds.push(...activeDiskDirs.slice(i));
         break;

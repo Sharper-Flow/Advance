@@ -64,9 +64,9 @@ function requireRecoveredChange(
   outcome: MutationOutcome<Change>,
 ): Change {
   switch (outcome.kind) {
-    case "recovered_verified":
+    case "verified":
       return outcome.value;
-    case "recovered_unverified":
+    case "unverified":
       throw new Error(
         `${mutationKind} recovery for ${changeId} wrote the projection but the postcondition could not be verified: ${outcome.reason}`,
       );

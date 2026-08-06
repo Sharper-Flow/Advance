@@ -34,8 +34,6 @@ export const changeTools = {
   adv_change_validate: queryChangeTools.adv_change_validate,
   adv_change_archive: archiveChangeTools.adv_change_archive,
   adv_archive_purge: archiveChangeTools.adv_archive_purge,
-  adv_change_workflow_terminate:
-    archiveChangeTools.adv_change_workflow_terminate,
   adv_change_repair_origin: archiveChangeTools.adv_change_repair_origin,
   adv_change_update_issues: miscChangeTools.adv_change_update_issues,
   adv_change_reenter: miscChangeTools.adv_change_reenter,

@@ -21,11 +21,8 @@
  * via the shared ledger/lock primitives. Consolidation skips the file;
  * cleanup handles its deletion and audit manifest.
  *
- * The `execute` action (task tk-9e02f3b6015f) applies the exact dry-run
- * plan: approval-gated (C2), terminal-first disk-projection imports, live
- * change/Epic recreation under the true identity via the existing Temporal
- * creation/signal path (new workflows with carried state — never history
- * rewrites, C1), content-hash-deduped jsonl appends, and an append-only
+ * The `execute` action applies the exact dry-run plan: approval-gated (C2),
+ * disk-projection imports, content-hash-deduped jsonl appends, and an append-only
  * ledger keyed on (sourceProjectId, targetProjectId, itemId) so re-runs
  * are structurally idempotent no-ops (AC6, DDC4). The orphan store is
  * never modified or deleted (DONT4). The dry-run plan and the execute
@@ -48,27 +45,7 @@ import {
 import { getDataHome, resolveProjectIdentity } from "../utils/project-id";
 import { execFileGitAsync } from "../utils/git-binary";
 import { isProcessAlive } from "../utils/process-liveness";
-import { WORKER_LOCK_FILENAME } from "../temporal/worker-lock";
-import { buildEpicWorkflowId } from "../temporal/client";
-import {
-  TemporalOperationsOwner,
-  makeTemporalOperationContext,
-} from "../temporal/operations";
-import { listEpicWorkflows } from "../temporal/list-epic-workflows";
-import { loadChange } from "../storage/json";
-import { changeSeedStateFromChange } from "../temporal/change-state";
-import { buildEpicSeedState } from "../temporal/epic-state";
-import {
-  ensureChangeWorkflowStarted,
-  ensureEpicWorkflowStarted,
-} from "../temporal/workflow-start";
-import { getEpicStateQuery } from "../temporal/messages";
-import { TemporalReadOutcomeError } from "../temporal/outcome-errors";
-import type {
-  ChangeWorkflowInput,
-  EpicWorkflowInput,
-  EpicWorkflowState,
-} from "../temporal/contracts";
+import { listActiveEpicProjections } from "../storage/epic-projection-reader";
 import type { Store } from "../storage/store";
 
 // =============================================================================
@@ -77,6 +54,7 @@ import type { Store } from "../storage/store";
 
 const SHA40 = /^[0-9a-f]{40}$/;
 const SHA256_HEX = /^sha256:[0-9a-f]{64}$/;
+const WORKER_LOCK_FILENAME = "worker.lock";
 
 /** Ledger filename inside the target store (design D3/DDC4). */
 export const CONSOLIDATION_LEDGER_FILENAME = "consolidation-ledger.jsonl";
@@ -88,7 +66,6 @@ const TERMINAL_CHANGE_STATUSES = new Set(["archived", "closed"]);
 // =============================================================================
 
 export const ConsolidationPlanActionSchema = z.enum([
-  "recreate",
   "import_projection",
   "append_dedupe",
   "skip_collision",
@@ -230,7 +207,7 @@ export const ConsolidationReportSchema = z
       .object({
         retired: z.array(ConsolidationPlanItemSchema),
         live: z.array(ConsolidationPlanItemSchema),
-        live_source: z.enum(["temporal_visibility", "unavailable"]),
+        live_source: z.literal("disk_projection"),
       })
       .strict(),
     appends: z
@@ -601,6 +578,24 @@ async function readStoreRetiredEpics(storePath: string): Promise<string[]> {
   return readdirSafe(join(storePath, "retired-epics"));
 }
 
+async function readStoreActiveEpics(storePath: string): Promise<string[]> {
+  const result = await listActiveEpicProjections(
+    join(storePath, "active-epics"),
+  );
+  if (!result.success) throw new Error(result.error);
+  if (result.warnings && result.warnings.length > 0) {
+    throw new Error(
+      result.warnings
+        .map(
+          (warning) =>
+            `${warning.kind}: ${warning.path}${warning.error ? ` (${warning.error})` : ""}`,
+        )
+        .join("; "),
+    );
+  }
+  return (result.data ?? []).map((epic) => epic.id);
+}
+
 async function readJsonlHashed(path: string): Promise<{
   rows: number;
   malformed: number;
@@ -768,51 +763,11 @@ export async function scanStoresForRepo(
 // dry_run
 // =============================================================================
 
-export type LiveEpicLister = (projectId: string) => Promise<string[]>;
-
 export interface BuildPlanOptions {
   sourceProjectId: string;
   targetProjectId: string;
   dataHomeRoot: string;
-  /** Injectable live-epic enumeration (Temporal visibility). */
-  listLiveEpicIds?: LiveEpicLister;
   now?: () => Date;
-}
-
-async function defaultListLiveEpicIds(projectId: string): Promise<string[]> {
-  let owner: TemporalOperationsOwner | undefined;
-  try {
-    owner = await TemporalOperationsOwner.fromEnv(projectId);
-    const entries = await listEpicWorkflows(owner, {
-      projectId,
-      status: "active",
-    });
-    if (entries.kind !== "complete") {
-      throw entries.error;
-    }
-    return entries.value.map((e) => e.id);
-  } finally {
-    await owner?.close();
-  }
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`timed out after ${ms}ms`)),
-      ms,
-    );
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
 }
 
 /**
@@ -851,6 +806,7 @@ export async function buildConsolidationPlan(
   const [
     sourceChanges,
     sourceArchive,
+    sourceActiveEpics,
     sourceRetiredEpics,
     sourceLock,
     sourceWisdom,
@@ -858,6 +814,7 @@ export async function buildConsolidationPlan(
   ] = await Promise.all([
     readStoreChanges(source.path),
     readStoreArchiveBundles(source.path),
+    readStoreActiveEpics(source.path),
     readStoreRetiredEpics(source.path),
     probeWorkerLock(source.path),
     readJsonlHashed(join(source.path, "wisdom.jsonl")),
@@ -869,6 +826,9 @@ export async function buildConsolidationPlan(
   const targetArchive = target
     ? await readStoreArchiveBundles(target.path)
     : [];
+  const targetActiveEpics = target
+    ? await readStoreActiveEpics(target.path)
+    : [];
   const targetRetiredEpics = target
     ? await readStoreRetiredEpics(target.path)
     : [];
@@ -878,27 +838,6 @@ export async function buildConsolidationPlan(
   const targetReflections = target
     ? await readJsonlHashed(join(target.path, "reflections.jsonl"))
     : { rows: 0, malformed: 0, hashes: new Set<string>() };
-
-  // --- Live epics (Temporal visibility; best-effort) -----------------------
-  const listLive = options.listLiveEpicIds ?? defaultListLiveEpicIds;
-  let liveSource: "temporal_visibility" | "unavailable" = "temporal_visibility";
-  let sourceLiveEpics: string[] = [];
-  let targetLiveEpics: string[] = [];
-  try {
-    sourceLiveEpics = await withTimeout(
-      listLive(options.sourceProjectId),
-      10_000,
-    );
-    targetLiveEpics = await withTimeout(
-      listLive(options.targetProjectId),
-      10_000,
-    );
-  } catch (error) {
-    liveSource = "unavailable";
-    warnings.push(
-      `live epic enumeration unavailable (${error instanceof Error ? error.message : String(error)}); retired-epics disk projection still planned`,
-    );
-  }
 
   // --- Ledger (target-side, append-only) -----------------------------------
   // Read BEFORE collision detection: an item that is both ledgered and
@@ -964,12 +903,10 @@ export async function buildConsolidationPlan(
     add(sourceLocations, id, `retired-epics/${id}`, "epic");
   for (const id of targetRetiredEpics)
     add(targetLocations, id, `retired-epics/${id}`, "epic");
-  if (liveSource === "temporal_visibility") {
-    for (const id of sourceLiveEpics)
-      add(sourceLocations, id, `epics.live/${id}`, "epic");
-    for (const id of targetLiveEpics)
-      add(targetLocations, id, `epics.live/${id}`, "epic");
-  }
+  for (const id of sourceActiveEpics)
+    add(sourceLocations, id, `active-epics/${id}`, "epic");
+  for (const id of targetActiveEpics)
+    add(targetLocations, id, `active-epics/${id}`, "epic");
 
   const collisions: ConsolidationCollision[] = [];
   const collidingIds = new Set<string>();
@@ -1012,10 +949,7 @@ export async function buildConsolidationPlan(
   const terminal: ConsolidationPlanItem[] = [];
   for (const c of sourceChanges) {
     const isTerminal = TERMINAL_CHANGE_STATUSES.has(c.head.status);
-    const decided = planAction(
-      c.head.id,
-      isTerminal ? "import_projection" : "recreate",
-    );
+    const decided = planAction(c.head.id, "import_projection");
     const item: ConsolidationPlanItem = {
       id: c.head.id,
       kind: "change",
@@ -1062,8 +996,8 @@ export async function buildConsolidationPlan(
     },
   );
 
-  const liveEpicItems: ConsolidationPlanItem[] = sourceLiveEpics.map((id) => {
-    const decided = planAction(id, "recreate");
+  const liveEpicItems: ConsolidationPlanItem[] = sourceActiveEpics.map((id) => {
+    const decided = planAction(id, "import_projection");
     return {
       id,
       kind: "epic" as const,
@@ -1071,7 +1005,7 @@ export async function buildConsolidationPlan(
       plan_action: decided.action,
       collision: decided.collision,
       ledgered: decided.ledgered,
-      source_path: `epics.live/${id}`,
+      source_path: `active-epics/${id}`,
     };
   });
 
@@ -1123,7 +1057,7 @@ export async function buildConsolidationPlan(
     epics: {
       retired: retiredEpicItems.sort((a, b) => a.id.localeCompare(b.id)),
       live: liveEpicItems.sort((a, b) => a.id.localeCompare(b.id)),
-      live_source: liveSource,
+      live_source: "disk_projection" as const,
     },
     appends: {
       wisdom: appendPlan(sourceWisdom, targetWisdom),
@@ -1174,98 +1108,9 @@ export class ConsolidationError extends Error {
   }
 }
 
-/**
- * Default host-side bound for a single live-Epic state query. The Temporal
- * TypeScript `WorkflowHandle.query` exposes no per-call deadline, so the bound
- * lives here on the host side — comfortably below the 10s tool-execution
- * boundary (rq-storeConsolidation bounded-query).
- */
-export const DEFAULT_EPIC_QUERY_TIMEOUT_MS = 7_000;
-
-/**
- * Typed, actionable timeout for a live-Epic state query. Kept distinct from a
- * genuine "not found" so a hung query can never be coerced to a null (skip)
- * state: it always surfaces as a per-item `failed` outcome carrying the Epic
- * ID and remediation guidance.
- */
-export class EpicQueryTimeoutError extends Error {
-  readonly epicId: string;
-  readonly timeoutMs: number;
-  constructor(epicId: string, timeoutMs: number) {
-    super(
-      `live Epic state query for "${epicId}" timed out after ${timeoutMs}ms ` +
-        `(host-side bound below the 10s tool boundary); the source Epic ` +
-        `workflow did not answer in time — restore or restart the source ` +
-        `workflow and re-run consolidation`,
-    );
-    this.name = "EpicQueryTimeoutError";
-    this.epicId = epicId;
-    this.timeoutMs = timeoutMs;
-  }
-}
-
-/**
- * Race a live-Epic state query against a host-side deadline and observe the
- * losing query's rejection, so a late-settling Temporal query cannot surface
- * as an unhandled promise rejection after the deadline has already failed the
- * item. When the query settles first the timer is cleared and its value (or
- * error) is passed through unchanged.
- */
-function boundLiveEpicQuery(
-  query: Promise<EpicWorkflowState | null>,
-  epicId: string,
-  timeoutMs: number,
-): Promise<EpicWorkflowState | null> {
-  return new Promise<EpicWorkflowState | null>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      // Deadline won: attach a no-op observer to the still-pending query so
-      // its eventual rejection is never reported as unhandled.
-      void query.then(
-        () => {},
-        () => {},
-      );
-      reject(new EpicQueryTimeoutError(epicId, timeoutMs));
-    }, timeoutMs);
-    query.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
-
-/**
- * Injectable recreation backends. Defaults use the existing Temporal
- * creation/signal path (`ensureChangeWorkflowStarted` /
- * `ensureEpicWorkflowStarted`) under the true identity — new workflows with
- * carried state, never history rewrites (C1). Tests inject fakes so no real
- * Temporal server is touched.
- */
-export interface ConsolidationExecuteDeps {
-  recreateLiveChange?: (input: ChangeWorkflowInput) => Promise<void>;
-  queryLiveEpicState?: (
-    projectId: string,
-    epicId: string,
-  ) => Promise<EpicWorkflowState | null>;
-  recreateLiveEpic?: (input: EpicWorkflowInput) => Promise<void>;
-  /**
-   * Host-side bound (ms) applied to each `queryLiveEpicState` call. Defaults
-   * to {@link DEFAULT_EPIC_QUERY_TIMEOUT_MS}; tests inject a tiny value.
-   */
-  epicQueryTimeoutMs?: number;
-}
-
 export interface ExecuteConsolidationOptions extends BuildPlanOptions {
   approvedByUser: boolean;
   approvalEvidence: string;
-  /** Repo root recorded as the recreated workflow's archive project. */
-  archiveProjectPath?: string;
-  deps?: ConsolidationExecuteDeps;
 }
 
 /**
@@ -1301,9 +1146,8 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * Apply the exact last dry-run plan: terminal-first disk-projection imports,
- * then live recreation under the true identity, then content-hash-deduped
- * jsonl appends. Append-only ledger rows make re-runs structurally
+ * Apply the exact last dry-run plan: disk-projection imports, then
+ * content-hash-deduped jsonl appends. Append-only ledger rows make re-runs structurally
  * idempotent (AC6, DDC4); the orphan store is never modified (DONT4).
  *
  * Throws ConsolidationError (typed refusal, zero mutations) for missing
@@ -1371,12 +1215,17 @@ export async function executeConsolidation(
     await appendFile(ledgerFilePath, `${JSON.stringify(full)}\n`, "utf-8");
   };
 
-  // --- Phase 1: terminal imports (ALL before ANY live recreation) ----------
+  // --- Disk projection imports ------------------------------------------------
   const terminalItems: Array<{
     item: ConsolidationPlanItem;
     primaryRel: string;
     itemKind: ConsolidationLedgerRow["item_kind"];
   }> = [
+    ...plan.changes.live.map((item) => ({
+      item,
+      primaryRel: "change.json",
+      itemKind: "change_live" as const,
+    })),
     ...plan.changes.terminal.map((item) => ({
       item,
       primaryRel: "change.json",
@@ -1391,6 +1240,11 @@ export async function executeConsolidation(
       item,
       primaryRel: "retired-projection.json",
       itemKind: "epic_retired" as const,
+    })),
+    ...plan.epics.live.map((item) => ({
+      item,
+      primaryRel: "active-projection.json",
+      itemKind: "epic_live" as const,
     })),
   ];
 
@@ -1434,198 +1288,13 @@ export async function executeConsolidation(
         status: "failed",
         error: errorMessage(error),
       });
-      // Terminal-first invariant: abort before the live phase so a mid-run
-      // failure leaves history correct with only live work to retry.
+      // Stop after the first failed disk import so a retry can safely resume
+      // from the append-only ledger without skipping an item.
       return finishExecuteReport(plan, outcomes, now, errorMessage(error));
     }
   }
 
-  // --- Phase 2: live recreation under the true identity --------------------
-  const ownerRef: { current: TemporalOperationsOwner | null } = {
-    current: null,
-  };
-  const sourceOwnerRef: { current: TemporalOperationsOwner | null } = {
-    current: null,
-  };
-  const getOwner = async (): Promise<TemporalOperationsOwner> => {
-    if (!ownerRef.current) {
-      ownerRef.current = await TemporalOperationsOwner.fromEnv(
-        options.targetProjectId,
-      );
-    }
-    return ownerRef.current;
-  };
-  const getSourceOwner = async (): Promise<TemporalOperationsOwner> => {
-    if (!sourceOwnerRef.current) {
-      sourceOwnerRef.current = await TemporalOperationsOwner.fromEnv(
-        options.sourceProjectId,
-      );
-    }
-    return sourceOwnerRef.current;
-  };
-
-  const deps = options.deps ?? {};
-  const epicQueryTimeoutMs =
-    deps.epicQueryTimeoutMs ?? DEFAULT_EPIC_QUERY_TIMEOUT_MS;
-  const recreateLiveChange =
-    deps.recreateLiveChange ??
-    (async (input: ChangeWorkflowInput): Promise<void> => {
-      await ensureChangeWorkflowStarted(await getOwner(), input);
-    });
-  const queryLiveEpicState =
-    deps.queryLiveEpicState ??
-    (async (
-      projectId: string,
-      epicId: string,
-    ): Promise<EpicWorkflowState | null> => {
-      const o = await getSourceOwner();
-      const workflowId = buildEpicWorkflowId(projectId, epicId);
-      const ctx = makeTemporalOperationContext(
-        projectId,
-        workflowId,
-        "query",
-        "storeConsolidate.queryLiveEpicState",
-        epicQueryTimeoutMs,
-      );
-      const handle = o.getHandle(ctx);
-      const outcome = await o.query(ctx, handle, getEpicStateQuery);
-      if (outcome.kind === "complete")
-        return outcome.value as EpicWorkflowState;
-      if (outcome.kind === "not_found") return null;
-      throw new TemporalReadOutcomeError(outcome);
-    });
-  const recreateLiveEpic =
-    deps.recreateLiveEpic ??
-    (async (input: EpicWorkflowInput): Promise<void> => {
-      await ensureEpicWorkflowStarted(await getOwner(), input);
-    });
-
-  try {
-    for (const item of plan.changes.live) {
-      if (item.plan_action !== "recreate") {
-        outcomes.push({
-          item_id: item.id,
-          kind: item.kind,
-          action: item.plan_action,
-          status: "skipped",
-        });
-        continue;
-      }
-      try {
-        const srcDir = join(sourcePath, item.source_path!);
-        const dirName = basename(srcDir);
-        const loaded = await loadChange(join(sourcePath, "changes"), dirName);
-        if (!loaded.success || !loaded.data) {
-          throw new Error(
-            `source change ${item.id} unreadable (${loaded.success ? "empty" : loaded.error}); cannot carry state`,
-          );
-        }
-        const change = loaded.data;
-        // Disk projection + artifact files into the target store (mirrors
-        // the store's own non-terminal dual-write).
-        await importDirProjection(
-          srcDir,
-          join(targetPath, "changes", dirName),
-          "change.json",
-        );
-        await recreateLiveChange({
-          projectId: options.targetProjectId,
-          changeId: change.id,
-          title: change.title,
-          initializedAt: change.created_at,
-          projectionChangesDir: join(targetPath, "changes"),
-          ...(options.archiveProjectPath
-            ? { archiveProjects: [{ projectPath: options.archiveProjectPath }] }
-            : {}),
-          seedState: changeSeedStateFromChange(change),
-        });
-        const raw = (await readFileSafe(join(srcDir, "change.json"))) ?? "";
-        await writeLedger({
-          source_project_id: options.sourceProjectId,
-          target_project_id: options.targetProjectId,
-          item_id: item.id,
-          item_kind: "change_live",
-          action: "recreate",
-          content_hash: sha256(raw),
-        });
-        outcomes.push({
-          item_id: item.id,
-          kind: item.kind,
-          action: "recreate",
-          status: "applied",
-        });
-      } catch (error) {
-        outcomes.push({
-          item_id: item.id,
-          kind: item.kind,
-          action: "recreate",
-          status: "failed",
-          error: errorMessage(error),
-        });
-      }
-    }
-
-    for (const item of plan.epics.live) {
-      if (item.plan_action !== "recreate") {
-        outcomes.push({
-          item_id: item.id,
-          kind: item.kind,
-          action: item.plan_action,
-          status: "skipped",
-        });
-        continue;
-      }
-      try {
-        const state = await boundLiveEpicQuery(
-          queryLiveEpicState(options.sourceProjectId, item.id),
-          item.id,
-          epicQueryTimeoutMs,
-        );
-        if (!state) {
-          throw new Error(
-            `source epic workflow state unavailable for ${item.id}; cannot carry Epic state — restore the source workflow and re-run consolidation`,
-          );
-        }
-        await recreateLiveEpic({
-          projectId: options.targetProjectId,
-          epicId: item.id,
-          title: state.epic.title,
-          narrative: state.epic.narrative,
-          initializedAt: state.initializedAt,
-          seedState: buildEpicSeedState(state),
-        });
-        await writeLedger({
-          source_project_id: options.sourceProjectId,
-          target_project_id: options.targetProjectId,
-          item_id: item.id,
-          item_kind: "epic_live",
-          action: "recreate",
-          content_hash: sha256(canonicalize(state.epic)),
-        });
-        outcomes.push({
-          item_id: item.id,
-          kind: item.kind,
-          action: "recreate",
-          status: "applied",
-        });
-      } catch (error) {
-        outcomes.push({
-          item_id: item.id,
-          kind: item.kind,
-          action: "recreate",
-          status: "failed",
-          error: errorMessage(error),
-        });
-      }
-    }
-  } finally {
-    await Promise.all([
-      sourceOwnerRef.current?.close(),
-      ownerRef.current?.close(),
-    ]);
-  }
-
-  // --- Phase 3: jsonl appends with content-hash dedupe ---------------------
+  // --- Jsonl appends with content-hash dedupe -------------------------------
   // retireAgendaWorkflow: agenda.jsonl is intentionally absent. Legacy
   // Agenda data is deleted by adv_store_cleanup, not consolidated.
   const appendTargets: Array<{
@@ -1763,13 +1432,13 @@ export const storeConsolidateTools = {
       "action 'scan' (default, read-only) enumerates candidate orphan stores for the current repo across XDG shard layouts and flags dirs minted under unstable SHAs. " +
       "action 'dry_run' emits the full per-item plan (changes live vs terminal, archive bundles, Epics, wisdom/reflections, per-ID collision report) with zero mutations. " +
       "Colliding item IDs halt with a per-ID report — nothing is overwritten. " +
-      "action 'execute' applies the exact dry-run plan: approval-gated (approvedByUser + approvalEvidence), refuses on a live source worker.lock or collisions, imports terminal items as disk projections first, recreates live changes/Epics under the true identity, appends wisdom/reflections with content-hash dedupe, and writes an append-only ledger so re-runs are idempotent no-ops.",
+      "action 'execute' applies the exact dry-run plan: approval-gated (approvedByUser + approvalEvidence), refuses on a live source worker.lock or collisions, imports change/Epic/archive disk projections, appends wisdom/reflections with content-hash dedupe, and writes an append-only ledger so re-runs are idempotent no-ops.",
     args: {
       action: z
         .enum(["scan", "dry_run", "execute"])
         .default("scan")
         .describe(
-          "scan = enumerate orphan candidates (read-only); dry_run = full per-item plan (read-only); execute = apply the plan (approval-gated, terminal-first, ledger-idempotent)",
+          "scan = enumerate orphan candidates (read-only); dry_run = full per-item plan (read-only); execute = apply the disk-only plan (approval-gated, ledger-idempotent)",
         ),
       directory: z
         .string()
@@ -1845,7 +1514,6 @@ export const storeConsolidateTools = {
             dataHomeRoot,
             approvedByUser: args.approvedByUser === true,
             approvalEvidence: args.approvalEvidence ?? "",
-            archiveProjectPath: store.paths.root,
           });
           return formatToolOutput(report, { tool: "adv_store_consolidate" });
         } catch (error) {
