@@ -298,12 +298,12 @@ On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
 
 ### Multi-Session Coordination
 
-Multi-session is the supported design center. Temporal serializes ADV state writes via workflow updates; per-worktree git isolation eliminates working-tree races.
+Multi-session is the supported design center. Per-change filesystem advisory locks (acquired inside `commitChangeProjection`) serialize ADV state writes; per-worktree git isolation eliminates working-tree races.
 
 **Operational model:**
 
 - Each mutating execution session owns its own worktree; read-only/status sessions may run from the main checkout.
-- ADV state mutations are serialized by Temporal — no client-side locks needed
+- ADV change mutations are serialized by per-change filesystem advisory locks acquired inside `commitChangeProjection` (15s budget, jittered exponential backoff, stale-PID reclaim). A lock timeout fails closed as `operator_required`. Mutations to DIFFERENT changes are unconstrained — they touch disjoint files. Cross-session `git worktree add/remove` is serialized separately by a per-project `git-worktree.lock` (1.5s retry budget).
 - Git filesystem ops (`git worktree add/remove`) coordinate via narrow per-repo flock (~50ms hold)
 - ADV-managed worktree paths are tool-owned. Agents must not invent repo-specific
   directories such as `~/dev/<repo>-wt` for ADV changes. Use
@@ -452,7 +452,6 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 **Staging:** `git add -A` — `.gitignore` is the safety net.
 **Anti-patterns:**
 
-- × Do NOT run git from inside a Temporal workflow or activity
 - × Do NOT create `--allow-empty` commits
 - × Do NOT bypass checkpoint for "small" tasks — clean-tree returns `{status:'clean'}` without committing
 - × Do NOT push, merge, archive, release, amend, or force-push from checkpoint commits
@@ -514,7 +513,7 @@ Review/Harden gates block if cross-repo tasks incomplete or cancelled without ap
 
 ### Change Origin Linkage Strategy
 
-ADV change ≠ GH issue. ADV change = workflow state machine (gates, tasks, validation, archive) on Temporal. GH issue = registered intent on GitHub. Reference each other; neither reduces to other.
+ADV change ≠ GH issue. ADV change = durable disk-owned state machine (gates, tasks, validation, archive). GH issue = registered intent on GitHub. Reference each other; neither reduces to other.
 
 Three flow directions. All valid:
 
@@ -531,9 +530,9 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 
 | Surface                                                     | Source of truth                     | Why                                                                                                       |
 | ----------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| ADV initiative planning (multi-change initiatives, ordered shells/children) | ADV Epics (Temporal + Visibility)   | In-flight ADV initiative context, next-work recommendations, and shell-to-change promotion live with ADV state. |
-| Ranked backlog                                              | GH Project v2 + `ROADMAP.md` mirror | Multi-stakeholder, public, score fields (V/TC/RROE/E/WSJF). Moving to Temporal kills stakeholder surface. |
-| In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal + on-disk projection       | Session-coordinated, gate-validated, replay-safe. GH can't model.                                         |
+| ADV initiative planning (multi-change initiatives, ordered shells/children) | ADV Epics (disk-backed)             | In-flight ADV initiative context, next-work recommendations, and shell-to-change promotion live with ADV state. |
+| Ranked backlog                                              | GH Project v2 + `ROADMAP.md` mirror | Multi-stakeholder, public, score fields (V/TC/RROE/E/WSJF). Moving backlog into ADV state kills stakeholder surface. |
+| In-flight ADV state (changes, tasks, gates, agenda, wisdom) | on-disk change projections (sole authority) | Session-coordinated, gate-validated, replay-safe. GH can't model.                                         |
 | Linkage                                                     | `change.origin` (in `change.json`)  | Linkage IS ADV state. Lives with rest of ADV state.                                                       |
 
 **Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, cross-references active changes by `origin.issue_number`). Linked roadmap/triage archives close upstream issues by default per `rq-issueChangeLinkage02`. Remaining behavior automation (`/adv-proposal #N` body prefill, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
@@ -544,7 +543,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 | ----------------------------------------------- | ------------------------------------------------------------------------------ |
 | Auto-create GH issue from every `/adv-proposal` | Only when `origin.kind === 'roadmap'`; post-hoc promotion is `/adv-triage` job |
 | `linked_issues[]` as canonical link             | `change.origin.issue_number` — single, typed, queryable. Arrays advisory only. |
-| Move ranked backlog into Temporal               | Keep in GH Project. `.adv/roadmap-snapshot.json` = agent-readable mirror.      |
+| Move ranked backlog into ADV state             | Keep in GH Project. `.adv/roadmap-snapshot.json` = agent-readable mirror.      |
 | Ship behavior + schema together                 | Schema first, validate via cross-refs, then automation.          |
 | Default new change to `origin.kind = 'roadmap'` | Default omitted or explicit. `roadmap` requires `issue_number`.                |
 
@@ -606,12 +605,12 @@ Avoidances:
 ### Cross-Project Coordination
 
 Use when a source ADV change references/contributes to another ADV-enabled project via `target_path`.
-Reads use `snapshot-ok` + `_projectContext`; mutations use `temporal-required` + reachable target queue. Untrusted mutation requires `target_confirmed: true` + `confirmationEvidence`. Never direct ADV state file reads/writes. `cross_project_links` records provenance; `external_dependencies` warn only and never block gates/archive by default. Inspect `_externalDependencyStatus`; flow: create/link → verify source link → monitor advisory dependencies → confirmed target mutation.
+Reads use `snapshot-ok` + `_projectContext`; mutations use `authoritative` + reachable target disk store. Untrusted mutation requires `target_confirmed: true` + `confirmationEvidence`. Never direct ADV state file reads/writes. `cross_project_links` records provenance; `external_dependencies` warn only and never block gates/archive by default. Inspect `_externalDependencyStatus`; flow: create/link → verify source link → monitor advisory dependencies → confirmed target mutation.
 
 #### `target_path` matrix (which tools support cross-project)
 
 - `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_validate`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
-- `temporal-required`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_gate_status`, `adv_gate_complete`, `adv_doctor`, `adv_run_test`. Epic membership tools treat `target_path` as child-change routing and also accept `epic_owner_target_path` for remote Epic owner routing; both require trust confirmation when untrusted.
+- `authoritative`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_gate_status`, `adv_gate_complete`, `adv_doctor`, `adv_run_test`. Epic membership tools treat `target_path` as child-change routing and also accept `epic_owner_target_path` for remote Epic owner routing; both require trust confirmation when untrusted.
 - Current-project only: `adv_reflect`, `adv_conformance`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
 
 Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-project> && opencode`.
@@ -620,11 +619,11 @@ Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-p
 
 **Cross-session ADV mutation:** `opencode run --dir <other> --agent build --dangerously-skip-permissions "Run X tool"` works but pays ~60–300s per call. Use sparingly; for >5 sequential ops, open a session in the target project.
 
-**Dry-run mutations:** same success shape + `dryRun: true`; no Temporal signals, ADV state writes, conformance audit writes, worktree deletion/hooks, or filesystem writes. `target_path` dry-runs may read target state without untrusted mutation confirmation because they do not mutate.
+**Dry-run mutations:** same success shape + `dryRun: true`; no ADV state writes, conformance audit writes, worktree deletion/hooks, or filesystem writes. `target_path` dry-runs may read target state without untrusted mutation confirmation because they do not mutate.
 
 <!-- rq-nonLlmToolExec01 -->
 
-No direct non-LLM ADV tool-exec helper ships until OpenCode exposes stable tool execution (or equivalent structural runtime path). Do not build ad-hoc CLI paths that duplicate STSL, Temporal workflow access, store lifecycle, target trust gates, or audit semantics. Track #71 / upstream `anomalyco/opencode#25478`.
+No direct non-LLM ADV tool-exec helper ships until OpenCode exposes stable tool execution (or equivalent structural runtime path). Do not build ad-hoc CLI paths that duplicate STSL, store lifecycle, target trust gates, or audit semantics. Track #71 / upstream `anomalyco/opencode#25478`.
 
 #### `status: "in-flight"` filter shorthand
 

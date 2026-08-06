@@ -172,7 +172,7 @@ When creating tasks whose owned scope is frontend/view/component UI work, `/adv-
 Classification rule:
 
 - Set `metadata.frontend = "true"` when the task implements or modifies HTML/CSS/JS/TSX components, view/page templates, design tokens, layout, responsive behavior, accessibility, or visual polish.
-- Keep `metadata.frontend` unset (or `"false"`) for backend logic, storage, APIs, Temporal behavior, business rules, schemas, and infra tasks. `adv-engineer` owns these.
+- Keep `metadata.frontend` unset (or `"false"`) for backend logic, storage, APIs, persistence/state-store behavior, business rules, schemas, and infra tasks. `adv-engineer` owns these.
 - For mixed UI/backend work, **split into separate tasks** — a UI task with `metadata.frontend = "true"` and a backend task without. Use `blockedBy` to sequence them. Do not bundle both concerns in one task.
 
 `/adv-apply` uses `metadata.frontend` as a structural classification signal after `metadata.delegation_hint` (Priority 1) and risk routing. It does not directly route initial implementation to `adv-designer`; see `.opencode/command/adv-apply.md § Delegation Routing` and `.opencode/agents/adv-designer.md` for the engineer-first follow-up contract.
@@ -308,7 +308,7 @@ Search codebase for key terms → compare with affected files. Flag missing file
 
 **Check 5:** Advisory-only dependencies — `external_dependencies` are advisory-only dependencies. They may produce warnings, but prep MUST NOT model them as gate blockers unless the agreement explicitly requires blocking behavior.
 
-**Check 6:** Target tool mode — planned target reads must use `snapshot-ok` ADV tools with `target_path`; planned target mutations must use `temporal-required` ADV tools and capture `target_confirmed`/`confirmationEvidence` for untrusted targets.
+**Check 6:** Target tool mode — planned target reads must use `snapshot-ok` ADV tools with `target_path`; planned target mutations must use `authoritative` ADV tools and capture `target_confirmed`/`confirmationEvidence` for untrusted targets.
 
 ### 3.8 Multi-Worktree File-Overlap Scan
 
@@ -317,16 +317,16 @@ When 2+ worktrees are active for same project, scan for file-path intersections 
 **How it works:**
 
 1. Read `worktree_registry` from project workflow state (via `listWorktrees`).
-2. For each peer worktree (skipping current branch), resolve its `changeId` and read `change_summaries[changeId].touched_files` from Temporal (via `getChangeSummaries`).
+2. For each peer worktree (skipping current branch), resolve its `changeId` and read the union of its tasks' `touched_files` from that change's on-disk projection.
 3. Compute the intersection with current change's planned `touched_files`.
 4. Flag non-empty intersections as "potential merge conflict" warnings.
 5. Archived changes are skipped (their files are already merged).
 
-**Cross-session reliability:** Temporal serializes `touched_files` writes from peer sessions; the snapshot read by the scan is consistent at read time.
+**Cross-session reliability:** the per-change projection lock serializes `touched_files` writes from peer sessions, so each peer projection the scan reads is internally consistent at read time.
 
 **Surfacing:** Overlaps are surfaced in the vision banner (Phase 5.1) as advisory warnings. They do NOT block the prep gate — they inform user of coordination risk before autonomous execution begins.
 
-> **TODO:** Wire `scanFileOverlaps` from `plugin/src/validator/file-overlap.ts` into the prep validator. The validator is currently pure-sync over `Change` objects; integrating an async Temporal query requires refactoring the validator runner to accept async checks. Defer until the validator framework gains async I/O support.
+> **TODO:** Wire `scanFileOverlaps` from `plugin/src/validator/file-overlap.ts` into the prep validator. The validator is currently pure-sync over `Change` objects; reading peer projections from disk requires refactoring the validator runner to accept async checks. Defer until the validator framework gains async I/O support.
 
 ---
 

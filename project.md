@@ -13,20 +13,20 @@ OpenCode plugin repo implementing ADV — a spec-driven development orchestrator
 | Plugin runtime    | Bun (ESM)                                                                                                                              |
 | Test runner       | Vitest on Node.js                                                                                                                      |
 | Language          | TypeScript (strict)                                                                                                                    |
-| Runtime state     | Temporal workflows + JSON projections                                                                                                  |
+| Runtime state     | Disk-owned JSON change projections + per-change file locks, written through `commitChangeProjection`                                  |
 | DB compatibility  | `db_dir` accepted as deprecated config only                                                                                            |
 | Schema validation | Zod v4                                                                                                                                 |
 | Package manager   | pnpm (`plugin/pnpm-lock.yaml` is authoritative; `bun.lock`/`bun.lockb` are ignored and rejected by `scripts/check-lockfile-policy.ts`) |
 | Build             | tsup                                                                                                                                   |
 
-**Runtime ≠ test environment.** OpenCode runs under Bun, while tests run on Node. `@opencode-ai/plugin` is mocked in tests via vitest aliases in `vitest.config.ts`; runtime storage is Temporal-only.
+**Runtime ≠ test environment.** OpenCode runs under Bun, while tests run on Node. `@opencode-ai/plugin` is mocked in tests via vitest aliases in `vitest.config.ts`; runtime storage is the on-disk change projection store.
 
 ## Key Directories
 
 ```
 plugin/src/
   tools/        # MCP tool implementations (spec, change, task, gate, wisdom, backlog, project, status, test)
-  storage/      # JSON projections, Temporal adapters, migrations, external state paths
+  storage/      # JSON projections, per-change file locks, migrations, external state paths
   validator/    # Spec compliance, prep-readiness checks, task classification
   events/       # Terminal UI helpers, status markers
   utils/        # project-id (root commit SHA), debug-log, safe-execute, banner

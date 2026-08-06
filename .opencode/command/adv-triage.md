@@ -4,10 +4,10 @@ description: Triage sources, coalesce issue links, assign bug priority, and bala
 ---
 # ADV Triage — Issue Reconciliation and Portfolio Balance
 
-Reconcile backlog sources into GitHub issues, apply `priority:*` labels to bugs autonomously, coalesce unlinked issue↔change overlaps with explicit approval, and report what to finish, clean up, or start. GitHub Projects v2 remains canonical for issue/project membership. Temporal-backed ADV changes and Epics remain canonical for work in progress. ROADMAP.md, `.adv/roadmap-snapshot.json`, `/adv-roadmap`, and `adv roadmap` are retired surfaces; the portfolio reader MCP tool is also retired.
+Reconcile backlog sources into GitHub issues, apply `priority:*` labels to bugs autonomously, coalesce unlinked issue↔change overlaps with explicit approval, and report what to finish, clean up, or start. GitHub Projects v2 remains canonical for issue/project membership. ADV changes and Epics remain canonical for work in progress. ROADMAP.md, `.adv/roadmap-snapshot.json`, `/adv-roadmap`, and `adv roadmap` are retired surfaces; the portfolio reader MCP tool is also retired.
 <!-- rq-roadmapCliBridge01 rq-backlogCoord07 -->
 
-> **rq-backlogCoord01 / rq-backlogCoord05 note:** Issue claims use `AdvBacklogIssueNumber` through bounded Temporal Visibility reads. `/adv-triage` may correlate the open issue pool with active changes, but MUST NOT perform per-change fallback reads when Visibility is unavailable.
+> **rq-backlogCoord01 / rq-backlogCoord05 note:** Issue claims use `AdvBacklogIssueNumber` through bounded disk reads. `/adv-triage` may correlate the open issue pool with active changes, but MUST NOT perform per-change fallback reads when the bulk read is unavailable.
 
 > **CHECKLIST**: Default execute. `--dry-run` previews without mutations. Tier B inline approval required before opening issues, mutating cleanup state, or linking coalesce pairs. Bug priority uses `priority:{critical,high,medium,low}` labels. Heuristics may nominate pairs, never authorize links or suppression (P33).
 

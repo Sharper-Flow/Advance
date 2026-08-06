@@ -60,7 +60,7 @@ During detection passes 1 and 2, inspect architecture paths where correctness bo
 
 Flag architectural findings when heuristic inference, prose convention, regex-only matching, or LLM/agent judgment owns those boundaries. Mark as `category: structural-correctness`, `detectionMethod: ast|tool|research|heuristic`, and set `confidence: low` for AI-only evidence.
 
-ADV stack pack findings must cite structural owners such as `plugin/src/temporal/workflow-bundle-boundary.test.ts`, manifest/command asset tests, spec/asset anchors, and context-snapshot purity tests instead of treating prose or one external tool as sole authority.
+ADV stack pack findings must cite structural owners such as manifest/command asset tests, spec/asset anchors, and context-snapshot purity tests instead of treating prose or one external tool as sole authority.
 
 ---
 ## Report Generation

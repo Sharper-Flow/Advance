@@ -116,7 +116,7 @@ When task contributes to another ADV-enabled project, use ADV tools with explici
 | Operation | Required behavior |
 | --- | --- |
 | Target reads | `adv_change_show`, task/gate/status reads with `target_path`; inspect `_projectContext` |
-| Target mutations | `temporal-required` tools with `target_path`; fail closed if unavailable |
+| Target mutations | `authoritative` tools with `target_path`; fail closed if unavailable |
 | Untrusted target mutations | `target_confirmed: true` + `confirmationEvidence` |
 
 `cross_project_links` records provenance. `external_dependencies` are advisory.
@@ -417,7 +417,7 @@ TASK_SCOPE: {one-line frontend/component objective}
 IN_SCOPE:
   - {owned UI/component files/findings for this task}
 OUT_OF_SCOPE:
-  - backend logic, storage, APIs, Temporal, business rules, unrelated subsystems, review/harden
+  - backend logic, storage, APIs, persistence/state-store changes to the change record, business rules, unrelated subsystems, review/harden
 DONE_WHEN:
   - {task acceptance condition; UI verified}
 STOP_WHEN:
@@ -440,7 +440,7 @@ VISUAL_CONTEXT:
   evidence_expectation: {browser/design proof with exact affected route/state, post-hydration readiness, and viewport context, or fallback rationale when unavailable}
 DESIGN QUALITY BAR: component correctness, semantic HTML/accessibility, responsive behavior, visual polish, matching site design, finer details
 NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI inconsistencies via DESIGNER_REPORT.neighboring_recommendations[] and required_main_agent_actions
-BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate scope_drift.recommendation: "stop_and_report" and required_main_agent_actions with a handoff to `adv-engineer`. Do NOT edit backend files.
+BACKEND BOUNDARY: if the UI task requires changing storage, APIs, persistence/state-store changes to the change record, or business logic, stop and report. Populate scope_drift.recommendation: "stop_and_report" and required_main_agent_actions with a handoff to `adv-engineer`. Do NOT edit backend files.
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir}
 DESIGN EXCERPT: {relevant section if task references design}
 EXPECTED OUTPUT: implement the UI/component task, run tests, then call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test

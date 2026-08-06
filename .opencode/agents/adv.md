@@ -59,7 +59,7 @@ tools:
   # Gates
   # Sub-agent reports
   # Ops follow-ups
-  # Temporal / workflow ops
+  # workflow ops
   # Store maintenance (operator-only)
   # Snapshot health diagnostics
   # Reflection
