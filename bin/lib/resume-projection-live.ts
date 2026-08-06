@@ -10,6 +10,9 @@
  */
 
 import { buildBinResumeProjection } from "./resume-projection";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { resolveAdvStateSubdir } from "./adv-state-paths";
 import type { ResumeProjection } from "../../plugin/src/cli/projection-boundary";
 import {
   buildChangeWorkflowId,
@@ -117,6 +120,87 @@ async function queryEpicState(
 }
 
 export async function loadLiveResumeProjection(
+  projectId: string,
+  timeoutMs = QUERY_TIMEOUT_MS,
+  epicIds?: string[],
+): Promise<LiveResumeProjectionResult> {
+  try {
+    return await loadResumeProjectionFromTemporal(projectId, timeoutMs, epicIds);
+  } catch {
+    // Temporal removed: build the projection from disk projections.
+    return loadResumeProjectionFromDisk(projectId, epicIds);
+  }
+}
+
+/**
+ * Disk-projection resume reader. Reads every change projection and every
+ * active epic projection, then builds the same projection shape the Temporal
+ * path produced.
+ */
+function loadResumeProjectionFromDisk(
+  projectId: string,
+  epicIds?: string[],
+): LiveResumeProjectionResult {
+  try {
+    const changeRecords: ChangeRecord[] = [];
+    const changesDir = resolveAdvStateSubdir(projectId, "changes");
+    let changeFiles: string[] = [];
+    try {
+      changeFiles = readdirSync(changesDir).filter((f) => f.endsWith(".json"));
+    } catch {
+      changeFiles = [];
+    }
+    for (const file of changeFiles) {
+      try {
+        const raw = JSON.parse(readFileSync(join(changesDir, file), "utf8"));
+        changeRecords.push(normalizeChangeRecord(raw.state ?? raw));
+      } catch {
+        // Skip unreadable change projections; projection is advisory.
+      }
+    }
+
+    const epicRecords: EpicRecord[] = [];
+    const epicsDir = resolveAdvStateSubdir(projectId, "active-epics");
+    let epicDirs: string[] = [];
+    try {
+      epicDirs = readdirSync(epicsDir);
+    } catch {
+      epicDirs = [];
+    }
+    const wanted = epicIds?.length ? new Set(epicIds) : null;
+    for (const epicId of epicDirs) {
+      if (wanted && !wanted.has(epicId)) continue;
+      try {
+        const raw = JSON.parse(
+          readFileSync(join(epicsDir, epicId, "active-projection.json"), "utf8"),
+        );
+        const epic = normalizeEpicRecord(raw.state ?? raw);
+        if (epic) epicRecords.push(epic);
+      } catch {
+        // Skip unreadable epic projections; projection is advisory.
+      }
+    }
+
+    return {
+      live: true,
+      resume_projection: buildBinResumeProjection(
+        changeRecords,
+        epicRecords,
+        projectId,
+        epicIds,
+      ),
+    };
+  } catch (err) {
+    return {
+      live: false,
+      error: err instanceof Error ? err.message : String(err),
+      remediation:
+        "ADV resume projection unavailable. Could not read change/epic projections from the project state directory.",
+    };
+  }
+}
+
+async function loadResumeProjectionFromTemporal(
   projectId: string,
   timeoutMs = QUERY_TIMEOUT_MS,
   epicIds?: string[],

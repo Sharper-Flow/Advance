@@ -143,7 +143,7 @@ describe("deploy-local.sh", () => {
       // Pin the jq assertion that replaced it, not implementation tokens that
       // could regress to a substring heuristic.
       expect(content).toContain(
-        `jq -e '.source == "temporal" and (.schema_version != 1)'`,
+        `jq -e '.source == "disk" and (.schema_version != 1)'`,
       );
       // And guard against the old pattern creeping back in: a `grep -q`
       // referencing schema_version is the defect, not a valid implementation.

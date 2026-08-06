@@ -13,6 +13,9 @@ import {
   TemporalListOutcomeError,
 } from "../../plugin/src/cli/temporal-boundary";
 import { QUERY_TIMEOUT_MS } from "./live-status";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { resolveAdvStateSubdir } from "./adv-state-paths";
 
 export interface EpicListEntry {
   id: string;
@@ -20,7 +23,7 @@ export interface EpicListEntry {
 }
 
 export interface EpicListPayload {
-  source: "temporal";
+  source: "disk";
   live: boolean;
   stale: false;
   generated_at: string;
@@ -44,7 +47,7 @@ export function buildLiveEpicListPayload(
   },
 ): EpicListPayload {
   return {
-    source: "temporal",
+    source: "disk",
     live: true,
     stale: false,
     generated_at: options.now.toISOString(),
@@ -63,7 +66,7 @@ export function buildLiveEpicListFailure(
 ): EpicListPayload {
   const message = error instanceof Error ? error.message : String(error);
   return {
-    source: "temporal",
+    source: "disk",
     live: false,
     stale: false,
     generated_at: now.toISOString(),
@@ -95,15 +98,51 @@ export async function loadLiveEpics(
   projectId: string,
   timeoutMs = QUERY_TIMEOUT_MS,
 ): Promise<TemporalEpicWorkflowListEntry[]> {
-  return withTemporalOperations(
-    projectId,
-    (owner) =>
-      listEpicsFromVisibility(owner, {
-        projectId,
-        timeoutMs,
-        status: "active",
-      }),
-    undefined,
-    { connectTimeoutMs: timeoutMs },
-  );
+  try {
+    return await withTemporalOperations(
+      projectId,
+      (owner) =>
+        listEpicsFromVisibility(owner, {
+          projectId,
+          timeoutMs,
+          status: "active",
+        }),
+      undefined,
+      { connectTimeoutMs: timeoutMs },
+    );
+  } catch {
+    // Temporal removed: read epic projections from disk.
+    return loadEpicsFromDisk(projectId);
+  }
+}
+
+/**
+ * Disk-projection fallback for epic listing.
+ * Layout: {externalRoot}/active-epics/{epicId}/active-projection.json
+ */
+function loadEpicsFromDisk(
+  projectId: string,
+): TemporalEpicWorkflowListEntry[] {
+  try {
+    const root = resolveAdvStateSubdir(projectId, "active-epics");
+    const entries: TemporalEpicWorkflowListEntry[] = [];
+    for (const epicId of readdirSync(root)) {
+      try {
+        const raw = JSON.parse(
+          readFileSync(join(root, epicId, "active-projection.json"), "utf8"),
+        );
+        const state = raw.state ?? raw;
+        entries.push({
+          epicId: state.id ?? epicId,
+          title: state.title ?? epicId,
+          status: "active",
+        } as unknown as TemporalEpicWorkflowListEntry);
+      } catch {
+        // skip unreadable epic projections
+      }
+    }
+    return entries;
+  } catch {
+    return [];
+  }
 }

@@ -112,7 +112,7 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
     if (json) {
       process.stdout.write(
         emitJson({
-          source: "temporal",
+          source: "disk",
           live: false,
           stale: false,
           generated_at: new Date().toISOString(),
