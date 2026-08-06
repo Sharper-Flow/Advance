@@ -1,7 +1,8 @@
 /**
- * Task Tools — Signal/Query Adapter Tests
+ * Task Tools — Disk-Projection Read Tests
  *
- * TDD tests for task.ts helpers against mocked Temporal client.
+ * Tests for task read semantics against isolated disk projections; mutation
+ * tests below retain signal coverage where signaling remains user-visible.
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
@@ -11,19 +12,48 @@ import { taskTools } from "./task";
 import type { Store } from "../storage/store";
 import { ContractEvidencePolicySchema, TaskTypeSchema } from "../types";
 import { taskUpdatedSignal } from "../temporal/messages";
+import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 
 const PROJECT_ID = "0".repeat(40);
 const TARGET_PROJECT_ID = "0".repeat(39) + "1";
+let fixtureRoot = "";
 
 async function seedProjection(
   change: import("../types").Change,
 ): Promise<void> {
-  const dir = "/tmp/test/.adv/changes/test-change";
+  const dir = join(fixtureRoot, "changes", "test-change");
   await mkdir(dir, { recursive: true });
   await writeFile(
     join(dir, "change.json"),
     JSON.stringify(change, null, 2),
     "utf-8",
+  );
+}
+
+async function seedReadProjection(
+  changeId: string,
+  tasks: unknown[],
+  gates: unknown = {},
+): Promise<void> {
+  const changesDir = join(fixtureRoot, "changes");
+  await mkdir(changesDir, { recursive: true });
+  await writeFile(
+    join(changesDir, `${changeId}.json`),
+    JSON.stringify({
+      schemaVersion: 2,
+      projectId: PROJECT_ID,
+      changeId,
+      projectedAt: "2026-01-01T00:00:00Z",
+      state: {
+        id: changeId,
+        changeId,
+        title: "Test Change",
+        status: "active",
+        tasks,
+        gates,
+      },
+    }),
+    "utf8",
   );
 }
 
@@ -33,7 +63,7 @@ const mocks = vi.hoisted(() => {
   const handleMock = { signal: signalMock, query: queryMock };
   const getHandleMock = vi.fn(() => handleMock);
   const targetStore = {
-    paths: { root: "/tmp/target", changes: "/tmp/target/.adv/changes" },
+    paths: { root: "/tmp/target", changes: "" },
     changes: { get: vi.fn() },
     gates: { get: vi.fn(), complete: vi.fn(), reopenFrom: vi.fn() },
     tasks: { show: vi.fn(), get: vi.fn(), list: vi.fn() },
@@ -208,8 +238,8 @@ function createMockStore(
 
   return {
     paths: {
-      root: "/tmp/test",
-      changes: "/tmp/test/.adv/changes",
+      root: fixtureRoot,
+      changes: join(fixtureRoot, "changes"),
     } as Store["paths"],
     config: null,
     init: vi.fn(),
@@ -280,12 +310,13 @@ function createMockStore(
 }
 
 describe("task tools — signal/query adapters", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mocks.querySignal.mockReset();
-    mocks.querySignal.mockResolvedValue([]);
     mocks.fireSignalAndRefresh.mockReset();
     mocks.fireSignalAndRefresh.mockResolvedValue(undefined);
+    fixtureRoot = await createTempDir("adv-task-projection-");
+    mocks.targetStore.paths.changes = join(fixtureRoot, "changes");
     mocks.resolveGitSessionContext.mockImplementation(() => ({
       isWorktree: true,
       isMainCheckout: false,
@@ -302,19 +333,21 @@ describe("task tools — signal/query adapters", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    await cleanupTempDir(fixtureRoot);
+    fixtureRoot = "";
   });
 
   describe("adv_task_show", () => {
-    test("queries changeTaskQuery for task details", async () => {
+    test("reads task details from the disk projection", async () => {
       const store = createMockStore();
       const mockTask = {
         id: "tk-abc123",
         title: "Test Task",
         status: "pending",
       };
-      mocks.querySignal.mockResolvedValue(mockTask);
+      await seedReadProjection("test-change", [mockTask]);
 
       const result = await taskTools.adv_task_show.execute(
         { taskId: "tk-abc123" },
@@ -324,12 +357,6 @@ describe("task tools — signal/query adapters", () => {
       const parsed = JSON.parse(result);
       expect(parsed.task).toEqual(mockTask);
       expect(parsed.changeId).toBe("test-change");
-      expect(mocks.querySignal).toHaveBeenCalledTimes(1);
-      expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle,
-        PROJECT_ID,
-        "test-change",
-      );
     });
 
     test("returns error when task not found", async () => {
@@ -354,9 +381,7 @@ describe("task tools — signal/query adapters", () => {
       const store = createMockStore({
         tasks: { show: vi.fn(async () => null) },
       });
-      mocks.querySignal
-        .mockResolvedValueOnce([fallbackTask])
-        .mockResolvedValueOnce(fallbackTask);
+      await seedReadProjection("test-change", [fallbackTask]);
 
       const result = await taskTools.adv_task_show.execute(
         { taskId: "tk-reentry" },
@@ -368,12 +393,6 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.changeId).toBe("test-change");
       expect(parsed.task).toEqual(fallbackTask);
       expect(store.changes.list).toHaveBeenCalledTimes(1);
-      expect(mocks.querySignal).toHaveBeenCalledTimes(2);
-      expect(mocks.querySignal.mock.calls[0]?.slice(2)).toEqual([
-        undefined,
-        undefined,
-      ]);
-      expect(mocks.querySignal.mock.calls[1]?.[2]).toBe("tk-reentry");
     });
 
     test("falls back to active workflow task scan when stale fast path throws", async () => {
@@ -387,9 +406,7 @@ describe("task tools — signal/query adapters", () => {
           show: vi.fn(async () => Promise.reject(new Error("stale workflow"))),
         },
       });
-      mocks.querySignal
-        .mockResolvedValueOnce([fallbackTask])
-        .mockResolvedValueOnce(fallbackTask);
+      await seedReadProjection("test-change", [fallbackTask]);
 
       const result = await taskTools.adv_task_show.execute(
         { taskId: "tk-reentry-throw" },
@@ -444,12 +461,14 @@ describe("task tools — signal/query adapters", () => {
           })),
         },
       });
-      mocks.querySignal.mockResolvedValue({
-        id: "tk-1",
-        title: "Enriched Task",
-        status: "pending",
-        contract_refs: { implements: ["AC1", "AC2"] },
-      });
+      await seedReadProjection("test-change", [
+        {
+          id: "tk-1",
+          title: "Enriched Task",
+          status: "pending",
+          contract_refs: { implements: ["AC1", "AC2"] },
+        },
+      ]);
       (store.wisdom.search as ReturnType<typeof vi.fn>).mockResolvedValue([
         {
           id: "ws-old",
@@ -503,10 +522,9 @@ describe("task tools — signal/query adapters", () => {
           })),
         },
       });
-      mocks.querySignal.mockResolvedValue({
-        id: "tk-cap",
-        contract_refs: { implements: ["AC1"] },
-      });
+      await seedReadProjection("test-change", [
+        { id: "tk-cap", contract_refs: { implements: ["AC1"] } },
+      ]);
       // 7 entries — expect 5 newest in DESC order
       (store.wisdom.search as ReturnType<typeof vi.fn>).mockResolvedValue(
         Array.from({ length: 7 }, (_, i) => ({
@@ -530,10 +548,9 @@ describe("task tools — signal/query adapters", () => {
 
     test("D1: returns [] _relevantWisdom when contract_refs.implements is empty", async () => {
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue({
-        id: "tk-noimp",
-        contract_refs: { implements: [] },
-      });
+      await seedReadProjection("test-change", [
+        { id: "tk-noimp", contract_refs: { implements: [] } },
+      ]);
 
       const result = await taskTools.adv_task_show.execute(
         { taskId: "tk-noimp" },
@@ -547,7 +564,7 @@ describe("task tools — signal/query adapters", () => {
 
     test("D1: returns [] _relevantWisdom when contract_refs is undefined", async () => {
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue({ id: "tk-bare" });
+      await seedReadProjection("test-change", [{ id: "tk-bare" }]);
 
       const result = await taskTools.adv_task_show.execute(
         { taskId: "tk-bare" },
@@ -574,10 +591,9 @@ describe("task tools — signal/query adapters", () => {
           })),
         },
       });
-      mocks.querySignal.mockResolvedValue({
-        id: "tk-throw",
-        contract_refs: { implements: ["AC1"] },
-      });
+      await seedReadProjection("test-change", [
+        { id: "tk-throw", contract_refs: { implements: ["AC1"] } },
+      ]);
       (store.wisdom.search as ReturnType<typeof vi.fn>).mockRejectedValue(
         new Error("FTS index missing"),
       );
@@ -598,13 +614,13 @@ describe("task tools — signal/query adapters", () => {
   });
 
   describe("adv_task_list", () => {
-    test("queries changeTasksQuery with status filter", async () => {
+    test("lists projected tasks with a status filter", async () => {
       const store = createMockStore();
       const mockTasks = [
         { id: "tk-1", title: "Task 1", status: "pending" },
         { id: "tk-2", title: "Task 2", status: "done" },
       ];
-      mocks.querySignal.mockResolvedValue(mockTasks);
+      await seedReadProjection("test-change", mockTasks);
 
       const result = await taskTools.adv_task_list.execute(
         { changeId: "test-change", status: "pending" },
@@ -612,24 +628,23 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.tasks).toHaveLength(2);
-      expect(mocks.querySignal).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        "pending",
-        undefined,
-      );
+      expect(parsed.tasks).toEqual([mockTasks[0]]);
     });
   });
 
   describe("adv_task_ready", () => {
-    test("queries changeReadyQuery for unblocked tasks", async () => {
+    test("classifies projected tasks as ready or blocked by dependencies", async () => {
       const store = createMockStore();
-      const mockResult = {
-        ready: [{ id: "tk-1", title: "Ready Task", status: "pending" }],
-        blocked: [],
+      const readyTask = {
+        id: "tk-1",
+        title: "Ready Task",
+        status: "pending",
+        deps: [],
       };
-      mocks.querySignal.mockResolvedValue(mockResult);
+      await seedReadProjection("test-change", [
+        { id: "tk-current", title: "Current Task", status: "in_progress" },
+        readyTask,
+      ]);
 
       const result = await taskTools.adv_task_ready.execute(
         { changeId: "test-change" },
@@ -652,30 +667,22 @@ describe("task tools — signal/query adapters", () => {
           content: "tk-1 — Ready Task",
         },
       ]);
-      expect(mocks.querySignal).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-      );
     });
 
     test("projects bounded routing metadata into formatted ready output", async () => {
       const store = createMockStore();
-      const mockResult = {
-        ready: [
-          {
-            id: "tk-route",
-            title: "Routing Task",
-            status: "pending",
-            metadata: {
-              delegation_hint: "delegate_preferred",
-              frontend: "true",
-              noise: "ignored",
-            },
-          },
-        ],
-        blocked: [],
+      const routingTask = {
+        id: "tk-route",
+        title: "Routing Task",
+        status: "pending",
+        deps: [],
+        metadata: {
+          delegation_hint: "delegate_preferred",
+          frontend: "true",
+          noise: "ignored",
+        },
       };
-      mocks.querySignal.mockResolvedValue(mockResult);
+      await seedReadProjection("test-change", [routingTask]);
 
       const result = await taskTools.adv_task_ready.execute(
         { changeId: "test-change" },
@@ -683,7 +690,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.ready[0].metadata).toEqual(mockResult.ready[0].metadata);
+      expect(parsed.ready[0].metadata).toEqual(routingTask.metadata);
       expect(parsed.formatted.readyList).toContain(
         "delegation_hint=delegate_preferred",
       );
@@ -762,9 +769,7 @@ describe("task tools — signal/query adapters", () => {
       const store = createMockStore({
         tasks: { show: vi.fn(async () => null) },
       });
-      mocks.querySignal
-        .mockResolvedValueOnce([fallbackTask])
-        .mockResolvedValueOnce({ ...fallbackTask, status: "in_progress" });
+      await seedReadProjection("test-change", [fallbackTask]);
 
       const result = await taskTools.adv_task_update.execute(
         { taskId: "tk-reentry", status: "in_progress" },
@@ -795,9 +800,7 @@ describe("task tools — signal/query adapters", () => {
           show: vi.fn(async () => Promise.reject(new Error("stale workflow"))),
         },
       });
-      mocks.querySignal
-        .mockResolvedValueOnce([fallbackTask])
-        .mockResolvedValueOnce({ ...fallbackTask, status: "in_progress" });
+      await seedReadProjection("test-change", [fallbackTask]);
 
       const result = await taskTools.adv_task_update.execute(
         { taskId: "tk-reentry-throw", status: "in_progress" },
@@ -2320,7 +2323,7 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
         expect.objectContaining({
-          currentProjectPath: "/tmp/test",
+          currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
           stateRequirement: "temporal-required",
           target_confirmed: true,
@@ -2574,7 +2577,7 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
         expect.objectContaining({
-          currentProjectPath: "/tmp/test",
+          currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
           stateRequirement: "temporal-required",
           target_confirmed: true,
@@ -2649,7 +2652,7 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
         expect.objectContaining({
-          currentProjectPath: "/tmp/test",
+          currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
           stateRequirement: "temporal-required",
           mutation: false,
@@ -2831,7 +2834,7 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
         expect.objectContaining({
-          currentProjectPath: "/tmp/test",
+          currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
           stateRequirement: "temporal-required",
           target_confirmed: true,

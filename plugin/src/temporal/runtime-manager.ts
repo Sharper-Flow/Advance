@@ -5,7 +5,7 @@ import { spawnSync } from "child_process";
 import { statSync, accessSync, constants as fsConstants } from "node:fs";
 import * as net from "node:net";
 import { tmpdir } from "os";
-import { getTemporalAddress, getTemporalNamespace } from "./client";
+// getTemporalAddress/getTemporalNamespace no longer needed — no server spawn path
 
 type TemporalEnv = Record<string, string | undefined>;
 
@@ -200,26 +200,8 @@ export function getTemporalRuntimeLockPath(
   return join(baseDir, `${projectId}.runtime.lock`);
 }
 
-export function buildTemporalServerCommand(
-  env: NodeJS.ProcessEnv = process.env,
-): { command: string; args: string[] } {
-  const address = getTemporalAddress(env);
-  const [host, port] = splitAddress(address);
-  return {
-    command: "temporal",
-    args: [
-      "server",
-      "start-dev",
-      "--ip",
-      host || "127.0.0.1",
-      "--port",
-      port,
-      "--namespace",
-      getTemporalNamespace(env),
-      "--headless",
-    ],
-  };
-}
+// buildTemporalServerCommand removed — ADV never starts a Temporal server.
+// Disk projections are the sole source of truth; there is no spawn path.
 
 function splitAddress(address: string): [string, string] {
   const idx = address.lastIndexOf(":");

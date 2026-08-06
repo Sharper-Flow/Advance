@@ -13,7 +13,6 @@ import { tmpdir } from "os";
 
 import { conformanceTools } from "./conformance";
 import { loadConformanceState } from "../storage/conformance";
-import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 
 const mocks = vi.hoisted(() => {
   const signal = vi.fn(async () => {});
@@ -21,19 +20,7 @@ const mocks = vi.hoisted(() => {
   return {
     signal,
     query,
-    getService: vi.fn(() =>
-      createMockOwnerFromClient({
-        connection: { close: vi.fn(async () => {}) },
-        client: {
-          workflow: {
-            // Mock workflow handle must include both signal AND query so
-            // _adapters.isWorkflowHandleLike() recognizes it as a handle
-            // and routes fireSignal() through the direct-handle path.
-            getHandle: vi.fn(() => ({ signal, query })),
-          },
-        },
-      }),
-    ),
+    getService: vi.fn(() => null),
   };
 });
 
@@ -106,7 +93,7 @@ function expectSignalWarning(
     recoverable: true,
   });
   expect((parsed.signalWarning as { reason?: string }).reason).toContain(
-    "mutation-ineligible (unknown)",
+    "unavailable",
   );
 }
 
@@ -241,13 +228,8 @@ describe("adv_conformance action: lock", () => {
     expect(updated.specs["my-spec"]?.locked_at_archive).toBe("myChange");
     expect(typeof updated.specs["my-spec"]?.locked_at).toBe("string");
 
-    // Signal-driven: conformanceLockedSignal fired
-    expect(mocks.signal).toHaveBeenCalledTimes(1);
-    const signalCall = mocks.signal.mock.calls[0];
-    expect(signalCall[0].name).toBe("adv.change.conformanceLocked");
-    expect(signalCall[1]).toMatchObject({
-      specs: ["my-spec"],
-    });
+    // Local conformance state is durable; Temporal notification is retired.
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 
   test("surfaces signal warning when lock state saves but notification fails", async () => {
@@ -279,7 +261,7 @@ describe("adv_conformance action: lock", () => {
     const updated = await loadConformanceState(externalRoot, projectDir);
     expect(updated.specs["my-spec"]?.locked).toBe(true);
     expect(updated.specs["my-spec"]?.locked_at_archive).toBe("myChange");
-    expect(mocks.signal).toHaveBeenCalled();
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 
   test("rejects lock on missing spec", async () => {
@@ -406,14 +388,7 @@ describe("adv_conformance action: override", () => {
     expect(updated.specs["my-spec"]?.overrides).toHaveLength(1);
     expect(updated.specs["my-spec"]?.overrides[0]?.reason).toMatch(/outage/);
 
-    // Signal-driven: conformanceOverriddenSignal fired to the change that locked the spec
-    expect(mocks.signal).toHaveBeenCalledTimes(1);
-    const signalCall = mocks.signal.mock.calls[0];
-    expect(signalCall[0].name).toBe("adv.change.conformanceOverridden");
-    expect(signalCall[1]).toMatchObject({
-      user: "jrede",
-      reason: "CI cluster outage 2026-05-15",
-    });
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 
   test("surfaces signal warning when override audit saves but notification fails", async () => {
@@ -447,7 +422,7 @@ describe("adv_conformance action: override", () => {
     expectSignalWarning(parsed, "originalChange");
     const updated = await loadConformanceState(externalRoot, projectDir);
     expect(updated.specs["my-spec"]?.overrides).toHaveLength(1);
-    expect(mocks.signal).toHaveBeenCalled();
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 
   test("records override without signal when locked_at_archive is absent", async () => {
@@ -567,16 +542,7 @@ describe("adv_conformance action: run", () => {
     expect(parsed.failed[0].rq_id).toBe("rq-confLock01");
     expect(typeof parsed.run_id).toBe("string");
 
-    // Signal-driven: conformanceVerdictSignal fired
-    expect(mocks.signal).toHaveBeenCalledTimes(1);
-    const signalCall = mocks.signal.mock.calls[0];
-    expect(signalCall[0].name).toBe("adv.change.conformanceVerdict");
-    expect(signalCall[1]).toMatchObject({
-      verdict: "DRIFT",
-      failed: [
-        { rq_id: "rq-confLock01", summary: "lock state did not persist" },
-      ],
-    });
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 
   test("surfaces signal warning when run verdict saves but notification fails", async () => {
@@ -616,7 +582,7 @@ describe("adv_conformance action: run", () => {
     expect(updated.specs["advance-workflow"]?.last_verdict?.verdict).toBe(
       "DRIFT",
     );
-    expect(mocks.signal).toHaveBeenCalled();
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 
   test("returns PASS verdict when artifact has empty failed array", async () => {

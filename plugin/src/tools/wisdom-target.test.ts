@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Store } from "../storage/store";
 
 const mocks = vi.hoisted(() => ({
@@ -99,6 +102,26 @@ describe("wisdom target_path reads", () => {
   });
 
   test("change-specific target_path wisdom reads disk snapshot without Temporal lookup", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-wisdom-target-"));
+    const changes = join(root, "changes");
+    await mkdir(changes, { recursive: true });
+    await writeFile(
+      join(changes, "target-change.json"),
+      JSON.stringify({
+        schemaVersion: 2,
+        state: {
+          id: "target-change",
+          wisdom: [
+            {
+              id: "ws-target-change",
+              type: "pattern",
+              content: "target change wisdom",
+              recorded_at: "2026-01-01T00:00:00.000Z",
+            },
+          ],
+        },
+      }),
+    );
     const list = vi.fn(async () => [
       {
         id: "ws-target-change",
@@ -108,7 +131,11 @@ describe("wisdom target_path reads", () => {
       },
     ]);
     mocks.targetStore = {
-      paths: { root: "/target/project", wisdom: "/target/wisdom.jsonl" },
+      paths: {
+        root: "/target/project",
+        changes,
+        wisdom: "/target/wisdom.jsonl",
+      },
       wisdom: {
         listAll: vi.fn(async () => []),
         search: vi.fn(async () => []),
@@ -122,7 +149,7 @@ describe("wisdom target_path reads", () => {
     );
     const parsed = JSON.parse(output);
 
-    expect(list).toHaveBeenCalledWith("target-change");
+    expect(list).not.toHaveBeenCalled();
     expect(parsed.wisdom).toEqual([
       expect.objectContaining({ id: "ws-target-change", type: "pattern" }),
     ]);
@@ -130,5 +157,6 @@ describe("wisdom target_path reads", () => {
       stateMode: "snapshot",
       warning: expect.stringContaining("Read-only untrusted target_path"),
     });
+    await rm(root, { recursive: true, force: true });
   });
 });

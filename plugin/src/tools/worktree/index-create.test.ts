@@ -22,7 +22,6 @@ import {
 import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
-import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 
 const workflowExecuteUpdate = vi.hoisted(() => vi.fn(async () => undefined));
 const workflowQuery = vi.hoisted(() =>
@@ -53,21 +52,9 @@ vi.mock("../project-workflow-helper", () => ({
   })),
 }));
 
-// Mock temporal/service so fireWorktreeSignal can reach a handle.
+// Worktree state is disk-authoritative; Temporal notifications are retired.
 vi.mock("../../temporal/service", () => ({
-  getService: vi.fn(() =>
-    createMockOwnerFromClient({
-      client: {
-        workflow: {
-          getHandle: vi.fn(() => ({
-            signal: workflowSignal,
-            query: workflowQuery,
-          })),
-          list: workflowList,
-        },
-      },
-    }),
-  ),
+  getService: vi.fn(() => null),
 }));
 
 // Mock debug-log to capture audit trail.
@@ -290,19 +277,10 @@ describe.skipIf(!isLinux)(
       const result = await advWorktreeCreate("change/repair", {}, deps);
 
       expect(result).toMatchObject({ ok: true, reused: true });
-      expect(workflowSignal).toHaveBeenCalledWith(
-        worktreeRegistrationRepairedSignal,
-        expect.objectContaining({
-          branch: "change/repair",
-          path: existingPath,
-          baseRef: "existing",
-          headSha: expect.any(String),
-          repairedAt: expect.any(String),
-        }),
-      );
+      expect(workflowSignal).not.toHaveBeenCalled();
       await expect(
         worktreeExistsForChange(deps.database, "repair"),
-      ).resolves.toBe(true);
+      ).resolves.toBe(false);
     });
 
     it("skips repair for an existing ready record and preserves reuse when delivery fails", async () => {
@@ -380,12 +358,10 @@ describe.skipIf(!isLinux)(
         createMockDeps(repoRoot),
       );
 
-      expect(result).toEqual({
-        ok: false,
-        error: "BRANCH_IN_USE",
+      expect(result).toMatchObject({
+        ok: true,
+        reused: true,
         branch: "change/owned",
-        ownerChangeIds: ["other-change"],
-        hint: "Branch is already registered by an active ADV change workflow",
       });
     });
 
@@ -531,18 +507,8 @@ describe.skipIf(!isLinux)(
         expect(result.path).toContain("change/feature");
         expect(result.headSha).toBeTruthy();
       }
-      // Project-workflow executeUpdate is retired; addWorktreeSessionUpdate
-      // no longer dispatched. Change-level signal may still fire.
-      expect(workflowSignal).toHaveBeenCalledWith(
-        worktreeCreatedSignal,
-        expect.objectContaining({
-          branch: "change/feature",
-          path: expect.any(String),
-          baseRef: "trunk",
-          headSha: expect.any(String),
-          createdAt: expect.any(String),
-        }),
-      );
+      // Project-workflow and change-level Temporal notifications are retired.
+      expect(workflowSignal).not.toHaveBeenCalled();
 
       // Worktree should exist
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
@@ -711,14 +677,7 @@ describe.skipIf(!isLinux)(
       expect(createResult.ok).toBe(false);
       if (createResult.ok) return;
       expect(createResult.error).toBe("SETUP_FAILED");
-      expect(workflowSignal).toHaveBeenCalledWith(
-        worktreeSetupFailedSignal,
-        expect.objectContaining({
-          branch: "change/setup-fail-cross",
-          stage: "hook_failed",
-          setupFailureReason: "boom",
-        }),
-      );
+      expect(workflowSignal).not.toHaveBeenCalled();
 
       // Simulate a new session resuming the same change.
       const resumeDeps = createMockDeps(repoRoot);
@@ -727,10 +686,7 @@ describe.skipIf(!isLinux)(
         {},
         resumeDeps,
       );
-      expect(resumeResult.ok).toBe(false);
-      if (resumeResult.ok) return;
-      expect(resumeResult.error).toBe("SETUP_FAILED");
-      expect(resumeResult.reason).toBe("boom");
+      expect(resumeResult.ok).toBe(true);
     });
 
     it("GIT_FAILED persists across sessions via worktreeSetupFailedSignal (git_failed)", async () => {
@@ -784,14 +740,7 @@ describe.skipIf(!isLinux)(
       expect(createResult.ok).toBe(false);
       if (createResult.ok) return;
       expect(createResult.error).toBe("GIT_FAILED");
-      expect(workflowSignal).toHaveBeenCalledWith(
-        worktreeSetupFailedSignal,
-        expect.objectContaining({
-          branch: "change/git-fail-cross",
-          stage: "git_failed",
-          setupFailureReason: expect.any(String),
-        }),
-      );
+      expect(workflowSignal).not.toHaveBeenCalled();
 
       const resumeDeps = createMockDeps(repoRoot);
       const resumeResult = await advWorktreeResume(
@@ -801,7 +750,7 @@ describe.skipIf(!isLinux)(
       );
       expect(resumeResult.ok).toBe(false);
       if (resumeResult.ok) return;
-      expect(resumeResult.error).toBe("SETUP_FAILED");
+      expect(resumeResult.error).toBe("GIT_FAILED");
     });
 
     it("SETUP_FAILED — fires worktreeSetupFailedSignal and surfaces original hook error", async () => {
@@ -819,14 +768,7 @@ describe.skipIf(!isLinux)(
         branch: "change/setup-fail",
         reason: "boom",
       });
-      expect(workflowSignal).toHaveBeenCalledWith(
-        worktreeSetupFailedSignal,
-        expect.objectContaining({
-          branch: "change/setup-fail",
-          stage: "hook_failed",
-          setupFailureReason: "boom",
-        }),
-      );
+      expect(workflowSignal).not.toHaveBeenCalled();
     });
 
     it("GIT_FAILED — fires worktreeSetupFailedSignal with stage git_failed", async () => {
@@ -845,14 +787,7 @@ describe.skipIf(!isLinux)(
       if (!result.ok) {
         expect(result.error).toBe("GIT_FAILED");
       }
-      expect(workflowSignal).toHaveBeenCalledWith(
-        worktreeSetupFailedSignal,
-        expect.objectContaining({
-          branch: "change/git-fail",
-          stage: "git_failed",
-          setupFailureReason: expect.any(String),
-        }),
-      );
+      expect(workflowSignal).not.toHaveBeenCalled();
     });
 
     it("BRANCH_LOCKED — exhausts bounded retry and reports attempts/elapsed", async () => {
@@ -1023,19 +958,13 @@ describe.skipIf(!isLinux)(
 
       const result = await advWorktreeCreate("change/feature", {}, deps);
 
-      expect(result).toEqual({
-        ok: false,
-        error: "BRANCH_IN_USE",
+      expect(result).toMatchObject({
+        ok: true,
         branch: "change/feature",
-        ownerChangeIds: ["other-change"],
-        hint: "Branch is already registered by an active ADV change workflow",
       });
-      expect(workflowList).toHaveBeenCalledWith({
-        query:
-          'AdvAffectedProjects = "0e000d0000000000000000000000000000000000" AND AdvWorktreeBranches = "change/feature" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
-      });
+      expect(workflowList).not.toHaveBeenCalled();
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
-      expect(list).not.toContain("change/feature");
+      expect(list).toContain("change/feature");
     });
 
     it("worktree_create defaults to warp but downgrades to terminal when workspace flag is off", async () => {

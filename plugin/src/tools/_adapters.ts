@@ -12,10 +12,7 @@ import { buildChangeWorkflowId } from "../temporal/client";
 import type { ChangeWorkflowInput } from "../temporal/contracts";
 import { ensureChangeWorkflowStarted } from "../temporal/workflow-start";
 import type { QueryDefinition, SignalDefinition } from "@temporalio/workflow";
-import {
-  runTemporal,
-  runTemporalQuery,
-} from "../storage/store-temporal/shared";
+import { runTemporal } from "../storage/store-temporal/shared";
 import {
   makeTemporalOperationContext,
   type TemporalOperations,
@@ -242,35 +239,6 @@ export async function fireSignal<Args extends unknown[]>(
     );
   }
   throw error;
-}
-
-/**
- * Synchronous query against a change workflow.
- * Wrapped with a 5-second per-attempt timeout to avoid hanging on dead workers.
- */
-export async function querySignal<T>(
-  proxy: TemporalWorkflowHandleProxy,
-  query: unknown,
-  ...args: unknown[]
-): Promise<T> {
-  return runTemporalQuery(() => proxy.query<T>(query, ...args));
-}
-
-/**
- * Fire a signal then immediately query for fresh state.
- * The query is issued after the signal Promise resolves; Temporal's
- * query semantics guarantee the query runs on the latest workflow state
- * (including any signal handlers that have completed).
- */
-export async function fireSignalAndQuery<T, SArgs extends unknown[]>(
-  proxy: TemporalWorkflowHandleProxy,
-  signal: unknown,
-  signalArgs: SArgs,
-  query: unknown,
-  ...queryArgs: unknown[]
-): Promise<T> {
-  await fireSignal(proxy, signal, ...signalArgs);
-  return querySignal<T>(proxy, query, ...queryArgs);
 }
 
 /**

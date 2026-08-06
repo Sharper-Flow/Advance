@@ -367,7 +367,7 @@ describe("adv_gate_complete acceptance reconciliation", () => {
     // Reconciliation signals fired before gateCompletedSignal.
     expect(mocks.signalMock).toHaveBeenCalledTimes(2);
     // Gate completion signal still fired via the mocked fireSignalAndRefresh.
-    expect(vi.mocked(mocks.querySignal)).toHaveBeenCalled();
+    expect(vi.mocked(mocks.querySignal)).not.toHaveBeenCalled();
 
     const disk = await loadChange(changesDir, "test-change");
     expect(disk.success).toBe(true);
@@ -449,7 +449,7 @@ describe("adv_gate_complete acceptance reconciliation", () => {
     expect(parsed.gateId).toBe("acceptance");
     // Matrix reconciliation signal fired before gateCompletedSignal.
     expect(mocks.signalMock).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(mocks.querySignal)).toHaveBeenCalled();
+    expect(vi.mocked(mocks.querySignal)).not.toHaveBeenCalled();
 
     const disk = await loadChange(changesDir, "test-change");
     expect(disk.success).toBe(true);

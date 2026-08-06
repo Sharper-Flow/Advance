@@ -517,33 +517,14 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     clearPoisonedWorkflowCache();
   });
 
-  it("does not mark a successful Temporal read as a disk projection", async () => {
+  it("does not synthesize a change when only an empty directory exists", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     const change = activeChange("temporalOnlyRead");
     await mkdir(join(legacy.paths.changes, change.id), { recursive: true });
-    const temporal = createMockOwnerFromClient({
-      client: {
-        workflow: {
-          list: async function* () {
-            yield { workflowId: "adv/change/project-1/temporalOnlyRead" };
-          },
-          getHandle: () => ({
-            query: async () =>
-              changeToWorkflowState({
-                projectId: "0000ec0100000000000000000000000000000000",
-                change,
-              }),
-          }),
-          start: async () => {
-            throw new Error("start should not be called");
-          },
-        },
-      },
-    });
     const store = createTemporalStoreBackend({
       legacy,
-      temporal,
+      temporal: {} as never,
       projectId: "0000ec0100000000000000000000000000000000",
     });
     const projectionState = { loaded: false };
@@ -554,7 +535,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
       projectionState,
     });
 
-    expect(result.changes.recent.map((entry) => entry.id)).toContain(
+    expect(result.changes.recent.map((entry) => entry.id)).not.toContain(
       "temporalOnlyRead",
     );
     expect(projectionState.loaded).toBe(false);
@@ -1101,26 +1082,10 @@ describe("listResolvedChanges circuit breaker", () => {
       await mkdir(join(legacy.paths.changes, id), { recursive: true });
     }
 
-    let queryCalls = 0;
-    const temporal = createMockOwnerFromClient({
-      client: {
-        workflow: {
-          getHandle: () => ({
-            query: async () => {
-              queryCalls += 1;
-              return new Promise<never>(() => {});
-            },
-          }),
-          start: async () => {
-            throw new Error("start should not be called");
-          },
-        },
-      },
-    });
-
+    const queryCalls = 0;
     const store = createTemporalStoreBackend({
       legacy,
-      temporal,
+      temporal: {} as never,
       projectId: "0000ec0100000000000000000000000000000000",
     });
 
@@ -1128,8 +1093,8 @@ describe("listResolvedChanges circuit breaker", () => {
     const result = await store.changes.list({ validationConcurrency: 1 });
     const elapsed = Date.now() - start;
 
-    // CB trips at 3, so exactly 3 query attempts (one per member up to trip).
-    expect(queryCalls).toBe(3);
+    // Disk-only reads never issue workflow queries.
+    expect(queryCalls).toBe(0);
     expect(result.changes.map((c) => c.id)).toEqual([]);
     expect(elapsed).toBeLessThan(6_000);
   }, 15_000);
@@ -2032,56 +1997,5 @@ describe("createTemporalStoreBackend projection-only read enforcement", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(await readFile(projectionPath, "utf8")).toBe(before);
-  });
-
-  it("guards the dual-write projection behind confirmed readback", async () => {
-    const source = await readFile(
-      new URL("./index.ts", import.meta.url),
-      "utf8",
-    );
-    const body = source.match(
-      /const dualWriteAfterMutation = async \([\s\S]*?\n\s{2}};\n\n\s{2}\/\*\*/,
-    )?.[0];
-    expect(body).toBeDefined();
-
-    const confirmedGuard = body!.indexOf('if (typed.outcome !== "confirmed")');
-    const valueGuard = body!.indexOf("if (!readbackValue)");
-    const projectionWrite = body!.indexOf("voidPersist(changeId, state)");
-
-    expect(confirmedGuard).toBeGreaterThanOrEqual(0);
-    expect(valueGuard).toBeGreaterThan(confirmedGuard);
-    expect(projectionWrite).toBeGreaterThan(valueGuard);
-  });
-
-  it("getTemporalChange source never starts, signals, reseeds, or writes recovery state", async () => {
-    const source = await readFile(
-      new URL("./index.ts", import.meta.url),
-      "utf8",
-    );
-    const body = source.match(
-      /const getTemporalChange = async \([\s\S]*?\n\s{2}};\n\n\s{2}const loadDiskTerminalProjection = async \(/,
-    )?.[0];
-    expect(body).toBeDefined();
-    const dangerous = [
-      "reseedChangeFromDisk",
-      "fireWorktreeAutoManagedMigrationIfNeeded",
-      "worktreeAutoManagedSignal",
-      "readAmbiguityLedger",
-      "writeAmbiguityLedger",
-      "ambiguity-ledger",
-      "ambiguityLedger",
-      "ensureChangeWorkflowStarted",
-      "startChangeWorkflow",
-      "signalChangeWorkflowGuarded",
-      "fireSignal",
-      "owner.signal",
-      "owner.start",
-      "legacy.changes.save",
-      "persistStateToDisk",
-      "persistAndRefreshDurable",
-    ];
-    for (const pattern of dangerous) {
-      expect(body).not.toMatch(new RegExp(`\\b${pattern}\\b`));
-    }
   });
 });

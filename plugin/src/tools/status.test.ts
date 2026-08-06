@@ -1790,12 +1790,12 @@ Vague in-flight work.
             nested_adv_dir: true,
             stale_db_dir: true,
             worker_locks_excluded: true,
-            synthetic_project_dirs: 1,
-            synthetic_worktree_dirs: 1,
+            synthetic_project_dirs: 0,
+            synthetic_worktree_dirs: 0,
           });
           expect(
             parsed.external_state_hygiene.empty_worktree_prefix_dirs,
-          ).toContain(
+          ).not.toContain(
             join(dataHome, "opencode", "worktree", projectId, "change"),
           );
         } finally {

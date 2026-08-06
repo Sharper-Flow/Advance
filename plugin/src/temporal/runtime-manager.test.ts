@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   ADV_TEMPORAL_WORKER_SELF_ROLL_CAPABILITY,
   ADV_TEMPORAL_WORKER_SELF_ROLL_ENV,
-  buildTemporalServerCommand,
   buildTemporalWorkerProcessSpec,
   getTemporalRuntimeLockPath,
   probeTemporalClientRuntime,
@@ -14,23 +13,6 @@ import {
 } from "./runtime-manager";
 
 describe("temporal runtime manager helpers", () => {
-  it("builds a local temporal dev-server command", () => {
-    expect(buildTemporalServerCommand("127.0.0.1:7233", "default")).toEqual({
-      command: "temporal",
-      args: [
-        "server",
-        "start-dev",
-        "--ip",
-        "127.0.0.1",
-        "--port",
-        "7233",
-        "--namespace",
-        "default",
-        "--headless",
-      ],
-    });
-  });
-
   it("marks the worker child with the self-roll capability env marker", () => {
     const spec = buildTemporalWorkerProcessSpec({
       workerScript: "/fake/worker.js",

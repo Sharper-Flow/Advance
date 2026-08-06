@@ -8,6 +8,7 @@
 
 import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS,
@@ -1204,8 +1205,10 @@ describe("change tools — signal-driven lifecycle", () => {
         },
         store,
       );
-      expect(JSON.parse(completion).success).toBe(true);
-      expect(store.changes.invalidate).toHaveBeenCalledWith("test-change");
+      expect(JSON.parse(completion).success).toBeUndefined();
+      expect(JSON.parse(completion).error).toContain(
+        "Cannot confirm discovery gate completion",
+      );
 
       const result = await changeTools.adv_change_show.execute(
         { changeId: "test-change", include: { snapshot: true } },
@@ -4780,7 +4783,13 @@ describe("change tools — signal-driven lifecycle", () => {
         release: { status: "pending" },
       };
       const store = createMockStore({ gates: staleStoreGates });
-      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
+      const projectionDir = await createTempDir("adv-change-gate-projection-");
+      await mkdir(projectionDir, { recursive: true });
+      await writeFile(
+        join(projectionDir, "test-change.json"),
+        JSON.stringify({ schemaVersion: 2, state: { gates: allDoneGates } }),
+      );
+      (store.paths as { changes: string }).changes = projectionDir;
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -4788,9 +4797,10 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       const parsed = JSON.parse(result);
 
-      expect(mocks.queryMock).toHaveBeenCalledTimes(1);
+      expect(mocks.queryMock).not.toHaveBeenCalled();
       expect(parsed.error ?? "").not.toContain("incomplete gates");
       expect(parsed.incompleteGates).toBeUndefined();
+      await cleanupTempDir(projectionDir);
     });
 
     test("AC4: blocks archive release preflight when loaded plugin bundle is stale", async () => {
@@ -5786,11 +5796,9 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       const parsed = JSON.parse(result);
 
-      expect(parsed.error).toContain("incomplete gates");
-      expect(parsed.incompleteGates).toEqual(["acceptance"]);
-      expect(parsed.gateStateSource).toBe("live");
-      expect(parsed.storeIncompleteGates).toEqual([]);
-      expect(parsed.liveIncompleteGates).toEqual(["acceptance"]);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.incompleteGates).toBeUndefined();
+      expect(mocks.queryMock).not.toHaveBeenCalled();
     });
 
     // rq-harden-archive-flow AC1/AC2

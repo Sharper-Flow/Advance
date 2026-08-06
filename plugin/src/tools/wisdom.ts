@@ -20,20 +20,13 @@ import {
   compactProjectWisdom,
   listProjectWisdom,
 } from "../storage/project-wisdom";
-import {
-  taskUpdatedSignal,
-  wisdomAddedSignal,
-  changeStateQuery,
-} from "../temporal/messages";
+import { taskUpdatedSignal, wisdomAddedSignal } from "../temporal/messages";
+import { readChangeProjectionState } from "../storage/read-change-projection";
 import { formatToolOutput } from "../utils/tool-output";
 import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import {
-  fireSignalAndRefresh,
-  querySignal,
-  getChangeHandle,
-} from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { withOptionalTargetPathStore } from "./target-project";
 import { includeSnapshotSchema } from "./shared-args";
 import { findDraft, promoteDraft } from "../utils/wisdom-draft";
@@ -477,36 +470,18 @@ export const wisdomTools = {
               // Cross-change aggregation — route through store.wisdom.listAll
               wisdom = await activeStore.wisdom.listAll({ type: wisdomType });
             } else {
-              // Change-specific path: query workflow state for the current
-              // project, fallback to disk. target_path reads intentionally stay
-              // on the disk-snapshot store returned by withOptionalTargetPathStore
-              // so cross-project reads cannot observe or depend on live Temporal
-              // workflow state.
-              const handle = projectContext
-                ? null
-                : await getChangeHandleForChangeId(activeStore, changeId);
-              if (handle) {
-                const state = await querySignal<{
-                  wisdom: Array<{
-                    id: string;
-                    type: string;
-                    content: string;
-                    source_task?: string;
-                    recorded_at: string;
-                  }>;
-                }>(handle, changeStateQuery);
-                let entries = state.wisdom ?? [];
-                if (wisdomType) {
-                  entries = entries.filter((e) => e.type === wisdomType);
-                }
-                wisdom = entries;
-              } else {
-                let entries = await activeStore.wisdom.list(changeId);
-                if (wisdomType) {
-                  entries = entries.filter((e) => e.type === wisdomType);
-                }
-                wisdom = entries;
+              // Change-specific reads come from the disk projection. A missing
+              // or malformed projection is an empty result, never a Temporal
+              // query failure.
+              const state = readChangeProjectionState(
+                activeStore.paths.changes,
+                changeId,
+              );
+              let entries = state?.wisdom ?? [];
+              if (wisdomType) {
+                entries = entries.filter((e) => e.type === wisdomType);
               }
+              wisdom = entries;
             }
 
             wisdom = wisdom.filter((entry) =>

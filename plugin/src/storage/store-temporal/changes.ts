@@ -44,7 +44,6 @@ import {
   problemStatementUpdatedSignal,
   proposalUpdatedSignal,
   updateArtifactMetadataSignal,
-  changeStateQuery,
   crossProjectCoordinationUpdatedSignal,
 } from "../../temporal/messages";
 import { getMutationReceiptQuery } from "../../temporal/messages";
@@ -55,11 +54,7 @@ import {
   MutationApplicationUnconfirmedError,
   waitForQueryPredicate,
 } from "../../utils/query-predicate";
-import {
-  TemporalListOutcomeError,
-  TemporalMutationOutcomeError,
-  TemporalReadOutcomeError,
-} from "../../temporal/outcome-errors";
+import { TemporalMutationOutcomeError } from "../../temporal/outcome-errors";
 import { getCurrentSessionId } from "../../utils/session-id";
 import { hasArchiveBundle, removeChangeDir, loadProjectConfig } from "../json";
 import { resolveProjectFeaturePolicy } from "../../types";
@@ -68,6 +63,7 @@ import {
   listChangeDirs,
   loadChange,
 } from "../change-projection-reader";
+import { readChangeProjectionState } from "../read-change-projection";
 import {
   listSummaryChanges,
   type SummaryIndexPaths,
@@ -75,8 +71,6 @@ import {
 } from "../change-summary-shard-reader";
 import {
   runTemporal,
-  runTemporalQuery,
-  getChangeHandle,
   getGuardedChangeHandle,
   getTemporalOwner,
   createTemporalReadDeadline,
@@ -103,8 +97,6 @@ import {
 import { createLogger } from "../../utils/debug-log";
 import { enforceMutationEligibilityForError } from "../../temporal/mutation-safety";
 import { fireSignalWithMutationGuard } from "./gates";
-import { buildVisibilityQuery } from "../../temporal/list-change-workflows";
-import { CHANGE_WORKFLOW_PREFIX } from "../../temporal/contracts";
 import { buildChangeWorkflowId } from "../../temporal/client";
 import { atomicWriteFile, acquireFileLock } from "../../utils/fs";
 import { mapWithConcurrency } from "../../utils/concurrency";
@@ -468,23 +460,11 @@ function createBatchCloseCoordinationDeps(
       }
     },
     queryState: async (changeId) => {
-      const owner = getTemporalOwner(input);
-      const handle = await getGuardedChangeHandle(input, changeId);
-      const workflowId = buildChangeWorkflowId(input.projectId, changeId);
-      const ctx = makeTemporalOperationContext(
-        input.projectId,
-        workflowId,
-        "query",
-        "batchCloseQueryState",
-        5_000,
-      );
-      const outcome = await runTemporal(async () =>
-        owner.query(ctx, handle, changeStateQuery),
-      );
-      if (outcome.kind !== "complete") {
-        throw new TemporalReadOutcomeError(outcome);
+      const state = readChangeProjectionState(legacy.paths.changes, changeId);
+      if (!state) {
+        throw new Error(`Change projection not found: ${changeId}`);
       }
-      return outcome.value as ChangeWorkflowState;
+      return state;
     },
     now: () => new Date().toISOString(),
   };
@@ -1585,25 +1565,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             `changes.save(${change.id}, archived): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
           );
         }
-        const owner = getTemporalOwner(input);
-        const handle = await getGuardedChangeHandle(input, change.id);
-        const ctx = makeTemporalOperationContext(
-          input.projectId,
-          buildChangeWorkflowId(input.projectId, change.id),
-          "query",
-          "archiveReadback",
-          5_000,
-        );
-        const queryOutcome = await runTemporal(async () =>
-          owner.query(ctx, handle, changeStateQuery),
-        );
-        if (queryOutcome.kind !== "complete") {
-          throw (
-            queryOutcome.error ?? new Error("archive readback query incomplete")
-          );
+        const snapshot = await readChangeSnapshot(change.id);
+        if (!snapshot.found) {
+          throw new Error("archive readback projection unavailable");
         }
-        const result =
-          queryOutcome.value as import("../../temporal/contracts").ChangeWorkflowState;
+        const result = snapshot.snapshot as unknown as ChangeWorkflowState;
         indexTasksFromState(result);
         updateOverlay(change.id, { status: "archived" });
         setCachedChange(result);
@@ -1982,24 +1948,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           for (const changeId of canonicalIds) {
             const record = outcome.operation.per_target[changeId];
             if (record?.phase !== "committed") continue;
-            const owner = getTemporalOwner(input);
-            const handle = await getGuardedChangeHandle(input, changeId);
-            const ctx = makeTemporalOperationContext(
-              input.projectId,
-              buildChangeWorkflowId(input.projectId, changeId),
-              "query",
-              "batchCloseReadback",
-              5_000,
+            const state = readChangeProjectionState(
+              legacy.paths.changes,
+              changeId,
             );
-            const result = await runTemporal(async () =>
-              owner.query(ctx, handle, changeStateQuery),
-            );
-            if (result.kind !== "complete") {
-              throw (
-                result.error ?? new Error("batch close readback incomplete")
-              );
+            if (!state) {
+              throw new Error("batch close readback projection unavailable");
             }
-            const state = result.value as ChangeWorkflowState;
             indexTasksFromState(state);
             updateOverlay(changeId, {
               status: "closed",
@@ -2182,35 +2137,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       let visibilityIds: string[] = [];
       try {
-        const owner = getTemporalOwner(input);
-        const listCtx = makeTemporalOperationContext(
-          input.projectId,
-          "conflict-authority-list",
-          "list",
-          "listConflictAuthority",
-          5_000,
-        );
-        const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
-        const query = buildVisibilityQuery({ projectId: input.projectId });
         visibilityIds = await raceWithTemporalDeadline(
-          (async () => {
-            const ids: string[] = [];
-            const outcome = await owner.list<{ workflowId: string }>(
-              listCtx,
-              query,
-            );
-            if (outcome.kind !== "complete") {
-              throw new TemporalListOutcomeError(outcome);
-            }
-            for (const wf of outcome.value) {
-              const wfid = wf.workflowId;
-              if (!wfid.startsWith(projectPrefix)) continue;
-              const changeId = wfid.slice(projectPrefix.length);
-              if (changeId.length === 0) continue;
-              ids.push(changeId);
-            }
-            return ids;
-          })(),
+          listChangeDirs(legacy.paths.changes),
           deadline,
         );
         visibilitySucceeded = true;
@@ -2311,85 +2239,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           }
         }
 
-        // Optional workflow fallback: capped at min(1,000ms, remaining budget).
-        try {
-          const remaining = remainingDeadlineMs(deadline);
-          if (remaining <= 0) {
-            return {
-              kind: "fail",
-              warning: `Active candidate ${changeId} has no durable projection and the aggregate deadline is exhausted; cannot establish active authority.`,
-            };
-          }
-          const fallbackBudget = Math.min(1_000, Math.max(0, remaining));
-          const fallbackDeadline = {
-            budgetMs: fallbackBudget,
-            deadlineAt: Date.now() + fallbackBudget,
-          };
-          const owner = getTemporalOwner(input);
-          const handle = getChangeHandle(input, changeId);
-          const ctx = makeTemporalOperationContext(
-            input.projectId,
-            buildChangeWorkflowId(input.projectId, changeId),
-            "query",
-            "conflictAuthorityFallback",
-            fallbackBudget,
-          );
-          const outcome = await runTemporalQuery(
-            async () => owner.query(ctx, handle, changeStateQuery),
-            { deadline: fallbackDeadline },
-          );
-          if (outcome.kind !== "complete") {
-            throw (
-              outcome.error ??
-              new Error("conflict authority fallback query incomplete")
-            );
-          }
-          const state = outcome.value as ChangeWorkflowState;
-
-          if (state.changeId !== changeId) {
-            return {
-              kind: "fail",
-              warning: `Active candidate ${changeId} workflow fallback returned mismatched id (${state.changeId}); cannot establish active authority.`,
-            };
-          }
-          if (state.status === "archived" || state.status === "closed") {
-            if (terminalProjection) {
-              return { kind: "shadow" };
-            }
-            return {
-              kind: "fail",
-              warning: `Active candidate ${changeId} workflow fallback returned terminal status (${state.status}); cannot establish active authority.`,
-            };
-          }
-
-          if (terminalProjection) {
-            return {
-              kind: "fail",
-              warning: `Active candidate ${changeId} has a terminal durable projection but workflow fallback returned active status (${state.status}); cannot establish active authority.`,
-            };
-          }
-
-          return {
-            kind: "fact",
-            fact: {
-              id: state.changeId,
-              title: state.title,
-              status: state.status,
-              capabilities: Object.keys(state.deltas ?? {}),
-              epic_membership: (
-                state as { epic_membership?: Change["epic_membership"] }
-              ).epic_membership,
-              fast_follow_of: state.fast_follow_of,
-            },
-          };
-        } catch (err) {
-          const hitDeadline =
-            err instanceof TemporalQueryTimeoutError || expired();
-          return {
-            kind: "fail",
-            warning: `Active candidate ${changeId} workflow fallback failed${hitDeadline ? " (deadline)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
-          };
-        }
+        // No workflow fallback remains: the durable projection is the sole
+        // source of truth for conflict authority. A terminal projection that
+        // still appears in the active directory is a stale shadow; a missing
+        // or unreadable projection cannot establish active authority.
+        if (terminalProjection) return { kind: "shadow" };
+        return {
+          kind: "fail",
+          warning: `Active candidate ${changeId} has no usable durable projection; cannot establish active authority.`,
+        };
       };
 
       const FACT_LOAD_CONCURRENCY = 4;

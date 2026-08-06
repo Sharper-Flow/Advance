@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 import { buildProjectTaskQueue } from "../temporal/client";
 
 const PROJECT_ID = "0".repeat(40);
@@ -48,16 +50,7 @@ const mocks = vi.hoisted(() => {
     addProjectWisdom,
     compactProjectWisdom,
     listProjectWisdom,
-    getService: vi.fn(() =>
-      createMockOwnerFromClient({
-        client: {
-          workflow: {
-            getHandle: vi.fn(() => ({ executeUpdate, query, signal })),
-            start: vi.fn(async () => ({ executeUpdate, query, signal })),
-          },
-        },
-      }),
-    ),
+    getService: vi.fn(() => null),
     writeJsonlAtomic: vi.fn(async () => {}),
   };
 });
@@ -159,17 +152,8 @@ describe("adv_wisdom_add signal-driven path", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.success).toBe(true);
-    expect(mocks.signal).toHaveBeenCalledTimes(1);
-    const signalCall = mocks.signal.mock.calls[0];
-    expect(signalCall[0].name).toBe("adv.change.wisdomAdded");
-    expect(signalCall[1]).toMatchObject({
-      entry: {
-        type: "convention",
-        content: "Always validate inputs at boundary",
-        source_task: "tk-task0001",
-      },
-    });
-    expect(store.wisdom.add).not.toHaveBeenCalled();
+    expect(mocks.signal).not.toHaveBeenCalled();
+    expect(store.wisdom.add).toHaveBeenCalledTimes(1);
   });
 
   it("uses addProjectWisdom directly when promote=true and temporal is available", async () => {
@@ -232,9 +216,8 @@ describe("adv_wisdom_add signal-driven path", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.success).toBe(true);
-    // Signal-driven: wisdomAddedSignal fired first
-    expect(mocks.signal).toHaveBeenCalledTimes(1);
-    // Project workflow retired; addProjectWisdom is called directly
+    expect(mocks.signal).not.toHaveBeenCalled();
+    expect(store.wisdom.add).toHaveBeenCalledTimes(1);
     expect(mocks.addProjectWisdom).toHaveBeenCalledTimes(1);
   });
 
@@ -316,7 +299,10 @@ describe("adv_wisdom_list signal-driven path", () => {
     vi.clearAllMocks();
   });
 
-  it("queries change workflow state when changeId is provided and Temporal is available", async () => {
+  it("reads change-specific wisdom from the disk projection", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-wisdom-projection-"));
+    const changes = join(root, "changes");
+    await mkdir(changes, { recursive: true });
     const stateWisdom = [
       {
         id: "ws-1",
@@ -331,10 +317,16 @@ describe("adv_wisdom_list signal-driven path", () => {
         recorded_at: "2026-05-02T00:00:00Z",
       },
     ];
-    mocks.query.mockResolvedValueOnce({ wisdom: stateWisdom });
+    await writeFile(
+      join(changes, "myChange.json"),
+      JSON.stringify({
+        schemaVersion: 2,
+        state: { id: "myChange", wisdom: stateWisdom },
+      }),
+    );
 
     const store = {
-      paths: { root: "/repo" },
+      paths: { root, changes },
       wisdom: {
         list: vi.fn(async () => []),
       },
@@ -348,15 +340,28 @@ describe("adv_wisdom_list signal-driven path", () => {
 
     expect(parsed.wisdom).toHaveLength(1);
     expect(parsed.wisdom[0].type).toBe("pattern");
-    expect(mocks.query).toHaveBeenCalledTimes(1);
+    expect(mocks.query).not.toHaveBeenCalled();
     expect(store.wisdom.list).not.toHaveBeenCalled();
+    await rm(root, { recursive: true, force: true });
   });
 
-  it("falls back to disk store when Temporal is unavailable", async () => {
-    mocks.getService.mockReturnValueOnce(null);
+  it("returns disk-projected wisdom when Temporal is unavailable", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-wisdom-projection-"));
+    const changes = join(root, "changes");
+    await mkdir(changes, { recursive: true });
+    await writeFile(
+      join(changes, "myChange.json"),
+      JSON.stringify({
+        schemaVersion: 2,
+        state: {
+          id: "myChange",
+          wisdom: [{ id: "ws-1", type: "pattern", content: "Use signals" }],
+        },
+      }),
+    );
 
     const store = {
-      paths: { root: "/repo" },
+      paths: { root, changes },
       wisdom: {
         list: vi.fn(async () => [
           {
@@ -376,7 +381,8 @@ describe("adv_wisdom_list signal-driven path", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.wisdom).toHaveLength(1);
-    expect(store.wisdom.list).toHaveBeenCalledTimes(1);
+    expect(store.wisdom.list).not.toHaveBeenCalled();
+    await rm(root, { recursive: true, force: true });
   });
 });
 

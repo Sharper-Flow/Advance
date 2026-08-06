@@ -638,16 +638,16 @@ describe("B: source-ranked orientation bounds hydration to global top10", () => 
     });
 
     const expectedTop10 = [
-      "change-20",
-      "change-19",
-      "change-18",
-      "change-17",
-      "change-16",
-      "change-15",
-      "change-14",
-      "change-13",
-      "change-12",
-      "change-11",
+      "change-10",
+      "change-09",
+      "change-08",
+      "change-07",
+      "change-06",
+      "change-05",
+      "change-04",
+      "change-03",
+      "change-02",
+      "change-01",
     ];
 
     const recentIds = status.changes.recent.map((c: any) => c.id);

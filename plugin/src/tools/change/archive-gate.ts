@@ -25,7 +25,7 @@ import { withArchiveProjectionLock } from "../../archive/projection-lock";
 import { sha256HexString } from "../../archive/terminal-summary";
 import { atomicWriteFile } from "../../utils/fs";
 import { readFile } from "node:fs/promises";
-import { getProjectId } from "../../utils/project-id";
+import { getExternalRoot, getProjectId } from "../../utils/project-id";
 import { createLogger } from "../../utils/debug-log";
 import { formatToolOutput } from "../../utils/tool-output";
 import {
@@ -41,7 +41,7 @@ import {
   getChangeHandle,
   waitForGateCompletion,
 } from "../_adapters";
-import { runTemporalQuery } from "../../storage/store-temporal/shared";
+import { readChangeProjectionState } from "../../storage/read-change-projection";
 import type { TemporalWorkflowHandleQueryProxy } from "../change-mutation-coordinator";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import {
@@ -50,7 +50,6 @@ import {
   phase9StatusUpdatedSignal,
   changeStateQuery,
 } from "../../temporal/messages";
-import type { ChangeWorkflowState } from "../../temporal/contracts";
 import { evaluateWorkerBundleProvenanceForChange } from "../../temporal/gate-readiness";
 import {
   detectDefaultBranch,
@@ -124,36 +123,10 @@ export async function resolveArchiveGateState(
   },
 ): Promise<ArchiveGateState> {
   const storeGates = change.gates ?? createDefaultGates();
-  const bundle = getService();
-  const projectId = bundle ? await getProjectId(store.paths.root) : null;
-  if (!bundle || !projectId) {
-    return { effectiveGates: storeGates, storeGates, source: "store" };
-  }
-  try {
-    const queriedGates = await runReacquiringChangeQuery<Gates>(
-      projectId,
-      changeId,
-      getGateStatusQuery,
-      undefined,
-    );
-    if (queriedGates && typeof queriedGates === "object") {
-      // Live Temporal gates are authoritative. When they disagree with store
-      // gates, getGateDivergenceHint surfaces the mismatch so the user can
-      // recover (e.g., manual /adv-gate-complete to sync stale state).
-      return {
-        effectiveGates: queriedGates,
-        storeGates,
-        source: "live",
-        liveGates: queriedGates,
-      };
-    }
-  } catch (error) {
-    return {
-      effectiveGates: storeGates,
-      storeGates,
-      source: "store",
-      liveQueryError: collectErrorText(error),
-    };
+  const diskState = readChangeProjectionState(store.paths.changes, changeId);
+  const diskGates = diskState?.gates;
+  if (diskGates && typeof diskGates === "object") {
+    return { effectiveGates: diskGates, storeGates, source: "store" };
   }
   return { effectiveGates: storeGates, storeGates, source: "store" };
 }
@@ -211,24 +184,30 @@ export function getArchiveGatePreflightError(
   }
   return null;
 }
-// rq-releaseFinalization01: release gate confirmation must be durable.
-// rq-reapOrphanAdvWorkers T2: archive finalization reads must not pin a
-// pre-built handle. `reinitStsl` swaps the cached bundle's client in place
-// on reconnect; a handle captured before the retry loop keeps the closed
-// client and every retried query fails with the same transport error.
-// Rebuilding the handle from `getService()` inside each attempt closure
-// picks up the swapped-in client.
-function queryWithFreshChangeHandle(
-  projectId: string,
+// rq-releaseFinalization01: release gate confirmation must be durable. Archive
+// reads use the durable projection directly; no workflow handle is involved.
+function changesDirForProject(projectId: string): string {
+  return join(getExternalRoot(projectId), "changes");
+}
+
+function readDiskChangeQuery<T>(
+  changesDir: string,
   changeId: string,
   query: unknown,
   args: unknown[],
-): Promise<unknown> {
-  const bundle = getService();
-  if (!bundle) {
-    throw new Error("STSL not initialized for change query");
+): T {
+  const state = readChangeProjectionState(changesDir, changeId);
+  if (!state) {
+    throw new Error(
+      `Change projection unavailable for ${changeId} under ${changesDir}`,
+    );
   }
-  return getChangeHandle(bundle, projectId, changeId).query(query, ...args);
+  if (query === changeStateQuery) return state as T;
+  if (query === getGateStatusQuery) {
+    const gateId = args[0] as keyof Gates | undefined;
+    return (gateId ? state.gates?.[gateId] : state.gates) as T;
+  }
+  throw new Error("Unsupported change query after Temporal removal");
 }
 export function runReacquiringChangeQuery<T>(
   projectId: string,
@@ -236,44 +215,32 @@ export function runReacquiringChangeQuery<T>(
   query: unknown,
   ...args: unknown[]
 ): Promise<T> {
-  return runTemporalQuery(() =>
-    queryWithFreshChangeHandle(projectId, changeId, query, args),
-  ) as Promise<T>;
+  return Promise.resolve(
+    readDiskChangeQuery<T>(
+      changesDirForProject(projectId),
+      changeId,
+      query,
+      args,
+    ),
+  );
 }
 /**
- * Handle-like adapter whose `query` reacquires the real handle from
- * `getService()` on every invocation. Lets `waitForGateCompletion` (the
- * single source of truth for gate poll semantics, STRUCT-003) drive the
- * archive release-gate poll without pinning a stale client.
+ * Handle-like adapter whose `query` reads the durable projection on every
+ * invocation. Lets `waitForGateCompletion` retain the single source of truth
+ * for archive release-gate poll semantics (STRUCT-003).
  */
 function reacquiringChangeQueryHandle(
   projectId: string,
   changeId: string,
+  changesDir = changesDirForProject(projectId),
 ): TemporalWorkflowHandleQueryProxy {
   return {
     workflowId: buildChangeWorkflowId(projectId, changeId),
     query: <T>(definition: unknown, ...args: unknown[]) =>
-      queryWithFreshChangeHandle(
-        projectId,
-        changeId,
-        definition,
-        args,
-      ) as Promise<T>,
+      Promise.resolve(
+        readDiskChangeQuery<T>(changesDir, changeId, definition, args),
+      ),
   };
-}
-
-const TERMINAL_WORKFLOW_STATUS_NAMES = new Set([
-  "COMPLETED",
-  "TERMINATED",
-  "FAILED",
-  "CANCELLED",
-  "TIMED_OUT",
-]);
-
-function isTerminalWorkflowStatus(description: unknown): boolean {
-  const name = (description as { status?: { name?: unknown } } | undefined)
-    ?.status?.name;
-  return typeof name === "string" && TERMINAL_WORKFLOW_STATUS_NAMES.has(name);
 }
 
 function isUnresponsiveWorkflowError(error: unknown): boolean {
@@ -283,24 +250,51 @@ function isUnresponsiveWorkflowError(error: unknown): boolean {
   );
 }
 
-async function runBoundedReacquiringChangeQuery<T>(
-  projectId: string,
-  changeId: string,
-  query: unknown,
-  ...args: unknown[]
-): Promise<T> {
-  return runTemporalQuery(() =>
-    queryWithFreshChangeHandle(projectId, changeId, query, args),
-  ) as Promise<T>;
+/**
+ * Archive-terminal proof after Temporal removal. A projection status alone is
+ * not sufficient: the active projection must say archived and a readable
+ * archive bundle must independently contain the same archived change.
+ */
+async function hasDiskArchiveTerminalProof(input: {
+  store: Store;
+  changeId: string;
+  existingBundlePath?: string;
+}): Promise<boolean> {
+  const projection = readChangeProjectionState(
+    input.store.paths.changes,
+    input.changeId,
+  );
+  if (
+    !projection ||
+    projection.id !== input.changeId ||
+    projection.status !== "archived"
+  ) {
+    return false;
+  }
+
+  const bundlePath =
+    input.existingBundlePath ??
+    (input.store.paths.archive
+      ? await findArchiveBundle(input.store.paths.archive, input.changeId)
+      : null);
+  if (!bundlePath) return false;
+
+  const bundle = await loadChange(dirname(bundlePath), basename(bundlePath));
+  return Boolean(
+    bundle.success &&
+    bundle.data?.id === input.changeId &&
+    bundle.data.status === "archived",
+  );
 }
 
 export async function waitForArchiveReleaseGateCompletion(
   projectId: string,
   changeId: string,
   opts: { attempts?: number; delayMs?: number } = {},
+  changesDir = changesDirForProject(projectId),
 ): Promise<GateCompletion | undefined> {
   return waitForGateCompletion(
-    reacquiringChangeQueryHandle(projectId, changeId),
+    reacquiringChangeQueryHandle(projectId, changeId, changesDir),
     "release",
     opts,
   );
@@ -1112,25 +1106,10 @@ export async function commitArchiveReleaseGateProjection(input: {
     ? basename(input.bundlePath)
     : input.changeId;
 
-  let stateRevision: number | undefined;
-  const bundle = getService();
-  if (bundle) {
-    const projectId = await getProjectId(input.store.paths.root);
-    if (projectId) {
-      try {
-        const state = await runReacquiringChangeQuery<ChangeWorkflowState>(
-          projectId,
-          input.changeId,
-          changeStateQuery,
-        );
-        stateRevision = state.state_revision;
-      } catch (error) {
-        logger.warn(
-          `commitArchiveReleaseGateProjection: state_revision query failed for ${input.changeId}; committing without state revision: ${collectErrorText(error)}`,
-        );
-      }
-    }
-  }
+  const stateRevision = readChangeProjectionState(
+    changesDir,
+    input.changeId,
+  )?.state_revision;
 
   const operationId = `live-release-gate-complete:${input.changeId}:${input.gate.completed_at ?? new Date().toISOString()}`;
   const result = mapCommitOutcome(
@@ -1429,11 +1408,11 @@ async function reconcileReleaseGateAfterAmbiguousSignal(input: {
 }): Promise<ArchiveReleaseGateResult> {
   let reconciledGate: GateCompletion | undefined;
   try {
-    reconciledGate = await runReacquiringChangeQuery<GateCompletion>(
-      input.projectId,
+    reconciledGate = readDiskChangeQuery<GateCompletion>(
+      input.store.paths.changes,
       input.changeId,
       getGateStatusQuery,
-      "release",
+      ["release"],
     );
   } catch (queryError) {
     // The single reconcile read raced a completed workflow — the ambiguous
@@ -1742,6 +1721,22 @@ export async function completeReleaseGateAfterFinalization(input: {
       error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}`,
     };
   }
+  const evidence = buildReleaseCompletionEvidence(input.finalization);
+  if (
+    await hasDiskArchiveTerminalProof({
+      store: input.store,
+      changeId: input.changeId,
+      existingBundlePath: input.existingBundlePath,
+    })
+  ) {
+    return recoverReleaseGateViaDiskProjection({
+      store: input.store,
+      change: input.change,
+      evidence,
+      recoveryEvidence:
+        "archive projection and matching on-disk archive bundle prove terminal state",
+    });
+  }
   const bundle = getService();
   if (!bundle) {
     return {
@@ -1756,7 +1751,6 @@ export async function completeReleaseGateAfterFinalization(input: {
       error: "Could not resolve project ID for release gate completion",
     };
   }
-  const evidence = buildReleaseCompletionEvidence(input.finalization);
   const provenanceBlockers = getWorkerBundleProvenanceBlockers(input.change);
   if (provenanceBlockers.length > 0) {
     return {
@@ -1769,28 +1763,16 @@ export async function completeReleaseGateAfterFinalization(input: {
   }
   let currentGate: GateCompletion | undefined;
   try {
-    const description = await getChangeHandle(
-      bundle,
-      projectId,
+    const state = readChangeProjectionState(
+      input.store.paths.changes,
       input.changeId,
-    ).describe();
-    if (isTerminalWorkflowStatus(description)) {
-      return recoverReleaseGateViaDiskProjection({
-        store: input.store,
-        change: input.change,
-        evidence,
-        recoveryEvidence: `workflow describe returned terminal status ${
-          (description as { status: { name: string } }).status.name
-        }`,
-      });
-    }
-
-    currentGate = await runBoundedReacquiringChangeQuery<GateCompletion>(
-      projectId,
-      input.changeId,
-      getGateStatusQuery,
-      "release",
     );
+    if (!state) {
+      throw new Error(
+        `Change projection unavailable for ${input.changeId} under ${input.store.paths.changes}`,
+      );
+    }
+    currentGate = state.gates?.release;
   } catch (error) {
     return recoverReleaseGateIfWorkflowCompleted(
       error,
@@ -1857,6 +1839,8 @@ export async function completeReleaseGateAfterFinalization(input: {
     postSignalGate = await waitForArchiveReleaseGateCompletion(
       projectId,
       input.changeId,
+      {},
+      input.store.paths.changes,
     );
   } catch (error) {
     return recoverReleaseGateIfWorkflowCompleted(error, {

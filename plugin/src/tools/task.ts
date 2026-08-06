@@ -1,8 +1,8 @@
 /**
  * Task Tools — Signal/Query Adapter Surface
  *
- * Tool-layer code fires signals and runs queries against change workflows,
- * replacing the old store.executeUpdate-based mutation path.
+ * Tool-layer code fires mutation signals and reads change state from disk
+ * projections, replacing the old store.executeUpdate-based mutation path.
  * rq-crossProjectTaskMutation01: target_path task mutations must route all
  * validation, signals, cache refresh, and snapshots through target store.
  */
@@ -50,11 +50,12 @@ import {
 import { includeSnapshotSchema } from "./shared-args";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { readChangeProjectionState } from "../storage/read-change-projection";
 import {
-  fireSignalAndRefresh,
-  querySignal,
-  getChangeHandle,
-} from "./_adapters";
+  listTasksFromChangeState,
+  getReadyTasksFromChangeState,
+} from "../temporal/change-state";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 import {
   appendDraft,
@@ -67,9 +68,6 @@ import {
   taskBlockedSignal,
   taskCompletedSignal,
   taskCancelledSignal,
-  changeTasksQuery,
-  changeTaskQuery,
-  changeReadyQuery,
 } from "../temporal/messages";
 import {
   checkWorktreeIsolation,
@@ -364,12 +362,9 @@ async function resolveChangeId(
     // refresh first.
   }
 
-  // rq-reentryTaskLookup01: after re-entry, change-id-scoped workflow
-  // queries can see newly-added tasks before the reverse task→change index or
-  // disk projection is populated. Keep task-id-only tools structural by
-  // falling back to typed workflow task arrays for active/non-terminal changes.
-  // This fallback is read-only; mutations still happen only in the caller's
-  // normal signal path after the owning change is resolved.
+  // rq-reentryTaskLookup01: after re-entry, the reverse task→change index can
+  // lag behind the durable change projection. Keep task-id-only tools
+  // structural by scanning active/non-terminal change projections.
   let changes: Awaited<ReturnType<Store["changes"]["list"]>>["changes"];
   try {
     changes = (await store.changes.list()).changes;
@@ -387,21 +382,9 @@ async function resolveChangeId(
 
   for (const change of changes) {
     if (change.status === "archived" || change.status === "closed") continue;
-    try {
-      const handle = await getHandleForChangeId(store, change.id);
-      const tasks = await querySignal<Task[]>(
-        handle,
-        changeTasksQuery,
-        undefined,
-        undefined,
-      );
-      if ((tasks ?? []).some((task) => task.id === taskId)) {
-        return change.id;
-      }
-    } catch {
-      // Candidate workflow unavailable/stale — skip it. If no active workflow
-      // contains the task, callers preserve the existing deterministic
-      // `Task not found` response.
+    const state = readChangeProjectionState(store.paths.changes, change.id);
+    if ((state?.tasks ?? []).some((task) => task.id === taskId)) {
+      return change.id;
     }
   }
 
@@ -451,12 +434,12 @@ export const taskTools = {
           if (!changeId) {
             return formatToolOutput({ error: `Task not found: ${taskId}` });
           }
-          const handle = await getHandleForChangeId(activeStore, changeId);
-          const task = await querySignal<Task | null>(
-            handle,
-            changeTaskQuery,
-            taskId,
+          const state = readChangeProjectionState(
+            activeStore.paths.changes,
+            changeId,
           );
+          const task =
+            state?.tasks?.find((candidate) => candidate.id === taskId) ?? null;
           if (!task) {
             return formatToolOutput({ error: `Task not found: ${taskId}` });
           }
@@ -580,13 +563,13 @@ export const taskTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const handle = await getHandleForChangeId(activeStore, changeId);
-          const tasks = await querySignal<Task[]>(
-            handle,
-            changeTasksQuery,
-            status,
-            filter,
+          const state = readChangeProjectionState(
+            activeStore.paths.changes,
+            changeId,
           );
+          const tasks = state
+            ? listTasksFromChangeState(state, status, filter)
+            : [];
           const paged = paginate(tasks, {
             limit,
             offset,
@@ -637,11 +620,13 @@ export const taskTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const handle = await getHandleForChangeId(activeStore, changeId);
-          const result = (await querySignal(handle, changeReadyQuery)) as {
-            ready: Task[];
-            blocked: Array<{ task: Task; blockedBy: string[] }>;
-          };
+          const state = readChangeProjectionState(
+            activeStore.paths.changes,
+            changeId,
+          );
+          const result = state
+            ? getReadyTasksFromChangeState(state)
+            : { ready: [], blocked: [] };
           const formatted = formatTaskReadyOutput({
             ready: result.ready.map((t) => ({
               id: t.id,
@@ -1254,11 +1239,13 @@ export const taskTools = {
 
         let task: Task | null = null;
         if (!recoveredViaPoisoned) {
-          task = await querySignal<Task | null>(
-            handle,
-            changeTaskQuery,
-            args.taskId,
+          const state = readChangeProjectionState(
+            activeStore.paths.changes,
+            changeId,
           );
+          task =
+            state?.tasks?.find((candidate) => candidate.id === args.taskId) ??
+            null;
         } else {
           // After recovery write, read task from refreshed store.
           const refreshed = await activeStore.changes.get(changeId);
@@ -1484,12 +1471,11 @@ export const taskTools = {
 
         // P1.12 Scope C: validate blockedBy task IDs exist in this change
         if (blockedBy && blockedBy.length > 0) {
-          const tasks = await querySignal<Task[]>(
-            handle,
-            changeTasksQuery,
-            undefined,
-            undefined,
+          const state = readChangeProjectionState(
+            activeStore.paths.changes,
+            changeId,
           );
+          const tasks = state?.tasks ?? [];
           const validIdSet = new Set(tasks.map((t) => t.id));
           const unknown = blockedBy.filter((id) => !validIdSet.has(id));
           if (unknown.length > 0) {
@@ -1506,12 +1492,11 @@ export const taskTools = {
         }
 
         // Query current tasks to compute next priority
-        const tasks = await querySignal<Task[]>(
-          handle,
-          changeTasksQuery,
-          undefined,
-          undefined,
+        const state = readChangeProjectionState(
+          activeStore.paths.changes,
+          changeId,
         );
+        const tasks = state?.tasks ?? [];
         const nextPriority =
           tasks.length === 0
             ? 0
