@@ -11,7 +11,6 @@ import {
   type GateCompletion,
   type GateArtifactEvidence,
   type Gates,
-  type Task,
   type FeatureFlags,
   type Change,
   GATE_ORDER,
@@ -45,15 +44,11 @@ import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import {
   fireSignalAndRefresh,
-  querySignal,
   getChangeHandle,
   waitForGateCompletion,
 } from "./_adapters";
-import {
-  changeTasksQuery,
-  gateCompletedSignal,
-  getGateStatusQuery,
-} from "../temporal/messages";
+import { gateCompletedSignal } from "../temporal/messages";
+import { readChangeProjectionState } from "../storage/read-change-projection";
 import {
   type WorktreeIsolationDeps,
   type WorktreeIsolationResult,
@@ -1332,7 +1327,7 @@ export const gateTools = {
             }
 
             // AC1: gate status is a durable-projection read. Do not construct a
-            // workflow handle or issue querySignal calls for routine status.
+            // workflow handle for routine status.
             const gates = result.data.gates ?? createDefaultGates();
             const normalizedGates =
               (await normalizeGateArtifactEvidenceForReadback(gates)) ?? gates;
@@ -1678,68 +1673,11 @@ export const gateTools = {
           }
         }
 
-        let queriedGates: Gates | undefined;
-        try {
-          queriedGates = await querySignal<Gates>(
-            handle,
-            getGateStatusQuery,
-            undefined,
-          );
-        } catch (error) {
-          // rq-internalMonotonicRecovery01 / AC5: signal-error recovery is
-          // classified internally from the signal error + describe() evidence
-          // via the unified classifier — no operator-supplied recovery args.
-          // Acceptance still requires priorApprovalEvidence (human checkpoint,
-          // AC6).
-          if (gateId === "acceptance" || gateId === "release") {
-            const decision = await classifyMutationRecoveryDecision({
-              signalError: error,
-              handle,
-            });
-            if (decision.kind === "recover_via_disk") {
-              if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
-                return formatToolOutput({
-                  error:
-                    "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
-                  code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
-                  changeId,
-                  gateId,
-                  hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
-                });
-              }
-              const boundaryWarning = validateGateBoundary(gateId, completedBy);
-              return completeGateViaRecovery({
-                store: activeStore,
-                change,
-                changeId,
-                gateId,
-                gates,
-                completedBy,
-                notes,
-                compatibilityReason:
-                  compatibilityReason ??
-                  `D4 internal monotonic recovery (authority=${decision.authority})`,
-                boundaryWarning,
-                diskDirect: decision.authority === "workflow_completed",
-                recoveryReason: decision.reason,
-                recoveryEvidence: decision.evidence,
-                priorApprovalEvidence,
-                extraPayload: projectContext
-                  ? { _projectContext: projectContext }
-                  : {},
-              });
-            } else if (decision.kind === "operator_required") {
-              return formatToolOutput({
-                error: `Cannot safely complete ${gateId} gate: ${decision.detail}`,
-                code: "GATE_MUTATION_OPERATOR_REQUIRED",
-                cause: decision.cause,
-                changeId,
-                gateId,
-              });
-            }
-          }
-          throw error;
-        }
+        const projectedState = readChangeProjectionState(
+          activeStore.paths.changes,
+          changeId,
+        );
+        const queriedGates = projectedState?.gates;
         if (queriedGates && typeof queriedGates === "object") {
           gates = queriedGates;
         }
@@ -1810,15 +1748,10 @@ export const gateTools = {
         }
 
         if (gateId === "execution") {
-          const workflowTasks = await querySignal<Task[]>(
-            handle,
-            changeTasksQuery,
-            undefined,
-            undefined,
-          );
-          const tasks = Array.isArray(workflowTasks)
-            ? workflowTasks
-            : change.tasks;
+          const workflowTasks =
+            readChangeProjectionState(activeStore.paths.changes, changeId)
+              ?.tasks ?? [];
+          const tasks = workflowTasks;
           const incompleteTasks = tasks.filter(
             (t) => t.status !== "done" && t.status !== "cancelled",
           );

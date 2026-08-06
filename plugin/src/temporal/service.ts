@@ -5,7 +5,7 @@
  * Replaces per-call raw client access with the closed operation-owner API.
  *
  * Lifecycle:
- *   1. `initStsl(env)` — create + cache the owner (idempotent for same env)
+ *   1. `initStsl(env)` — return a disabled compatibility bundle
  *   2. `getService()` — read the cached owner (null before init)
  *   3. `closeStsl()` — close the owner connection + clear the cache
  *
@@ -17,7 +17,6 @@ import {
   type TemporalOperations,
   makeTemporalLifecycleContext,
 } from "./operations";
-import { getTemporalAddress, getTemporalNamespace } from "./client";
 import {
   checkAdvSearchAttributes,
   type AdvSearchAttributeCheckResult,
@@ -74,51 +73,14 @@ export async function initStsl(
   projectId: string,
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<TemporalOperationsOwner> {
-  const address = getTemporalAddress(env);
-  const namespace = getTemporalNamespace(env);
-
-  if (cachedOwner) {
-    if (
-      cachedOwner.getAddress() === address &&
-      cachedOwner.getNamespace() === namespace &&
-      cachedOwner.getProjectId() === projectId
-    ) {
-      logger.debug(
-        `initStsl: returning existing owner (${address}/${namespace}/${projectId})`,
-      );
-      return cachedOwner;
-    }
-    throw new Error(
-      `STSL already initialized with different parameters ` +
-        `(existing: ${cachedOwner.getAddress()}/${cachedOwner.getNamespace()}/${cachedOwner.getProjectId()}, ` +
-        `requested: ${address}/${namespace}/${projectId}). Call closeStsl() first.`,
-    );
-  }
-
-  logger.debug(
-    `initStsl: creating new owner (${address}/${namespace}/${projectId})`,
-  );
-  const owner = await TemporalOperationsOwner.fromEnv(projectId, env);
-  newConnectionCount++;
-
-  const lifecycleCtx = makeTemporalLifecycleContext(
-    projectId,
-    "initStsl",
-    10_000,
-  );
-
-  // Register ADV custom search attributes with the server so Visibility
-  // API queries and workflow.start() search-attribute payloads work.
-  // Idempotent; failure is non-fatal (warned, not thrown).
-  await owner.registerSearchAttributes(lifecycleCtx);
-
-  // Verify SAs propagated (covers Temporal's documented propagation delay).
-  const verification = await owner.verifySearchAttributes(lifecycleCtx);
-  lastSaVerification = { ok: verification.ok, checkedAt: Date.now() };
-
-  cachedOwner = owner;
-  logger.debug(`initStsl: owner ready`);
-  return cachedOwner;
+  void projectId;
+  void env;
+  // Temporal is intentionally disabled. Keep the return type and truthy
+  // compatibility bundle for the existing store composition root, but never
+  // cache an owner: all runtime reads use disk projections instead.
+  cachedOwner = null;
+  logger.debug("initStsl: Temporal disabled; using disk projections");
+  return {} as TemporalOperationsOwner;
 }
 
 /**

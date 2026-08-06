@@ -1,12 +1,12 @@
 /**
- * Checkpoint Tool — Signal-Driven Completion Tests
+ * Checkpoint Tool — Disk-Projection Completion Tests
  *
- * Verifies that adv_task_checkpoint fires taskCompletedSignal
- * after git ops for complete mode.
+ * Verifies checkpoint behavior after git ops for complete mode, including
+ * post-completion validation against the disk projection.
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import {
   buildCommitMessage,
@@ -16,6 +16,8 @@ import {
 import { taskUpdatedSignal } from "../temporal/messages";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import type { Store } from "../storage/store-types";
+
+let fixtureRoot = "";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -186,8 +188,8 @@ vi.mock("child_process", () => ({
 function createMockStore(): Store {
   return {
     paths: {
-      root: "/tmp/test",
-      changes: "/tmp/test/.adv/changes",
+      root: fixtureRoot,
+      changes: join(fixtureRoot, "changes"),
     } as Store["paths"],
     config: null,
     init: vi.fn(),
@@ -292,30 +294,64 @@ function mockGitResponses(
   );
 }
 
-function mockRecordedTask(
+async function mockRecordedTask(
   overrides: Partial<{
     status: string;
     verification: string;
     checkpointSha: string;
     filesTouched: string[];
   }> = {},
+  changeId = "test-change",
 ) {
-  mocks.queryMock.mockResolvedValueOnce({
+  const task = {
+    id: "tk-abc",
+    title: "Test Task",
     status: "done",
     verification: "Tests passed",
     checkpointSha: "abc123def456",
     filesTouched: ["src/file.ts"],
+    priority: 0,
+    deps: [],
+    metadata: {},
+    contract_refs: {},
+    evidence_plan: {},
+    evidence_policy: "test",
+    created_at: "2026-01-01T00:00:00Z",
     ...overrides,
-  });
+  };
+  const changesDir = join(fixtureRoot, "changes");
+  await mkdir(changesDir, { recursive: true });
+  await writeFile(
+    join(changesDir, `${changeId}.json`),
+    JSON.stringify({
+      schemaVersion: 2,
+      projectId: "test-project-id",
+      changeId,
+      projectedAt: "2026-01-01T00:00:00Z",
+      state: {
+        id: changeId,
+        changeId,
+        title: "Test Change",
+        status: "active",
+        tasks: [task],
+        gates: {},
+      },
+    }),
+    "utf8",
+  );
 }
 
 describe("checkpoint tools — signal-driven", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    fixtureRoot = await createTempDir("adv-checkpoint-projection-");
+    mocks.targetStore.paths.changes = join(fixtureRoot, "changes");
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    await cleanupTempDir(fixtureRoot);
+    fixtureRoot = "";
   });
 
   describe("detectRepoState", () => {
@@ -491,7 +527,7 @@ describe("checkpoint tools — signal-driven", () => {
     test("fires taskCompletedSignal after commit in complete mode", async () => {
       const store = createMockStore();
       mockGitResponses({});
-      mockRecordedTask();
+      await mockRecordedTask();
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -531,7 +567,7 @@ describe("checkpoint tools — signal-driven", () => {
     test("auto-dismisses suggested drafts at checkpoint and reports counts (AC5)", async () => {
       const store = createMockStore();
       mockGitResponses({});
-      mockRecordedTask({
+      await mockRecordedTask({
         // @ts-expect-error — extending readback shape with wisdom_drafts
         wisdom_drafts: [
           {
@@ -607,7 +643,7 @@ describe("checkpoint tools — signal-driven", () => {
     test("does NOT fire draft-dismiss signal when no suggested drafts exist", async () => {
       const store = createMockStore();
       mockGitResponses({});
-      mockRecordedTask({
+      await mockRecordedTask({
         // @ts-expect-error — extending readback shape with wisdom_drafts
         wisdom_drafts: [
           {
@@ -641,7 +677,7 @@ describe("checkpoint tools — signal-driven", () => {
     test("no wisdom_drafts on task → zero counts, single signal", async () => {
       const store = createMockStore();
       mockGitResponses({});
-      mockRecordedTask();
+      await mockRecordedTask();
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -661,7 +697,7 @@ describe("checkpoint tools — signal-driven", () => {
     test("draft-dismiss signal failure is best-effort: status stays committed, counts stay 0 (rq-wisdomAutoSurfacing01.8)", async () => {
       const store = createMockStore();
       mockGitResponses({});
-      mockRecordedTask({
+      await mockRecordedTask({
         // @ts-expect-error — extending readback shape with wisdom_drafts
         wisdom_drafts: [
           {
@@ -716,7 +752,7 @@ describe("checkpoint tools — signal-driven", () => {
       mockGitResponses({});
 
       const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/baz.ts", "linesAdded": 3}],\n  "testsAdded": 1\n}\n</adv-output>`;
-      mockRecordedTask({ verification });
+      await mockRecordedTask({ verification });
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -784,7 +820,7 @@ describe("checkpoint tools — signal-driven", () => {
       mockGitResponses({});
 
       const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/baz.ts", "linesAdded": 3}],\n  "testsAdded": 1\n}\n</adv-output>`;
-      mockRecordedTask({ verification });
+      await mockRecordedTask({ verification });
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -847,7 +883,7 @@ describe("checkpoint tools — signal-driven", () => {
       mockGitResponses({});
 
       const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/baz.ts", "linesAdded": 3}],\n  "testsAdded": 1\n}\n</adv-output>`;
-      mockRecordedTask({ verification });
+      await mockRecordedTask({ verification });
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -871,7 +907,7 @@ describe("checkpoint tools — signal-driven", () => {
       mockGitResponses({
         "status --porcelain": { stdout: "" },
       });
-      mockRecordedTask({
+      await mockRecordedTask({
         verification: "Clean tree checkpoint",
         filesTouched: ["src/file.ts"],
       });
@@ -1034,7 +1070,7 @@ describe("checkpoint tools — signal-driven", () => {
       async ({ overrides, error }) => {
         const store = createMockStore();
         mockGitResponses({});
-        mockRecordedTask(overrides);
+        await mockRecordedTask(overrides);
 
         const result = await checkpointTools.adv_task_checkpoint.execute(
           {
@@ -1063,7 +1099,7 @@ describe("checkpoint tools — signal-driven", () => {
         },
       });
       // Recorded task has files in reversed order vs git output
-      mockRecordedTask({
+      await mockRecordedTask({
         filesTouched: ["src/beta.ts", "src/alpha.ts"],
       });
 
@@ -1087,7 +1123,7 @@ describe("checkpoint tools — signal-driven", () => {
         "rev-parse --abbrev-ref HEAD": { stdout: "change/target-change\n" },
         "rev-parse --show-toplevel": { stdout: "/tmp/target\n" },
       });
-      mockRecordedTask();
+      await mockRecordedTask({}, "target-change");
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -1106,7 +1142,7 @@ describe("checkpoint tools — signal-driven", () => {
       expect(parsed.status).toBe("committed");
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
         expect.objectContaining({
-          currentProjectPath: "/tmp/test",
+          currentProjectPath: fixtureRoot,
           target_path: "/tmp/target",
           stateRequirement: "temporal-required",
           target_confirmed: true,
@@ -1135,7 +1171,7 @@ describe("checkpoint tools — signal-driven", () => {
       mockGitResponses({
         "rev-parse --show-toplevel": { stdout: "/tmp/target\n" },
       });
-      mockRecordedTask();
+      await mockRecordedTask();
 
       await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -1167,7 +1203,7 @@ describe("checkpoint tools — signal-driven", () => {
         },
         "rev-parse --show-toplevel": { stdout: "/tmp/source-worktree\n" },
       });
-      mockRecordedTask();
+      await mockRecordedTask();
 
       await checkpointTools.adv_task_checkpoint.execute(
         {

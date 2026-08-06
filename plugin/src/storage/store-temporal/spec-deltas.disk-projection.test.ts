@@ -1,200 +1,47 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { mkdir, readFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { createSpecDeltaOps } from "./spec-deltas";
-import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../temporal/contracts";
-import { ChangeSchema, type Change } from "../../types";
-import { SAMPLE_CHANGE } from "../../__tests__/setup";
-import { saveChange } from "../json";
-import { commitChangeProjection } from "../change-projection-transaction";
-import { projectTemporalStateOntoLatest } from "./shared";
-import type { DiskPersistOutcome } from "./disk-persist";
-import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
+import { describe, expect, it } from "vitest";
 
-const ADD_DELTA = {
-  id: "dl-AAA11111",
+import {
+  cleanupTempDir,
+  createTempDir,
+  SAMPLE_CHANGE,
+} from "../../__tests__/setup";
+import { createDiskStore } from "../store-disk";
+import { createTemporalStoreBackend } from "./index";
+
+const DELTA = {
+  id: "dl-disk-1",
   operation: "add" as const,
   requirement: {
-    id: "rq-specDelta01",
-    title: "Spec delta writer",
-    body: "Record change-scoped add deltas durably.",
+    id: "rq-disk-1",
+    title: "Disk projection delta",
+    body: "The delta remains readable after persistence.",
     priority: "must" as const,
-    scenarios: [
-      {
-        id: "rq-specDelta01.1",
-        title: "Record add delta",
-        given: ["a draft change exists"],
-        when: "the writer is invoked",
-        then: ["the delta persists under the capability"],
-      },
-    ],
+    scenarios: [],
   },
 };
 
-const signalMock = vi.fn();
-const queryMock = vi.fn();
-
-function makeHandle(changeId: string) {
-  return {
-    workflowId: `adv/change/pid-delta-disk/${changeId}`,
-    signal: signalMock,
-    query: queryMock,
-  };
-}
-
-async function makeDeps(
-  tempDir: string,
-  summariesDir: string,
-  changeId: string,
-) {
-  const changesDir = join(tempDir, "changes");
-  await mkdir(changesDir, { recursive: true });
-  await mkdir(summariesDir, { recursive: true });
-  const seed = ChangeSchema.parse({
-    ...SAMPLE_CHANGE,
-    id: changeId,
-    title: `Change ${changeId}`,
-    status: "draft",
-    lifecycleState: "open",
-    projection_revision: 0,
-    state_revision: 0,
-  } as Change);
-  await saveChange(changesDir, seed);
-
-  const handle = makeHandle(changeId);
-  return {
-    input: {
-      projectId: "00dde00ad0000000000000000000000000000000",
-      legacy: {
-        changes: {
-          get: vi.fn().mockResolvedValue({ success: true, data: null }),
-        },
-      },
-      temporal: createMockOwnerFromClient({
-        workflow: {
-          getHandle: vi.fn().mockReturnValue(handle),
-        },
-      }),
-    },
-    legacy: {
-      specDeltas: {},
-      paths: { changes: changesDir, summariesDir },
-    },
-    invalidateChange: vi.fn(),
-    setCachedChange: vi.fn(),
-    emitChangeSummarySignal: vi.fn(),
-    persistStateToDisk: async (
-      cid: string,
-      state: Record<string, unknown>,
-    ): Promise<DiskPersistOutcome> => {
-      try {
-        const commit = await commitChangeProjection({
-          changesDir,
-          changeId: cid,
-          authority: { kind: "temporal", mutationReceiptId: cid },
-          mutationKind: "temporal_dual_write_projection",
-          mutateLatest: (latest) =>
-            projectTemporalStateOntoLatest(
-              latest,
-              state as Parameters<typeof projectTemporalStateOntoLatest>[1],
-            ),
-          verify: ({ readback }) =>
-            readback.status === state.status &&
-            readback.lifecycleState === state.lifecycleState,
-        });
-        if (commit.kind !== "committed") {
-          return {
-            kind: "failed",
-            error: new Error(
-              `Dual-write commit failed for ${cid}: ${commit.kind}`,
-            ),
-          };
-        }
-        return { kind: "persisted" };
-      } catch (error) {
-        return {
-          kind: "failed",
-          error: error instanceof Error ? error : new Error(String(error)),
-        };
-      }
-    },
-  };
-}
-
-function mockQueries(stateAfterSignal: unknown) {
-  queryMock.mockImplementation(async (queryDef, queryArg) => {
-    if (
-      queryDef.name === CHANGE_WORKFLOW_QUERY_NAMES.getOperationLedgerOutcome
-    ) {
-      const envelope = signalMock.mock.calls
-        .slice()
-        .reverse()
-        .find((call) => {
-          const payload = call[1] as Record<string, unknown> | undefined;
-          return payload?.operation_id === queryArg;
-        });
-      const payload = (envelope?.[1] ?? {}) as Record<string, unknown>;
-      return {
-        operation_id: queryArg,
-        command_kind: payload.command_kind ?? "specDeltaAdded",
-        payload_hash: payload.payload_hash ?? "hash",
-        outcome: "accepted",
-        state_revision: 1,
-        accepted_at: "2026-07-27T00:00:00.000Z",
-        last_seen_at: "2026-07-27T00:00:00.000Z",
+describe("spec delta disk projection", () => {
+  it("persists and reads the appended delta from disk after store recreation", async () => {
+    const tempDir = await createTempDir();
+    try {
+      const legacy = await createDiskStore(tempDir);
+      const change = {
+        ...SAMPLE_CHANGE,
+        id: "spec-delta-disk",
+        deltas: { "collection-dashboard": [DELTA] },
       };
+      await legacy.changes.save(change);
+
+      const store = createTemporalStoreBackend({
+        legacy: await createDiskStore(tempDir),
+        temporal: {} as never,
+        projectId: "0".repeat(40),
+      });
+      const result = await store.changes.get(change.id);
+      expect(result.success).toBe(true);
+      expect(result.data?.deltas["collection-dashboard"]).toEqual([DELTA]);
+    } finally {
+      await cleanupTempDir(tempDir);
     }
-    return stateAfterSignal;
-  });
-}
-
-beforeEach(() => {
-  signalMock.mockReset();
-  queryMock.mockReset();
-  signalMock.mockResolvedValue(undefined);
-});
-
-describe("createSpecDeltaOps disk projection", () => {
-  it("persists the appended delta in the on-disk change projection", async () => {
-    const tempDir = join(tmpdir(), `spec-delta-disk-${Date.now()}`);
-    const summariesDir = join(tempDir, "summaries");
-    const changeId = "spec-delta-disk-test";
-    const stateAfterSignal = {
-      changeId,
-      title: `Change ${changeId}`,
-      status: "draft",
-      lifecycleState: "open",
-      createdAt: "2026-07-27T00:00:00.000Z",
-      tasks: [],
-      deltas: { "collection-dashboard": [ADD_DELTA] },
-      wisdom: [],
-      gates: {},
-      state_revision: 1,
-    };
-
-    const deps = await makeDeps(tempDir, summariesDir, changeId);
-    mockQueries(stateAfterSignal);
-
-    const ops = createSpecDeltaOps(deps as never);
-    await ops.add(changeId, "collection-dashboard", ADD_DELTA, {
-      addedBy: "agent",
-    });
-
-    const changeJson = JSON.parse(
-      await readFile(
-        join(deps.legacy.paths.changes, changeId, "change.json"),
-        "utf-8",
-      ),
-    );
-    expect(changeJson.deltas["collection-dashboard"]).toEqual([ADD_DELTA]);
-
-    const summaryFiles = await readFile(
-      join(deps.legacy.paths.summariesDir, changeId, "current.json"),
-      "utf-8",
-    );
-    const pointer = JSON.parse(summaryFiles);
-    expect(pointer.change_id).toBe(changeId);
-    expect(pointer.snapshot_path).toContain(changeId);
   });
 });

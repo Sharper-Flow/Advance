@@ -98,6 +98,15 @@ export function markStale(targetQueue: string): void {
 }
 
 export async function evaluateTargetReadiness(
+  _input: EvaluateTargetReadinessInput,
+): Promise<TargetReadinessResult> {
+  // Temporal removed: there is no task queue to adopt and no workflow to
+  // probe, so queue-adoption readiness is vacuously satisfied. Mutations
+  // write directly to disk projections and need no queue proof.
+  return { ready: true, blockers: [], probeKind: "none" };
+}
+
+async function _unusedLegacyReadiness(
   input: EvaluateTargetReadinessInput,
 ): Promise<TargetReadinessResult> {
   const now = input.nowMs?.() ?? Date.now();

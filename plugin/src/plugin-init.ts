@@ -70,10 +70,9 @@ import {
 } from "./migration/paths";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 import { resolveProductContext } from "./storage/product-context";
-import {
-  _tryReclaimStaleLock,
-  type ReclaimWorkerLockOptions,
-  type WorkerLockResult,
+import type {
+  ReclaimWorkerLockOptions,
+  WorkerLockResult,
 } from "./temporal/worker-lock";
 import {
   startWorkerLockHeartbeat,

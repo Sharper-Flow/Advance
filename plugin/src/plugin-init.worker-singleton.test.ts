@@ -1,174 +1,65 @@
-import { access } from "fs/promises";
-import { join } from "path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { cleanupTempDir, createTempDir } from "./__tests__/setup";
-import { WORKER_LOCK_FILENAME } from "./temporal/worker-lock";
-import {
-  registerShutdownHandlers,
-  resolveWorkerSingletonPlan,
-} from "./plugin-init";
+import { registerShutdownHandlers } from "./plugin-init";
 
-const NOW = new Date("2026-05-12T00:00:00.000Z");
-
-describe("plugin-init worker singleton plan", () => {
-  let tempDirs: string[] = [];
-
-  afterEach(async () => {
-    await Promise.all(tempDirs.map((dir) => cleanupTempDir(dir)));
-    tempDirs = [];
+describe("plugin-init shutdown handlers", () => {
+  afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  const tempDir = async () => {
-    const dir = await createTempDir("plugin-init-worker-singleton-");
-    tempDirs.push(dir);
-    return dir;
-  };
+  test("flushes and closes store before signal exit", async () => {
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => undefined) as never);
+    const store = {
+      flush: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    } as any;
+    const handlers = registerShutdownHandlers(store);
 
-  test("three enforced init attempts produce one host and two clients", async () => {
-    const dir = await tempDir();
+    try {
+      handlers.shutdownWithFlush();
+      await Promise.resolve();
+      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const first = await resolveWorkerSingletonPlan({
-      projectStateDir: dir,
-      expectedQueue: "adv-test-queue",
-      workerSingletonEnforce: true,
-      pid: 1001,
-      now: () => NOW,
-    });
-    const second = await resolveWorkerSingletonPlan({
-      projectStateDir: dir,
-      expectedQueue: "adv-test-queue",
-      workerSingletonEnforce: true,
-      pid: 1002,
-      now: () => NOW,
-      isPidAlive: () => true,
-    });
-    const third = await resolveWorkerSingletonPlan({
-      projectStateDir: dir,
-      expectedQueue: "adv-test-queue",
-      workerSingletonEnforce: true,
-      pid: 1003,
-      now: () => NOW,
-      isPidAlive: () => true,
-    });
-
-    expect([first.workerRole, second.workerRole, third.workerRole]).toEqual([
-      "host",
-      "client",
-      "client",
-    ]);
-    expect([
-      first.shouldSpawnWorker,
-      second.shouldSpawnWorker,
-      third.shouldSpawnWorker,
-    ]).toEqual([true, false, false]);
+      expect(store.flush).toHaveBeenCalledTimes(1);
+      expect(store.close).toHaveBeenCalledTimes(1);
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    } finally {
+      handlers.removeProcessListeners();
+    }
   });
 
-  test("flag off preserves legacy spawn path and does not acquire lock", async () => {
-    const dir = await tempDir();
+  test("null-store shutdown exits without flush/close", () => {
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => undefined) as never);
+    const handlers = registerShutdownHandlers(null);
 
-    const first = await resolveWorkerSingletonPlan({
-      projectStateDir: dir,
-      expectedQueue: "adv-test-queue",
-      workerSingletonEnforce: false,
-      pid: 2001,
-    });
-    const second = await resolveWorkerSingletonPlan({
-      projectStateDir: dir,
-      expectedQueue: "adv-test-queue",
-      workerSingletonEnforce: false,
-      pid: 2002,
-    });
+    try {
+      handlers.shutdownWithFlush();
 
-    expect(first).toMatchObject({
-      shouldSpawnWorker: true,
-      workerRole: "host",
-    });
-    expect(second).toMatchObject({
-      shouldSpawnWorker: true,
-      workerRole: "host",
-    });
-    await expect(access(join(dir, WORKER_LOCK_FILENAME))).rejects.toThrow();
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    } finally {
+      handlers.removeProcessListeners();
+    }
   });
 
-  test("dead lock holder is reclaimed through worker-lock helper", async () => {
-    const dir = await tempDir();
-    await resolveWorkerSingletonPlan({
-      projectStateDir: dir,
-      expectedQueue: "adv-test-queue",
-      workerSingletonEnforce: true,
-      pid: 3001,
-      now: () => NOW,
-    });
+  test("does not register duplicate process listeners on repeated init", () => {
+    const before = process.listenerCount("SIGINT");
+    const first = registerShutdownHandlers(null);
+    const afterFirst = process.listenerCount("SIGINT");
+    const second = registerShutdownHandlers(null);
 
-    const next = await resolveWorkerSingletonPlan({
-      projectStateDir: dir,
-      expectedQueue: "adv-test-queue",
-      workerSingletonEnforce: true,
-      pid: 3002,
-      now: () => NOW,
-      isPidAlive: () => false,
-    });
+    try {
+      expect(afterFirst).toBe(before + 1);
+      expect(process.listenerCount("SIGINT")).toBe(afterFirst);
+    } finally {
+      second.removeProcessListeners();
+      first.removeProcessListeners();
+    }
 
-    expect(next).toMatchObject({ shouldSpawnWorker: true, workerRole: "host" });
-  });
-
-  describe("registerShutdownHandlers", () => {
-    test("flushes and closes store before signal exit", async () => {
-      const exitSpy = vi
-        .spyOn(process, "exit")
-        .mockImplementation((() => undefined) as never);
-      const store = {
-        flush: vi.fn().mockResolvedValue(undefined),
-        close: vi.fn(),
-      } as any;
-      const handlers = registerShutdownHandlers(store);
-
-      try {
-        handlers.shutdownWithFlush();
-        await Promise.resolve();
-        await Promise.resolve();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-
-        expect(store.flush).toHaveBeenCalledTimes(1);
-        expect(store.close).toHaveBeenCalledTimes(1);
-        expect(exitSpy).toHaveBeenCalledWith(0);
-      } finally {
-        handlers.removeProcessListeners();
-      }
-    });
-
-    test("null-store shutdown exits without flush/close", () => {
-      const exitSpy = vi
-        .spyOn(process, "exit")
-        .mockImplementation((() => undefined) as never);
-      const handlers = registerShutdownHandlers(null);
-
-      try {
-        handlers.shutdownWithFlush();
-
-        expect(exitSpy).toHaveBeenCalledWith(0);
-      } finally {
-        handlers.removeProcessListeners();
-      }
-    });
-
-    test("does not register duplicate process listeners on repeated init", () => {
-      const before = process.listenerCount("SIGINT");
-      const first = registerShutdownHandlers(null);
-      const afterFirst = process.listenerCount("SIGINT");
-      const second = registerShutdownHandlers(null);
-
-      try {
-        expect(afterFirst).toBe(before + 1);
-        expect(process.listenerCount("SIGINT")).toBe(afterFirst);
-      } finally {
-        second.removeProcessListeners();
-        first.removeProcessListeners();
-      }
-
-      expect(process.listenerCount("SIGINT")).toBe(before);
-    });
+    expect(process.listenerCount("SIGINT")).toBe(before);
   });
 });

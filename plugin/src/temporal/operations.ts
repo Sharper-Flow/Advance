@@ -26,8 +26,6 @@ import {
   buildEpicWorkflowId,
   buildProjectTaskQueue,
   buildSessionTaskQueue,
-  getTemporalAddress,
-  getTemporalNamespace,
 } from "./client";
 import { changeWorkflow, epicWorkflow } from "./workflows";
 import { changeStateQuery } from "./messages";
@@ -563,18 +561,11 @@ async function createTemporalClientBundle(
   env: NodeJS.ProcessEnv = process.env,
   connectTimeoutMs?: number,
 ): Promise<TemporalClientBundle> {
-  const address = getTemporalAddress(env);
-  const namespace = getTemporalNamespace(env);
-  const connection = await Connection.connect({
-    address,
-    connectTimeout: connectTimeoutMs ?? 10_000,
-  });
-  return {
-    address,
-    namespace,
-    connection,
-    client: new Client({ connection, namespace }),
-  };
+  void env;
+  void connectTimeoutMs;
+  throw new Error(
+    "Temporal disabled — disk projection is sole source of truth",
+  );
 }
 
 export class TemporalOperationsOwner implements TemporalOperations {

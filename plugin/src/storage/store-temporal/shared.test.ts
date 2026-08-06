@@ -7,24 +7,14 @@ import {
   mapTemporalChangeStateToChange,
   QUERY_TIMEOUT_MS,
   resolveQueryTimeoutMs,
-  runTemporalQuery,
   type TemporalStoreBackendInput,
   type WorkflowHandleLike,
 } from "./shared";
-import {
-  createTemporalReadDeadline,
-  TemporalQueryTimeoutError,
-} from "../../temporal/retry-wrapper";
 import { createMockOwner } from "../../temporal/__tests__/mock-owner";
-import { reinitStsl } from "../../temporal/service";
 import { createChangeWorkflowState } from "../../temporal/change-state";
 
 const PROJECT_ID_A = "0000ec0a00000000000000000000000000000000";
 const PROJECT_ID_B = "0000ec0b00000000000000000000000000000000";
-
-vi.mock("../../temporal/service", () => ({
-  reinitStsl: vi.fn(async () => undefined),
-}));
 
 describe("QUERY_TIMEOUT_MS / resolveQueryTimeoutMs", () => {
   const envKey = "ADV_TEMPORAL_QUERY_TIMEOUT_MS";
@@ -339,61 +329,6 @@ describe("mapTemporalChangeStateToChange", () => {
   });
 });
 
-describe("runTemporalQuery aggregate deadline", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
-    vi.mocked(reinitStsl).mockClear();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  test("caps the per-attempt query timeout at the remaining aggregate budget", async () => {
-    const deadline = createTemporalReadDeadline(500);
-    const op = vi.fn(() => new Promise<never>(() => {}));
-
-    const promise = runTemporalQuery(op, { deadline });
-    const assertion = expect(promise).rejects.toBeInstanceOf(
-      TemporalQueryTimeoutError,
-    );
-
-    // The default query ceiling is 5s, but the aggregate deadline caps the
-    // attempt at 500ms and no retry/backoff begins after expiry.
-    await vi.advanceTimersByTimeAsync(500);
-    await assertion;
-
-    expect(op).toHaveBeenCalledTimes(1);
-    expect(reinitStsl).not.toHaveBeenCalled();
-  });
-
-  test("fails fast on the per-attempt query ceiling WITHOUT reconnecting (bounded-read cap is terminal, not reconnectable)", async () => {
-    const op = vi.fn(() => new Promise<never>(() => {}));
-
-    // Explicit per-attempt ceiling (decoupled from the env-configurable
-    // QUERY_TIMEOUT_MS default so this test pins the cap semantics, not the
-    // default value).
-    const promise = runTemporalQuery(op, { timeoutMs: 5_000 });
-    const assertion = expect(promise).rejects.toBeInstanceOf(
-      TemporalQueryTimeoutError,
-    );
-
-    // The attempt hangs until the 5s per-attempt ceiling.
-    await vi.advanceTimersByTimeAsync(5_000);
-    await assertion;
-
-    // rq-boundedAuthoritativeRead03 (per-member circuit-breaker, 1879fb64):
-    // our own per-attempt cap is terminal — a retry would burn the same cap
-    // again and defeat the bounded-read deadline, so the op runs exactly once
-    // (classifyTemporalError → "fatal"). #217 reconnect axis: a timeout is
-    // never a broken transport channel, so it must NOT close the shared
-    // connection (no reinit) — retryable-vs-reconnectable stays decoupled.
-    expect(op).toHaveBeenCalledTimes(1);
-    expect(reinitStsl).not.toHaveBeenCalled();
-  });
-});
-
 describe("classifyTemporalReadFailure", () => {
   function createClassifyInput(args: {
     describe?: () => Promise<unknown>;
@@ -446,28 +381,6 @@ describe("classifyTemporalReadFailure", () => {
       new Error(
         "[TMPRL1100] Nondeterminism error: No command scheduled for event X",
       ),
-    );
-    expect(failure).toMatchObject({
-      errorClass: "fallback",
-      recoveryReason: "poisoned_history",
-      outcome: "outcome_unknown_readback_unavailable",
-    });
-  });
-
-  test("fatal generic query failure + poisoned describe → fallback + poisoned_history", async () => {
-    const input = createClassifyInput({
-      describe: async () => ({
-        searchAttributes: {
-          TemporalReportedProblems: [
-            "category=WorkflowTaskFailed cause=WorkflowTaskFailedCauseNonDeterministicError",
-          ],
-        },
-      }),
-    });
-    const failure = await classifyTemporalReadFailure(
-      input,
-      "change-a",
-      new Error("Failed to query Workflow"),
     );
     expect(failure).toMatchObject({
       errorClass: "fallback",

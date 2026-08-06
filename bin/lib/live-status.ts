@@ -77,7 +77,7 @@ export function buildLiveStatusPayload(
 ): LiveStatusPayload {
   const summaries = summarizeLiveChanges(changes, options.now);
   return {
-    source: "temporal",
+    source: "disk",
     live: true,
     stale: false,
     generated_at: options.now.toISOString(),
@@ -98,7 +98,7 @@ export function buildLiveStatusFailure(
 ): LiveStatusPayload {
   const message = error instanceof Error ? error.message : String(error);
   return {
-    source: "temporal",
+    source: "disk",
     live: false,
     stale: false,
     generated_at: now.toISOString(),
@@ -107,7 +107,7 @@ export function buildLiveStatusFailure(
     changes: [],
     error: message,
     remediation:
-      "Live ADV status unavailable. Verify Temporal is running (`systemctl --user status temporal-dev`) and restart OpenCode/ADV worker if needed.",
+      "ADV status unavailable. Could not read change projections from the project state directory — verify the directory exists and contains readable change JSON.",
   };
 }
 
@@ -287,7 +287,7 @@ export function buildLiveStatusPayloadFromSummaries(
   },
 ): LiveStatusPayload {
   return {
-    source: "temporal",
+    source: "disk",
     live: true,
     stale: false,
     generated_at: options.now.toISOString(),

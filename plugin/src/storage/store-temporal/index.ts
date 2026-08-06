@@ -22,8 +22,6 @@ import type {
 import { SpecSchema } from "../../types";
 import { listSpecsFilesystem, readSpecFilesystem } from "../spec-filesystem";
 import type { LoadResult } from "../change-projection-reader";
-import { buildVisibilityQuery } from "../../temporal/list-change-workflows";
-import { CHANGE_WORKFLOW_PREFIX } from "../../temporal/contracts";
 import {
   listSourceRankedCandidates,
   type SourceRankedCandidate,
@@ -41,34 +39,19 @@ import {
   type StoreDeps,
   mapTemporalChangeStateToChange,
   projectTemporalStateOntoLatest,
-  getGuardedChangeHandle,
   getTemporalOwner,
-  classifyTemporalReadFailure,
   raceWithTemporalDeadline,
-  remainingDeadlineMs,
   TemporalQueryTimeoutError,
   type TemporalReadDeadline,
   createTemporalReadContext,
   type TemporalReadContext,
   isTemporalReadExpired,
-  runTemporal,
-  runTemporalQuery,
-  QUERY_TIMEOUT_MS,
-  withProjectionRecovery,
 } from "./shared";
-import {
-  type TemporalOperations,
-  makeTemporalOperationContext,
-} from "../../temporal/operations";
-import { changeStateQuery } from "../../temporal/messages";
+import { type TemporalOperations } from "../../temporal/operations";
+import { readChangeProjectionState } from "../read-change-projection";
 import { isPoisonedWorkflowForChange } from "./poisoned-workflow-cache";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
-import type { ProjectionRecoveryReason } from "../../temporal/recovery-classification";
 import { composeTypedMutationResult } from "../../temporal/mutation-safety";
-import {
-  TemporalListOutcomeError,
-  TemporalReadOutcomeError,
-} from "../../temporal/outcome-errors";
 import { assertDurablePersist, type DiskPersistOutcome } from "./disk-persist";
 import { commitChangeProjection } from "../change-projection-transaction";
 
@@ -343,9 +326,9 @@ export function createTemporalStoreBackend(
 
   /**
    * Best-effort cache-refresh dual-write for NON-durability-critical
-   * mutations (changes.refresh, epic-membership set/clear). Queries the
-   * workflow once for the latest state, refreshes the cache + memo, then
-   * fires an explicit best-effort disk write via `voidPersist`.
+   * mutations (changes.refresh, epic-membership set/clear). Reads the
+   * durable projection, refreshes the cache + memo, then fires an explicit
+   * best-effort disk write via `voidPersist`.
    *
    * Best-effort: if the post-mutation query fails we skip the dual-write
    * rather than fail the original mutation. The workflow update has
@@ -371,22 +354,11 @@ export function createTemporalStoreBackend(
     let readbackError: unknown;
     let readbackValue: ChangeWorkflowState | undefined;
     try {
-      const owner = getOwner();
-      const handle = await getGuardedChangeHandle(input, changeId);
-      const ctx = makeTemporalOperationContext(
-        input.projectId,
-        handle.workflowId,
-        "query",
-        "dualWriteAfterMutation",
-        QUERY_TIMEOUT_MS,
-      );
-      const outcome = await runTemporalQuery(async () =>
-        owner.query(ctx, handle, changeStateQuery),
-      );
-      if (outcome.kind !== "complete") {
-        throw new TemporalReadOutcomeError(outcome);
+      readbackValue =
+        readChangeProjectionState(legacy.paths.changes, changeId) ?? undefined;
+      if (!readbackValue) {
+        throw new Error(`Change projection not found: ${changeId}`);
       }
-      readbackValue = outcome.value as ChangeWorkflowState;
     } catch (err) {
       readbackError = err;
     }
@@ -465,12 +437,11 @@ export function createTemporalStoreBackend(
   const getOwner = (): TemporalOperations => getTemporalOwner(input);
 
   /**
-   * Extract projection from update result, falling back to a direct query
-   * if the workflow returned void/null (older workflow versions).
+   * Extract projection from update result, falling back to the durable disk
+   * projection if the mutation returned void/null (older workflow versions).
    *
-   * KD-7 (fresh-handle pattern): receives a `getHandle` thunk rather than
-   * a pre-built handle so the fallback query inside `runTemporalQuery`
-   * gets a fresh handle bound to the (possibly post-reconnect) client.
+   * Receives a `getHandle` thunk only to recover the change ID for the disk
+   * projection lookup.
    */
   const resolveStateOrQuery = async (
     getHandle: () => TemporalWorkflowHandle | Promise<TemporalWorkflowHandle>,
@@ -479,22 +450,18 @@ export function createTemporalStoreBackend(
     if (result && typeof result === "object" && "changeId" in result) {
       return result as ChangeWorkflowState;
     }
-    const owner = getOwner();
     const handle = await getHandle();
-    const ctx = makeTemporalOperationContext(
-      input.projectId,
-      handle.workflowId,
-      "query",
-      "resolveStateOrQuery",
-      QUERY_TIMEOUT_MS,
-    );
-    const outcome = await runTemporalQuery(async () =>
-      owner.query(ctx, handle, changeStateQuery),
-    );
-    if (outcome.kind !== "complete") {
-      throw new TemporalReadOutcomeError(outcome);
+    const changeId = handle.workflowId.split("/").at(-1);
+    if (!changeId) {
+      throw new Error("Cannot resolve change id from workflow handle");
     }
-    return outcome.value as ChangeWorkflowState;
+    const state = readChangeProjectionState(legacy.paths.changes, changeId);
+    if (!state) {
+      throw new Error(
+        "Change projection not found while resolving mutation result",
+      );
+    }
+    return state;
   };
 
   const indexTasksFromState = (state: ChangeWorkflowState): void => {
@@ -526,149 +493,6 @@ export function createTemporalStoreBackend(
     return null;
   };
 
-  /**
-   * Load a missing change's archived projection when the active disk snapshot
-   * is absent. Used by the terminal-projection fallback so a `change.json`
-   * snapshot (archive bundle) still surfaces without a live workflow round-trip.
-   *
-   * On success the archived projection is returned with a recovery marker.
-   * On failure (no snapshot, read itself throws), returns `null`.
-   */
-  const loadArchiveProjection = async (
-    changeId: string,
-    reason: ProjectionRecoveryReason,
-    deadline?: TemporalReadDeadline,
-  ): Promise<Change | null> => {
-    if (!legacy.paths.archive) return null;
-
-    const exact = await loadChange(legacy.paths.archive, changeId);
-    // Note: schema_error in archive bundles is intentionally NOT propagated
-    // here. Archive bundles are write-targets for recovery (split-brain
-    // scenario: corrupt/empty bundle overwritten by in-memory state).
-    // Throwing on schema-invalid bundles would break reconcileArchivedBundleRetry.
-    // The active change.json path (loadDiskTerminalProjection) still surfaces
-    // schema errors verbatim — that's the read path users/agents need to see.
-    if (exact.success && exact.data?.id === changeId) {
-      return withProjectionRecovery(exact.data, "archive", reason);
-    }
-
-    // The scan below is the archive-inventory × candidate product (DONT3):
-    // once the aggregate deadline is exhausted it must not begin.
-    // rq-readSourceAttribution01: archive/visibility candidate sources are
-    // bounded and attributed — per-iteration deadline admission, typed source
-    // degradation naming the incomplete source, and no unbounded scan.
-    if (deadline && remainingDeadlineMs(deadline) <= 0) return null;
-
-    let archiveDirs: string[];
-    try {
-      archiveDirs = await listChangeDirs(legacy.paths.archive);
-    } catch (err) {
-      logger.warn(
-        `Archive projection list failed for change ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      return null;
-    }
-
-    for (const archiveDir of archiveDirs) {
-      if (deadline && remainingDeadlineMs(deadline) <= 0) return null;
-      if (archiveDir === changeId) continue;
-      const loaded = await loadChange(legacy.paths.archive, archiveDir);
-      // Archive-bundle schema errors are recoverable (see comment above);
-      // do not throw here either.
-      if (loaded.success && loaded.data?.id === changeId) {
-        return withProjectionRecovery(loaded.data, "archive", reason);
-      }
-    }
-
-    return null;
-  };
-
-  const loadArchiveBundleDominantProjection = async (
-    changeId: string,
-    reason: ProjectionRecoveryReason,
-    deadline?: TemporalReadDeadline,
-  ): Promise<Change | null> => {
-    if (!legacy.paths.archive) return null;
-    if (!(await hasArchiveBundle(legacy.paths.archive, changeId))) return null;
-
-    const archivedProjection = await loadArchiveProjection(
-      changeId,
-      reason,
-      deadline,
-    );
-    if (archivedProjection) {
-      return setCachedProjection({ ...archivedProjection, status: "archived" });
-    }
-
-    const diskProjection = await legacy.changes.get(changeId);
-    if (isSchemaError(diskProjection)) {
-      throw new Error(diskProjection.error);
-    }
-    if (diskProjection.success && diskProjection.data?.id === changeId) {
-      return setCachedProjection(
-        withProjectionRecovery(
-          { ...diskProjection.data, status: "archived" },
-          "disk",
-          reason,
-        ),
-      );
-    }
-
-    return null;
-  };
-
-  /**
-   * rq-terminalProjectionTruth01: durable terminal projection dominates stale
-   * non-terminal workflow, memo, disk, and visibility projections. Check the
-   * archive bundle first, then a closed disk snapshot. Active/missing changes
-   * fall through to the live workflow path.
-   */
-  const loadTerminalProjection = async (
-    changeId: string,
-    reason: ProjectionRecoveryReason = "missing_workflow",
-    deadline?: TemporalReadDeadline,
-  ): Promise<Change | null> => {
-    const archiveProjection = await loadArchiveBundleDominantProjection(
-      changeId,
-      reason,
-      deadline,
-    );
-    if (archiveProjection) return archiveProjection;
-
-    const diskClosed = await loadDiskTerminalProjection(changeId);
-    if (diskClosed) return setCachedProjection(diskClosed);
-
-    return null;
-  };
-
-  /**
-   * Load the durable on-disk projection for a change, bounded by the aggregate
-   * deadline. Returns `null` when the change is not on disk or the read is
-   * expired; throws on schema errors so they propagate verbatim.
-   */
-  const loadDiskProjection = async (
-    changeId: string,
-    deadline: TemporalReadDeadline,
-  ): Promise<Change | null> => {
-    let diskResult: Awaited<ReturnType<typeof legacy.changes.get>>;
-    try {
-      diskResult = await raceWithTemporalDeadline(
-        legacy.changes.get(changeId),
-        deadline,
-      );
-    } catch {
-      // Genuine I/O / deadline failures degrade to the Temporal path rather
-      // than aborting the whole read.
-      return null;
-    }
-    // Schema errors are not recoverable through a workflow round-trip;
-    // rethrow them verbatim instead of masking them as a missing projection.
-    if (isSchemaError(diskResult)) {
-      throw new Error(diskResult.error);
-    }
-    return diskResult.success && diskResult.data ? diskResult.data : null;
-  };
-
   const getTemporalChange = async (
     changeId: string,
     opts?: {
@@ -677,216 +501,14 @@ export function createTemporalStoreBackend(
       projectionState?: DiskProjectionReadState;
     },
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
-    const ctx =
-      opts?.context ??
-      createTemporalReadContext(
-        opts?.deadline ? opts.deadline.budgetMs : undefined,
-      );
-    // When a caller supplied only a deadline, align the context's absolute
-    // deadline with the supplied one so a shared request budget is honored.
-    if (opts?.deadline && !opts.context) {
-      ctx.deadline = opts.deadline;
-    }
-
-    // Aggregate-deadline admission (KD1/KD5): once the request budget is
-    // exhausted, no further read stage may begin. The caller records the
-    // resulting TemporalQueryTimeoutError as typed incompleteness rather
-    // than re-entering another retry loop.
-    if (isTemporalReadExpired(ctx)) {
-      throw new TemporalQueryTimeoutError(ctx.deadline.budgetMs);
-    }
-    // rq-terminalProjectionTruth01: durable terminal projection dominates
-    // stale non-terminal shadows before any live workflow round-trip.
-    const terminalProjection = await loadTerminalProjection(
+    const snapshot = await readProjectionSnapshot(
       changeId,
-      "missing_workflow",
-      ctx.deadline,
+      opts?.projectionState,
     );
-    if (terminalProjection) {
-      indexTasksFromChange(terminalProjection);
-      const source =
-        (terminalProjection as Change & { _source?: "disk" | "archive" })
-          ._source ?? "archive";
-      return {
-        success: true,
-        data: terminalProjection,
-        source,
-      };
+    if (snapshot.found) {
+      indexTasksFromChange(snapshot.snapshot);
     }
-
-    // Poisoned-workflow short-circuit: once a workflow has been classified as
-    // poisoned-history (TMPRL1100 / nondeterminism), never issue another query
-    // or signal against it. Serve the durable disk/archive projection directly
-    // and annotate the result so callers (e.g. adv_change_show) can surface the
-    // poisoned state without paying a timeout.
-    if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
-      const snapshot = await readProjectionSnapshot(
-        changeId,
-        opts?.projectionState,
-      );
-      const result = snapshotToLoadResult(snapshot);
-      if (result.success && result.data) {
-        (result.data as Change & { _poisoned?: true })._poisoned = true;
-        setCachedProjection(result.data);
-        indexTasksFromChange(result.data);
-      }
-      return result;
-    }
-
-    const cached = changeCache.get(changeId);
-    if (cached) {
-      indexTasksFromChange(cached);
-      return {
-        success: true,
-        data: cached,
-        source:
-          (cached as Change & { _source?: "disk" | "archive" })._source ??
-          "workflow",
-      };
-    }
-
-    // Circuit-breaker: once three consecutive per-member queries have been
-    // unresponsive, skip further workflow round-trips and fall back to disk.
-    if (ctx.isCircuitBreakerTripped()) {
-      const diskChange = await loadDiskProjection(changeId, ctx.deadline);
-      if (diskChange) {
-        indexTasksFromChange(diskChange);
-        return {
-          success: true,
-          data: withProjectionRecovery(
-            diskChange,
-            "disk",
-            "workflow_unresponsive",
-          ),
-          source: "disk",
-        };
-      }
-      throw new TemporalQueryTimeoutError(ctx.deadline.budgetMs);
-    }
-
-    // Leg A: disk-authoritative load. The disk projection is the read model
-    // the workflow writes on every signal; resolve it first so a wedged
-    // workflow can never hang the read.
-    const diskChange = await loadDiskProjection(changeId, ctx.deadline);
-
-    // Leg B: Temporal enrichment-only. Lowered per-member cap (1500ms) plus
-    // the aggregate deadline keeps a single slow member inside the request
-    // budget. A timeout/unresponsive outcome degrades to the disk projection
-    // with a typed advisory rather than throwing/hanging.
-    try {
-      const owner = getOwner();
-      const handle = await getGuardedChangeHandle(input, changeId);
-      const queryCtx = makeTemporalOperationContext(
-        input.projectId,
-        handle.workflowId,
-        "query",
-        "changeStateQuery",
-        1_500,
-      );
-      const outcome = await runTemporalQuery(
-        async () => owner.query(queryCtx, handle, changeStateQuery),
-        { deadline: ctx.deadline, timeoutMs: 1_500 },
-      );
-      if (outcome.kind !== "complete") {
-        throw new TemporalReadOutcomeError(outcome);
-      }
-      ctx.recordResponsiveMember();
-      const state = outcome.value as ChangeWorkflowState;
-      indexTasksFromState(state);
-      return {
-        success: true,
-        data: setCachedChange(state),
-        source: "workflow",
-      };
-    } catch (error) {
-      // Routine reads are projection-only. Never start, signal, reseed, or
-      // write recovery state from the read path. Degrade to the durable disk
-      // projection when available; otherwise return a typed LoadResult.
-      const failure = await classifyTemporalReadFailure(
-        input,
-        changeId,
-        error,
-        ctx.deadline,
-      );
-
-      if (failure.recoveryReason === "workflow_unresponsive") {
-        ctx.recordUnresponsiveMember();
-      }
-
-      const recoveryReason: ProjectionRecoveryReason =
-        failure.recoveryReason === "workflow_unresponsive" ||
-        failure.recoveryReason === "poisoned_history" ||
-        failure.recoveryReason === "missing_workflow"
-          ? failure.recoveryReason
-          : "missing_workflow";
-      if (diskChange) {
-        indexTasksFromChange(diskChange);
-        return {
-          success: true,
-          data: withProjectionRecovery(diskChange, "disk", recoveryReason),
-          source: "disk",
-        };
-      }
-
-      // No durable projection to serve. Preserve hard deadline / transient
-      // errors by rethrowing our own typed error; for fallback-classified
-      // missing/poisoned workflows, surface as not_found instead of mutating.
-      if (failure.errorClass !== "fallback") {
-        throw error;
-      }
-
-      return {
-        success: false,
-        error: `No durable projection and workflow is ${failure.recoveryReason ?? "unreachable"} for change ${changeId}`,
-        type: "not_found",
-        degraded: failure,
-      };
-    }
-  };
-
-  const loadDiskTerminalProjection = async (
-    changeId: string,
-  ): Promise<Change | null> => {
-    // rq-schemaErrorPropagation01 (issue #258 Defect 1): the disk read is
-    // pulled OUT of the swallow try/catch below so schema errors can
-    // propagate. The catch remains for genuine I/O / unreadable-state
-    // failures (transient fs errors, ENOENT, permissions); those still fall
-    // through to Temporal/missing-workflow logic. A schema_error is not
-    // transient — it must surface verbatim, not be masked as a generic
-    // "Failed to query Workflow" by the workflow round-trip that follows.
-    let result;
-    try {
-      result = await legacy.changes.get(changeId);
-    } catch {
-      // Disk projection is only a terminal-state dominance check. Missing or
-      // unreadable disk state falls through to Temporal/missing-workflow logic.
-      return null;
-    }
-    if (isSchemaError(result)) {
-      throw new Error(result.error);
-    }
-    // rq-terminalProjectionTruth01 / poison read-resilience: a terminal
-    // change.json (archived OR closed) is disk-authoritative and MUST be
-    // served without a live workflow round-trip. Archived previously relied
-    // solely on loadArchiveBundleDominantProjection (bundle-present); when the
-    // archive bundle is missing/raced, an archived change fell through to the
-    // live query and could hit a poisoned/terminated workflow (TMPRL1100),
-    // paying a wasteful query + describe() probe per candidate before the
-    // fallback finally returned the same disk data. Short-circuiting both
-    // terminal statuses here mirrors that fallback and keeps enumeration/status
-    // reads fast even against poisoned terminal workflows.
-    if (
-      result.success &&
-      result.data &&
-      (result.data.status === "closed" || result.data.status === "archived")
-    ) {
-      // Mark the disk source so callers report source "disk" (matching the
-      // prior catch→fallback path). This is terminal-projection dominance,
-      // NOT a temporal_query_fallback recovery, so it does not carry the
-      // _recovery reconciliation marker.
-      return { ...result.data, _source: "disk" } as Change;
-    }
-    return null;
+    return snapshotToLoadResult(snapshot);
   };
 
   /**
@@ -1000,60 +622,13 @@ export function createTemporalStoreBackend(
     const memoAll = memo.getAll();
     const memoIds = memoAll.map((s) => s.id);
 
-    let visibilityIds: string[] = [];
+    // Disk projections are the sole source of truth; workflow visibility is no
+    // longer queried for candidate membership or enrichment.
+    const visibilityIds: string[] = [];
     const visibilityRecords: Array<{
       id: string;
       searchAttributes?: Record<string, unknown>;
     }> = [];
-    try {
-      const owner = getOwner();
-      const listCtx = makeTemporalOperationContext(
-        input.projectId,
-        "visibility-list",
-        "list",
-        "visibilityList",
-        5_000,
-      );
-      const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
-      const query = buildVisibilityQuery({
-        projectId: input.projectId,
-        statuses: wantsTerminalStatuses ? null : undefined,
-      });
-      visibilityIds = await runTemporal(
-        async () => {
-          const ids: string[] = [];
-          const outcome = await owner.list<{
-            workflowId: string;
-            searchAttributes?: Record<string, unknown>;
-          }>(listCtx, query);
-          if (outcome.kind !== "complete") {
-            throw new TemporalListOutcomeError(outcome);
-          }
-          for (const wf of outcome.value) {
-            const wfid = wf.workflowId;
-            if (!wfid.startsWith(projectPrefix)) continue;
-            const changeId = wfid.slice(projectPrefix.length);
-            if (changeId.length === 0) continue;
-            ids.push(changeId);
-            visibilityRecords.push({
-              id: changeId,
-              searchAttributes: wf.searchAttributes,
-            });
-          }
-          return ids;
-        },
-        { deadline: ctx.deadline, timeoutMs: 5_000 },
-      );
-    } catch (err) {
-      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
-      logger.warn(
-        `[P2.4] Visibility list ${
-          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-        }; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      degradedSources.add("visibility");
-      if (hitDeadline) markDeadline("visibility");
-    }
 
     // Disk enumeration is typically fast local I/O (one readdir per path)
     // but can hang on slow network/FUSE/NFS-backed project roots or
@@ -1061,8 +636,7 @@ export function createTemporalStoreBackend(
     // aggregate-deadline admission gate as visibility (AC1/AC5/C2) so a
     // slow readdir degrades with typed source-specific incompleteness
     // rather than outliving the request budget. Disk still stays
-    // available as an omission-evidence source on Temporal-side
-    // degradation; the deadline gates the potentially-unbounded stages.
+    // available as the authoritative omission-evidence source.
     let diskIds: string[] = [];
     try {
       diskIds = await raceWithTemporalDeadline(
@@ -1080,7 +654,7 @@ export function createTemporalStoreBackend(
       if (hitDeadline) markDeadline("active_disk");
     }
 
-    // (4) Archive bundles — required when caller asks for terminal statuses.
+    // (3) Archive bundles — required when caller asks for terminal statuses.
     //
     // After rq-archiveRetirement01.1, archived changes have their active
     // source dir removed, so they aren't in `diskIds`. Their workflow may

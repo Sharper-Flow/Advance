@@ -26,25 +26,16 @@ import type { Store } from "../storage/store-types";
 import type { ErrorRecovery, ScopedSubagentReport } from "../types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import {
-  fireSignalAndRefresh,
-  getChangeHandle,
-  querySignal,
-} from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   targetPathSchema,
   withTargetPathStore,
   appendTargetProjectContextOutput,
 } from "./target-project";
-import {
-  changeTaskQuery,
-  getStateQuery,
-  taskCompletedSignal,
-  taskUpdatedSignal,
-} from "../temporal/messages";
+import { taskCompletedSignal, taskUpdatedSignal } from "../temporal/messages";
+import { readChangeProjectionState } from "../storage/read-change-projection";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 import { dismissAllSuggestedDrafts } from "../utils/wisdom-draft";
-import type { WisdomDraft } from "../types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -466,13 +457,12 @@ async function fireTaskCompletedFromCheckpoint(
       ...(structuredOutput && { structured_output: structuredOutput }),
     });
 
-    const recordedTask = await querySignal<{
-      status?: string;
-      verification?: string;
-      checkpointSha?: string;
-      filesTouched?: string[];
-      wisdom_drafts?: WisdomDraft[];
-    } | null>(handle, changeTaskQuery, taskId);
+    const projectedState = readChangeProjectionState(
+      store.paths.changes,
+      changeId,
+    );
+    const recordedTask =
+      projectedState?.tasks?.find((task) => task.id === taskId) ?? null;
 
     if (!recordedTask) {
       return {
@@ -518,23 +508,12 @@ async function fireTaskCompletedFromCheckpoint(
 
     if (recordedTask.status !== "done") {
       // rq-TDD009seq: surface specific rejection reason if available
-      let specificError: string | undefined;
-      try {
-        const state = await querySignal<{
-          signal_rejections?: Array<{
-            signalName: string;
-            errorMessage: string;
-            rejectedAt: string;
-          }>;
-        } | null>(handle, getStateQuery);
-        const rejections = state?.signal_rejections ?? [];
-        const latest = rejections[rejections.length - 1];
-        if (latest?.signalName === "taskCompleted" && latest.errorMessage) {
-          specificError = latest.errorMessage;
-        }
-      } catch {
-        // Non-fatal: fall through to generic error
-      }
+      const rejections = projectedState?.signal_rejections ?? [];
+      const latest = rejections[rejections.length - 1];
+      const specificError =
+        latest?.signalName === "taskCompleted" && latest.errorMessage
+          ? latest.errorMessage
+          : undefined;
 
       return {
         recorded: false,

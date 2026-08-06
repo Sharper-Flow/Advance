@@ -54,15 +54,15 @@ describe("ADV stability hardening cross-cutting verification", () => {
     });
 
     expect([first.workerRole, second.workerRole, third.workerRole]).toEqual([
-      "host",
-      "client",
-      "client",
+      "degraded",
+      "degraded",
+      "degraded",
     ]);
     expect([
       first.shouldSpawnWorker,
       second.shouldSpawnWorker,
       third.shouldSpawnWorker,
-    ]).toEqual([true, false, false]);
+    ]).toEqual([false, false, false]);
 
     const deadPidState = await tempDir();
     await resolveWorkerSingletonPlan({
@@ -81,7 +81,10 @@ describe("ADV stability hardening cross-cutting verification", () => {
         now: () => now,
         isPidAlive: () => false,
       }),
-    ).resolves.toMatchObject({ shouldSpawnWorker: true, workerRole: "host" });
+    ).resolves.toMatchObject({
+      shouldSpawnWorker: false,
+      workerRole: "degraded",
+    });
 
     const staleHeartbeatState = await tempDir();
     await resolveWorkerSingletonPlan({
@@ -101,7 +104,10 @@ describe("ADV stability hardening cross-cutting verification", () => {
         isPidAlive: () => true,
         staleHeartbeatGraceMs: 1,
       }),
-    ).resolves.toMatchObject({ shouldSpawnWorker: true, workerRole: "host" });
+    ).resolves.toMatchObject({
+      shouldSpawnWorker: false,
+      workerRole: "degraded",
+    });
   });
 
   test("worktree guard blocks main-checkout mutations but allows worktrees and exemptions", async () => {

@@ -1,13 +1,12 @@
 /**
- * Gate Tools — Lifecycle Contract Tests (Signal-Driven)
+ * Gate Tools — Lifecycle Contract Tests (Projection Reads)
  *
- * Tests for adv_gate_complete using signal/query surface instead of
- * workflow updates. Verifies tool-layer enforcement for planning gate
- * userApproved and signal firing.
+ * Tests for adv_gate_complete using disk projections for readback while
+ * retaining coverage of mutation signaling and gate-boundary enforcement.
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { COMMAND_MANIFEST } from "../manifest";
@@ -23,6 +22,7 @@ import { deriveWorkflowDirective } from "../utils/workflow-directive";
 
 const PROJECT_ID = "0".repeat(40);
 const TARGET_PROJECT_ID = "0".repeat(39) + "1";
+let fixtureRoot = "";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -198,8 +198,8 @@ function createMockStore(
 
   return {
     paths: {
-      root: "/tmp/test",
-      changes: "/tmp/test/.adv/changes",
+      root: fixtureRoot,
+      changes: fixtureRoot,
     } as Store["paths"],
     config: null,
     init: vi.fn(),
@@ -229,11 +229,58 @@ function createMockStore(
   } as unknown as Store;
 }
 
+async function seedProjection(
+  changesDir: string,
+  changeId: string,
+  gates: import("../types").Gates,
+  tasks: import("../types").Task[] = [],
+): Promise<void> {
+  await mkdir(changesDir, { recursive: true });
+  await writeFile(
+    join(changesDir, `${changeId}.json`),
+    JSON.stringify({
+      schemaVersion: 2,
+      projectId: PROJECT_ID,
+      changeId,
+      projectedAt: "2026-01-01T00:00:00Z",
+      state: {
+        id: changeId,
+        changeId,
+        title: "Test Change",
+        status: "active",
+        tasks,
+        gates,
+      },
+    }),
+  );
+}
+
+async function seedLegacyChange(
+  changesDir: string,
+  change: {
+    id: string;
+    title: string;
+    status: string;
+    created_at: string;
+    created_by: string;
+    tasks: unknown[];
+    deltas: Record<string, unknown>;
+    wisdom: unknown[];
+    gates: import("../types").Gates;
+    worker_bundle_impact: { kind: "not_applicable"; rationale: string };
+  },
+): Promise<void> {
+  const changeDir = join(changesDir, change.id);
+  await mkdir(changeDir, { recursive: true });
+  await writeFile(join(changeDir, "change.json"), JSON.stringify(change));
+}
+
 describe("gate tools — signal-driven lifecycle", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mocks.querySignal.mockReset();
     mocks.targetStoreRef.current = undefined;
+    fixtureRoot = await mkdtemp(join(tmpdir(), "adv-gate-projection-"));
     mocks.evaluateLightweightProfileAndSignal.mockResolvedValue({
       success: true,
       evaluation: {
@@ -248,8 +295,10 @@ describe("gate tools — signal-driven lifecycle", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    await rm(fixtureRoot, { recursive: true, force: true });
+    fixtureRoot = "";
   });
 
   describe("adv_gate_complete", () => {
@@ -351,6 +400,19 @@ describe("gate tools — signal-driven lifecycle", () => {
         release: { status: "pending" },
       } as import("../types").Gates;
       const store = createMockStore({ gates });
+      await seedProjection(fixtureRoot, "test-change", gates);
+      await seedLegacyChange(fixtureRoot, {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates,
+        worker_bundle_impact: { kind: "not_applicable", rationale: "test" },
+      });
       mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce({
         status: "done",
       });
@@ -520,6 +582,40 @@ describe("gate tools — signal-driven lifecycle", () => {
       const store = createMockStore({ gates: staleGates });
       store.paths.changes = changesDir;
       try {
+        await mkdir(changesDir, { recursive: true });
+        const recoveryTask = {
+          id: "tk-recovered",
+          title: "Recovered task",
+          status: "done",
+          priority: 0,
+          deps: [],
+          metadata: {},
+          contract_refs: {},
+          evidence_plan: {
+            policy: "test",
+            proof_target: "projection fixture",
+            provenance: "new",
+          },
+          evidence_policy: "test",
+          created_at: "2026-01-01T00:00:00Z",
+        } as import("../types").Task;
+        await writeFile(
+          join(changesDir, "test-change.json"),
+          JSON.stringify({
+            schemaVersion: 2,
+            projectId: PROJECT_ID,
+            changeId: "test-change",
+            projectedAt: "2026-01-01T00:00:00Z",
+            state: {
+              id: "test-change",
+              changeId: "test-change",
+              title: "Test Change",
+              status: "active",
+              tasks: [recoveryTask],
+              gates: recoveredGates,
+            },
+          }),
+        );
         await mkdir(changeDir, { recursive: true });
         await writeFile(
           join(changeDir, "change.json"),
@@ -529,21 +625,23 @@ describe("gate tools — signal-driven lifecycle", () => {
             status: "active",
             created_at: "2026-01-01T00:00:00Z",
             created_by: "test",
-            tasks: [],
+            tasks: [recoveryTask],
             deltas: {},
             wisdom: [],
+            gates: recoveredGates,
             worker_bundle_impact: {
               kind: "not_applicable",
               rationale: "test harness",
             },
-            gates: recoveredGates,
           }),
         );
-        mocks.querySignal.mockRejectedValueOnce(
-          new Error(
+        mocks.handleMock.describe = vi.fn(async () => {
+          const error = new Error(
             "WorkflowNotFoundError: workflow execution already completed",
-          ),
-        );
+          );
+          error.name = "WorkflowNotFoundError";
+          throw error;
+        });
 
         const result = await gateTools.adv_gate_complete.execute(
           {
@@ -564,10 +662,8 @@ describe("gate tools — signal-driven lifecycle", () => {
           success: true,
           recovered: true,
         });
-        const persisted = JSON.parse(
-          await readFile(join(changeDir, "change.json"), "utf8"),
-        );
-        expect(persisted.gates).toMatchObject({
+        const persisted = await loadChange(changesDir, "test-change");
+        expect(persisted.data?.gates).toMatchObject({
           execution: { status: "done" },
           acceptance: expect.objectContaining({ status: "done" }),
         });
@@ -951,7 +1047,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       }
     });
 
-    test("queries workflow gate state before firing completion signal", async () => {
+    test("reads gate state from the disk projection before completion", async () => {
       const store = createMockStore({
         gates: {
           proposal: { status: "pending" },
@@ -963,7 +1059,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           release: { status: "pending" },
         } as import("../types").Gates,
       });
-      mocks.querySignal.mockResolvedValueOnce({
+      await seedProjection(fixtureRoot, "test-change", {
         proposal: { status: "done" },
         discovery: { status: "done" },
         design: { status: "pending" },
@@ -985,7 +1081,6 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.querySignal).toHaveBeenCalled();
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     });
 
@@ -1113,6 +1208,28 @@ describe("gate tools — signal-driven lifecycle", () => {
           acceptance: { status: "pending" },
           release: { status: "pending" },
         } as import("../types").Gates,
+      });
+      const acceptanceGates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      await seedProjection(fixtureRoot, "test-change", acceptanceGates);
+      await seedLegacyChange(fixtureRoot, {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: acceptanceGates,
+        worker_bundle_impact: { kind: "not_applicable", rationale: "test" },
       });
       mocks.querySignal.mockResolvedValueOnce({
         proposal: { status: "done" },
@@ -1326,15 +1443,19 @@ describe("gate tools — signal-driven lifecycle", () => {
           tasks: [],
         },
       });
-      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce([
+      await seedProjection(fixtureRoot, "test-change", gates, [
         {
           id: "tk-1",
           title: "Incomplete task",
           status: "in_progress",
           priority: 0,
           deps: [],
+          metadata: {},
+          contract_refs: {},
+          evidence_plan: {},
+          evidence_policy: "test",
           created_at: "2026-01-01T00:00:00Z",
-        },
+        } as import("../types").Task,
       ]);
 
       const result = await gateTools.adv_gate_complete.execute(
