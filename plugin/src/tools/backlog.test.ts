@@ -503,7 +503,7 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
           ],
           complete: false,
           stopReason: "internal_budget_exhausted",
-          stoppedStage: "query_change_workflow",
+          stoppedStage: "dirty_uncommitted_work",
           inspectedCount: 1,
           candidateCount: 10,
         }),
@@ -530,7 +530,7 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.degradation?.worktree).toMatchObject({
       complete: false,
       stopReason: "internal_budget_exhausted",
-      stoppedStage: "query_change_workflow",
+      stoppedStage: "dirty_uncommitted_work",
       inspectedCount: 1,
       candidateCount: 10,
     });

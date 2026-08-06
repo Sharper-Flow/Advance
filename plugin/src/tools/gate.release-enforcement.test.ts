@@ -40,7 +40,6 @@ function change(overrides: Partial<Change> = {}): Change {
       acceptance: { status: "done" },
       release: { status: "pending" },
     },
-    worker_bundle_impact: { kind: "not_applicable", rationale: "test" },
     ...overrides,
   } as Change;
 }

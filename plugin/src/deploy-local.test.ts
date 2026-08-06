@@ -886,8 +886,6 @@ describe("deploy-local.sh", () => {
       // invariant guidance to the canonical ADV agent.
       // Ceiling raised from 368 → 371 after documenting the change-lifecycle
       // state invariant in the canonical ADV prompt.
-      // Ceiling raised from 365 → 368 after adding compact adv-temporal-repair
-      // routing markers and packet anchors.
       // Ceiling raised from 362 → 363 after adding the release-stage
       // adv-reviewer phase mapping needed for typed worker packets.
       // Ceiling raised from 361 → 362 after adding explicit typed worker
@@ -899,8 +897,8 @@ describe("deploy-local.sh", () => {
       // adv.md is identical to trunk, which already accepts 371).
       // Ceiling raised from 371 → 372 after addDesignQualityGates shipped
       // adv_design_concern_disposition and we added it to the allowlists.
-      // Ceiling raised from 400 → 411 after adding adv_change_repair_origin and
-      // adv_delta_modify to the canonical ADV agent allowlist.
+      // Ceiling raised from 400 → 411 after adding adv_delta_modify and
+      // related canonical ADV agent allowlist entries.
       // Ceiling raised from 411 → 412 after trunk added adv_tool_invoke,
       // adv_archive_purge, adv_contract_mint, and adv_snapshot_health to the
       // canonical ADV agent allowlist.
@@ -922,7 +920,6 @@ describe("deploy-local.sh", () => {
         "Cancellation",
         "Due diligence first",
         "acceptance reviews use `review`",
-        "adv-temporal-repair",
         "SYMPTOM",
         "RECENT_TOOL_ERROR",
       ]) {

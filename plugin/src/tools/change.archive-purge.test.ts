@@ -187,7 +187,6 @@ describe("adv_archive_purge", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.changeId).toBe(change.id);
-    expect(parsed.workflowTerminated).toBe(true);
     expect(parsed.bundleRemoved).toBe(false);
     expect(parsed.archivedPath).toBe(bundleDir);
     // rq-archivePurge01.1: disk bundle preserved — adv_change_show keeps
@@ -221,7 +220,6 @@ describe("adv_archive_purge", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(parsed.workflowTerminated).toBe(true);
     expect(parsed.bundleRemoved).toBe(true);
     expect(parsed.archivedPath).toBe(bundleDir);
     // rq-archivePurge01.2: archive/<id>/ recursively removed; subsequent

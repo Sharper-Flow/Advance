@@ -98,10 +98,9 @@ export interface ChangeCreateProviders {
     }>
   >;
   /**
-   * Post-create double-check window in milliseconds. Defaults to 5000
-   * (rq-backlogCoord03 — chosen per validator pass-2 to give SQLite-backed
-   * dev servers margin for Visibility propagation). Tests pass 0 to skip
-   * the wait entirely.
+    * Post-create double-check window in milliseconds. Defaults to 5000 so a
+    * concurrent disk projection can become visible before the second check.
+    * Tests pass 0 to skip the wait entirely.
    */
   claimRaceCheckMs?: number;
 }

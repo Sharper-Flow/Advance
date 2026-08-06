@@ -3,7 +3,7 @@
  *
  * Operator-only repair surface for corrupt or oversized active change
  * projections. Diagnoses via the bounded projection reader, refuses healthy or
- * missing records, refuses to reconstruct from Temporal, and atomically moves
+ * missing records, and atomically moves
  * the bad projection outside the normal active read path while retaining the
  * original bytes/metadata and appending a purpose-specific audit entry.
  */
@@ -101,7 +101,7 @@ export const changeProjectionQuarantineTools = {
     description:
       "Operator-only quarantine for corrupt or oversized active change projections. " +
       "Diagnoses via the bounded projection reader, refuses healthy/missing records, " +
-      "refuses to reconstruct from Temporal, and atomically moves the bad change.json " +
+      "refuses to synthesize missing state, and atomically moves the bad change.json " +
       "to a quarantine directory outside the active read path. " +
       "Requires approvedByUser:true, non-blank approvalEvidence, and changeId. " +
       "Use dryRun:true to preview the diagnosis and target path without moving files.",

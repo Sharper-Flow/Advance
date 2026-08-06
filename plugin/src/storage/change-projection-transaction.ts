@@ -27,6 +27,62 @@ import type { Change, ProjectionCommitAuditEntry } from "../types";
 export const PROJECTION_COMMIT_MAX_AUDIT_ENTRIES = 50;
 
 /**
+ * Collection-shaped fields that a mutation must never silently empty.
+ *
+ * History: the removed Temporal dual-write built its payload with
+ * `{...latest, ...temporalOwned}`, where `Object.fromEntries` emitted a key
+ * for every owned field even when the value was `undefined`. An empty
+ * workflow state therefore nulled `tasks`, `gates`, `documents` and `deltas`
+ * in a single write. It committed as `committed` because the caller's
+ * postcondition only compared two scalars — `status` and `lifecycleState` —
+ * neither of which the wipe touched.
+ *
+ * Caller-supplied `verify` callbacks cannot be relied on to catch this: the
+ * failure is precisely that they check something beside the damage. So the
+ * transaction enforces it structurally instead, and fails closed.
+ */
+const PROTECTED_COLLECTION_FIELDS = [
+  "tasks",
+  "deltas",
+  "gates",
+  "documents",
+] as const;
+
+type ProtectedCollectionField = (typeof PROTECTED_COLLECTION_FIELDS)[number];
+
+function collectionSize(value: unknown): number | null {
+  if (value === undefined || value === null) return null;
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === "object") return Object.keys(value).length;
+  return null;
+}
+
+/**
+ * Detect a mutation that drops a populated collection to absent or empty.
+ *
+ * Shrinking by some entries is legitimate (cancelling a task, retracting a
+ * delta), so only the collapse-to-nothing case is refused. `allowEmptied`
+ * lets a caller that genuinely intends to clear a collection say so
+ * explicitly, at the call site, in the audit trail.
+ */
+function findCollectionWipe(
+  latest: Change,
+  candidate: Change,
+  allowEmptied: readonly ProtectedCollectionField[] = [],
+): { field: ProtectedCollectionField; before: number } | null {
+  for (const field of PROTECTED_COLLECTION_FIELDS) {
+    if (allowEmptied.includes(field)) continue;
+    const before = collectionSize((latest as Record<string, unknown>)[field]);
+    if (before === null || before === 0) continue;
+    const after = collectionSize((candidate as Record<string, unknown>)[field]);
+    if (after === null || after === 0) {
+      return { field, before };
+    }
+  }
+  return null;
+}
+
+/**
  * Why a projection commit was authorized.
  *
  * `mutation` is the ordinary path: a tool applied a field-local change.
@@ -160,6 +216,16 @@ export interface CommitChangeProjectionOptions {
    */
   verify: (ctx: ProjectionCommitVerifyContext) => ProjectionCommitVerifyResult;
   /**
+   * Collections this mutation is explicitly allowed to empty.
+   *
+   * By default the transaction refuses to commit a mutation that collapses a
+   * populated `tasks`, `deltas`, `gates` or `documents` to absent or empty,
+   * because a caller postcondition that checks fields beside the damage will
+   * happily report success. Declaring the field here is the only way through,
+   * and it records the intent at the call site.
+   */
+  allowEmptiedCollections?: readonly ProtectedCollectionField[];
+  /**
    * Optional follow-up work invoked while the per-change lock is still held,
    * after the snapshot has been written, read back, and verified. This lets
    * callers publish dependent durable artifacts (e.g. per-change summary
@@ -206,6 +272,7 @@ export async function commitChangeProjection(
     afterCommit,
     lockTimeoutMs,
     payload,
+    allowEmptiedCollections = [],
   } = options;
 
   if (isSyntheticValidationDraftPattern(changeId)) {
@@ -358,6 +425,17 @@ export async function commitChangeProjection(
       committed_at: committedAt,
       ...(payload !== undefined ? { payload } : {}),
     };
+
+    // 6b. Refuse a mutation that collapses a populated collection to nothing.
+    //     Fails closed: the caller's own postcondition is not trusted to
+    //     notice damage adjacent to what it checks.
+    const wipe = findCollectionWipe(latest, candidate, allowEmptiedCollections);
+    if (wipe) {
+      return {
+        kind: "operator_required",
+        reason: `Refusing to commit ${mutationKind} for ${changeId}: it would empty "${wipe.field}", which held ${wipe.before} entr${wipe.before === 1 ? "y" : "ies"}. If clearing it is intended, declare it via allowEmptiedCollections.`,
+      };
+    }
 
     const priorCommits = candidate.projection_commits ?? [];
     const projection_commits: ProjectionCommitAuditEntry[] = [

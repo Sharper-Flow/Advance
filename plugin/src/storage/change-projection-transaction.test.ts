@@ -784,3 +784,103 @@ describe("commitChangeProjection", () => {
     });
   });
 });
+
+describe("protected collection wipe guard", () => {
+  let tempDir: string;
+  let changesDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir("projection-wipe-");
+    changesDir = join(tempDir, "changes");
+    await mkdir(changesDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  /**
+   * Reproduces the exact shape of the removed Temporal dual-write bug:
+   * spreading an object whose keys are all present but undefined over the
+   * latest projection, guarded by a postcondition that only compares two
+   * scalars the wipe does not touch.
+   */
+  it("refuses a spread-undefined wipe that a scalar-only postcondition would pass", async () => {
+    const change = makeChange("wipeGuard", {
+      tasks: [
+        { id: "tk-1", title: "keep me", status: "pending", created_at: new Date().toISOString() },
+      ],
+    });
+    await seedChange(changesDir, change);
+
+    const temporalOwned = Object.fromEntries(
+      ["tasks", "gates", "documents", "deltas"].map((k) => [k, undefined]),
+    );
+
+    const outcome = await commitChangeProjection({
+      changesDir,
+      changeId: "wipeGuard",
+      authority: RECOVERY_AUTHORITY,
+      mutationKind: "dual_write_shape",
+      mutateLatest: (latest) => ({ ...latest, ...temporalOwned }) as Change,
+      // The historical guard: two scalars, neither touched by the wipe.
+      verify: ({ readback }) =>
+        readback.status === change.status &&
+        readback.lifecycleState === change.lifecycleState,
+    });
+
+    expect(outcome.kind).toBe("operator_required");
+    if (outcome.kind === "operator_required") {
+      expect(outcome.reason).toContain("tasks");
+    }
+
+    const after = await loadChange(changesDir, "wipeGuard");
+    expect(after.success && after.data?.tasks).toHaveLength(1);
+  });
+
+  it("allows emptying a collection when the caller declares the intent", async () => {
+    const change = makeChange("wipeDeclared", {
+      tasks: [
+        { id: "tk-1", title: "remove me", status: "pending", created_at: new Date().toISOString() },
+      ],
+    });
+    await seedChange(changesDir, change);
+
+    const outcome = await commitChangeProjection({
+      changesDir,
+      changeId: "wipeDeclared",
+      authority: RECOVERY_AUTHORITY,
+      mutationKind: "clear_tasks",
+      allowEmptiedCollections: ["tasks"],
+      mutateLatest: (latest) => ({ ...latest, tasks: [] }),
+      verify: ({ readback }) => readback.tasks.length === 0,
+    });
+
+    expect(outcome.kind).toBe("committed");
+  });
+
+  it("still allows a partial shrink without a declaration", async () => {
+    const now = new Date().toISOString();
+    const change = makeChange("wipePartial", {
+      tasks: [
+        { id: "tk-1", title: "a", status: "pending", created_at: now },
+        { id: "tk-2", title: "b", status: "pending", created_at: now },
+      ],
+    });
+    await seedChange(changesDir, change);
+
+    const outcome = await commitChangeProjection({
+      changesDir,
+      changeId: "wipePartial",
+      authority: RECOVERY_AUTHORITY,
+      mutationKind: "drop_one_task",
+      mutateLatest: (latest) => ({
+        ...latest,
+        tasks: latest.tasks.filter((t) => t.id !== "tk-2"),
+      }),
+      verify: ({ readback }) => readback.tasks.length === 1,
+    });
+
+    expect(outcome.kind).toBe("committed");
+  });
+});

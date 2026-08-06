@@ -1,9 +1,9 @@
 /**
  * Tests for the claim-collision pre/post-create checks added by C3
  * (rq-backlogCoord02, rq-backlogCoord03). Verifies:
- *   - any positive origin.issue_number fires pre-create Visibility query
+ *   - any positive origin.issue_number checks the disk projection
  *   - CLAIM_CONFLICT returned when existing change holds same issue
- *   - origins without issue_number skip Visibility queries
+ *   - origins without issue_number skip disk claim checks
  *   - changes without origin work unchanged
  *   - post-create double-check surfaces CLAIM_RACE_DETECTED on N>1
  */
@@ -36,7 +36,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     await cleanupTempDir(dir);
   });
 
-  test("origin.kind=triage with issue_number fires pre-create Visibility query (rq-backlogCoord02)", async () => {
+  test("origin.kind=triage with issue_number fires pre-create disk claim check (rq-backlogCoord02)", async () => {
     const claimChecker = vi.fn().mockResolvedValue([]);
 
     await changeTools.adv_change_create.execute(
@@ -56,7 +56,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     expect(issueNumber).toBe(51);
   });
 
-  test("CLAIM_CONFLICT returned when Visibility shows existing claim (rq-backlogCoord02.1)", async () => {
+  test("CLAIM_CONFLICT returned when disk claims show existing claim (rq-backlogCoord02.1)", async () => {
     const claimChecker = vi
       .fn()
       .mockResolvedValue([{ changeId: "existingClaim", status: "active" }]);
@@ -83,7 +83,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     expect(list.changes.length).toBe(0);
   });
 
-  test("origin.kind=discovery skips Visibility queries (rq-backlogCoord02.3)", async () => {
+  test("origin.kind=discovery skips disk claim checks (rq-backlogCoord02.3)", async () => {
     const claimChecker = vi.fn().mockResolvedValue([]);
 
     const output = await changeTools.adv_change_create.execute(
@@ -101,7 +101,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     expect(claimChecker).not.toHaveBeenCalled();
   });
 
-  test("origin.kind=triage with issue_number does fire Visibility query", async () => {
+  test("origin.kind=triage with issue_number does fire disk claim check", async () => {
     const claimChecker = vi.fn().mockResolvedValue([]);
 
     await changeTools.adv_change_create.execute(
@@ -121,7 +121,7 @@ describe("adv_change_create claim checks (rq-backlogCoord02, rq-backlogCoord03)"
     expect(claimChecker.mock.calls[0][1]).toBe(89);
   });
 
-  test("change without origin works unchanged (no Visibility query)", async () => {
+  test("change without origin works unchanged (no disk claim check)", async () => {
     const claimChecker = vi.fn().mockResolvedValue([]);
 
     const output = await changeTools.adv_change_create.execute(

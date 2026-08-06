@@ -4,7 +4,7 @@
  * TDD RED → GREEN for the addSpecDeltaWriter change (roadmap #64).
  * Mirrors adv_wisdom_add writer tests plus the stronger target_path
  * confirmation and recovery contract from existing change-mutating tools
- * (adv_contract_mint, adv_change_repair_origin, adv_change_status_repair).
+ * (adv_contract_mint and other retained change mutations).
  *
  * Acceptance criteria exercised:
  * - AC1: valid existing/new capability + add delta + scenario persists under

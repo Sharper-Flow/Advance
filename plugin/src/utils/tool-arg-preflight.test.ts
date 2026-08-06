@@ -261,16 +261,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     policy: "blank",
     action: "omit",
   },
-  // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
-  // Zero omission for the retained positive-int optional; blank omission
-  // for adv_ops_run_evidence_add optional evidence fields and the twelve
-  // registered Epic tools' optional string / target-routing fields.
-  {
-    toolName: "adv_change_repair_origin",
-    field: "origin_issue_number",
-    policy: "zero",
-    action: "omit",
-  },
   // tk-6ff82311335f: read-tool page-limit fields surfaced by the coverage guard.
   {
     toolName: "adv_backlog_list",
@@ -1062,51 +1052,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     rawArgs: { changeId: "c", proposal: "real", confirmationEvidence: " " },
     ok: true,
     normalizedArgs: { changeId: "c", proposal: "real" },
-  },
-  // tk-2b89b9cf3042: minimal valid payload cases for the new verified
-  // top-level omission policy groups. Each case simulates a strict-mode
-  // provider filling optional fields with placeholders ("" or 0) and
-  // asserts normalization produces the minimal payload.
-  {
-    label: "zero origin issue number normalizes on repair-origin",
-    toolName: "adv_change_repair_origin",
-    rawArgs: {
-      changeId: "c",
-      origin_kind: "adhoc",
-      origin_issue_number: 0,
-      approvalEvidence: "ok",
-      approvedByUser: true,
-      reason: "real rationale",
-    },
-    ok: true,
-    normalizedArgs: {
-      changeId: "c",
-      origin_kind: "adhoc",
-      approvalEvidence: "ok",
-      approvedByUser: true,
-      reason: "real rationale",
-    },
-  },
-  {
-    label: "non-zero origin issue number is preserved on repair-origin",
-    toolName: "adv_change_repair_origin",
-    rawArgs: {
-      changeId: "c",
-      origin_kind: "triage",
-      origin_issue_number: 42,
-      approvalEvidence: "ok",
-      approvedByUser: true,
-      reason: "real rationale",
-    },
-    ok: true,
-    normalizedArgs: {
-      changeId: "c",
-      origin_kind: "triage",
-      origin_issue_number: 42,
-      approvalEvidence: "ok",
-      approvedByUser: true,
-      reason: "real rationale",
-    },
   },
   {
     label: "blank ops-run-evidence optional fields normalize to omitted",

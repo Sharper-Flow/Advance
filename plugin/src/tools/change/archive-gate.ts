@@ -7,7 +7,6 @@ import {
   type GateCompletion,
   type Gates,
   type Change,
-  type GateReadinessBlocker,
   type Phase9FinalizationStatus,
 } from "../../types";
 import { basename, dirname, join } from "node:path";
@@ -30,71 +29,6 @@ import {
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
 
 const logger = createLogger("change");
-
-function workerBundleProvenanceBlockers(change: Change): GateReadinessBlocker[] {
-  const impact = change.worker_bundle_impact;
-  if (!impact) {
-    return [{
-      code: "WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED",
-      gateId: "release",
-      message: "Worker-bundle impact declaration is required before release readiness can be evaluated (rq-workerBundleReleaseProvenance01).",
-      remediation: "Declare worker_bundle_impact with kind 'required' or 'not_applicable' and a rationale.",
-    }];
-  }
-  if (impact.kind === "not_applicable" && impact.rationale?.trim()) return [];
-  if (impact.kind === "not_applicable") {
-    return [{
-      code: "WORKER_BUNDLE_PROVENANCE_NOT_APPLICABLE_RATIONALE_REQUIRED",
-      gateId: "release",
-      message: "worker_bundle_impact 'not_applicable' requires a non-empty typed rationale (rq-workerBundleProvenance01).",
-      remediation: "Set worker_bundle_impact.rationale to explain why worker-bundle provenance is not applicable.",
-    }];
-  }
-  const provenance = change.workerBundleProvenance;
-  if (!provenance) {
-    return [{
-      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
-      gateId: "release",
-      message: "Worker-bundle provenance is required because worker_bundle_impact is 'required'.",
-      remediation: "Record workerBundleProvenance with source_sha, build_run_id, and replay_run_id.",
-    }];
-  }
-  if (!provenance.source_sha?.trim()) {
-    return [{
-      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
-      gateId: "release",
-      message: "Worker-bundle provenance is missing source_sha.",
-      remediation: "Record workerBundleProvenance with the source SHA used for the build and replay runs.",
-    }];
-  }
-  const runs = Object.values(change.test_runs ?? {}).flat();
-  const buildRun = runs.find((run) => run.runId === provenance.build_run_id && run.evidence_kind === "build_worker");
-  const replayRun = runs.find((run) => run.runId === provenance.replay_run_id && run.evidence_kind === "replay_determinism");
-  if (!buildRun || !replayRun) {
-    const missing = [
-      !buildRun ? `build_worker run ${provenance.build_run_id}` : null,
-      !replayRun ? `replay_determinism run ${provenance.replay_run_id}` : null,
-    ].filter(Boolean).join(", ");
-    return [{
-      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
-      gateId: "release",
-      message: `Worker-bundle provenance references missing typed test runs: ${missing}.`,
-      remediation: "Record passing test runs with evidence_kind 'build_worker' and 'replay_determinism'.",
-    }];
-  }
-  const failing = [
-    buildRun.exitCode !== 0 ? `build_worker run ${provenance.build_run_id} exitCode=${buildRun.exitCode}` : null,
-    replayRun.exitCode !== 0 ? `replay_determinism run ${provenance.replay_run_id} exitCode=${replayRun.exitCode}` : null,
-  ].filter(Boolean);
-  return failing.length === 0
-    ? []
-    : [{
-        code: "WORKER_BUNDLE_PROVENANCE_FAILING",
-        gateId: "release",
-        message: `Worker-bundle provenance references failing test runs: ${failing.join(", ")}.`,
-        remediation: "Ensure both build_worker and replay_determinism test runs pass before recording provenance.",
-      }];
-}
 
 export function getArchiveTaskPreflightError(change: { tasks: { id: string; title: string; status: string }[] }): string | null {
   const incompleteTasks = change.tasks.filter((task) => task.status !== "done" && task.status !== "cancelled");
@@ -129,19 +63,7 @@ export function getArchiveGatePreflightError(
   gateState: ArchiveGateState,
   allowReleasePending: boolean,
   _divergenceHint?: string | null,
-  change?: Change,
 ): string | null {
-  if (allowReleasePending && gateState.effectiveGates.release?.status !== "done" && change) {
-    const blockers = workerBundleProvenanceBlockers(change);
-    if (blockers.length > 0) {
-      return formatToolOutput({
-        error: `Cannot archive: worker-bundle release provenance is undeclared or invalid. Blockers: ${blockers.map((blocker) => blocker.code).join(", ")}.`,
-        requirement: "rq-workerBundleReleaseProvenance01",
-        readinessBlockers: blockers,
-        remediation: "Declare worker_bundle_impact and record passing build/replay provenance before release/archive.",
-      });
-    }
-  }
   const incompleteGates = allowReleasePending
     ? GATE_ORDER.filter((gateId) => gateId !== "release" && !isGateSatisfied(gateState.effectiveGates[gateId]))
     : getIncompleteGates(gateState.effectiveGates);
@@ -285,8 +207,6 @@ export async function verifyReleaseGateDurableForArchive(input: { store: Store; 
 
 export async function completeReleaseGateAfterFinalization(input: { store: Store; change: Change; changeId: string; finalization: GitFinalizeOutcome; existingBundlePath?: string }): Promise<ArchiveReleaseGateResult> {
   if (input.finalization.status !== "shipped") return { ok: false, error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}` };
-  const blockers = workerBundleProvenanceBlockers(input.change);
-  if (blockers.length > 0) return { ok: false, error: "Cannot complete release gate: worker-bundle provenance is undeclared or invalid", requirement: "rq-workerBundleReleaseProvenance01", readinessBlockers: blockers };
   const current = readChangeProjectionState(input.store.paths.changes, input.changeId)?.gates?.release;
   if (current?.status === "done") return { ok: true, gate: current, alreadyDone: true };
   const evidence = buildReleaseCompletionEvidence(input.finalization);

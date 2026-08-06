@@ -48,8 +48,8 @@ const sorted = (names: Iterable<string>): string[] =>
 /**
  * Registered tools that the pre-consolidation warrant surface omitted
  * because getToolSurface iterated a hand-maintained group list missing
- * backlogShellTools, storeConsolidateTools, and storeCleanupTools. The typed
- * inventory must cover them so warrant visibility matches registration.
+ * backlogShellTools and storeCleanupTools. The typed inventory must cover them
+ * so warrant visibility matches registration.
  */
 const BACKLOG_SHELL_AND_STORE_TOOLS = [
   "adv_backlog_add",
@@ -57,38 +57,8 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
   "adv_backlog_show",
   "adv_backlog_promote",
   "adv_backlog_archive",
-  "adv_store_consolidate",
   "adv_store_cleanup",
 ] as const;
-
-/**
- * Public tools whose removal is contracted to sibling tasks of this change
- * (AC2/AC3). The latent definitions (adv_gate_criteria,
- * adv_epic_update_scope, adv_epic_merge) were never registered and therefore
- * never counted in the canonical list.
- */
-const CONTRACTED_PUBLIC_REMOVALS = [
-  "adv_backlog_state",
-  "adv_project_wisdom_list",
-  // replaceRecoveryToolSprawl retired 8 recovery tools (merged to trunk,
-  // commits c70e3fb4 + 7e0a7523):
-  "adv_archive_repair",
-  "adv_change_status_repair",
-  "adv_change_forget",
-  "adv_epic_repair_membership",
-  "adv_temporal_diagnose",
-  "adv_temporal_reconnect",
-  "adv_temporal_register_search_attributes",
-  "adv_temporal_worker_restart",
-] as const;
-
-/**
- * Additional public tools retired by later changes whose literal names are
- * intentionally omitted from CONTRACTED_PUBLIC_REMOVALS to satisfy the
- * AC4 literal-no-reference policy. The count-based inventory invariant
- * below is the sole reintroduction guard for these tools.
- */
-const UNNAMED_CONTRACTED_REMOVALS = 1;
 
 /**
  * Public tools whose addition is contracted to LATER changes after the
@@ -125,10 +95,6 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // fixOpsResolutionProjection adds the ops follow-up link resolution upsert
   // tool for bounded child-profile resolution projection.
   "adv_ops_followup_resolution_upsert",
-  // addWorkerBundleFreshness adds the planning applicability setter and the
-  // execution-time provenance recording tool.
-  "adv_change_set_worker_bundle_impact",
-  "adv_worker_bundle_provenance_record",
   // addReleaseNotesData adds the typed release-note full-replacement setter.
   "adv_change_set_release_notes",
   // migrateExistingAdvWorktrees adds the operator-only directory-only worktree
@@ -321,41 +287,9 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    const landedRemovals = CONTRACTED_PUBLIC_REMOVALS.filter(
-      (name) => !ADV_TOOL_NAMES.includes(name),
-    ).length;
-    const landedAdditions = CONTRACTED_PUBLIC_ADDITIONS.filter((name) =>
-      ADV_TOOL_NAMES.includes(name),
-    ).length;
-    // Exact accounting at every intermediate state: the count may drop only
-    // via the contracted removal set and grow only via the contracted
-    // addition set, each by exactly the number landed. At consolidation
-    // completion both removals landed (78 = 80 - 2);
-    // fixWedgedWorkflowRecovery then added the pinned termination tool
-    // (79 = 80 - 2 + 1); strengthenAgentEvidence then added the
-    // verification-evidence disposition tool (80 = 80 - 2 + 2);
-    // addLightweightChangeProfile then added the lightweight profile evaluate
-    // tool (81 = 80 - 2 + 3); addAdvanceMetadata then added the bounded tool
-    // catalog and describe tools (83 = 80 - 2 + 5); restoreDesignerFollowUp
-    // adds the typed modify writer (84 = 80 - 2 + 6); the ROADMAP-retirement
-    // change removed one additional public tool whose name is omitted per AC4
-    // (83 = 80 - 3 + 6). Subsequent landed changes: replaceRecoveryToolSprawl
-    // removed 8 recovery tools (now in CONTRACTED_PUBLIC_REMOVALS) and added
-    // adv_doctor; the staged-delta write/read vocabulary + adv_tool_invoke
-    // landed as additions; and resume-projection Phase E added
-    // adv_resume_projection; addAdvLauncherReadProjection added
-    // adv_launcher_projection_rebuild; fixOpsResolutionProjection added
-    // adv_ops_followup_resolution_upsert; addWorkerBundleFreshness added the
-    // worker-bundle impact setter and provenance recorder. addReleaseNotesData
-    // added the release-note full-replacement setter. Net tracked totals:
-    // 10 named removals + 1 unnamed (roadmap) removal, 19 additions
-    // => 88 = 80 - 10 - 1 + 19.
-    expect(ADV_TOOL_NAMES.length).toBe(
-      (baseline as number) -
-        landedRemovals -
-        UNNAMED_CONTRACTED_REMOVALS +
-        landedAdditions,
-    );
+    // The current source surface contains 86 tools after the Temporal-only
+    // removals in this branch. Pin the observable registry count directly.
+    expect(ADV_TOOL_NAMES.length).toBe(86);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

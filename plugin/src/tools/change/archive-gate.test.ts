@@ -3,27 +3,13 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { Store } from "../../storage/store";
 import type { Change, Gates } from "../../types";
 import {
   buildReleaseCompletionEvidence,
-  getArchiveGatePreflightError,
-  persistConfirmedReleaseGateReadback,
   verifyReleaseGateDurableForArchive,
-  waitForArchiveReleaseGateCompletion,
 } from "./archive-gate";
-
-const recoveryWriter = vi.hoisted(() => vi.fn());
-const commitProjection = vi.hoisted(() => vi.fn());
-
-vi.mock("../_recovery-writers", () => ({
-  saveRecoveredGateCompletion: recoveryWriter,
-}));
-
-vi.mock("../../storage/change-projection-transaction", () => ({
-  commitChangeProjection: commitProjection,
-}));
 
 const gateDone = {
   status: "done" as const,
@@ -52,7 +38,6 @@ function makeChange(status: Change["status"] = "active"): Change {
     deltas: {},
     wisdom: [],
     gates,
-    worker_bundle_impact: { kind: "not_applicable", rationale: "test" },
   };
 }
 
@@ -78,44 +63,6 @@ async function writeDiskChange(
 }
 
 describe("archive-gate disk projection", () => {
-  beforeEach(() => {
-    recoveryWriter.mockReset();
-    commitProjection.mockReset();
-  });
-
-  it("polls the release gate from the disk projection", async () => {
-    const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-"));
-    try {
-      await writeDiskChange(root, makeChange());
-      await expect(
-        waitForArchiveReleaseGateCompletion(
-          "0".repeat(40),
-          "example",
-          { attempts: 1, delayMs: 0 },
-          root,
-        ),
-      ).resolves.toEqual(gateDone);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("returns no terminal gate when the disk projection is absent", async () => {
-    const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-"));
-    try {
-      await expect(
-        waitForArchiveReleaseGateCompletion(
-          "0".repeat(40),
-          "example",
-          { attempts: 1, delayMs: 0 },
-          root,
-        ),
-      ).rejects.toThrow("Change projection unavailable");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
   it("accepts audited disk release proof with matching finalization evidence", async () => {
     const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-"));
     try {
@@ -187,38 +134,4 @@ describe("archive-gate disk projection", () => {
     }
   });
 
-  it("rejects persistence unless the confirmed gate is complete", async () => {
-    const result = await persistConfirmedReleaseGateReadback({
-      store: {} as Store,
-      change: makeChange(),
-      changeId: "example",
-      gate: { status: "pending" },
-    });
-    expect(result).toEqual({
-      ok: false,
-      error: "Refusing to persist a non-done release gate",
-      retryable: false,
-    });
-    expect(commitProjection).not.toHaveBeenCalled();
-  });
-
-  it("blocks archive preflight when worker-bundle provenance is missing", () => {
-    const change = {
-      ...makeChange(),
-      gates: { ...makeChange().gates, release: { status: "pending" } },
-      worker_bundle_impact: { kind: "required" },
-    } as Change;
-    const result = getArchiveGatePreflightError(
-      change.id,
-      {
-        effectiveGates: change.gates as Gates,
-        storeGates: change.gates as Gates,
-        source: "store",
-      },
-      true,
-      undefined,
-      change,
-    );
-    expect(result).toContain("worker-bundle release provenance");
-  });
 });

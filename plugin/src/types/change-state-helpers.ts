@@ -114,8 +114,6 @@ export function changeSeedStateFromChange(change: Change): Partial<ChangeState> 
     lightweight_profile: safeChange.lightweight_profile,
     coordination_claim: safeChange.coordination_claim,
     creation_request_hash: safeChange.creation_request_hash,
-    worker_bundle_impact: safeChange.worker_bundle_impact,
-    workerBundleProvenance: safeChange.workerBundleProvenance,
     release_notes: safeChange.release_notes,
     testRuns: safeChange.test_runs,
   };

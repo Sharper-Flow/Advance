@@ -583,7 +583,6 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_change_reenter",
     "adv_change_update",
     "adv_change_update_issues",
-    "adv_change_repair_origin",
     "adv_delta_add",
     "adv_delta_amend",
     "adv_delta_modify",

@@ -96,12 +96,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_change_create: (args) => write(`Create change${suffix(args, "summary")}`),
   adv_change_update: (args) =>
     write(`Update change${suffix(args, "changeId")}`),
-  adv_change_set_worker_bundle_impact: (args) =>
-    write(`Set worker-bundle impact${suffix(args, "changeId")}`),
   adv_change_set_release_notes: (args) =>
     write(`Set release notes${suffix(args, "changeId")}`),
-  adv_worker_bundle_provenance_record: (args) =>
-    write(`Record worker-bundle provenance${suffix(args, "changeId")}`),
   adv_change_close: (args) => write(`Close change${suffix(args, "changeId")}`),
   adv_change_bulk_close: () => write("Bulk close changes"),
   adv_change_validate: (args) =>
@@ -114,8 +110,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Terminate change workflow${suffix(args, "changeId")}`),
   adv_change_update_issues: (args) =>
     write(`Update change issues${suffix(args, "changeId")}`),
-  adv_change_repair_origin: (args) =>
-    operator(`Repair change origin${suffix(args, "changeId")}`),
   adv_change_projection_quarantine: (args) =>
     operator(`Quarantine change projection${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
@@ -170,15 +164,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_wisdom_list: (args) => read(`List wisdom${suffix(args, "changeId")}`),
   adv_snapshot_health: (args) =>
     operator(`Check snapshot health${suffix(args, "action")}`),
-  adv_store_consolidate: (args) => {
-    const action = typeof args.action === "string" ? args.action : "scan";
-    if (action === "execute") return operator("Execute store consolidation");
-    return read(
-      action === "dry_run"
-        ? `Dry-run store consolidation${suffix(args, "source_project_id")}`
-        : "Scan orphan stores",
-    );
-  },
   adv_store_cleanup: (args) => {
     const action = typeof args.action === "string" ? args.action : "scan";
     if (action === "execute") return operator("Execute legacy agenda cleanup");

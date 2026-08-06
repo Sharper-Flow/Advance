@@ -361,10 +361,10 @@ export const testTools = {
           "Optional descriptive TDD phase metadata. Does not gate task completion; use 'red', 'green', or 'verify'.",
         ),
       evidence_kind: z
-        .enum(["build_worker", "replay_determinism", "unit", "other"])
+        .enum(["unit", "other"])
         .optional()
         .describe(
-          "Optional typed classification for the test evidence (build_worker, replay_determinism, unit, other).",
+          "Optional typed classification for the test evidence (unit, other).",
         ),
       workdir: z
         .string()
@@ -396,8 +396,6 @@ export const testTools = {
         workdir?: string;
         timeoutMs?: number;
         evidence_kind?:
-          | "build_worker"
-          | "replay_determinism"
           | "unit"
           | "other";
         target_path?: string;

@@ -57,12 +57,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_archive_purge: {
     class: "operator-only",
     rationale:
-      "Terminates archived workflows; opt-in includeDiskBundle recursively deletes the archive bundle (approvedByUser + approvalEvidence).",
-  },
-  adv_change_repair_origin: {
-    class: "operator-only",
-    rationale:
-      "Repairs origin provenance linkage on an open change; claim-safe audited repair (approvedByUser + approvalEvidence + reason).",
+      "Purges archived disk projections; opt-in includeDiskBundle recursively deletes the archive bundle (approvedByUser + approvalEvidence).",
   },
   adv_change_projection_quarantine: {
     class: "operator-only",
@@ -73,11 +68,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "operator-only",
     rationale:
       "Deletes legacy agenda stores; manifest-before-delete with approvedByUser + approvalEvidence + dry-run plan_hash.",
-  },
-  adv_store_consolidate: {
-    class: "operator-only",
-    rationale:
-      "Consolidates orphaned identity stores into the true-root store; approval-gated, mutually serialized with cleanup.",
   },
   adv_launcher_projection_rebuild: {
     class: "operator-only",
@@ -208,10 +198,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_change_update: {
     class: "orchestrator",
     rationale: "Change update.",
-  },
-  adv_change_set_worker_bundle_impact: {
-    class: "orchestrator",
-    rationale: "Typed worker-bundle impact declaration at planning.",
   },
   adv_change_set_release_notes: {
     class: "orchestrator",
@@ -371,11 +357,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_run_test: {
     class: "orchestrator",
     rationale: "Bounded test-run evidence.",
-  },
-  adv_worker_bundle_provenance_record: {
-    class: "orchestrator",
-    rationale:
-      "Record worker-bundle build+replay provenance on a change after both runs pass; execution-time evidence receipt.",
   },
   adv_spec: {
     class: "orchestrator",
@@ -622,14 +603,6 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
   },
   {
-    agent: "adv-temporal-repair",
-    allowed: [...TIER_1_ALLOWLIST],
-    explicitBlocked: [],
-    denyWildcard: true,
-    rationale:
-      "Tier 1 surface only; all other ADV tools dispatched through adv_tool_invoke.",
-  },
-  {
     agent: "adv-tron",
     allowed: [...TIER_1_ALLOWLIST],
     explicitBlocked: [],
@@ -682,7 +655,6 @@ export const SPAWNABLE_SUBAGENT_ROSTER: readonly string[] = Object.freeze([
   "adv-engineer",
   "adv-researcher",
   "adv-reviewer",
-  "adv-temporal-repair",
   "adv-tron",
   "adv-verifier",
   "adv-visual-review",

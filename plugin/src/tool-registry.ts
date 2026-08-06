@@ -101,7 +101,6 @@ import { conformanceTools } from "./tools/conformance";
 import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
-import { storeConsolidateTools } from "./tools/store-consolidate";
 import { storeCleanupTools } from "./tools/store-cleanup";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
 import { advInvokeTools } from "./tools/adv-invoke";
@@ -490,16 +489,6 @@ export function createToolMap(
       "adv_change_update",
       store,
     ),
-    adv_worker_bundle_provenance_record: bindTool(
-      changeTools.adv_worker_bundle_provenance_record,
-      "adv_worker_bundle_provenance_record",
-      store,
-    ),
-    adv_change_set_worker_bundle_impact: bindTool(
-      changeTools.adv_change_set_worker_bundle_impact,
-      "adv_change_set_worker_bundle_impact",
-      store,
-    ),
     adv_change_set_release_notes: bindTool(
       changeTools.adv_change_set_release_notes,
       "adv_change_set_release_notes",
@@ -570,11 +559,6 @@ export function createToolMap(
     adv_change_update_issues: bindTool(
       changeTools.adv_change_update_issues,
       "adv_change_update_issues",
-      store,
-    ),
-    adv_change_repair_origin: bindTool(
-      changeTools.adv_change_repair_origin,
-      "adv_change_repair_origin",
       store,
     ),
     adv_change_reenter: bindTool(
@@ -803,13 +787,6 @@ export function createToolMap(
     adv_snapshot_health: bindTool(
       snapshotHealthTools.adv_snapshot_health,
       "adv_snapshot_health",
-      store,
-    ),
-
-    // Store Consolidation Tool (scan/dry_run read-only; execute approval-gated)
-    adv_store_consolidate: bindTool(
-      storeConsolidateTools.adv_store_consolidate,
-      "adv_store_consolidate",
       store,
     ),
 
@@ -1151,9 +1128,9 @@ export function createToolMap(
  * parity tests (tool-registry.inventory.test.ts) fail if the explicit map,
  * the degraded map, or the warrant surface diverges from this inventory.
  *
- * The inventory includes the backlog-shell, store-consolidation, and
- * store-cleanup groups so warrant visibility matches registration (the
- * pre-consolidation surface omitted them).
+ * The inventory includes the backlog-shell and store-cleanup groups so warrant
+ * visibility matches registration (the pre-consolidation surface omitted
+ * them).
  */
 
 /**
@@ -1298,7 +1275,6 @@ const PUBLIC_TOOL_GROUPS = [
   advWorktreeTools,
   advSessionTools,
   epicTools,
-  storeConsolidateTools,
   storeCleanupTools,
   toolCatalogTools,
   advInvokeTools,

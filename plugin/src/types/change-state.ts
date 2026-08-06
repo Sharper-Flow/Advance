@@ -129,15 +129,7 @@ export interface ChangeState {
   ops_followup_links?: Change["ops_followup_links"];
   lightweight_profile?: Change["lightweight_profile"];
   creation_request_hash?: string;
-  worker_bundle_impact?: Change["worker_bundle_impact"];
   release_notes?: Change["release_notes"];
-  workerBundleProvenance?: {
-    source_sha: string;
-    build_run_id: string;
-    replay_run_id: string;
-    worker_manifest_generation?: number;
-    recorded_at: string;
-  };
   gateCriteria?: Partial<Record<import("./index").GateId, GateCriterion[]>>;
   testRuns?: Change["test_runs"];
 }

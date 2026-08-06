@@ -2,7 +2,7 @@
  * Change Projection Quarantine Tool Tests
  *
  * Covers: unauthorized refusal, healthy/missing refusal, corrupt/oversized
- * quarantine, retained original bytes + audit, idempotence, and no Temporal
+ * quarantine, retained original bytes + audit, idempotence, and no synthetic
  * reconstruction path.
  */
 
@@ -363,7 +363,7 @@ describe("adv_change_projection_quarantine", () => {
     expect(second.code).toBe("NOT_FOUND_REFUSAL");
   });
 
-  test("does not invoke any Temporal or store mutation outside the projection", async () => {
+  test("does not synthesize state or mutate outside the projection", async () => {
     await writeChangeJson(
       changesDir,
       "oversized",

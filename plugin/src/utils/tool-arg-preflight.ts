@@ -350,13 +350,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // with 0; normalize to omitted so the handler default (50) applies.
     limit: { zero: "omit" },
   },
-  adv_store_consolidate: {
-    source_project_id: { blank: "reject" },
-    target_project_id: { blank: "omit" },
-    directory: { blank: "omit" },
-    data_home_root: { blank: "omit" },
-    approvalEvidence: { blank: "reject" }, // audit
-  },
   adv_store_cleanup: {
     data_home_root: { blank: "omit" },
     dry_run_plan_hash: { blank: "reject" }, // required for execute
@@ -384,18 +377,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     changeId: { blank: "reject" },
     approvedByUser: { blank: "omit" },
     approvalEvidence: { blank: "reject" }, // audit
-  },
-  adv_change_repair_origin: {
-    approvalEvidence: { blank: "reject" }, // audit
-    reason: { blank: "reject" }, // audit
-    origin_source_artifact: { blank: "omit" },
-    target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-    // rq-toolPlaceholderPolicy01.5 / tk-2b89b9cf3042: optional .positive()
-    // int placeholder. Strict-mode providers fill with 0; normalize to
-    // omitted so the cross-field origin matrix and Zod .positive() never
-    // see the placeholder.
-    origin_issue_number: { zero: "omit" },
   },
   adv_followup_promote: {
     source_report_key: { blank: "omit" },
@@ -436,7 +417,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
   // Zero omission for the positive-int optionals
-  // (adv_change_repair_origin.origin_issue_number above); blank omission for
+  // (adv_change_create.origin_issue_number above); blank omission for
   // adv_ops_run_evidence_add optional evidence fields and the twelve
   // registered Epic tools' optional string / target-routing fields.
   adv_ops_run_evidence_add: {
@@ -771,45 +752,6 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
       ];
     }
     return [];
-  },
-  adv_change_repair_origin: (args) => {
-    const invalid: ToolArgPreflightIssue[] = [];
-    const hasIssueNumber = args.origin_issue_number !== undefined;
-    const hasSourceArtifact = args.origin_source_artifact !== undefined;
-    const originKind = args.origin_kind;
-
-    if (originKind === "roadmap") {
-      // reshapeTriagePortfolioBalance: 'roadmap' is readable legacy only.
-      // Repair path also rejects this kind for new writes.
-      invalid.push({
-        field: "origin_kind",
-        message:
-          "ORIGIN_KIND_ROADMAP_RETIRED: origin_kind 'roadmap' is retired and cannot be set via repair. Use 'triage' for issue-linked changes.",
-      });
-    } else if (originKind === "discovery") {
-      if (hasIssueNumber) {
-        invalid.push({
-          field: "origin_issue_number",
-          message:
-            "origin_issue_number is only allowed for roadmap or triage origins.",
-        });
-      }
-    } else if (originKind === "adhoc") {
-      if (hasIssueNumber) {
-        invalid.push({
-          field: "origin_issue_number",
-          message: "origin linkage fields are not allowed for adhoc origins.",
-        });
-      }
-      if (hasSourceArtifact) {
-        invalid.push({
-          field: "origin_source_artifact",
-          message: "origin linkage fields are not allowed for adhoc origins.",
-        });
-      }
-    }
-
-    return invalid;
   },
 };
 

@@ -1231,7 +1231,7 @@ describe("advWorktreeTools", () => {
 
   it("adv_worktree_triage delegates to triageWorktrees", async () => {
     triageMock.triageWorktrees.mockResolvedValue({
-      orphans: [{ class: "missing_from_disk", branch: "change/x" }],
+      orphans: [{ class: "stale_head", branch: "change/x" }],
       total: 1,
     });
 
@@ -1249,7 +1249,7 @@ describe("advWorktreeTools", () => {
         timeoutMs: 55_000,
       },
     );
-    expect(out).toContain("missing_from_disk");
+    expect(out).toContain("stale_head");
   });
 
   it("reports incomplete triage as actionable partial inventory", async () => {
@@ -1258,10 +1258,10 @@ describe("advWorktreeTools", () => {
       total: 0,
       complete: false,
       stopReason: "internal_budget_exhausted",
-      stoppedStage: "query_change_workflow",
+      stoppedStage: "dirty_uncommitted_work",
       inspectedCount: 4,
       candidateCount: 36,
-      omitted: [{ scope: "query_change_workflow", reason: "budget" }],
+      omitted: [{ scope: "dirty_uncommitted_work", reason: "budget" }],
     });
 
     const out = await advWorktreeTools.adv_worktree_triage.execute({}, store);
@@ -1271,7 +1271,7 @@ describe("advWorktreeTools", () => {
       success: false,
       complete: false,
       stopReason: "internal_budget_exhausted",
-      stoppedStage: "query_change_workflow",
+      stoppedStage: "dirty_uncommitted_work",
       inspectedCount: 4,
       candidateCount: 36,
     });

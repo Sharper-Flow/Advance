@@ -219,8 +219,8 @@ export const advChangeCreateHandler = async (
   // Fires for any origin that carries a concrete `issue_number` (kind
   // roadmap requires it; triage may carry it when promoting from a
   // backlog item). Skipped for adhoc/discovery without issue_number.
-  // Skipped entirely when no Temporal service is available (legacy /
-  // test mode) UNLESS an explicit `claimChecker` provider is injected.
+  // Production reads claims from the active disk projection; tests may inject
+  // an explicit `claimChecker` provider for deterministic collision scenarios.
   const claimChecker =
     providers.claimChecker ??
     ((_projectId: string, issueNumber: number) =>
@@ -397,8 +397,8 @@ export const advChangeCreateHandler = async (
     }
   }
   // rq-backlogCoord03 — Post-create double-check for race tolerance.
-  // Temporal Visibility is eventually consistent; concurrent creates may
-  // both pass the pre-create check. Re-query after the propagation window
+  // Concurrent creates may both pass the pre-create check. Re-query after the
+  // bounded race-check window
   // and surface CLAIM_RACE_DETECTED if N>1 changes share the issue. The
   // new change is NOT rolled back — the caller decides resolution.
   if (

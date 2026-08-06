@@ -9478,8 +9478,6 @@
             },
             "evidence_kind": {
               "enum": [
-                "build_worker",
-                "replay_determinism",
                 "unit",
                 "other"
               ],
@@ -9726,53 +9724,6 @@
         "type": "object"
       },
       "type": "array"
-    },
-    "worker_bundle_impact": {
-      "properties": {
-        "confirmed_at": {
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "required",
-            "not_applicable"
-          ],
-          "type": "string"
-        },
-        "rationale": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "kind"
-      ],
-      "type": "object"
-    },
-    "workerBundleProvenance": {
-      "properties": {
-        "build_run_id": {
-          "type": "string"
-        },
-        "recorded_at": {
-          "type": "string"
-        },
-        "replay_run_id": {
-          "type": "string"
-        },
-        "source_sha": {
-          "type": "string"
-        },
-        "worker_manifest_generation": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "source_sha",
-        "build_run_id",
-        "replay_run_id",
-        "recorded_at"
-      ],
-      "type": "object"
     },
     "worktree_auto_managed": {
       "type": "boolean"

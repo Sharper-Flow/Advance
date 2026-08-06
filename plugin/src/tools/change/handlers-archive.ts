@@ -2,17 +2,14 @@
 import { z } from "zod";
 import { rm } from "fs/promises";
 import { basename, join, relative } from "path";
-import type { Change, ChangeOrigin, ProjectConfig } from "../../types";
-import { ChangeOriginKindSchema } from "../../types";
+import type { Change, ProjectConfig } from "../../types";
 import type { Store } from "../../storage/store";
 import { loadAllSpecs, loadChange, removeChangeDir } from "../../storage/json";
 import { validateChange } from "../../validator";
 import { advWorktreeDelete } from "../worktree";
 import { initStateDb as initWorktreeStateDb } from "../worktree/state";
 import {
-  listIssueClaims,
   extractContextMismatch,
-  validateCreateOriginLinkage,
   loadValidationContext,
 } from "./create-clarify";
 import {
@@ -128,7 +125,7 @@ export const advChangeArchiveHandler = async (
     const taskPreflight = getArchiveTaskPreflightError(change);
     if (taskPreflight) return taskPreflight;
     const gateState = await resolveArchiveGateState(activeStore, changeId, change);
-    const gatePreflight = getArchiveGatePreflightError(changeId, gateState, phase9 !== "skip", null, change);
+    const gatePreflight = getArchiveGatePreflightError(changeId, gateState, phase9 !== "skip", null);
     if (gatePreflight) return gatePreflight;
     const { archiveMode, autoPush } = detectArchiveMode(activeStore.config ?? {});
     if (!dryRun && phase9 === "skip") {
@@ -243,40 +240,10 @@ export const advArchivePurgeHandler = async ({ changeId, includeDiskBundle, appr
     try { if (archivedPath) await rm(archivedPath, { recursive: true, force: true }); await removeChangeDir(store.paths.changes, changeId); await rm(join(store.paths.changes, `${changeId}.json`), { force: true }); }
     catch (error) { return formatToolOutput({ success: false, error: `Archived change disk bundle removal failed: ${error instanceof Error ? error.message : String(error)}`, changeId, bundleRemoved: false, archivedPath }); }
   }
-  return formatToolOutput({ success: true, changeId, workflowTerminated: true, bundleRemoved: includeDiskBundle === true, archivedPath, requirement: "rq-archivePurge01" });
-};
-
-export const advChangeRepairOriginHandler = async ({ changeId, origin_kind, origin_issue_number, origin_source_artifact, approvalEvidence, approvedByUser, reason, dryRun, target_path, target_confirmed, confirmationEvidence }: { changeId: string; origin_kind: ChangeOrigin["kind"]; origin_issue_number?: number; origin_source_artifact?: string; approvalEvidence: string; approvedByUser: true; reason: string; dryRun?: boolean; target_path?: string; target_confirmed?: true; confirmationEvidence?: string }, store: Store, _maybeOverridePath?: string, providers: { claimChecker?: typeof listIssueClaims } = {}) => {
-  if (approvedByUser !== true) return formatToolOutput({ error: "approvedByUser must be true for origin repair", changeId });
-  const linkageError = validateCreateOriginLinkage({ origin_kind, origin_issue_number, origin_source_artifact });
-  if (linkageError) return formatToolOutput(linkageError);
-  const evidence = approvalEvidence?.trim() ?? "";
-  const repairReason = reason?.trim() ?? "";
-  if (!evidence) return formatToolOutput({ error: "approvalEvidence is required for origin repair", changeId });
-  if (!repairReason) return formatToolOutput({ error: "reason is required for origin repair", changeId });
-  const newOrigin: ChangeOrigin = { kind: origin_kind, ...(origin_issue_number !== undefined ? { issue_number: origin_issue_number } : {}), ...(origin_source_artifact ? { source_artifact: origin_source_artifact } : {}) };
-  const runRepair = async (activeStore: Store, projectContext?: TargetProjectOutputContext) => {
-    const result = await activeStore.changes.get(changeId);
-    if (!result.success) return formatToolOutput({ error: result.error });
-    if (!result.data) return formatToolOutput({ error: `Change not found: ${changeId}` });
-    if (result.data.status === "archived" || result.data.status === "closed") return formatToolOutput({ error: `Cannot repair origin of ${result.data.status} change ${changeId}. Origin repair is for active/open changes only.`, changeId, status: result.data.status });
-    const previousOrigin = result.data.origin;
-    if (newOrigin.issue_number !== undefined) {
-      const existing = providers.claimChecker ? await providers.claimChecker(activeStore, newOrigin.issue_number) : await listIssueClaims(activeStore, newOrigin.issue_number);
-      const conflict = existing.find((candidate) => candidate.changeId !== changeId);
-      if (conflict) return formatToolOutput({ error: `Issue #${newOrigin.issue_number} is already claimed by change ${conflict.changeId} (status: ${conflict.status})`, code: "ORIGIN_CLAIM_CONFLICT", changeId, existing_change_id: conflict.changeId, existing_change_status: conflict.status });
-    }
-    if (dryRun) return formatToolOutput({ success: true, dryRun: true, changeId, previousOrigin, origin: newOrigin, approvalEvidence: evidence, reason: repairReason, ...(projectContext ? { _projectContext: projectContext } : {}) });
-    const outcome = await coordinateChangeMutation<Change>({ authority: { kind: "recovery", reason: repairReason, evidence }, changesDir: activeStore.paths.changes, intent: { changeId, mutationKind: "origin_repair", mutateLatestProjection: (latest) => ({ ...latest, origin: newOrigin }), verifyProjection: (readback) => readback.origin?.kind === newOrigin.kind && readback.origin?.issue_number === newOrigin.issue_number } });
-    if (outcome.kind !== "verified") return formatToolOutput({ error: outcome.kind === "unverified" ? outcome.reason : "Origin repair projection was not verified.", changeId });
-    return formatToolOutput({ success: true, changeId, status: outcome.value.status, previousOrigin, origin: outcome.value.origin, approvalEvidence: evidence, reason: repairReason, ...(projectContext ? { _projectContext: projectContext } : {}) });
-  };
-  if (target_path) return withTargetPathStore({ currentProjectPath: store.paths.root, target_path, stateRequirement: "authoritative", mutation: !dryRun, target_confirmed, confirmationEvidence }, async ({ context, store: targetStore }) => runRepair(targetStore, formatTargetProjectContext(context)));
-  return runRepair(store);
+  return formatToolOutput({ success: true, changeId, bundleRemoved: includeDiskBundle === true, archivedPath, requirement: "rq-archivePurge01" });
 };
 
 export const archiveChangeTools = {
   adv_change_archive: { description: "Archive a completed change", args: { changeId: z.string(), dryRun: z.boolean().optional(), worktreePath: z.string().optional(), noCloseIssue: z.boolean().optional(), phase9: z.enum(["run", "skip"]).optional(), prTitleType: z.string().optional(), target_path: targetPathSchema, target_confirmed: z.literal(true).optional(), confirmationEvidence: z.string().optional() }, execute: advChangeArchiveHandler },
   adv_archive_purge: { description: "Purge an archived change", args: { changeId: z.string(), includeDiskBundle: z.boolean().optional(), approvedByUser: z.literal(true), approvalEvidence: z.string() }, execute: advArchivePurgeHandler },
-  adv_change_repair_origin: { description: "Repair active change origin with operator approval", args: { changeId: z.string(), origin_kind: ChangeOriginKindSchema, origin_issue_number: z.number().int().positive().optional(), origin_source_artifact: z.string().optional(), approvalEvidence: z.string(), approvedByUser: z.literal(true), reason: z.string(), dryRun: z.boolean().optional(), target_path: targetPathSchema, target_confirmed: z.literal(true).optional(), confirmationEvidence: z.string().optional() }, execute: advChangeRepairOriginHandler },
 };

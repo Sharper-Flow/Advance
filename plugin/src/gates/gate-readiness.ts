@@ -61,7 +61,6 @@ export const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
 export interface GateReadinessOptions {
   compatibilityReason?: string;
   enforceDiscoveryContract?: boolean;
-  enforceWorkerBundleProvenance?: boolean;
   /**
    * When true (default), review-matrix rows whose contractId is not present in
    * the contract are flagged as unknown. When false, rows for OOS/out-of-scope
@@ -1071,171 +1070,6 @@ export function renderAcceptanceProjection(state: ChangeState): string {
   return `${lines.join("\n")}\n`;
 }
 
-// =============================================================================
-// Worker-bundle release provenance (KD2/KD7)
-// =============================================================================
-
-/**
- * Pure, deterministic readiness check for the worker-bundle release provenance
- * requirement. Reads only workflow state; no filesystem or runtime probes.
- *
- * - `worker_bundle_impact` absent -> declaration required blocker (AC4/KD1).
- * - `kind: "not_applicable"` + a non-empty rationale -> ok, no blockers (AC3).
- * - `kind: "required"` -> require `state.workerBundleProvenance` with
- *   `{source_sha, build_run_id, replay_run_id}` AND both run IDs match typed,
- *   passing test runs in `state.testRuns` by `evidence_kind` (KD3).
- */
-export function evaluateWorkerBundleProvenance(state: ChangeState): {
-  ok: boolean;
-  blockers: GateReadinessBlocker[];
-} {
-  const impact = state.worker_bundle_impact;
-  const blockers: GateReadinessBlocker[] = [];
-
-  if (!impact) {
-    blockers.push({
-      code: "WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED",
-      gateId: "release",
-      message:
-        "Worker-bundle impact declaration is required before release readiness can be evaluated (rq-workerBundleReleaseProvenance01).",
-      remediation:
-        "Declare worker_bundle_impact with kind 'required' or 'not_applicable' and a rationale.",
-    });
-    return { ok: false, blockers };
-  }
-
-  if (impact.kind === "not_applicable" && impact.rationale?.trim()) {
-    return { ok: true, blockers: [] };
-  }
-
-  if (impact.kind === "not_applicable") {
-    blockers.push({
-      code: "WORKER_BUNDLE_PROVENANCE_NOT_APPLICABLE_RATIONALE_REQUIRED",
-      gateId: "release",
-      message:
-        "worker_bundle_impact 'not_applicable' requires a non-empty typed rationale (rq-workerBundleReleaseProvenance01).",
-      remediation:
-        "Set worker_bundle_impact.rationale to explain why worker-bundle provenance is not applicable.",
-    });
-    return { ok: false, blockers };
-  }
-
-  const provenance = state.workerBundleProvenance;
-  if (!provenance) {
-    blockers.push({
-      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
-      gateId: "release",
-      message:
-        "Worker-bundle provenance is required because worker_bundle_impact is 'required' (rq-workerBundleReleaseProvenance01).",
-      remediation:
-        "Record workerBundleProvenance with source_sha, build_run_id, and replay_run_id.",
-    });
-    return { ok: false, blockers };
-  }
-
-  if (!provenance.source_sha?.trim()) {
-    blockers.push({
-      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
-      gateId: "release",
-      message:
-        "Worker-bundle provenance is missing source_sha (rq-workerBundleReleaseProvenance01).",
-      remediation:
-        "Record workerBundleProvenance with the source SHA used for the build_worker and replay_determinism runs.",
-    });
-    return { ok: false, blockers };
-  }
-
-  const allRuns = Object.values(state.testRuns ?? {}).flat();
-  const buildRun = allRuns.find(
-    (r) =>
-      r.runId === provenance.build_run_id && r.evidence_kind === "build_worker",
-  );
-  const replayRun = allRuns.find(
-    (r) =>
-      r.runId === provenance.replay_run_id &&
-      r.evidence_kind === "replay_determinism",
-  );
-
-  if (!buildRun || !replayRun) {
-    const missingKinds: string[] = [];
-    if (!buildRun) {
-      missingKinds.push(`build_worker run ${provenance.build_run_id}`);
-    }
-    if (!replayRun) {
-      missingKinds.push(`replay_determinism run ${provenance.replay_run_id}`);
-    }
-    blockers.push({
-      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
-      gateId: "release",
-      message: `Worker-bundle provenance references missing typed test runs: ${missingKinds.join(", ")} (rq-workerBundleReleaseProvenance01).`,
-      remediation:
-        "Record passing test runs with evidence_kind 'build_worker' and 'replay_determinism' before recording provenance.",
-    });
-    return { ok: false, blockers };
-  }
-
-  const failing: string[] = [];
-  if (buildRun.exitCode !== 0) {
-    failing.push(
-      `build_worker run ${provenance.build_run_id} exitCode=${buildRun.exitCode}`,
-    );
-  }
-  if (replayRun.exitCode !== 0) {
-    failing.push(
-      `replay_determinism run ${provenance.replay_run_id} exitCode=${replayRun.exitCode}`,
-    );
-  }
-  if (failing.length > 0) {
-    blockers.push({
-      code: "WORKER_BUNDLE_PROVENANCE_FAILING",
-      gateId: "release",
-      message: `Worker-bundle provenance references failing test runs: ${failing.join(", ")} (rq-workerBundleReleaseProvenance01).`,
-      remediation:
-        "Ensure both build_worker and replay_determinism test runs pass before recording provenance.",
-    });
-    return { ok: false, blockers };
-  }
-
-  return { ok: true, blockers: [] };
-}
-
-/**
- * Reusable chokepoint: evaluates worker-bundle provenance for a persisted
- * Change projection. This lets every release-completion writer (workflow
- * signal handler, disk recovery, shipped rescue, archive preflight) share the
- * same proof validation without rebuilding a full workflow state.
- *
- * Accepts either a `Change` loaded from disk or the workflow reducer's
- * `ChangeState`; only the worker-bundle fields are inspected.
- */
-export function evaluateWorkerBundleProvenanceForChange(
-  change:
-    | Change
-    | Pick<
-        ChangeState,
-        "worker_bundle_impact" | "workerBundleProvenance" | "testRuns"
-      >,
-): { ok: boolean; blockers: GateReadinessBlocker[] } {
-  const stateLike = {
-    worker_bundle_impact: (change as Partial<Change>).worker_bundle_impact,
-    workerBundleProvenance:
-      (change as Partial<ChangeState>).workerBundleProvenance ??
-      (
-        change as unknown as {
-          workerBundleProvenance?: ChangeState["workerBundleProvenance"];
-        }
-      ).workerBundleProvenance,
-    testRuns:
-      (change as Partial<ChangeState>).testRuns ??
-      (change as unknown as { test_runs?: ChangeState["testRuns"] })
-        .test_runs,
-  } as Pick<
-    ChangeState,
-    "worker_bundle_impact" | "workerBundleProvenance" | "testRuns"
-  >;
-  return evaluateWorkerBundleProvenance(stateLike as ChangeState);
-}
-
 export function evaluateGateReadiness(
   state: ChangeState,
   gateId: GateId,
@@ -1269,9 +1103,6 @@ export function evaluateGateReadiness(
   }
 
   if (gateId === "release") {
-    if (options.enforceWorkerBundleProvenance) {
-      blockers.push(...evaluateWorkerBundleProvenance(state).blockers);
-    }
     blockers.push(...checkRequiredObligationReleaseBlockers(state, gateId));
     blockers.push(...checkRequiredObligationRouting(state, gateId));
     blockers.push(...checkOpsFollowupReleaseBlockers(state, gateId));

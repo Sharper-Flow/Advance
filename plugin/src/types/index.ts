@@ -511,8 +511,6 @@ export {
   ReleaseNotesArchiveEnvelopeSchema,
   type ReleaseNotesArchiveEnvelope,
   mapConventionalCommitToReleaseNoteCategory,
-  WorkerBundleImpactSchema,
-  type WorkerBundleImpact,
   ChangeCoordinationClaimResponsibilitySchema,
   type ChangeCoordinationClaimResponsibility,
   ChangeCoordinationClaimSchema,
