@@ -11,14 +11,11 @@
 
 import type { Store } from "../storage/store";
 import type { ProbeCacheFreshness } from "./probe-cache";
-import type { TemporalReadDeadline } from "../temporal/retry-wrapper";
 import {
   createHealthProbeCache,
   type HealthProbeCache,
 } from "./health-probe-cache";
-import { getTemporalHealth } from "../temporal/health-probe";
 import { getWorktreeCensus } from "../utils/worktree-census";
-import { enumerateAdvWorkerProcesses } from "../utils/worker-process-probe";
 import { scanSnapshotHealth } from "./snapshot-scan";
 import {
   executeHealthPlan,
@@ -28,17 +25,10 @@ import {
   type Clock,
   type TimerService,
 } from "./status-execution";
-import { getQueueServiceability } from "./health-probe-cache";
 import {
-  computeSearchAttributesSnapshot,
-  buildTemporalHealthFallback,
   MISSING_PROJECT_ID_CACHE_KEY,
-  type TemporalHealthSnapshot,
   type WorktreeCensusSnapshot,
-  type SearchAttributesSnapshot,
   type SnapshotHealthSnapshot,
-  type WorkerProcessesSnapshot,
-  type StatusQueueServiceabilitySnapshot,
 } from "./status-health";
 import { loadProjectConfigWithDiagnostics } from "../storage/json";
 import {
@@ -87,17 +77,6 @@ export interface HealthStatusInput {
 }
 
 export interface HealthStatusOutput {
-  temporal_health: TemporalHealthSnapshot | undefined;
-  expected_queue?: string;
-  temporal_queue_serviceability:
-    | StatusQueueServiceabilitySnapshot["serviceability"]
-    | undefined;
-  worker_diagnostics:
-    | StatusQueueServiceabilitySnapshot["workerDiagnostics"]
-    | undefined;
-  orphan_queue_adoption: StatusQueueServiceabilitySnapshot["orphanQueueAdoption"];
-  search_attributes: SearchAttributesSnapshot | undefined;
-  worker_processes: WorkerProcessesSnapshot | undefined;
   worktree_census: WorktreeCensusSnapshot | undefined;
   snapshot_health: SnapshotHealthSnapshot | undefined;
   peer_sessions:
@@ -128,33 +107,6 @@ interface ProviderValue<T> {
   freshness?: ProbeCacheFreshness;
 }
 
-const requestTemporalHealthCache = createHealthProbeCache<
-  TemporalHealthSnapshot,
-  string
->({
-  name: "health.temporal_health",
-  ttlMs: 2_000,
-  fetch: (key, { signal }) =>
-    getTemporalHealth(key === MISSING_PROJECT_ID_CACHE_KEY ? undefined : key, {
-      signal,
-    }),
-});
-const requestSearchAttributesCache = createHealthProbeCache<
-  SearchAttributesSnapshot,
-  string
->({
-  name: "health.search_attributes",
-  ttlMs: 2_000,
-  fetch: async () => computeSearchAttributesSnapshot(),
-});
-const requestWorkerProcessesCache = createHealthProbeCache<
-  WorkerProcessesSnapshot,
-  string
->({
-  name: "health.worker_processes",
-  ttlMs: 2_000,
-  fetch: async (_key, { signal }) => enumerateAdvWorkerProcesses({ signal }),
-});
 const requestWorktreeCensusCache = createHealthProbeCache<
   WorktreeCensusSnapshot,
   string
@@ -179,9 +131,6 @@ const requestSnapshotHealthCache = createHealthProbeCache<
 /** Test/runtime reset hook for request-owned advisory probe caches. */
 export const _healthRequestProbeCaches = {
   clear(): void {
-    requestTemporalHealthCache.clear();
-    requestSearchAttributesCache.clear();
-    requestWorkerProcessesCache.clear();
     requestWorktreeCensusCache.clear();
     requestSnapshotHealthCache.clear();
   },
@@ -271,72 +220,6 @@ export async function runHealthStatus(
 
   const providers: HealthProviderDescriptor[] = [
     {
-      source: "temporal_health",
-      dependencies: [],
-      cap: DEFAULT_PROVIDER_CAP_MS,
-      cancellability: "abortable",
-      async run(ctx): Promise<HealthProviderOutcome> {
-        const providerStart = ctx.clock.now();
-        try {
-          const { value, freshness } = await fetchForHealth({
-            forceRefresh,
-            key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-            cache: requestTemporalHealthCache,
-            signal: ctx.signal,
-            cutoffTime: ctx.cutoffTime,
-            ttlMs: 2_000,
-          });
-          captureValue("temporal_health", { value, freshness });
-          return {
-            kind: freshness.stale ? "stale" : "ok",
-            value,
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: freshness.error,
-          };
-        } catch (err) {
-          const fallback = buildTemporalHealthFallback(err);
-          captureValue("temporal_health", { value: fallback });
-          return {
-            kind: "error",
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: err instanceof Error ? err.message : String(err),
-          };
-        }
-      },
-    },
-    {
-      source: "search_attributes",
-      dependencies: [],
-      cap: DEFAULT_PROVIDER_CAP_MS,
-      cancellability: "abortable",
-      async run(ctx): Promise<HealthProviderOutcome> {
-        const providerStart = ctx.clock.now();
-        try {
-          const { value, freshness } = await fetchForHealth({
-            forceRefresh,
-            key: projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-            cache: requestSearchAttributesCache,
-            signal: ctx.signal,
-            cutoffTime: ctx.cutoffTime,
-            ttlMs: 2_000,
-          });
-          captureValue("search_attributes", { value, freshness });
-          return {
-            kind: freshness.stale ? "stale" : "ok",
-            value,
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: freshness.error,
-          };
-        } catch (err) {
-          return {
-            kind: "error",
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: err instanceof Error ? err.message : String(err),
-          };
-        }
-      },
-    },
-    {
       source: "project_config",
       dependencies: [],
       cap: DEFAULT_PROVIDER_CAP_MS,
@@ -380,38 +263,6 @@ export async function runHealthStatus(
               featureFlagSources,
             },
             elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-          };
-        } catch (err) {
-          return {
-            kind: "error",
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: err instanceof Error ? err.message : String(err),
-          };
-        }
-      },
-    },
-    {
-      source: "worker_processes",
-      dependencies: [],
-      cap: DEFAULT_PROVIDER_CAP_MS,
-      cancellability: "abortable",
-      async run(ctx): Promise<HealthProviderOutcome> {
-        const providerStart = ctx.clock.now();
-        try {
-          const { value, freshness } = await fetchForHealth({
-            forceRefresh,
-            key: "__host_workers__",
-            cache: requestWorkerProcessesCache,
-            signal: ctx.signal,
-            cutoffTime: ctx.cutoffTime,
-            ttlMs: 2_000,
-          });
-          captureValue("worker_processes", { value, freshness });
-          return {
-            kind: freshness.stale ? "stale" : "ok",
-            value,
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: freshness.error,
           };
         } catch (err) {
           return {
@@ -613,52 +464,6 @@ export async function runHealthStatus(
         }
       },
     },
-    {
-      source: "temporal_queue_serviceability",
-      dependencies: ["temporal_health"],
-      cap: DEFAULT_PROVIDER_CAP_MS,
-      cancellability: "abortable",
-      async run(ctx): Promise<HealthProviderOutcome> {
-        const providerStart = ctx.clock.now();
-        const health = getCaptured<TemporalHealthSnapshot>("temporal_health");
-        if (!health?.server_alive) {
-          return {
-            kind: "not_admitted",
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: health
-              ? "temporal health reports server unavailable"
-              : "temporal_health not available",
-          };
-        }
-        try {
-          const result = await getQueueServiceability(
-            { projectId, health },
-            { signal: ctx.signal },
-          );
-          captureValue("temporal_queue_serviceability", {
-            value: result.value,
-          });
-          if (result.outcome === "not_admitted") {
-            return {
-              kind: "not_admitted",
-              elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-              evidence: result.evidence,
-            };
-          }
-          return {
-            kind: "ok",
-            value: result.value,
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-          };
-        } catch (err) {
-          return {
-            kind: "error",
-            elapsedMs: Math.max(0, ctx.clock.now() - providerStart),
-            evidence: err instanceof Error ? err.message : String(err),
-          };
-        }
-      },
-    },
     // Advisory and potentially process-bound: schedule after the established
     // health diagnostics so it cannot displace their static priority order.
     {
@@ -699,9 +504,6 @@ export async function runHealthStatus(
     featureFlagSources: Record<string, FeaturePolicySource>;
   }>("project_config");
 
-  const queueServiceability = getCaptured<StatusQueueServiceabilitySnapshot>(
-    "temporal_queue_serviceability",
-  );
   const peerSessions = getCaptured<
     | Array<{
         sessionId: string;
@@ -744,14 +546,6 @@ export async function runHealthStatus(
   };
 
   return {
-    temporal_health: getCaptured<TemporalHealthSnapshot>("temporal_health"),
-    expected_queue: queueServiceability?.expectedQueue,
-    temporal_queue_serviceability: queueServiceability?.serviceability,
-    worker_diagnostics: queueServiceability?.workerDiagnostics,
-    orphan_queue_adoption: queueServiceability?.orphanQueueAdoption ?? null,
-    search_attributes:
-      getCaptured<SearchAttributesSnapshot>("search_attributes"),
-    worker_processes: getCaptured<WorkerProcessesSnapshot>("worker_processes"),
     worktree_census: getCaptured<WorktreeCensusSnapshot>("worktree_census"),
     snapshot_health: getCaptured<SnapshotHealthSnapshot>("snapshot_health"),
     peer_sessions: peerSessions,
@@ -788,28 +582,14 @@ export async function runHealthStatus(
   };
 }
 
-export function buildHealthStatusDeadline(
-  request: HealthRequestContext = createHealthRequestContext(),
-  sharedDeadline?: TemporalReadDeadline,
-): TemporalReadDeadline {
-  if (sharedDeadline) return sharedDeadline;
-  return {
-    budgetMs: HEALTH_EXECUTION_CUTOFF_MS,
-    deadlineAt: request.cutoffTime,
-  };
-}
-
 export function buildHealthStatusReadOptions(
   request: HealthRequestContext = createHealthRequestContext(),
-  sharedDeadline?: TemporalReadDeadline,
 ): {
   recentLimit: number;
-  deadline: TemporalReadDeadline;
   sourceRanked: true;
 } {
   return {
     recentLimit: HEALTH_CANDIDATE_LIMIT,
-    deadline: buildHealthStatusDeadline(request, sharedDeadline),
     sourceRanked: true,
   };
 }

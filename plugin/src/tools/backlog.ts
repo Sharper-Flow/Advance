@@ -3,8 +3,8 @@
  *
  * One tool:
  *   - `adv_wip_state` (rq-backlogCoord04) — single-call WIP aggregator over
- *     active changes (Temporal Visibility via store), worktrees (Temporal
- *     Visibility via `listWorktreesAcrossChanges`), and peer sessions
+ *     active changes via store, worktrees via `listWorktreesAcrossChanges`,
+ *     and peer sessions
  *     (privacy-defensive projection via `listPeerSessions`).
  *
  * consolidateAdvToolSurface2 (tk-f022bfadbd81): `adv_backlog_state` was
@@ -28,7 +28,6 @@ import {
 import {
   initStateDb,
   listWorktreesAcrossChanges,
-  type WorktreeCrossChangeWarning,
 } from "./worktree/state";
 import { listPeerSessions } from "./session";
 import {
@@ -57,20 +56,16 @@ export interface WipPeerSessionEntry {
   worktree?: string;
 }
 
-export interface WipPoisonedWorkflowEntry {
-  /** Always set in the final WIP response; optional on provider inputs. */
-  source?: "worktrees";
-  changeId: string;
-  workflowId: string;
-  recoveryReason: "poisoned_history" | "missing_workflow" | "query_failed";
-  evidenceSummary: string;
+interface WorktreeInventoryWarning {
+  changeId?: string;
   message: string;
+  errorClass: string;
+  evidenceSummary?: string;
 }
 
 export interface WipWorktreesProviderResult {
   worktrees: WipWorktreeEntry[];
-  warnings?: WorktreeCrossChangeWarning[];
-  poisonedWorkflows?: WipPoisonedWorkflowEntry[];
+  warnings?: WorktreeInventoryWarning[];
   unavailable?: boolean;
   /** Snapshot completeness metadata (only present from the default provider). */
   complete?: boolean;
@@ -104,7 +99,6 @@ export interface WipStateResponse {
   }>;
   worktrees: WipWorktreeEntry[];
   peer_sessions: WipPeerSessionEntry[];
-  poisoned_workflows: WipPoisonedWorkflowEntry[];
   generated_at: string;
   warnings: Array<{ source: string; reason: string }>;
   /** Warning-only rows for in-progress tasks assigned to non-live peer sessions. */
@@ -274,8 +268,6 @@ async function defaultWorktreesProvider(
           status: r.status,
           materialized: true,
         })),
-    warnings: result.warnings,
-    poisonedWorkflows: result.poisonedWorkflows,
     unavailable: result.unavailable,
     complete: result.complete,
     ...(result.stopReason ? { stopReason: result.stopReason } : {}),
@@ -311,7 +303,7 @@ function normalizeWorktreesProviderValue(
   return value;
 }
 
-function formatWorktreeWarning(warning: WorktreeCrossChangeWarning): string {
+function formatWorktreeWarning(warning: WorktreeInventoryWarning): string {
   const subject = warning.changeId
     ? `change ${warning.changeId}`
     : "worktree visibility";
@@ -319,15 +311,6 @@ function formatWorktreeWarning(warning: WorktreeCrossChangeWarning): string {
     ? ` Evidence: ${warning.evidenceSummary}`
     : "";
   return `${warning.message} (${subject}; ${warning.errorClass}).${evidence}`;
-}
-
-function toWipPoisonedWorkflowEntry(
-  entry: WipPoisonedWorkflowEntry,
-): WipPoisonedWorkflowEntry {
-  return {
-    ...entry,
-    source: "worktrees",
-  };
 }
 
 function isValidClaim(value: unknown): value is {
@@ -502,7 +485,6 @@ function buildClaimInventory(
   worktreeState: {
     available: boolean;
     complete: boolean;
-    poisonedCount: number;
   },
   activeChangesAvailable: boolean,
   query?: string,
@@ -519,11 +501,6 @@ function buildClaimInventory(
     completeness = "blocked";
     warnings.push(
       "Worktree inventory unavailable; claim inventory cannot be verified as complete.",
-    );
-  } else if (worktreeState.poisonedCount > 0) {
-    completeness = "degraded";
-    warnings.push(
-      `Worktree inventory includes ${worktreeState.poisonedCount} poisoned workflow(s); claim completeness is uncertain.`,
     );
   } else if (!worktreeState.complete) {
     completeness = "degraded";
@@ -622,7 +599,7 @@ function buildClaimInventory(
 export const backlogTools = {
   adv_wip_state: {
     description:
-      "Single-call aggregator: returns active changes (Temporal Visibility), worktrees (cross-change), and peer sessions in one tool response. Read-only. Source failures isolate per-section with warnings instead of failing the whole call (rq-backlogCoord04).",
+      "Single-call aggregator: returns active changes, worktrees, and peer sessions in one tool response. Read-only. Source failures isolate per-section with warnings instead of failing the whole call (rq-backlogCoord04).",
     args: {
       query: z
         .string()
@@ -645,7 +622,6 @@ export const backlogTools = {
       const degradation: WipStateDegradation = {};
       let worktreeInventoryAvailable: boolean;
       let worktreeInventoryComplete: boolean;
-      let poisonedWorkflowCount = 0;
 
       const worktreesProvider =
         providers.worktreesProvider ?? defaultWorktreesProvider;
@@ -663,9 +639,7 @@ export const backlogTools = {
       try {
         const [changesResult, worktreesResult, sessionsResult] =
           await Promise.allSettled([
-            store.changes.listSummary
-              ? store.changes.listSummary({})
-              : store.changes.list({}),
+            store.changes.list({}),
             worktreesProvider(projectRoot, budget),
             sessionsProvider(projectRoot),
           ]);
@@ -708,16 +682,11 @@ export const backlogTools = {
         }
 
         let worktrees: WipWorktreeEntry[] = [];
-        let poisoned_workflows: WipPoisonedWorkflowEntry[] = [];
         if (worktreesResult.status === "fulfilled") {
           const value = normalizeWorktreesProviderValue(worktreesResult.value);
           worktrees = value.worktrees;
-          poisoned_workflows = (value.poisonedWorkflows ?? []).map(
-            toWipPoisonedWorkflowEntry,
-          );
           worktreeInventoryAvailable = true;
           worktreeInventoryComplete = value.complete !== false;
-          poisonedWorkflowCount = value.poisonedWorkflows?.length ?? 0;
           if (value.unavailable) {
             worktreeInventoryAvailable = false;
             worktreeInventoryComplete = false;
@@ -847,7 +816,6 @@ export const backlogTools = {
           {
             available: worktreeInventoryAvailable,
             complete: worktreeInventoryComplete,
-            poisonedCount: poisonedWorkflowCount,
           },
           changesResult.status === "fulfilled",
           query,
@@ -857,7 +825,6 @@ export const backlogTools = {
           active_changes,
           worktrees,
           peer_sessions,
-          poisoned_workflows,
           generated_at: new Date().toISOString(),
           warnings,
           claim_inventory,

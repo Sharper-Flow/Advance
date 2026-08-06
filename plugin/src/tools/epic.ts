@@ -9,12 +9,6 @@
 
 import { z } from "zod";
 import { resolve } from "path";
-import {
-  createTemporalReadContext,
-  isTemporalReadExpired,
-  type TemporalReadContext,
-} from "../storage/store-temporal/read-context";
-import { classifyTemporalWorkflowFailure } from "../temporal/diagnostics";
 import type { Store } from "../storage/store-types";
 import { deriveEpicScopeLabel, WorkNodeRefSchema } from "../types";
 import type {
@@ -288,15 +282,11 @@ async function loadFastFollowLineage(
   store: Store,
   changeId: string,
   cache: Map<string, EpicFastFollowLineage | null>,
-  ctx?: TemporalReadContext,
 ): Promise<EpicFastFollowLineage | null> {
   if (cache.has(changeId)) return cache.get(changeId) ?? null;
   let lineage: EpicFastFollowLineage | null = null;
   try {
-    const loaded = await store.changes.get(
-      changeId,
-      ctx ? { context: ctx } : undefined,
-    );
+    const loaded = await store.changes.get(changeId);
     if (loaded.success && loaded.data) {
       const ff: FastFollowOf | undefined = loaded.data.fast_follow_of;
       if (ff) {
@@ -328,15 +318,11 @@ async function buildFastFollowLineageMap(
 ): Promise<Map<string, EpicFastFollowLineage>> {
   const cache = new Map<string, EpicFastFollowLineage | null>();
   const map = new Map<string, EpicFastFollowLineage>();
-  // Share one circuit-breaker across the fast-follow lineage loop so a
-  // cluster of unresponsive children does not stack on top of convergence.
-  const ctx = createTemporalReadContext();
   for (const entry of entries) {
     if (entry.kind !== "change") continue;
     const changeId = getEpicEntryChangeId(entry);
     if (!changeId) continue;
-    if (ctx.isCircuitBreakerTripped() || isTemporalReadExpired(ctx)) break;
-    const lineage = await loadFastFollowLineage(store, changeId, cache, ctx);
+    const lineage = await loadFastFollowLineage(store, changeId, cache);
     if (lineage) map.set(entry.entry_id, lineage);
   }
   return map;
@@ -623,12 +609,7 @@ function isEpicRetirementEvaluationUnavailableError(err: unknown): boolean {
   if (typed.code && EPIC_RETIRE_STORE_ERROR_CODES.has(typed.code)) {
     return false;
   }
-  const diagnostic = classifyTemporalWorkflowFailure(err);
-  return (
-    !diagnostic.reachable &&
-    diagnostic.class !== "not_found" &&
-    diagnostic.class !== "poisoned_history"
-  );
+  return true;
 }
 
 async function loadEpic(store: Store, epicId: string) {
@@ -658,12 +639,8 @@ async function loadEpicWithRetiredProjection(
 async function loadChange(
   store: Store,
   changeId: string,
-  ctx?: TemporalReadContext,
 ): Promise<Change | null> {
-  const result = await store.changes.get(
-    changeId,
-    ctx ? { context: ctx } : undefined,
-  );
+  const result = await store.changes.get(changeId);
   if (!result.success || !result.data) return null;
   return result.data;
 }
@@ -1006,12 +983,6 @@ async function convergeEpicOnShow(
     return { epic, repairs };
   }
 
-  // One per-request circuit-breaker context shared across all members so
-  // K=3 consecutive unresponsive children trip the CB once (getTemporalChange
-  // short-circuits to disk+advisory) instead of each burning the full
-  // per-member budget and hanging adv_epic_show.
-  const convergenceCtx = createTemporalReadContext();
-
   let updatedEntries: EpicEntry[] = [...epic.entries];
 
   for (const entry of changeEntries) {
@@ -1033,22 +1004,11 @@ async function convergeEpicOnShow(
     // Observe child state.
     let childObservation: ChildObservation;
     try {
-      const change = await loadChange(ownerStore, changeId, convergenceCtx);
+      const change = await loadChange(ownerStore, changeId);
       childObservation = change
         ? { kind: "present", change }
         : { kind: "absent" };
     } catch (err) {
-      // AC4: distinguish global live-evaluation unavailability from a
-      // per-change "not found" or transient per-entry failure. Global
-      // unavailability must not be silently rendered as target_unreachable.
-      const diagnostic = classifyTemporalWorkflowFailure(err);
-      if (
-        !diagnostic.reachable &&
-        diagnostic.class !== "not_found" &&
-        diagnostic.class !== "poisoned_history"
-      ) {
-        throw err;
-      }
       childObservation = { kind: "unreachable" };
     }
 

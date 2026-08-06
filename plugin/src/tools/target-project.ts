@@ -1,28 +1,10 @@
 import { resolve } from "path";
 import { z } from "zod";
 
-import { createDiskStore, createStore } from "../storage/store";
+import { createStore } from "../storage/store";
 import type { Store } from "../storage/store-types";
 import { loadProjectConfig } from "../storage/json";
-import { validateCrossRepoTarget } from "../temporal/activities";
-import { buildProjectTaskQueue } from "../temporal/client";
-import {
-  classifyQueueServiceability,
-  probeTaskQueuePollers,
-  type LocalOwnership,
-  type QueueServiceability,
-} from "../temporal/queue-serviceability";
-import { getService } from "../temporal/service";
-import {
-  ensureProjectTemporalQueue,
-  getTemporalWorkerDiagnostics,
-  getTemporalWorkerRole,
-  type TemporalWorkerDiagnostics,
-} from "../plugin-init";
-import {
-  statusDiagnosticsIncludeQueue,
-  statusDiagnosticsShowAliveQueue,
-} from "./status-health";
+import { stat } from "fs/promises";
 import {
   getExternalRoot,
   getExternalRootForProject,
@@ -55,8 +37,6 @@ export class TargetProjectError extends Error {
     this.name = "TargetProjectError";
   }
 }
-
-export const TARGET_MUTATION_FRESH_POLLER_MS = 60_000;
 
 export interface ResolveTargetProjectInput {
   currentProjectPath: string;
@@ -124,6 +104,40 @@ async function isRelatedRepo(input: {
   return related.some((repo) => resolve(repo.path) === target);
 }
 
+/** Validate a target before opening its disk-backed store. */
+export async function validateCrossRepoTarget(
+  target_path: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let stats;
+  try {
+    stats = await stat(target_path);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    return {
+      ok: false,
+      error:
+        code === "ENOENT"
+          ? `target_path does not exist: ${target_path}`
+          : `target_path stat failed (${code ?? "unknown"}): ${(err as Error).message}`,
+    };
+  }
+  if (!stats.isDirectory()) {
+    return {
+      ok: false,
+      error: `target_path is not a directory: ${target_path}`,
+    };
+  }
+  try {
+    await stat(resolve(target_path, ".git"));
+  } catch {
+    return {
+      ok: false,
+      error: `target_path is not a git repo (no .git entry): ${target_path}`,
+    };
+  }
+  return { ok: true };
+}
+
 export async function resolveTargetProject(
   input: ResolveTargetProjectInput,
 ): Promise<TargetProjectContext> {
@@ -181,114 +195,6 @@ function closeStore(store: Store): void {
   store.close?.();
 }
 
-function targetMutationLocalOwnership(): LocalOwnership {
-  const role = getTemporalWorkerRole();
-  if (role === "host") return "owned";
-  if (role === "client") return "peer";
-  return "unknown";
-}
-
-interface LocalQueueEvidence {
-  registered: boolean;
-  alive: boolean;
-  ownership: LocalOwnership;
-  diagnostics: TemporalWorkerDiagnostics[];
-}
-
-/**
- * Per-queue local evidence for mutation readiness. Raw registration lists do
- * not filter failed queues, and aggregate worker aliveness can be satisfied
- * by an unrelated queue, so only per-queue diagnostics are conservative
- * enough to admit a target-path mutation. This mirrors the evidence model
- * status/diagnostics use for queue serviceability.
- */
-function deriveLocalQueueEvidence(expectedQueue: string): LocalQueueEvidence {
-  const diagnostics = getTemporalWorkerDiagnostics();
-  return {
-    registered: statusDiagnosticsIncludeQueue(diagnostics, expectedQueue),
-    alive: statusDiagnosticsShowAliveQueue(diagnostics, expectedQueue),
-    ownership: targetMutationLocalOwnership(),
-    diagnostics,
-  };
-}
-
-function formatTargetMutationReadinessError(
-  serviceability: QueueServiceability,
-): string {
-  const blockers = serviceability.blockers.length
-    ? serviceability.blockers.join(", ")
-    : "unknown";
-  return [
-    `Target project Temporal queue is not serviceable for target_path mutation: ${serviceability.expectedQueue}`,
-    `status=${serviceability.status}`,
-    `confidence=${serviceability.confidence}`,
-    `blockers=${blockers}`,
-    "remediation=open or restart the target project ADV worker, then retry the target_path mutation",
-  ].join("; ");
-}
-
-// rq-targetWorkerLifecycle01: ensure target project Temporal task queue is serviceable before mutation.
-export async function ensureTargetMutationQueueReady(input: {
-  projectId: string;
-  temporalBundle: NonNullable<ReturnType<typeof getService>>;
-  freshPollerMs?: number;
-}): Promise<QueueServiceability> {
-  const expectedQueue = buildProjectTaskQueue(input.projectId);
-
-  // Local worker registration is the primary readiness signal: try to
-  // register the target queue on this process's worker before consulting
-  // server-side evidence.
-  let local = deriveLocalQueueEvidence(expectedQueue);
-  if (!local.registered) {
-    try {
-      await ensureProjectTemporalQueue(input.projectId);
-      local = deriveLocalQueueEvidence(expectedQueue);
-    } catch {
-      // Local registration is not the only valid readiness signal. A
-      // client-only process may safely submit target mutations when another
-      // worker is freshly polling the target queue.
-    }
-  }
-
-  const localServiceability = classifyQueueServiceability({
-    projectId: input.projectId,
-    expectedQueue,
-    localRegistered: local.registered,
-    localWorkerAlive: local.alive,
-    localOwnership: local.ownership,
-    workerDiagnostics: local.diagnostics,
-    serverPollerProbe: { status: "unavailable", lastAccessMs: null },
-    staleRunningWorkflowCount: 0,
-    staleQueueProbe: "unavailable",
-  });
-  if (localServiceability.status === "serviceable") return localServiceability;
-
-  // Bounded fresh server poller evidence is conservative admission evidence
-  // only: it admits the mutation without proving local worker liveness.
-  const serverPollerProbe = await probeTaskQueuePollers({
-    owner: input.temporalBundle,
-    projectId: input.projectId,
-    taskQueue: expectedQueue,
-    freshPollerMs: input.freshPollerMs ?? TARGET_MUTATION_FRESH_POLLER_MS,
-  });
-  const serviceability = classifyQueueServiceability({
-    projectId: input.projectId,
-    expectedQueue,
-    localRegistered: local.registered,
-    localWorkerAlive: local.alive,
-    localOwnership: local.ownership,
-    workerDiagnostics: local.diagnostics,
-    serverPollerProbe,
-    staleRunningWorkflowCount: 0,
-    staleQueueProbe: "ok",
-  });
-
-  if (serviceability.status === "serviceable") return serviceability;
-  throw new TargetProjectError(
-    formatTargetMutationReadinessError(serviceability),
-  );
-}
-
 export async function withTargetPathStore<T>(
   input: WithTargetPathStoreInput,
   fn: (scope: TargetStoreScope) => Promise<T>,
@@ -296,63 +202,22 @@ export async function withTargetPathStore<T>(
   const context = await resolveTargetProject({
     ...input,
     // Store selection is controlled by stateRequirement; this override only
-    // controls the target trust gate. Dry-run callers may need a Temporal-backed
-    // read while remaining non-mutating.
+    // controls the target trust gate.
     mutation: input.mutation ?? input.stateRequirement !== "snapshot-ok",
   });
 
-  if (input.stateRequirement === "snapshot-ok") {
-    // rq-targetReadAuthority01.2: snapshot-ok reads must not mutate target worker lifecycle or state.
-    const store = await createDiskStore(context.root, {
-      externalRoot: context.externalRoot,
-    });
-    try {
-      return await fn({
-        context: { ...context, stateMode: "disk-snapshot" },
-        store,
-      });
-    } finally {
-      closeStore(store);
-    }
-  }
-
-  if (input.stateRequirement === "scaffold") {
-    const store = await createDiskStore(context.root, {
-      externalRoot: context.externalRoot,
-    });
-    try {
-      await store.init();
-      return await fn({
-        context: { ...context, stateMode: "scaffold" },
-        store,
-      });
-    } finally {
-      closeStore(store);
-    }
-  }
-
-  // rq-targetReadAuthority01.3: authoritative target mutation requires the authoritative path.
-  const temporalBundle = getService();
-  if (!temporalBundle) {
-    throw new TargetProjectError(
-      `Temporal service layer not initialized; target_path mutations require a Temporal-backed target store: ${context.root}`,
-    );
-  }
-
-  await ensureTargetMutationQueueReady({
-    projectId: context.projectId,
-    temporalBundle,
-    freshPollerMs: TARGET_MUTATION_FRESH_POLLER_MS,
-  });
-
+  // All state requirements use the same disk store. Only snapshot reads skip
+  // initialization; the state mode remains visible to the caller.
   const store = await createStore(context.root, {
     externalRoot: context.externalRoot,
-    projectIdOverride: context.projectId,
-    temporalBundle,
   });
   try {
-    await store.init();
-    return await fn({ context: { ...context, stateMode: "authoritative" }, store });
+    if (input.stateRequirement !== "snapshot-ok") await store.init();
+    const stateMode =
+      input.stateRequirement === "snapshot-ok"
+        ? "disk-snapshot"
+        : input.stateRequirement;
+    return await fn({ context: { ...context, stateMode }, store });
   } finally {
     closeStore(store);
   }
@@ -372,7 +237,7 @@ export function formatTargetProjectContext(
 
   if (context.stateMode === "disk-snapshot") {
     const nonAuthoritativeWarning =
-      "Non-authoritative disk snapshot: Temporal-backed target state was not consulted.";
+      "Non-authoritative disk snapshot: target state was read from disk.";
     const untrustedWarning = context.trusted
       ? undefined
       : "Read-only untrusted target_path snapshot. Mutations require explicit target confirmation.";

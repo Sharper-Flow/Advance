@@ -1,31 +1,31 @@
 /**
  * Git Worktree File-Lock (T15 — KD-2, KD-7, R16).
  *
- * Thin wrapper around the parametrized worker-lock primitive (T2). Provides
- * a narrow per-project lock used **only** to serialize git filesystem
+ * A narrow per-project filesystem lock used **only** to serialize git filesystem
  * operations (`git worktree add` / `git worktree remove`) that race against
  * each other when multiple peer sessions create or delete worktrees
  * concurrently. Hold time is targeted at ~50ms — long enough to cover the
  * git invocation, short enough to be invisible to the user.
  *
- * Design center note (KD-2): this is the **only** client-side coordination
- * point in the entire `unifyworktreeunderadvmultisess` change. ADV state
- * mutations (changes, tasks, gates, worktree_registry) have ZERO
- * client-side locks — Temporal serializes them via workflow updates.
- *
- * Reuses the underlying worker-lock primitive for:
- *   - atomic O_EXCL creation (no race window),
- *   - ESRCH / EPERM stale-PID handling (retry-once on dead holder),
- *   - PID-based liveness check.
+ * This is a genuine filesystem lock: acquisition is an atomic O_EXCL create,
+ * and contention is represented by the existing lock file and its owner PID.
  *
  * Citations: rq-multiSessionCoordination01, rq-worktreeRegistry01.
  */
 
-import {
-  acquireWorkerLock,
-  releaseWorkerLock,
-  type WorkerLockResult,
-} from "../temporal/worker-lock";
+import { open, readFile, rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { join } from "node:path";
+
+export type GitWorktreeLockResult =
+  | { owned: true; ownerPid: number; workerId: string; lockPath: string }
+  | {
+      owned: false;
+      ownerPid: number;
+      workerId?: string;
+      lockPath: string;
+      reason: "lock_held_by_alive_pid";
+    };
 
 /**
  * Lock filename used inside the per-project state directory. Distinct from
@@ -37,7 +37,7 @@ export const GIT_WORKTREE_LOCK_FILENAME = "git-worktree.lock";
 /**
  * Acquire the per-project git-worktree flock.
  *
- * Returns a `WorkerLockResult` whose `owned` field indicates whether
+ * Returns a lock result whose `owned` field indicates whether
  * the lock was taken (`true`) or contended (`false`). Callers MUST honour
  * the returned semantics:
  *   - `owned: true`  → proceed with `git worktree add/remove`, then
@@ -48,10 +48,42 @@ export const GIT_WORKTREE_LOCK_FILENAME = "git-worktree.lock";
  */
 export async function acquireGitWorktreeFlock(
   projectStateDir: string,
-): Promise<WorkerLockResult> {
-  return acquireWorkerLock(projectStateDir, {
-    lockFilename: GIT_WORKTREE_LOCK_FILENAME,
-  });
+): Promise<GitWorktreeLockResult> {
+  const lockPath = join(projectStateDir, GIT_WORKTREE_LOCK_FILENAME);
+  const ownerPid = process.pid;
+  const workerId = randomUUID();
+  try {
+    const handle = await open(lockPath, "wx");
+    try {
+      await handle.writeFile(
+        JSON.stringify({
+          pid: ownerPid,
+          worker_id: workerId,
+          acquired_at: new Date().toISOString(),
+        }),
+      );
+    } finally {
+      await handle.close();
+    }
+    return { owned: true, ownerPid, workerId, lockPath };
+  } catch {
+    let existing: { pid?: number; worker_id?: string } | null = null;
+    try {
+      existing = JSON.parse(await readFile(lockPath, "utf8")) as {
+        pid?: number;
+        worker_id?: string;
+      };
+    } catch {
+      // The lock may have been released between the failed create and read.
+    }
+    return {
+      owned: false,
+      ownerPid: existing?.pid ?? -1,
+      workerId: existing?.worker_id,
+      lockPath,
+      reason: "lock_held_by_alive_pid",
+    };
+  }
 }
 
 /**
@@ -62,7 +94,5 @@ export async function acquireGitWorktreeFlock(
 export async function releaseGitWorktreeFlock(
   projectStateDir: string,
 ): Promise<void> {
-  await releaseWorkerLock(projectStateDir, {
-    lockFilename: GIT_WORKTREE_LOCK_FILENAME,
-  });
+  await rm(join(projectStateDir, GIT_WORKTREE_LOCK_FILENAME), { force: true });
 }

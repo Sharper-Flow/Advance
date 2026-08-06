@@ -1,5 +1,5 @@
 import { createDiskStore } from "../storage/store-disk";
-import { validateCrossRepoTarget } from "../temporal/activities";
+import { validateCrossRepoTarget } from "./target-project";
 import { createDefaultGates, type ExternalDependency } from "../types";
 import { getExternalRootForProject, getProjectId } from "../utils/project-id";
 import { withTimeout, TimeoutError } from "../utils/with-timeout";

@@ -6,10 +6,9 @@
  * or deleted workflow. This adapter converts the coordinator outcome into a
  * `GateReadinessResult` so existing readiness evaluators remain unchanged.
  *
- * Foundation-only: supports outcomes whose value can be bridged to
- * `ChangeWorkflowState` (the live Temporal state for `applied_temporal`, or a
- * recovered projection mapped via `changeToWorkflowState`). Full migration of
- * every family to the coordinator belongs to Tasks 3/4.
+ * Foundation-only: supports the verified disk projection returned by the
+ * coordinator. Full migration of every family to the coordinator belongs to
+ * Tasks 3/4.
  */
 
 import {
@@ -39,23 +38,9 @@ function valueToWorkflowState(
   value: unknown,
   projectId: string,
 ): ChangeWorkflowState {
-  const candidate = value as
-    | ChangeWorkflowState
-    | { id?: string; title?: string; created_at?: string };
-
-  // Fast path: the live Temporal path already returned a ChangeWorkflowState.
-  if (
-    candidate &&
-    typeof candidate === "object" &&
-    "lifecycleState" in candidate &&
-    "gates" in candidate
-  ) {
-    return candidate as ChangeWorkflowState;
-  }
-
-  // Recovery path: the coordinator returns the verified disk projection (Change).
-  // Bridge it to the state shape the readiness evaluator expects.
-  const change = candidate as { id: string; title: string; created_at: string };
+  // The coordinator returns the verified disk projection (Change). Bridge it
+  // to the state shape the readiness evaluator expects.
+  const change = value as { id: string; title: string; created_at: string };
   return changeToWorkflowState({
     projectId,
     change: change as never,
@@ -65,7 +50,7 @@ function valueToWorkflowState(
 /**
  * Evaluate gate readiness from a coordinator mutation outcome.
  *
- * - `applied_temporal` and `recovered_verified` values are evaluated.
+ * - `recovered_verified` values are evaluated.
  * - `recovered_unverified`, `stale_revision`, lock failures, and
  *   `operator_required` are returned as blocking readiness results.
  */
@@ -76,7 +61,6 @@ export function evaluateGateReadinessFromMutationOutcome(
   options?: GateReadinessOptions,
 ): GateReadinessResult {
   switch (outcome.kind) {
-    case "applied_temporal":
     case "recovered_verified": {
       const state = valueToWorkflowState(outcome.value, projectId);
       return evaluateGateReadiness(state, gateId, options);

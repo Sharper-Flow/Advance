@@ -1,18 +1,8 @@
 /**
- * Worktree State (T13 / KD-1) — per-change workflow + visibility + git census.
+ * Worktree state and durable pending-delete records.
  *
- * Replaces the legacy SQLite-backed state module and the retired
- * project-workflow-backed state module. State authority for worktrees
- * lives in per-change workflow queries + Temporal visibility
- * (`AdvWorktreeBranches`, `AdvWorktreePaths`) + git census.
- *
- * Spec anchors:
- * - rq-worktreeRegistry01 (state authority lives in per-change workflow)
- * - rq-multiSessionCoordination01 (signals → change workflow serialize)
- * - rq-worktreePoisonVisibility01 (cross-change worktree query poison isolation)
- *
- * Session registry retired: sessions are process-fact based only.
- * Pending deletes are durable via external JSONL under
+ * Worktree records are a projection of the local Git worktree/branch facts.
+ * Pending deletes remain durable external state under
  * `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}/`.
  */
 
@@ -28,35 +18,12 @@ import type {
   SessionRecord,
   WorktreeRecord,
   MaterializedWorktreeRecord,
-  ChangeWorkflowState,
 } from "../../temporal/contracts";
-import {
-  CHANGE_BRANCH_PREFIX,
-  CHANGE_WORKFLOW_PREFIX,
-} from "../../temporal/contracts";
-import type { OpencodeClient } from "../../utils/opencode-types";
-import { appendDebugLog } from "../../utils/debug-log";
+import { execFileGitAsync } from "../../utils/git-binary";
+import { getDefaultBranch } from "../../utils/git";
+import { scanGitWorkspaceFacts, reconcileWorktreeRegistry } from "./census";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
-import { getStateQuery, worktreeDeletedSignal } from "../../temporal/messages";
-import { getService } from "../../temporal/service";
-import type { TemporalOperations } from "../../temporal/operations";
-import { makeTemporalOperationContext } from "../../temporal/operations";
-import {
-  getChangeHandle,
-  fireSignal,
-  fireSignalAndRefresh,
-} from "../_adapters";
-import type { Store } from "../../storage/store";
 import { acquireFileLock, atomicWriteFile } from "../../utils/fs";
-import { collectErrorText } from "../../temporal/error-text";
-import {
-  isPoisonedHistoryError,
-  isWorkflowCompletedError,
-} from "../../temporal/recovery-classification";
-import {
-  escapeVisibilityValue,
-  openLifecycleVisibilityClauses,
-} from "../../temporal/lifecycle-visibility";
 import {
   createInventoryBudget,
   type InventoryBudget,
@@ -66,18 +33,6 @@ import {
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
 // =============================================================================
-
-/** Represents an active worktree session. Back-compat shape. */
-export interface Session {
-  sessionId: string;
-  branch?: string;
-  path?: string;
-  worktreePath?: string;
-  pid?: number;
-  startedAt?: string;
-  lastSeenAt?: string;
-  now?: string;
-}
 
 /** Back-compat wrapper around WorktreeRecord. */
 export interface Worktree {
@@ -133,32 +88,8 @@ export interface PendingDeleteSummary {
   classes: Record<string, number>;
 }
 
-export type WorktreeWorkflowRecoveryReason =
-  | "poisoned_history"
-  | "missing_workflow";
-
-export interface WorktreeCrossChangeWarning {
-  source: "worktree_visibility" | "worktree_workflow";
-  message: string;
-  errorClass: string;
-  changeId?: string;
-  workflowId?: string;
-  recoveryReason?: WorktreeWorkflowRecoveryReason;
-  evidenceSummary?: string;
-}
-
-export interface WorktreePoisonedWorkflowEntry {
-  changeId: string;
-  workflowId: string;
-  recoveryReason: "poisoned_history";
-  evidenceSummary: string;
-  message: string;
-}
-
 export interface WorktreesAcrossChangesResult {
   records: MaterializedWorktreeRecord[];
-  warnings: WorktreeCrossChangeWarning[];
-  poisonedWorkflows: WorktreePoisonedWorkflowEntry[];
   unavailable?: boolean;
 }
 
@@ -208,10 +139,8 @@ export interface ResolvedWorktreeAccess {
 function setupReadyFromRecord(r: WorktreeRecord): boolean | undefined {
   if (typeof r.setupReady === "boolean") return r.setupReady;
 
-  // Back-compat for change-workflow records written before
-  // applyWorktreeCreatedToState stamped setupReady:true. In that map,
-  // status:"created" is produced only by worktreeCreatedSignal, which fires
-  // after setup succeeds. Preserve explicit false and missing-path records.
+  // Git census records with a materialized path are setup-ready unless an
+  // explicit failure marker says otherwise.
   if (r.status === "created" && typeof r.path === "string" && r.path) {
     return true;
   }
@@ -261,53 +190,6 @@ function _recordToPending(r: PendingWorktreeDelete): PendingDelete {
 }
 
 const PENDING_DELETES_FILE = "worktree-pending-deletes.json";
-const MAX_WORKTREE_ERROR_EVIDENCE_CHARS = 500;
-
-type ChangeWorkflowWorktreeHandle = {
-  query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
-  signal?: (signal: unknown, payload: unknown) => Promise<unknown>;
-  describe?: () => Promise<unknown>;
-};
-
-function errorClass(error: unknown): string {
-  if (error instanceof Error && error.name) return error.name;
-  return typeof error;
-}
-
-function summarizeErrorEvidence(error: unknown): string | undefined {
-  const text = collectErrorText(error).replace(/\s+/g, " ").trim();
-  if (!text) return undefined;
-  if (text.length <= MAX_WORKTREE_ERROR_EVIDENCE_CHARS) return text;
-  return `${text.slice(0, MAX_WORKTREE_ERROR_EVIDENCE_CHARS - 1)}…`;
-}
-
-async function classifyWorktreeWorkflowFailure(
-  handle: ChangeWorkflowWorktreeHandle,
-  error: unknown,
-): Promise<{
-  recoveryReason?: WorktreeWorkflowRecoveryReason;
-  evidenceSummary?: string;
-}> {
-  // C2 (fixPoisonedRecovery reviewer-block remediation): describe() must NOT
-  // be the sole poison authority. Error class is primary; describe() no
-  // longer classifies alone. The `handle` param is retained for signature
-  // stability but no longer probed for poison evidence here.
-  void handle;
-  if (isPoisonedHistoryError(error)) {
-    return {
-      recoveryReason: "poisoned_history",
-      evidenceSummary: summarizeErrorEvidence(error),
-    };
-  }
-  if (isWorkflowCompletedError(error)) {
-    return {
-      recoveryReason: "missing_workflow",
-      evidenceSummary: summarizeErrorEvidence(error),
-    };
-  }
-  return { evidenceSummary: summarizeErrorEvidence(error) };
-}
-
 function pendingDeletesPath(access: WorktreeStateAccess): string {
   return join(getExternalRoot(access.projectId), PENDING_DELETES_FILE);
 }
@@ -391,56 +273,6 @@ export async function initStateDb(
 ): Promise<WorktreeStateAccess> {
   const projectId = (await getProjectIdRaw(projectDir)) ?? "unknown";
   return { projectDir, projectId };
-}
-
-// =============================================================================
-// SESSION LIFECYCLE (retired — no-op)
-// =============================================================================
-
-export async function addSession(
-  _access: WorktreeStateAccess,
-  _session: { sessionId?: string; branch: string; path: string },
-  _client?: OpencodeClient,
-  _changeId?: string | null,
-): Promise<void> {
-  // Session registry retired with projectWorkflow.
-}
-
-export async function removeSession(
-  _access: WorktreeStateAccess,
-  _branch: string,
-  _mode?: "soft" | "hard",
-): Promise<void> {
-  // Session registry retired with projectWorkflow.
-}
-
-export async function getSession(
-  _access: WorktreeStateAccess,
-  _sessionId: string,
-): Promise<Session | null> {
-  // Session registry retired with projectWorkflow.
-  return null;
-}
-
-export async function registerSession(
-  _access: WorktreeStateAccess,
-  _session: Session,
-): Promise<void> {
-  // Session registry retired with projectWorkflow.
-}
-
-export async function unregisterSession(
-  _access: WorktreeStateAccess,
-  _sessionId: string,
-): Promise<void> {
-  // Session registry retired with projectWorkflow.
-}
-
-export async function updateSessionActivity(
-  _access: WorktreeStateAccess,
-  _sessionId: string,
-): Promise<void> {
-  // Session registry retired with projectWorkflow.
 }
 
 // =============================================================================
@@ -571,82 +403,6 @@ export async function clearPendingDelete(
   });
 }
 
-// =============================================================================
-// WORKTREE LIFECYCLE (stub — per-change workflow integration pending)
-// =============================================================================
-
-export async function addWorktree(
-  _access: WorktreeStateAccess,
-  _wt: Worktree,
-  _client?: OpencodeClient,
-): Promise<void> {
-  // Stub: will dispatch worktreeCreatedSignal to change workflow.
-}
-
-export async function updateWorktree(
-  _access: WorktreeStateAccess,
-  _branch: string,
-  _updates: Partial<Omit<Worktree, "branch">>,
-  _client?: OpencodeClient,
-): Promise<void> {
-  // Stub: will dispatch worktreeUpdatedSignal to change workflow.
-}
-
-export async function removeWorktree(
-  access: WorktreeStateAccess,
-  branch: string,
-  _client?: OpencodeClient,
-  store?: Store,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const changeId = inferChangeIdFromBranch(branch);
-  if (!changeId) {
-    return { ok: false, reason: "not_a_change_branch" };
-  }
-
-  const owner = getService();
-  if (!owner) {
-    return { ok: false, reason: "temporal_unavailable" };
-  }
-
-  const proxy = getChangeHandle(owner, access.projectId, changeId);
-
-  try {
-    if (store) {
-      await fireSignalAndRefresh(
-        proxy,
-        store,
-        changeId,
-        worktreeDeletedSignal,
-        {
-          branch,
-          reason: "missing_from_disk_cleanup",
-          deletedAt: new Date().toISOString(),
-        },
-      );
-    } else {
-      await fireSignal(proxy, worktreeDeletedSignal, {
-        branch,
-        reason: "missing_from_disk_cleanup",
-        deletedAt: new Date().toISOString(),
-      });
-    }
-  } catch (error) {
-    return {
-      ok: false,
-      reason: `signal_failed: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-
-  if (store) {
-    try {
-      await store.changes.refresh(changeId);
-    } catch {
-      // best-effort cache refresh; the durable signal is already sent
-    }
-  }
-  return { ok: true };
-}
-
 export async function listWorktrees(
   access: WorktreeStateAccess,
 ): Promise<Worktree[]> {
@@ -654,160 +410,29 @@ export async function listWorktrees(
   return snapshot.records as Worktree[];
 }
 
-export async function getWorktree(
-  _access: WorktreeStateAccess,
-  _branch: string,
-): Promise<Worktree | null> {
-  appendDebugLog("worktree-state", `getWorktree ${_branch}`);
-  return null;
-}
-
-export async function listSessions(
-  _access: WorktreeStateAccess,
-): Promise<import("../../temporal/contracts").SessionRecord[]> {
-  // Session registry retired.
-  return [];
-}
-
 export function inferChangeIdFromBranch(branch: string): string | undefined {
-  if (!branch.startsWith(CHANGE_BRANCH_PREFIX)) return undefined;
-  const suffix = branch.slice(CHANGE_BRANCH_PREFIX.length);
+  const prefix = "change/";
+  if (!branch.startsWith(prefix)) return undefined;
+  const suffix = branch.slice(prefix.length);
   return suffix.length > 0 ? suffix : undefined;
 }
 
-// =============================================================================
-// VISIBILITY QUERIES (cross-change worktree discovery)
-// =============================================================================
-
-export function buildWorktreeBranchVisibilityQuery(
-  projectId: string,
-  branch: string,
-): string {
-  return [
-    `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
-    `AdvWorktreeBranches = "${escapeVisibilityValue(branch)}"`,
-    ...openLifecycleVisibilityClauses(),
-  ].join(" AND ");
-}
-
-export async function listChangeIdsByWorktreeBranch(
-  owner: TemporalOperations,
-  projectId: string,
-  branch: string,
-): Promise<string[]> {
-  const query = buildWorktreeBranchVisibilityQuery(projectId, branch);
-  const ids: string[] = [];
-  const prefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
-  const placeholderWorkflowId = `${prefix}worktree-branch-owners`;
-  try {
-    const outcome = await owner.list<{ workflowId: string }>(
-      makeTemporalOperationContext(
-        projectId,
-        placeholderWorkflowId,
-        "list",
-        "listChangeIdsByWorktreeBranch",
-        10_000,
-      ),
-      query,
-    );
-    if (outcome.kind !== "complete") {
-      return [];
-    }
-    for (const wf of outcome.value) {
-      if (!wf.workflowId.startsWith(prefix)) continue;
-      const changeId = wf.workflowId.slice(prefix.length);
-      if (!changeId) continue;
-      ids.push(changeId);
-    }
-  } catch {
-    return [];
-  }
-  return ids;
-}
-
+/** Return change branches currently attached to a local Git worktree. */
 export async function findBranchOwnersAcrossChanges(
   access: WorktreeStateAccess,
   branch: string,
   excludeChangeId?: string,
 ): Promise<string[]> {
-  const owner = getService();
-  if (!owner) return [];
-  const owners = await listChangeIdsByWorktreeBranch(
-    owner,
-    access.projectId,
-    branch,
+  const { stdout } = await execFileGitAsync(
+    ["worktree", "list", "--porcelain"],
+    { cwd: access.projectDir, timeout: 10_000 },
   );
-  return owners.filter((id) => id !== excludeChangeId);
-}
-
-export function buildActiveWorktreeChangesVisibilityQuery(
-  projectId: string,
-): string {
-  return [
-    `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
-    ...openLifecycleVisibilityClauses(),
-    `AdvWorktreeBranches IS NOT NULL`,
-  ].join(" AND ");
-}
-
-async function listChangeIdsWithActiveWorktrees(
-  owner: TemporalOperations,
-  projectId: string,
-): Promise<string[]> {
-  const query = buildActiveWorktreeChangesVisibilityQuery(projectId);
-  const prefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
-  const placeholderWorkflowId = `${prefix}active-worktrees`;
-  const ids: string[] = [];
-  try {
-    const outcome = await owner.list<{ workflowId: string }>(
-      makeTemporalOperationContext(
-        projectId,
-        placeholderWorkflowId,
-        "list",
-        "listChangeIdsWithActiveWorktrees",
-        10_000,
-      ),
-      query,
-    );
-    if (outcome.kind !== "complete") {
-      return [];
-    }
-    for (const wf of outcome.value) {
-      if (!wf.workflowId.startsWith(prefix)) continue;
-      const changeId = wf.workflowId.slice(prefix.length);
-      if (changeId) ids.push(changeId);
-    }
-  } catch {
-    return [];
-  }
-  return ids;
-}
-
-function materializeChangeWorktreeRecord(
-  changeId: string,
-  branch: string,
-  record: WorktreeRecord,
-): MaterializedWorktreeRecord | null {
-  if (record.status === "deleted") return null;
-  if (!record.path) return null;
-  return {
-    ...record,
-    changeId,
-    branch,
-    status: "active",
-    path: record.path,
-    materialized: true,
-  };
-}
-
-function collectTouchedFilesFromState(state: ChangeWorkflowState): string[] {
-  const touched = new Set<string>();
-  for (const task of state.tasks ?? []) {
-    for (const file of task.touched_files ?? task.filesTouched ?? []) {
-      if (typeof file === "string" && file.length > 0) touched.add(file);
-    }
-  }
-  return [...touched];
+  const owner = inferChangeIdFromBranch(branch);
+  if (!owner || owner === excludeChangeId) return [];
+  const ref = `refs/heads/${branch}`;
+  return stdout.split(/\r?\n/).some((line) => line === `branch ${ref}`)
+    ? [owner]
+    : [];
 }
 
 export async function listWorktreesAcrossChanges(
@@ -824,43 +449,6 @@ export async function listWorktreesAcrossChanges(
     timeoutMs: options?.timeoutMs,
   });
   return snapshot;
-}
-
-class InventoryInspectionStoppedError extends Error {
-  constructor() {
-    super("worktree inventory stopped before query settled");
-    this.name = "InventoryInspectionStoppedError";
-  }
-}
-
-/**
- * Let an admitted Temporal query settle in the background, but stop waiting
- * when inventory cancellation fires. This preserves time to render an honest
- * partial response instead of consuming the outer tool timeout.
- */
-function awaitInventoryQuery<T>(
-  operation: Promise<T>,
-  budget: InventoryBudget | undefined,
-): Promise<T> {
-  if (!budget) return operation;
-  if (budget.signal.aborted) {
-    return Promise.reject(new InventoryInspectionStoppedError());
-  }
-
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(new InventoryInspectionStoppedError());
-    budget.signal.addEventListener("abort", onAbort, { once: true });
-    operation.then(
-      (value) => {
-        budget.signal.removeEventListener("abort", onAbort);
-        resolve(value);
-      },
-      (error) => {
-        budget.signal.removeEventListener("abort", onAbort);
-        reject(error);
-      },
-    );
-  });
 }
 
 export async function getWorktreeRegistrySnapshot(
@@ -881,247 +469,69 @@ export async function getWorktreeRegistrySnapshot(
     budget = ownBudget;
   }
 
-  const stageTimings: Record<string, number> = {};
-  let stageStart = performance.now();
-  let currentStage = "start";
-  let stoppedStage: string | undefined;
-  let candidateCount = 0;
-  let inspectedCount = 0;
-  const omitted: NonNullable<WorktreeRegistrySnapshot["omitted"]> = [];
+  const startedAt = performance.now();
+  const emptyResult = (message?: string): WorktreeRegistrySnapshot => ({
+    records: [],
+    changeSummaries: {},
+    unavailable: Boolean(message),
+    complete: false,
+    stopReason: budget?.snapshot().stopReason,
+    stoppedStage: message ? "git_census" : undefined,
+    inspectedCount: 0,
+    candidateCount: 0,
+    stageTimings: {
+      git_census: Number((performance.now() - startedAt).toFixed(3)),
+    },
+  });
 
-  function enterStage(stage: string) {
-    const now = performance.now();
-    if (currentStage !== stage) {
-      stageTimings[currentStage] = Number((now - stageStart).toFixed(3));
-      currentStage = stage;
-      stageStart = now;
-    }
-  }
-
-  function admit(stage: string): boolean {
-    enterStage(stage);
-    if (!budget) return true;
-    const ok = budget.canStartInspection();
-    if (!ok && !stoppedStage) stoppedStage = stage;
-    return ok;
-  }
-
-  function buildResult(
-    base: Partial<WorktreeRegistrySnapshot>,
-  ): WorktreeRegistrySnapshot {
-    enterStage("complete");
-    const snap = budget?.snapshot();
-    const complete = snap?.complete ?? true;
-    return {
-      records: [],
-      changeSummaries: {},
-      warnings: [],
-      poisonedWorkflows: [],
-      ...base,
-      complete,
-      stopReason: snap?.stopReason,
-      stoppedStage: complete ? undefined : (stoppedStage ?? currentStage),
-      inspectedCount: base.inspectedCount ?? inspectedCount,
-      candidateCount: base.candidateCount ?? candidateCount,
-      omitted: base.omitted ?? (omitted.length > 0 ? omitted : undefined),
-      stageTimings,
-    };
-  }
-
-  const unavailable = (message: string, error?: unknown) =>
-    buildResult({
-      records: [],
-      changeSummaries: {},
-      warnings: [
-        {
-          source: "worktree_visibility" as const,
-          message,
-          errorClass: error ? errorClass(error) : "Unavailable",
-          ...(error ? { evidenceSummary: summarizeErrorEvidence(error) } : {}),
-        },
-      ],
-      poisonedWorkflows: [],
-      unavailable: true,
-    });
-
-  if (!admit("service_check")) {
-    return unavailable(
-      "Inventory budget exhausted before Temporal service check",
-    );
-  }
-
-  const bundle = getService();
-  if (!bundle) return unavailable("Temporal service unavailable");
-  const owner = bundle;
-
-  if (!admit("client_check")) {
-    return unavailable(
-      "Inventory budget exhausted before Temporal client check",
-    );
-  }
-
-  if (!admit("list_active_worktrees")) {
-    return unavailable(
-      "Inventory budget exhausted before listing active worktree workflows",
-    );
-  }
-
-  let changeIds: string[];
   try {
-    changeIds = await listChangeIdsWithActiveWorktrees(owner, access.projectId);
-  } catch (error) {
-    return unavailable("Unable to list active worktree workflows", error);
-  }
-  candidateCount = changeIds.length;
-
-  const records: MaterializedWorktreeRecord[] = [];
-  const warnings: WorktreeCrossChangeWarning[] = [];
-  const poisonedWorkflows: WorktreePoisonedWorkflowEntry[] = [];
-  const changeSummaries: WorktreeRegistrySnapshot["changeSummaries"] = {};
-
-  const queue = [...changeIds];
-  async function worker() {
-    while (true) {
-      if (budget && !budget.canStartInspection()) {
-        return;
-      }
-      const changeId = queue.shift();
-      if (!changeId) return;
-      await processChangeId(changeId);
-    }
-  }
-
-  async function processChangeId(changeId: string) {
-    if (!admit("query_change_workflow")) {
-      omitted.push({
-        scope: "query_change_workflow",
-        changeId,
-        reason: "inventory budget exhausted",
-      });
-      return;
-    }
-
-    inspectedCount += 1;
-    const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
-    const handle = getChangeHandle(owner, access.projectId, changeId);
-    let state: ChangeWorkflowState;
-    try {
-      state = await awaitInventoryQuery(
-        handle.query<ChangeWorkflowState>(getStateQuery),
-        budget,
-      );
-    } catch (error) {
-      if (error instanceof InventoryInspectionStoppedError) {
-        omitted.push({
-          scope: "query_change_workflow",
-          changeId,
-          reason: "inventory stopped before workflow query settled",
-        });
-        return;
-      }
-      if (admit("classify_workflow_failure")) {
-        const classification = await classifyWorktreeWorkflowFailure(
-          handle,
-          error,
-        );
-        const message = `Unable to query worktree registry snapshot for change ${changeId}`;
-        warnings.push({
-          source: "worktree_workflow",
-          changeId,
-          workflowId,
-          message,
-          errorClass: errorClass(error),
-          ...(classification.recoveryReason
-            ? { recoveryReason: classification.recoveryReason }
-            : {}),
-          ...(classification.evidenceSummary
-            ? { evidenceSummary: classification.evidenceSummary }
-            : {}),
-        });
-        if (
-          classification.recoveryReason === "poisoned_history" &&
-          classification.evidenceSummary
-        ) {
-          poisonedWorkflows.push({
-            changeId,
-            workflowId,
-            recoveryReason: "poisoned_history",
-            evidenceSummary: classification.evidenceSummary,
-            message,
-          });
-        }
-      } else {
-        omitted.push({
-          scope: "classify_workflow_failure",
-          changeId,
-          reason: "inventory budget exhausted",
-        });
-      }
-      return;
-    }
-
-    const summaryChangeId = state.changeId ?? changeId;
-    const touchedFiles = collectTouchedFilesFromState(state);
-    changeSummaries[summaryChangeId] = {
-      ...(typeof state.status === "string" ? { status: state.status } : {}),
-      ...(touchedFiles.length > 0 ? { touched_files: touchedFiles } : {}),
-    };
-
-    const worktreeEntries = Object.entries(state.worktrees ?? {}).sort(
-      ([left], [right]) => left.localeCompare(right),
+    if (budget && !budget.canStartInspection()) return emptyResult();
+    const defaultBranch = await getDefaultBranch(access.projectDir);
+    const facts = await scanGitWorkspaceFacts(
+      access.projectDir,
+      defaultBranch,
+      options?.timeoutMs,
     );
-    for (const [branch, record] of worktreeEntries) {
-      const materialized = materializeChangeWorktreeRecord(
-        summaryChangeId,
-        branch,
-        record as WorktreeRecord,
-      );
-      if (materialized) {
-        records.push(materialized);
-        const isCanonicalChangeBranch = branch === `change/${summaryChangeId}`;
-        changeSummaries[summaryChangeId] = {
-          ...changeSummaries[summaryChangeId],
-          branch:
-            changeSummaries[summaryChangeId]?.branch && !isCanonicalChangeBranch
-              ? changeSummaries[summaryChangeId].branch
-              : branch,
+    const now = new Date().toISOString();
+    const records = reconcileWorktreeRegistry({
+      existing: [],
+      git: facts,
+      sessions: [],
+      defaultBranch,
+      now,
+      sourceVersion: Date.now(),
+    }).filter((record): record is MaterializedWorktreeRecord =>
+      Boolean(record.path),
+    );
+    const changeSummaries: WorktreeRegistrySnapshot["changeSummaries"] = {};
+    for (const record of records) {
+      const changeId = record.changeId;
+      if (changeId) {
+        changeSummaries[changeId] = {
+          branch: record.branch,
         };
       }
     }
+    const snapshot = budget?.snapshot();
+    return {
+      records,
+      changeSummaries,
+      complete: snapshot?.complete ?? true,
+      stopReason: snapshot?.stopReason,
+      inspectedCount: records.length,
+      candidateCount: facts.branches.length + facts.worktrees.length,
+      stageTimings: {
+        git_census: Number((performance.now() - startedAt).toFixed(3)),
+      },
+    };
+  } catch (error) {
+    return emptyResult(
+      `Unable to read local worktree state: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  } finally {
+    ownBudget?.dispose();
   }
-
-  await Promise.all(Array.from({ length: 4 }, worker));
-  for (const changeId of queue) {
-    omitted.push({
-      scope: "query_change_workflow",
-      changeId,
-      reason: "inventory budget exhausted",
-    });
-  }
-
-  records.sort((a, b) => {
-    const byChangeId = (a.changeId ?? "").localeCompare(b.changeId ?? "");
-    if (byChangeId !== 0) return byChangeId;
-    return (a.branch ?? "").localeCompare(b.branch ?? "");
-  });
-  warnings.sort((a, b) => (a.changeId ?? "").localeCompare(b.changeId ?? ""));
-  poisonedWorkflows.sort((a, b) => a.changeId.localeCompare(b.changeId));
-
-  if (ownBudget) ownBudget.dispose();
-
-  return buildResult({
-    records,
-    changeSummaries,
-    warnings,
-    poisonedWorkflows,
-    inspectedCount,
-    candidateCount,
-  });
 }
-
-// =============================================================================
-// STUB EXPORTS for back-compat with consumers not yet rewritten
-// =============================================================================
 
 export async function getSessionRecord(
   _access: WorktreeStateAccess,
@@ -1130,48 +540,23 @@ export async function getSessionRecord(
   return null;
 }
 
-/**
- * Read a single worktree record for `branch` from the durable change-workflow
- * `worktrees` map. This is the structural authority for "does a worktree exist
- * for this change" used by the worktree-isolation guard (rq-worktreeMutationGuard01)
- * and by `advWorktreeResume`'s reuse path — never heuristic filesystem inference (P33).
- *
- * Returns the `Worktree` (including `status`, `path`, `materialized`, `setupReady`,
- * `setupFailureReason`) or `null` when the branch is not a change branch, the
- * Temporal service is unavailable, the workflow query fails, or no record exists.
- * On unavailability it returns `null` (callers treat unknown existence as
- * "no worktree" and fall back to their own safety posture).
- */
+/** Read a worktree record from the local Git census. */
 export async function getWorktreeRecord(
   access: WorktreeStateAccess,
   branch: string,
 ): Promise<Worktree | null> {
   const changeId = inferChangeIdFromBranch(branch);
   if (!changeId) return null;
-
-  const bundle = getService();
-  if (!bundle) return null;
-
-  const handle = getChangeHandle(bundle, access.projectId, changeId);
-  let state: ChangeWorkflowState | undefined;
   try {
-    state = await handle.query<ChangeWorkflowState>(getStateQuery);
+    const snapshot = await getWorktreeRegistrySnapshot(access);
+    const record = snapshot.records.find((entry) => entry.branch === branch);
+    if (!record) return null;
+    const worktree = _recordToWorktree(record);
+    worktree.changeId = record.changeId ?? changeId;
+    return worktree;
   } catch {
-    // Unknown existence (poisoned/unreachable workflow): do not assert a worktree.
     return null;
   }
-  if (!state || typeof state !== "object") return null;
-
-  const record = (state.worktrees ?? {})[branch] as WorktreeRecord | undefined;
-  if (!record) return null;
-
-  const worktree = _recordToWorktree(record);
-  worktree.branch = branch;
-  worktree.changeId = state.changeId ?? changeId;
-  if (typeof record.materialized === "boolean") {
-    worktree.materialized = record.materialized;
-  }
-  return worktree;
 }
 
 /**
@@ -1188,7 +573,7 @@ export async function worktreeExistsForChange(
   access: WorktreeStateAccess,
   changeId: string,
 ): Promise<boolean> {
-  const branch = `${CHANGE_BRANCH_PREFIX}${changeId}`;
+  const branch = `change/${changeId}`;
   let record: Worktree | null;
   try {
     record = await getWorktreeRecord(access, branch);
