@@ -308,7 +308,7 @@ Search codebase for key terms → compare with affected files. Flag missing file
 
 **Check 5:** Advisory-only dependencies — `external_dependencies` are advisory-only dependencies. They may produce warnings, but prep MUST NOT model them as gate blockers unless the agreement explicitly requires blocking behavior.
 
-**Check 6:** Target tool mode — planned target reads must use `snapshot-ok` ADV tools with `target_path`; planned target mutations must use `authoritative` ADV tools and capture `target_confirmed`/`confirmationEvidence` for untrusted targets.
+**Check 6:** Target tool mode — planned target reads must use `snapshot-ok` ADV tools with `target_path`; planned target mutations must use `temporal-required` ADV tools and capture `target_confirmed`/`confirmationEvidence` for untrusted targets.
 
 ### 3.8 Multi-Worktree File-Overlap Scan
 

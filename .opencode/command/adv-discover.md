@@ -596,7 +596,7 @@ Examples:
 - `AC1: Given an approved criterion, when its agreement is minted, then the contract preserves a typed optional variant annotation while retaining canonical text and stable contract ID.`
 - `AC2: Evidence: review matrix coverage is proven by passing gate-readiness checks.`
 - `AC3: Spec-law: rq-structuredAcceptance01 requires Given/When/Then scenarios for typed additive representation. [warrant: spec:rq-structuredAcceptance01]`
-- `C1: Must preserve the change-projection mutation surface for disk-backed changes.`
+- `C1: Must preserve signal/query-only workflow surface for temporal workflows.`
 
 ### Phase 4.6: Persist Agreement (Inline)
 
@@ -652,7 +652,7 @@ Contract rules:
   - `OOS1..n` — out-of-scope boundaries.
 - Initial items use `sourceArtifact: "agreement"`.
 - Evidence policies: `SC*` → `review`; `AC*` → `test`; `C*` → `static_check`; `DONT*` → `review`; `OOS*` → `not_applicable`.
-- Recovery is internalized: mutations return a typed `MutationOutcome` (`verified` | `unverified` | `stale_revision` | `operator_required`; `unverified` and `operator_required` are blocking). `adv_contract_mint` auto-classifies state and records machine evidence internally. No public `recoveryMode` or `recoveryEvidence` arguments are required.
+- Poisoned-history recovery is internalized: `adv_contract_mint` auto-classifies the workflow state and records machine evidence internally. No public `recoveryMode` or `recoveryEvidence` arguments are required. Repairs disk projection only; does not heal workflow history.
 
 Discovery completion blocked when approved agreement lacks contract spine or projected `acceptanceCriteria` drifts from approved `AC*` items.
 
