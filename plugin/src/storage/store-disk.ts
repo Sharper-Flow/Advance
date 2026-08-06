@@ -1429,10 +1429,9 @@ export async function createDiskStore(
           return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
         });
       const bound =
-        options?.sourceRanked && recentLimit === undefined
-          ? 10
-          : recentLimit;
-      const admitted = bound === undefined ? candidates : candidates.slice(0, bound);
+        options?.sourceRanked && recentLimit === undefined ? 10 : recentLimit;
+      const admitted =
+        bound === undefined ? candidates : candidates.slice(0, bound);
       const admittedIds = new Set(admitted.map((source) => source.id));
       const loaded = await Promise.all(
         admitted.map((source) => loadChange(paths.changes, source.id)),

@@ -808,7 +808,12 @@ describe("protected collection wipe guard", () => {
   it("refuses a spread-undefined wipe that a scalar-only postcondition would pass", async () => {
     const change = makeChange("wipeGuard", {
       tasks: [
-        { id: "tk-1", title: "keep me", status: "pending", created_at: new Date().toISOString() },
+        {
+          id: "tk-1",
+          title: "keep me",
+          status: "pending",
+          created_at: new Date().toISOString(),
+        },
       ],
     });
     await seedChange(changesDir, change);
@@ -841,7 +846,12 @@ describe("protected collection wipe guard", () => {
   it("allows emptying a collection when the caller declares the intent", async () => {
     const change = makeChange("wipeDeclared", {
       tasks: [
-        { id: "tk-1", title: "remove me", status: "pending", created_at: new Date().toISOString() },
+        {
+          id: "tk-1",
+          title: "remove me",
+          status: "pending",
+          created_at: new Date().toISOString(),
+        },
       ],
     });
     await seedChange(changesDir, change);

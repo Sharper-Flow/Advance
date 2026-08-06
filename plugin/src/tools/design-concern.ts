@@ -139,16 +139,16 @@ async function executeDisposition(
     });
   }
 
-   const outcome = await coordinateChangeMutation<Change>({
-     authority: {
-       reason: "record design-concern disposition",
-       evidence: args.evidence,
-     },
-     changesDir: store.paths.changes,
-     intent: {
-       changeId: args.changeId,
-       mutationKind: "design_concern_disposition",
-       mutateLatestProjection: (latest) => ({
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "record design-concern disposition",
+      evidence: args.evidence,
+    },
+    changesDir: store.paths.changes,
+    intent: {
+      changeId: args.changeId,
+      mutationKind: "design_concern_disposition",
+      mutateLatestProjection: (latest) => ({
         ...latest,
         design_concern_dispositions: upsertDesignConcernDisposition(
           latest.design_concern_dispositions,
@@ -164,15 +164,15 @@ async function executeDisposition(
   });
 
   switch (outcome.kind) {
-     case "verified": {
-       return formatToolOutput({
+    case "verified": {
+      return formatToolOutput({
         success: true,
         changeId: args.changeId,
         disposition,
-         ...proj,
-       });
-     }
-     case "unverified":
+        ...proj,
+      });
+    }
+    case "unverified":
       return formatToolOutput({
         error: `Design-concern disposition recovery wrote the disk projection but the postcondition could not be verified: ${outcome.reason}`,
         code: "DESIGN_CONCERN_DISPOSITION_RECOVERY_UNVERIFIED",

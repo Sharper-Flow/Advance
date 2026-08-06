@@ -11,7 +11,6 @@ import { changeTools } from "./change";
 import type { Store } from "../storage/store";
 import type { Change } from "../types";
 
-
 function createMockStore(
   listResult?: Awaited<ReturnType<Store["changes"]["list"]>>,
   changeOverride: Partial<Change> = {},

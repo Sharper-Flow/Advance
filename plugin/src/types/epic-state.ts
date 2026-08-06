@@ -6,7 +6,12 @@ export interface EpicInput {
   title: string;
   narrative: string;
   initializedAt: string;
-  seedState?: Partial<Pick<EpicState, "epic" | "status" | "idempotencyLedger" | "lastSignalAt" | "rejections">>;
+  seedState?: Partial<
+    Pick<
+      EpicState,
+      "epic" | "status" | "idempotencyLedger" | "lastSignalAt" | "rejections"
+    >
+  >;
 }
 
 export interface EpicSignalRejection {

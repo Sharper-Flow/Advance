@@ -876,8 +876,12 @@ Vague in-flight work.
         expect(parsed.plugin_runtime.plugin_bundle_manifest_path).toContain(
           "plugin-bundle-manifest.json",
         );
-        expect(parsed.plugin_runtime).toHaveProperty("loaded_plugin_generation");
-        expect(parsed.plugin_runtime).toHaveProperty("deployed_plugin_generation");
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "loaded_plugin_generation",
+        );
+        expect(parsed.plugin_runtime).toHaveProperty(
+          "deployed_plugin_generation",
+        );
         expect(parsed.plugin_runtime).toHaveProperty("plugin_bundle_freshness");
         expect(["current", "stale", "unknown"]).toContain(
           parsed.plugin_runtime.plugin_bundle_freshness,
@@ -1203,7 +1207,6 @@ Vague in-flight work.
             "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
           ]),
         );
-
       });
 
       test("health view surfaces tool_context_telemetry with manifest, cache tokens, lane projections, and limitation", async () => {
@@ -1272,7 +1275,6 @@ Vague in-flight work.
             "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
           ]),
         );
-
       });
 
       test("changes view: returns full active changes detail", async () => {

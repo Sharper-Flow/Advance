@@ -84,7 +84,10 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
 
     const parsed = JSON.parse(output);
     const persisted = JSON.parse(
-      readFileSync(join(store.paths.changes, "chg-test", "change.json"), "utf-8"),
+      readFileSync(
+        join(store.paths.changes, "chg-test", "change.json"),
+        "utf-8",
+      ),
     );
     expect(parsed.success).toBe(true);
     expect(persisted.wisdom).toEqual(
@@ -129,7 +132,10 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
     );
 
     const persisted = JSON.parse(
-      readFileSync(join(store.paths.changes, "chg-test", "change.json"), "utf-8"),
+      readFileSync(
+        join(store.paths.changes, "chg-test", "change.json"),
+        "utf-8",
+      ),
     );
     expect(persisted.wisdom).toEqual(
       expect.arrayContaining([

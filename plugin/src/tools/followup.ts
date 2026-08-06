@@ -309,7 +309,10 @@ async function seedChildOpsFollowup(
     intent: {
       changeId: childChangeId,
       mutationKind: "ops_followup_seeded",
-      mutateLatestProjection: (latest) => ({ ...latest, ops_followup: profile }),
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        ops_followup: profile,
+      }),
       verifyProjection: (readback) =>
         readback.ops_followup?.source.source_change_id ===
         profile.source.source_change_id,
@@ -343,8 +346,9 @@ async function addParentOpsFollowupLink(
         ops_followup_links: [...(latest.ops_followup_links ?? []), link],
       }),
       verifyProjection: (readback) =>
-        readback.ops_followup_links?.some((candidate) => candidate.id === link.id) ??
-        false,
+        readback.ops_followup_links?.some(
+          (candidate) => candidate.id === link.id,
+        ) ?? false,
     },
   });
   if (outcome.kind !== "verified") {

@@ -94,7 +94,9 @@ export interface ChangeState {
     lastVerdict?: {
       verdict: "PASS" | "DRIFT";
       runId: string;
-      failed?: Array<{ rq_id: string; summary: string } & Record<string, unknown>>;
+      failed?: Array<
+        { rq_id: string; summary: string } & Record<string, unknown>
+      >;
       recordedAt: string;
     };
     overrides?: Array<{

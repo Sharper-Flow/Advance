@@ -101,7 +101,10 @@ describe("adv_doctor disk diagnostics", () => {
     expect(parsed.verification.projection_readable).toBe(false);
     expect(parsed.findings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ class: "unhealthy", finding: "projectionReadable" }),
+        expect.objectContaining({
+          class: "unhealthy",
+          finding: "projectionReadable",
+        }),
       ]),
     );
   });
@@ -184,6 +187,8 @@ describe("adv_doctor disk diagnostics", () => {
 
   test("doctor args expose no unsafe approval bypass", () => {
     expect(doctorTools.adv_doctor.args).not.toHaveProperty("approvedByUser");
-    expect(doctorTools.adv_doctor.args).not.toHaveProperty("approvedLockReclaim");
+    expect(doctorTools.adv_doctor.args).not.toHaveProperty(
+      "approvedLockReclaim",
+    );
   });
 });

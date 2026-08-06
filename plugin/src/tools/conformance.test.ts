@@ -189,7 +189,6 @@ describe("adv_conformance action: lock", () => {
     expect(updated.specs["my-spec"]?.locked).toBe(true);
     expect(updated.specs["my-spec"]?.locked_at_archive).toBe("myChange");
     expect(typeof updated.specs["my-spec"]?.locked_at).toBe("string");
-
   });
 
   test("rejects lock on missing spec", async () => {
@@ -312,7 +311,6 @@ describe("adv_conformance action: override", () => {
     expect(updated.specs["my-spec"]?.locked).toBe(true); // unchanged
     expect(updated.specs["my-spec"]?.overrides).toHaveLength(1);
     expect(updated.specs["my-spec"]?.overrides[0]?.reason).toMatch(/outage/);
-
   });
 
   test("records override without signal when locked_at_archive is absent", async () => {
@@ -429,7 +427,6 @@ describe("adv_conformance action: run", () => {
     expect(parsed.failed).toHaveLength(1);
     expect(parsed.failed[0].rq_id).toBe("rq-confLock01");
     expect(typeof parsed.run_id).toBe("string");
-
   });
 
   test("returns PASS verdict when artifact has empty failed array", async () => {

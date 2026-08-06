@@ -192,9 +192,9 @@ describe("test tools — simplified adv_run_test", () => {
     expect(parsed.evidenceRecording).toMatchObject({
       status: "degraded",
       reason: "signal_failed",
-       message: expect.stringContaining("change not found"),
-     });
-   });
+      message: expect.stringContaining("change not found"),
+    });
+  });
 
   test("returns typed result contract for non-zero command", async () => {
     const store = createMockStore();

@@ -10,14 +10,29 @@ import type { Change, Store } from "../types";
 const git = vi.hoisted(() => ({
   detectArchiveMode: vi.fn(() => ({ archiveMode: "direct", autoPush: true })),
   resolveRepoRoot: vi.fn((root: string) => root),
-  detectDefaultBranch: vi.fn(() => ({ branch: "trunk", source: "local-trunk" })),
-  classifyFinalizationRoute: vi.fn(() => ({ route: "direct", repo: "owner/repo" })),
-  resolveReleaseReachability: vi.fn(() => ({ reachable: false, proof: "origin_unmerged", details: ["tip not on origin/trunk"] })),
-  verifyChangeBranchPushed: vi.fn(() => ({ pushed: false, reason: "change branch not pushed" })),
+  detectDefaultBranch: vi.fn(() => ({
+    branch: "trunk",
+    source: "local-trunk",
+  })),
+  classifyFinalizationRoute: vi.fn(() => ({
+    route: "direct",
+    repo: "owner/repo",
+  })),
+  resolveReleaseReachability: vi.fn(() => ({
+    reachable: false,
+    proof: "origin_unmerged",
+    details: ["tip not on origin/trunk"],
+  })),
+  verifyChangeBranchPushed: vi.fn(() => ({
+    pushed: false,
+    reason: "change branch not pushed",
+  })),
 }));
 
 vi.mock("./archive-helpers/git-finalize", async () => {
-  const actual = await vi.importActual<typeof import("./archive-helpers/git-finalize")>("./archive-helpers/git-finalize");
+  const actual = await vi.importActual<
+    typeof import("./archive-helpers/git-finalize")
+  >("./archive-helpers/git-finalize");
   return { ...actual, ...git };
 });
 
@@ -46,12 +61,26 @@ function change(overrides: Partial<Change> = {}): Change {
 
 async function storeFor(root: string, current: Change): Promise<Store> {
   await mkdir(join(root, current.id), { recursive: true });
-  await writeFile(join(root, current.id, "change.json"), JSON.stringify(current));
+  await writeFile(
+    join(root, current.id, "change.json"),
+    JSON.stringify(current),
+  );
   return {
-    paths: { root, changes: root, archive: join(root, "archive") } as Store["paths"],
-    config: { archive_mode: "direct", auto_push: true, features: {} } as Store["config"],
+    paths: {
+      root,
+      changes: root,
+      archive: join(root, "archive"),
+    } as Store["paths"],
+    config: {
+      archive_mode: "direct",
+      auto_push: true,
+      features: {},
+    } as Store["config"],
     changes: { get: vi.fn(async () => ({ success: true, data: current })) },
-    tasks: {}, specs: {}, wisdom: {}, gates: {},
+    tasks: {},
+    specs: {},
+    wisdom: {},
+    gates: {},
   } as unknown as Store;
 }
 
@@ -61,11 +90,20 @@ describe("release gate fail-closed enforcement", () => {
     try {
       const current = change();
       const store = await storeFor(root, current);
-      const parsed = JSON.parse(await gateTools.adv_gate_complete.execute({ changeId: current.id, gateId: "release" }, store));
+      const parsed = JSON.parse(
+        await gateTools.adv_gate_complete.execute(
+          { changeId: current.id, gateId: "release" },
+          store,
+        ),
+      );
       expect(parsed.success).toBeUndefined();
       expect(parsed.code).toBe("RELEASE_REQUIRES_TRUNK_MERGE");
       expect(parsed.requirement).toBe("rq-releaseFinalization01");
-      expect(JSON.parse(await readFile(join(root, current.id, "change.json"), "utf8")).gates.release.status).toBe("pending");
+      expect(
+        JSON.parse(
+          await readFile(join(root, current.id, "change.json"), "utf8"),
+        ).gates.release.status,
+      ).toBe("pending");
     } finally {
       await cleanupTempDir(root);
     }
@@ -75,14 +113,38 @@ describe("release gate fail-closed enforcement", () => {
     git.resolveReleaseReachability.mockReturnValue({ reachable: true });
     const root = await createTempDir("adv-release-gate-");
     try {
-      const current = change({ phase9_status: { status: "done", startedAt: "2026-01-01T00:00:00Z", completedAt: "2026-01-01T00:00:01Z", defaultBranch: "trunk", pushStatus: "pushed" } as Change["phase9_status"] });
+      const current = change({
+        phase9_status: {
+          status: "done",
+          startedAt: "2026-01-01T00:00:00Z",
+          completedAt: "2026-01-01T00:00:01Z",
+          defaultBranch: "trunk",
+          pushStatus: "pushed",
+        } as Change["phase9_status"],
+      });
       const store = await storeFor(root, current);
-      const parsed = JSON.parse(await gateTools.adv_gate_complete.execute({ changeId: current.id, gateId: "release", notes: "Phase 9 finalization shipped; defaultBranch=trunk; pushStatus=pushed" }, store));
+      const parsed = JSON.parse(
+        await gateTools.adv_gate_complete.execute(
+          {
+            changeId: current.id,
+            gateId: "release",
+            notes:
+              "Phase 9 finalization shipped; defaultBranch=trunk; pushStatus=pushed",
+          },
+          store,
+        ),
+      );
       expect(parsed.success).toBe(true);
-      const readback = JSON.parse(await readFile(join(root, current.id, "change.json"), "utf8"));
+      const readback = JSON.parse(
+        await readFile(join(root, current.id, "change.json"), "utf8"),
+      );
       expect(readback.gates.release.status).toBe("done");
     } finally {
-      git.resolveReleaseReachability.mockReturnValue({ reachable: false, proof: "origin_unmerged", details: ["tip not on origin/trunk"] });
+      git.resolveReleaseReachability.mockReturnValue({
+        reachable: false,
+        proof: "origin_unmerged",
+        details: ["tip not on origin/trunk"],
+      });
       await cleanupTempDir(root);
     }
   });

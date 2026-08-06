@@ -236,7 +236,8 @@ export const wisdomTools = {
         if (outcome.kind !== "verified") {
           return formatToolOutput({
             error:
-              outcome.kind === "unverified" || outcome.kind === "operator_required"
+              outcome.kind === "unverified" ||
+              outcome.kind === "operator_required"
                 ? outcome.reason
                 : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
             changeId,

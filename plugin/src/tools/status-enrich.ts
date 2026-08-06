@@ -16,9 +16,7 @@ import {
   type ChangeRecency,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
-import {
-  type WorkflowDirective,
-} from "../utils/workflow-directive";
+import { type WorkflowDirective } from "../utils/workflow-directive";
 import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
@@ -274,7 +272,7 @@ export async function enrichRecentChangeStatus(
     _contextSnapshot: isPrimary
       ? buildChangeContextSnapshot({
           ...snapshotInput,
-           ...(resumeFreshnessInput
+          ...(resumeFreshnessInput
             ? { resumeFreshness: resumeFreshnessInput }
             : {}),
         })
@@ -709,7 +707,7 @@ export async function buildCandidateEnrichmentPatch(
       _contextSnapshot: isPrimary
         ? buildChangeContextSnapshot({
             ...snapshotInput,
-             ...(candidateResumeFreshness
+            ...(candidateResumeFreshness
               ? { resumeFreshness: candidateResumeFreshness }
               : {}),
           })

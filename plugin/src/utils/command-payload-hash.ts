@@ -6,10 +6,7 @@
  * workflow fallback agree on exactly which transport fields are excluded.
  */
 import { createHash } from "node:crypto";
-import {
-  canonicalCommandPayloadString,
-  stableStringify,
-} from "./digest";
+import { canonicalCommandPayloadString, stableStringify } from "./digest";
 
 export function sha256Hex(value: string): string {
   return createHash("sha256").update(value).digest("hex");

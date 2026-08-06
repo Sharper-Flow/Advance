@@ -207,7 +207,7 @@ export const statusTools = {
         .default("summary")
         .describe(
           "Output view selector. `summary` (default) omits hygiene archaeology and full diagnostics; " +
-             "`health` surfaces disk/worktree/session-debt detail + metrics counters; " +
+            "`health` surfaces disk/worktree/session-debt detail + metrics counters; " +
             "`changes` returns the full recent-change list; " +
             "`hygiene` surfaces archived/closed leaks + recommendations + project metadata.",
         ),
@@ -279,7 +279,7 @@ export const statusTools = {
             "adv_status",
             "statusLoad",
             () => loadStatusWithBootstrapRetry(activeStore, statusReadOptions),
-            );
+          );
           const status = loadedStatus;
           // Request-local resolved documents: extracted for
           // enrichment reuse and stripped before output serialization —
@@ -350,9 +350,9 @@ export const statusTools = {
               feature_flags: {},
               feature_flag_sources: {},
               auto_managed_changes: autoManagedCensus,
-               _freshness: {},
-               _health_execution: {},
-               opencode_session_debt: undefined,
+              _freshness: {},
+              _health_execution: {},
+              opencode_session_debt: undefined,
               migration_status: null,
               project_metadata: undefined,
               external_state_hygiene: undefined,
@@ -374,15 +374,15 @@ export const statusTools = {
             });
           };
 
-           const postStatusCutoffAt =
-             Date.now() + STATUS_READ_DEADLINE_BUDGET_MS;
-           const postStatusBudgetExceeded = () =>
-             Date.now() >= postStatusCutoffAt;
-           const degradeForDeadline = () => {
-             return buildDegradedResponse();
-           };
+          const postStatusCutoffAt =
+            Date.now() + STATUS_READ_DEADLINE_BUDGET_MS;
+          const postStatusBudgetExceeded = () =>
+            Date.now() >= postStatusCutoffAt;
+          const degradeForDeadline = () => {
+            return buildDegradedResponse();
+          };
           const runBoundedStatusPhase = async <T>(
-             _opType: string,
+            _opType: string,
             operation: () => Promise<T>,
           ): Promise<
             | { kind: "complete"; data: T }
@@ -390,30 +390,30 @@ export const statusTools = {
             | { kind: "error"; error: unknown }
           > => {
             if (postStatusBudgetExceeded()) return { kind: "deadline" };
-             let data: T;
-             try {
-               data = await operation();
-             } catch (error) {
-               return postStatusBudgetExceeded()
-                 ? { kind: "deadline" }
-                 : { kind: "error", error };
-             }
-             if (postStatusBudgetExceeded()) return { kind: "deadline" };
-             return { kind: "complete", data };
-           };
+            let data: T;
+            try {
+              data = await operation();
+            } catch (error) {
+              return postStatusBudgetExceeded()
+                ? { kind: "deadline" }
+                : { kind: "error", error };
+            }
+            if (postStatusBudgetExceeded()) return { kind: "deadline" };
+            return { kind: "complete", data };
+          };
 
-           if (view === "hygiene") {
-             const migrationRead = await runBoundedStatusPhase(
-               "status.migrationStatus",
-               () =>
-                 withRecordedPhase("adv_status", "migrationStatus", () =>
-                   loadMigrationStatus(activeStore),
-                 ),
-             );
-             if (migrationRead.kind !== "complete") {
-               return degradeForDeadline();
-             }
-             migrationStatus = migrationRead.data;
+          if (view === "hygiene") {
+            const migrationRead = await runBoundedStatusPhase(
+              "status.migrationStatus",
+              () =>
+                withRecordedPhase("adv_status", "migrationStatus", () =>
+                  loadMigrationStatus(activeStore),
+                ),
+            );
+            if (migrationRead.kind !== "complete") {
+              return degradeForDeadline();
+            }
+            migrationStatus = migrationRead.data;
           }
 
           // A status read that consumed its aggregate budget is already a
@@ -421,7 +421,7 @@ export const statusTools = {
           // stages after expiry: those stages have independent best-effort
           // work and could outlive the host safety cap while the caller has
           // already been told the authoritative read is incomplete.
-           if (postStatusBudgetExceeded()) {
+          if (postStatusBudgetExceeded()) {
             return degradeForDeadline();
           }
 
@@ -499,25 +499,25 @@ export const statusTools = {
                     }
                     const isPrimary = !primaryAssigned && rc.status === "draft";
                     if (isPrimary) primaryAssigned = true;
-                     const enrichmentRead = await runBoundedStatusPhase(
-                       "status.recentEnrichment",
-                       () =>
-                         enrichRecentChangeStatus(
-                           rc,
-                           status,
-                           activeStore,
-                           clarifyMode,
-                           isPrimary,
-                           {
-                             change: resolvedChanges?.get(String(rc.id)),
-                             resolvedChanges,
-                           },
-                           { cutoffAt: postStatusCutoffAt },
-                         ),
-                     );
-                     if (
-                       enrichmentRead.kind !== "complete" ||
-                       postStatusBudgetExceeded()
+                    const enrichmentRead = await runBoundedStatusPhase(
+                      "status.recentEnrichment",
+                      () =>
+                        enrichRecentChangeStatus(
+                          rc,
+                          status,
+                          activeStore,
+                          clarifyMode,
+                          isPrimary,
+                          {
+                            change: resolvedChanges?.get(String(rc.id)),
+                            resolvedChanges,
+                          },
+                          { cutoffAt: postStatusCutoffAt },
+                        ),
+                    );
+                    if (
+                      enrichmentRead.kind !== "complete" ||
+                      postStatusBudgetExceeded()
                     ) {
                       break;
                     }
@@ -530,20 +530,20 @@ export const statusTools = {
             }
           }
 
-           if (plan.resumeProjection) {
-             const resumeRead = await runBoundedStatusPhase(
-               "status.resumeProjection",
-               () =>
-                 withRecordedPhase("adv_status", "resumeProjection", () =>
-                   appendResumeProjectionRecommendations(activeStore, status, {
-                     projectId,
-                     limit: 3,
-                   }),
-                 ),
-             );
-             if (resumeRead.kind !== "complete") {
-               return degradeForDeadline();
-             }
+          if (plan.resumeProjection) {
+            const resumeRead = await runBoundedStatusPhase(
+              "status.resumeProjection",
+              () =>
+                withRecordedPhase("adv_status", "resumeProjection", () =>
+                  appendResumeProjectionRecommendations(activeStore, status, {
+                    projectId,
+                    limit: 3,
+                  }),
+                ),
+            );
+            if (resumeRead.kind !== "complete") {
+              return degradeForDeadline();
+            }
           }
 
           let probeFreshness: Record<string, ProbeCacheFreshness> = {};
@@ -598,7 +598,7 @@ export const statusTools = {
             | undefined;
           let futureWorkProjection: FutureWorkProjection | undefined;
 
-           if (view !== "health") {
+          if (view !== "health") {
             if (plan.projectConfig) {
               const configRead = await runBoundedStatusPhase(
                 "status.projectConfig",
@@ -818,30 +818,30 @@ export const statusTools = {
               }
             }
 
-             if (plan.snapshotHealth) {
-               const snapshotHealthRead = await runBoundedStatusPhase(
-                 "status.snapshotHealth",
-                 () =>
-                   withRecordedPhase("adv_status", "snapshotHealth", () =>
-                     fetchStatusSnapshotHealth(projectId, { forceRefresh }),
-                   ),
-               );
-               if (snapshotHealthRead.kind !== "complete") {
-                 return degradeForDeadline();
-               }
-               const snapshotHealthProbe = snapshotHealthRead.data;
+            if (plan.snapshotHealth) {
+              const snapshotHealthRead = await runBoundedStatusPhase(
+                "status.snapshotHealth",
+                () =>
+                  withRecordedPhase("adv_status", "snapshotHealth", () =>
+                    fetchStatusSnapshotHealth(projectId, { forceRefresh }),
+                  ),
+              );
+              if (snapshotHealthRead.kind !== "complete") {
+                return degradeForDeadline();
+              }
+              const snapshotHealthProbe = snapshotHealthRead.data;
               snapshotHealth = snapshotHealthProbe.value;
               probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
             }
 
-             if (plan.specRequirementCount) {
-               const specsRead = await runBoundedStatusPhase(
-                 "status.specs",
-                 () => activeStore.specs.list(),
-               );
-               if (specsRead.kind !== "complete") {
-                 return degradeForDeadline();
-               }
+            if (plan.specRequirementCount) {
+              const specsRead = await runBoundedStatusPhase(
+                "status.specs",
+                () => activeStore.specs.list(),
+              );
+              if (specsRead.kind !== "complete") {
+                return degradeForDeadline();
+              }
               const specsList = specsRead.data;
               requirementCount = specsList.specs.reduce(
                 (sum, s) => sum + (s.requirementCount ?? 0),
@@ -905,7 +905,7 @@ export const statusTools = {
             if (healthRead.kind === "error") throw healthRead.error;
             const healthResult = healthRead.data;
 
-             featureFlags = healthResult.feature_flags;
+            featureFlags = healthResult.feature_flags;
             featureFlagSources = healthResult.feature_flag_sources;
             terminalCleanupRetained = healthResult.terminal_cleanup_retained;
             worktreeCensus = healthResult.worktree_census;

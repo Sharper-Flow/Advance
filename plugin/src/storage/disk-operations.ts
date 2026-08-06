@@ -269,9 +269,7 @@ export async function listSpecs(
   return listSpecsFilesystem(input);
 }
 
-export async function showSpec(
-  input: ShowSpecInput,
-): Promise<ShowSpecResult> {
+export async function showSpec(input: ShowSpecInput): Promise<ShowSpecResult> {
   return readSpecFilesystem(input);
 }
 

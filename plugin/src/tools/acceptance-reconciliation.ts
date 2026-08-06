@@ -224,7 +224,7 @@ async function clearRecoveryAuditMarkers(
   store: Store,
   changeId: string,
   items: PendingReconciliationItem[],
-): Promise<Awaited<ReturnType<typeof coordinateChangeMutation<Change>>> > {
+): Promise<Awaited<ReturnType<typeof coordinateChangeMutation<Change>>>> {
   const operationId = `acceptance-reconciliation-clear:${changeId}:${items
     .map((item) => {
       if (
@@ -240,64 +240,68 @@ async function clearRecoveryAuditMarkers(
   return coordinateChangeMutation<Change>({
     authority: {
       kind: "recovery",
-      reason: "clear acceptance recovery markers after direct disk reconciliation",
+      reason:
+        "clear acceptance recovery markers after direct disk reconciliation",
       evidence: operationId,
     },
     changesDir: store.paths.changes,
     intent: {
       changeId,
       mutationKind: "acceptance_remediation_reconciliation",
-      mutateLatestProjection: (latest) => stripRecoveryAuditMarkers(latest, items),
+      mutateLatestProjection: (latest) =>
+        stripRecoveryAuditMarkers(latest, items),
       verifyProjection: (readback) => {
-      for (const item of items) {
-        if (
-          item.family === "design_concern" ||
-          item.family === "verification_evidence"
-        ) {
-          const arrayKey =
-            item.family === "design_concern"
-              ? "design_concern_dispositions"
-              : "verification_evidence_dispositions";
-          const found = (readback[arrayKey] ?? []).find(
-            (d) =>
-              d.taskId === item.disposition.taskId &&
-              d.concernKey === item.disposition.concernKey,
-          );
-          if (!found) return false;
+        for (const item of items) {
           if (
-            !matchesPendingRecoveredDisposition(
-              found as unknown as RecoveryAuditedDisposition,
-              item,
-              false,
-            )
+            item.family === "design_concern" ||
+            item.family === "verification_evidence"
           ) {
-            return false;
-          }
-          if (found.recovery_audit !== undefined) return false;
-        } else {
-          const found = readback.contract?.reviewMatrix;
-          if (!found) return false;
-          if (
-            !matchesPendingRecoveredMatrix(
-              found as RecoveryAuditedMatrix,
-              item as Extract<
-                PendingReconciliationItem,
-                { family: "contract_review_matrix" }
-              >,
-              false,
+            const arrayKey =
+              item.family === "design_concern"
+                ? "design_concern_dispositions"
+                : "verification_evidence_dispositions";
+            const found = (readback[arrayKey] ?? []).find(
+              (d) =>
+                d.taskId === item.disposition.taskId &&
+                d.concernKey === item.disposition.concernKey,
+            );
+            if (!found) return false;
+            if (
+              !matchesPendingRecoveredDisposition(
+                found as unknown as RecoveryAuditedDisposition,
+                item,
+                false,
+              )
+            ) {
+              return false;
+            }
+            if (found.recovery_audit !== undefined) return false;
+          } else {
+            const found = readback.contract?.reviewMatrix;
+            if (!found) return false;
+            if (
+              !matchesPendingRecoveredMatrix(
+                found as RecoveryAuditedMatrix,
+                item as Extract<
+                  PendingReconciliationItem,
+                  { family: "contract_review_matrix" }
+                >,
+                false,
+              )
             )
-          )
-            return false;
-          if (found.recovery_audit !== undefined) return false;
+              return false;
+            if (found.recovery_audit !== undefined) return false;
+          }
         }
-      }
         return true;
       },
     },
   });
 }
 
-function failureReason(outcome: Awaited<ReturnType<typeof coordinateChangeMutation<Change>>>): string {
+function failureReason(
+  outcome: Awaited<ReturnType<typeof coordinateChangeMutation<Change>>>,
+): string {
   switch (outcome.kind) {
     case "operator_required":
       return outcome.reason;

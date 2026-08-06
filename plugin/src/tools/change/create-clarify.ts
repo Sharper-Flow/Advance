@@ -98,9 +98,9 @@ export interface ChangeCreateProviders {
     }>
   >;
   /**
-    * Post-create double-check window in milliseconds. Defaults to 5000 so a
-    * concurrent disk projection can become visible before the second check.
-    * Tests pass 0 to skip the wait entirely.
+   * Post-create double-check window in milliseconds. Defaults to 5000 so a
+   * concurrent disk projection can become visible before the second check.
+   * Tests pass 0 to skip the wait entirely.
    */
   claimRaceCheckMs?: number;
 }
@@ -125,7 +125,10 @@ export async function listIssueClaims(
 ): Promise<Array<{ changeId: string; status: string }>> {
   const active = await store.changes.list({ status: "active" });
   return active.changes
-    .filter((change) => (change as unknown as Change).origin?.issue_number === issueNumber)
+    .filter(
+      (change) =>
+        (change as unknown as Change).origin?.issue_number === issueNumber,
+    )
     .map((change) => ({ changeId: change.id, status: change.status }));
 }
 /**
@@ -1065,9 +1068,7 @@ export async function loadValidationContext(
   proposalText: string;
   changedSpecFiles: string[] | null | undefined;
 }> {
-  const deadline =
-    options?.deadline ??
-    createReadDeadline(8_000);
+  const deadline = options?.deadline ?? createReadDeadline(8_000);
 
   // Start all independent input reads concurrently under the same deadline.
   const [inventoryResult, specsResult, proposalResult, gitResult] =

@@ -69,7 +69,15 @@ function makeParent(
     tasks: [],
     deltas: {},
     wisdom: [],
-    gates: { proposal: { status: "done" }, discovery: { status: "done" }, design: { status: "done" }, planning: { status: "done" }, execution: { status: "done" }, acceptance: { status: "pending" }, release: { status: "pending" } },
+    gates: {
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "done" },
+      planning: { status: "done" },
+      execution: { status: "done" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    },
     ops_followup_links: overrides?.links ?? [],
     ...overrides,
   } as Change;
@@ -85,7 +93,15 @@ function makeChild(changeId: string, profile: OpsFollowupProfile): Change {
     tasks: [],
     deltas: {},
     wisdom: [],
-    gates: { proposal: { status: "done" }, discovery: { status: "done" }, design: { status: "done" }, planning: { status: "done" }, execution: { status: "done" }, acceptance: { status: "pending" }, release: { status: "pending" } },
+    gates: {
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "done" },
+      planning: { status: "done" },
+      execution: { status: "done" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    },
     ops_followup: profile,
   } as Change;
 }
@@ -96,7 +112,10 @@ function makeStore(input: {
 }): Store {
   const changesDir = "/tmp/project/.adv/changes";
   mkdirSync(join(changesDir, input.parent.id), { recursive: true });
-  writeFileSync(join(changesDir, input.parent.id, "change.json"), JSON.stringify(input.parent));
+  writeFileSync(
+    join(changesDir, input.parent.id, "change.json"),
+    JSON.stringify(input.parent),
+  );
   return {
     paths: { root: "/tmp/project", changes: changesDir },
     productContext: { productProjectId: "project-id" },

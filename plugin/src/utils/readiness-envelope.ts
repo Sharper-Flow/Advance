@@ -24,19 +24,32 @@ export interface AdvPluginInitFailedLike {
   remediation: string[];
 }
 
-export function isAdvSessionNotReady(value: unknown): value is AdvSessionNotReady {
-  return typeof value === "object" && value !== null &&
-    (value as { kind?: unknown }).kind === ADV_SESSION_NOT_READY_KIND;
+export function isAdvSessionNotReady(
+  value: unknown,
+): value is AdvSessionNotReady {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { kind?: unknown }).kind === ADV_SESSION_NOT_READY_KIND
+  );
 }
 
-export function isAdvPluginInitFailed(value: unknown): value is AdvPluginInitFailedLike {
-  return typeof value === "object" && value !== null &&
-    (value as { status?: unknown }).status === ADV_PLUGIN_INIT_FAILED_STATUS;
+export function isAdvPluginInitFailed(
+  value: unknown,
+): value is AdvPluginInitFailedLike {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { status?: unknown }).status === ADV_PLUGIN_INIT_FAILED_STATUS
+  );
 }
 
 export function isNoPoller(value: unknown): value is { class: "no_poller" } {
-  return typeof value === "object" && value !== null &&
-    (value as { class?: unknown }).class === NO_POLLER_CLASS;
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { class?: unknown }).class === NO_POLLER_CLASS
+  );
 }
 
 export type ClassifiedAdvEnvelope =
@@ -46,7 +59,8 @@ export type ClassifiedAdvEnvelope =
   | { kind: "unknown" };
 
 export function classifyAdvEnvelope(value: unknown): ClassifiedAdvEnvelope {
-  if (isAdvSessionNotReady(value)) return { kind: "session-not-ready", payload: value };
+  if (isAdvSessionNotReady(value))
+    return { kind: "session-not-ready", payload: value };
   if (isAdvPluginInitFailed(value)) return { kind: "init-failed" };
   if (isNoPoller(value)) return { kind: "no-poller" };
   return { kind: "unknown" };
@@ -64,5 +78,9 @@ export function createAdvSessionNotReadyEnvelope(
 }
 
 export function getAdvSessionNotReadyRetryHint(): AdvSessionNotReadyRetryHint {
-  return { heartbeatCadenceMs: 10_000, advise: "retry-after-heartbeat", message: ADV_SESSION_READINESS_RETRY_HINT };
+  return {
+    heartbeatCadenceMs: 10_000,
+    advise: "retry-after-heartbeat",
+    message: ADV_SESSION_READINESS_RETRY_HINT,
+  };
 }

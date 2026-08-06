@@ -133,7 +133,10 @@ export async function evaluateLightweightProfileAndSignal(input: {
         lightweight_profile: latest.lightweight_profile
           ? {
               ...latest.lightweight_profile,
-              evaluations: [...latest.lightweight_profile.evaluations, evaluation],
+              evaluations: [
+                ...latest.lightweight_profile.evaluations,
+                evaluation,
+              ],
             }
           : undefined,
       }),

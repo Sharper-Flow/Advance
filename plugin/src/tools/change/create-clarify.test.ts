@@ -454,5 +454,4 @@ describe("checkActiveDuplicateChange disk handling", () => {
     expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE");
     expect(result?.force_recreate).toBeUndefined();
   });
-
 });

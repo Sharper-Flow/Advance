@@ -64,7 +64,13 @@ function makeChange(overrides?: Partial<Change>): Change {
     deltas: {},
     wisdom: [],
     gates: {
-      proposal: { status: "done" }, discovery: { status: "done" }, design: { status: "done" }, planning: { status: "done" }, execution: { status: "done" }, acceptance: { status: "pending" }, release: { status: "pending" },
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "done" },
+      planning: { status: "done" },
+      execution: { status: "done" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
     },
     ops_followup: makeProfile({
       evidence: [
@@ -138,7 +144,6 @@ describe("adv_ops_evidence_add", () => {
     });
     expect(result.entry.id).toMatch(/^oee-/);
     expect(result.entry.recorded_at).toMatch(/^\d{4}-/);
-
   });
 
   test("maps failed status to entry fail and profile failed", async () => {
@@ -158,7 +163,6 @@ describe("adv_ops_evidence_add", () => {
 
     expect(result.status).toBe("failed");
     expect(result.entry.status).toBe("fail");
-
   });
 
   test("dry run returns preview without firing signal", async () => {

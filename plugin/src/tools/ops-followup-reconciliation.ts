@@ -444,7 +444,8 @@ async function persistResolutionUpsert(input: {
       }),
       verifyProjection: (readback) =>
         readback.ops_followup_links?.some(
-          (link) => link.id === linkId && resolutionsEqual(link.resolution, resolution),
+          (link) =>
+            link.id === linkId && resolutionsEqual(link.resolution, resolution),
         ) ?? false,
     },
   });

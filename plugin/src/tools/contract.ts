@@ -197,7 +197,9 @@ function reviewMatrixPostcondition(
   });
 }
 
-function isFailingContractReviewStatus(status: ContractEvidenceStatus): boolean {
+function isFailingContractReviewStatus(
+  status: ContractEvidenceStatus,
+): boolean {
   return ["fail", "violated", "unknown"].includes(status);
 }
 
@@ -277,41 +279,42 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-           const outcome = await coordinateChangeMutation<Change>({
-             authority: {
-               reason: "mint contract from approved agreement",
-               evidence: args.priorApprovalEvidence ?? "approved agreement artifact",
-             },
-             changesDir: activeStore.paths.changes,
-             intent: {
-               changeId: args.changeId,
-               mutationKind: "contract_set",
-               mutateLatestProjection: (latest) => ({
-                 ...latest,
-                 contract,
-                 acceptanceCriteria: contract.items
-                   .filter((item) => item.kind === "acceptance_criterion")
-                   .map((item) => item.text),
-               }),
-               verifyProjection: (readback) =>
-                 readback.contract?.version === contract.version &&
-                 readback.contract.items.length === contract.items.length,
-             },
-           });
-           if (outcome.kind === "unverified") {
-             return formatToolOutput({
-               error: `Contract projection was written but could not be verified: ${outcome.reason}`,
-               code: "CONTRACT_MINT_UNVERIFIED",
-               changeId: args.changeId,
-             });
-           }
-           if (outcome.kind !== "verified") {
-             return formatToolOutput({
-               error: `Cannot safely mint contract: ${outcome.kind === "stale_revision" ? `stale revision (expected ${outcome.expected}, actual ${outcome.actual})` : outcome.reason}`,
-               code: "CONTRACT_MINT_OPERATOR_REQUIRED",
-               changeId: args.changeId,
-             });
-           }
+          const outcome = await coordinateChangeMutation<Change>({
+            authority: {
+              reason: "mint contract from approved agreement",
+              evidence:
+                args.priorApprovalEvidence ?? "approved agreement artifact",
+            },
+            changesDir: activeStore.paths.changes,
+            intent: {
+              changeId: args.changeId,
+              mutationKind: "contract_set",
+              mutateLatestProjection: (latest) => ({
+                ...latest,
+                contract,
+                acceptanceCriteria: contract.items
+                  .filter((item) => item.kind === "acceptance_criterion")
+                  .map((item) => item.text),
+              }),
+              verifyProjection: (readback) =>
+                readback.contract?.version === contract.version &&
+                readback.contract.items.length === contract.items.length,
+            },
+          });
+          if (outcome.kind === "unverified") {
+            return formatToolOutput({
+              error: `Contract projection was written but could not be verified: ${outcome.reason}`,
+              code: "CONTRACT_MINT_UNVERIFIED",
+              changeId: args.changeId,
+            });
+          }
+          if (outcome.kind !== "verified") {
+            return formatToolOutput({
+              error: `Cannot safely mint contract: ${outcome.kind === "stale_revision" ? `stale revision (expected ${outcome.expected}, actual ${outcome.actual})` : outcome.reason}`,
+              code: "CONTRACT_MINT_OPERATOR_REQUIRED",
+              changeId: args.changeId,
+            });
+          }
           return formatToolOutput({
             success: true,
             changeId: args.changeId,
@@ -431,7 +434,8 @@ export const contractTools = {
             authority: {
               reason: "record contract review matrix",
               evidence:
-                args.priorApprovalEvidence ?? "review matrix supplied by caller",
+                args.priorApprovalEvidence ??
+                "review matrix supplied by caller",
             },
             changesDir: activeStore.paths.changes,
             intent: {

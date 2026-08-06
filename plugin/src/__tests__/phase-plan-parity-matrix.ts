@@ -93,9 +93,7 @@ export interface ParityRow {
   expect: ParityExpectation;
 }
 
-function makeState(
-  overrides: Partial<ChangeState> = {},
-): ChangeState {
+function makeState(overrides: Partial<ChangeState> = {}): ChangeState {
   return {
     projectId: "project-1",
     changeId: "change-1",

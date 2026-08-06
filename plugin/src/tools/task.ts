@@ -641,7 +641,7 @@ export const taskTools = {
             changeId,
           );
           const tasks = state
-             ? listTasksFromProjection(state, status, filter)
+            ? listTasksFromProjection(state, status, filter)
             : [];
           const paged = paginate(tasks, {
             limit,
@@ -698,7 +698,7 @@ export const taskTools = {
             changeId,
           );
           const result = state
-             ? getReadyTasksFromProjection(state)
+            ? getReadyTasksFromProjection(state)
             : { ready: [], blocked: [] };
           const formatted = formatTaskReadyOutput({
             ready: result.ready.map((t) => ({
@@ -1085,7 +1085,7 @@ export const taskTools = {
             patch.verification =
               args.notes ??
               args.implementation_summary ??
-               "Task marked done via adv_task_update";
+              "Task marked done via adv_task_update";
           }
           return { ...task, ...patch } as Task;
         };
@@ -1417,8 +1417,8 @@ export const taskTools = {
           });
         }
 
-         await addTaskToProjection(activeStore, changeId, task);
-         const recoveredViaPoisoned = false;
+        await addTaskToProjection(activeStore, changeId, task);
+        const recoveredViaPoisoned = false;
 
         const output: Record<string, unknown> = {
           taskId: task.id,

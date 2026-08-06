@@ -31,7 +31,13 @@ const HEALTHY_SNAPSHOT = {
   scan_duration_ms: 1,
   scope: "project",
   project_id: "unknown",
-  summary: { projects_scanned: 1, bare_repos_scanned: 1, critical: 0, warnings: 0, info: 0 },
+  summary: {
+    projects_scanned: 1,
+    bare_repos_scanned: 1,
+    critical: 0,
+    warnings: 0,
+    info: 0,
+  },
   findings: [],
 };
 const DIRTY_SNAPSHOT = {

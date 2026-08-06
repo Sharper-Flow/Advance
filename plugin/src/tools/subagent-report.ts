@@ -157,7 +157,7 @@ async function persistReportProjection(input: {
             subagentReportKey({
               changeId: candidate.change_id,
               taskId: reportTaskId(candidate),
-               scope:
+              scope:
                 typeof candidate.scope === "string"
                   ? undefined
                   : candidate.scope,
@@ -169,10 +169,10 @@ async function persistReportProjection(input: {
             subagentReportKey({
               changeId: input.report.change_id,
               taskId: input.taskId,
-               scope:
-                 typeof input.report.scope === "string"
-                   ? undefined
-                   : input.report.scope,
+              scope:
+                typeof input.report.scope === "string"
+                  ? undefined
+                  : input.report.scope,
               agent: input.report.agent,
               attempt: input.report.attempt,
               implementationCycleId: subagentReportImplementationCycleId(

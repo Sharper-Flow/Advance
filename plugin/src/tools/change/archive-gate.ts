@@ -281,13 +281,13 @@ export function verifyReleaseEvidenceFromMain(input: {
       : classifiedRoute;
   const reachability = resolveReleaseReachability(
     {
-    repoRoot,
-    defaultBranch,
-    changeId: input.changeId,
-    route,
-    prNumber: input.change?.phase9_status?.prNumber,
-    changeTipSha: input.change?.phase9_status?.changeTipSha,
-    repo: input.change?.phase9_status?.repo,
+      repoRoot,
+      defaultBranch,
+      changeId: input.changeId,
+      route,
+      prNumber: input.change?.phase9_status?.prNumber,
+      changeTipSha: input.change?.phase9_status?.changeTipSha,
+      repo: input.change?.phase9_status?.repo,
     },
     input.deps,
   );

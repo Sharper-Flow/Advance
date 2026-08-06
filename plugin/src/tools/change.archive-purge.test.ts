@@ -230,5 +230,4 @@ describe("adv_archive_purge", () => {
     expect(await pathExists(flatProjection)).toBe(false);
     expect(await readdir(archiveDir)).toEqual([]);
   });
-
 });

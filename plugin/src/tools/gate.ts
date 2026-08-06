@@ -943,7 +943,7 @@ async function handlePlanningGateCompletion({
     change,
     changeId,
     gateId,
-     gates: { ...gates, [gateId]: postSignalGate },
+    gates: { ...gates, [gateId]: postSignalGate },
     notes,
     completedBy,
     boundaryWarning,

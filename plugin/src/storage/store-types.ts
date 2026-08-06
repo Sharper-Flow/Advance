@@ -1066,9 +1066,7 @@ export interface SearchResult {
  * "done"` advances. Missing gates data means nothing has completed, so the
  * first gate is current.
  */
-export function firstOpenGate(
-  gates: Gates | undefined,
-): GateId | "done" {
+export function firstOpenGate(gates: Gates | undefined): GateId | "done" {
   if (!gates) return GATE_ORDER[0];
   // GateId is `string` at the type level (GATE_IDS is a string tuple), so
   // access goes through one contained, runtime-safe cast. Every GATE_ORDER

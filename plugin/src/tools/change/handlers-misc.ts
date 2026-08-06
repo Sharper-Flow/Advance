@@ -276,7 +276,7 @@ export const advChangeReenterHandler = async (
                 gateId,
                 index >= fromIndex
                   ? { status: "pending" }
-                  : latest.gates?.[gateId] ?? { status: "pending" },
+                  : (latest.gates?.[gateId] ?? { status: "pending" }),
               ]),
             ) as Change["gates"],
             reentry_history: [
@@ -301,7 +301,10 @@ export const advChangeReenterHandler = async (
       });
       if (outcome.kind !== "verified") {
         return formatToolOutput({
-          error: outcome.kind === "unverified" ? outcome.reason : "Gate re-entry mutation was not verified.",
+          error:
+            outcome.kind === "unverified"
+              ? outcome.reason
+              : "Gate re-entry mutation was not verified.",
           changeId,
         });
       }

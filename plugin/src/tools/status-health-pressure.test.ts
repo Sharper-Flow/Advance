@@ -47,7 +47,13 @@ function healthySnapshot() {
     scan_duration_ms: 0,
     scope: "project",
     project_id: "unknown",
-    summary: { projects_scanned: 0, bare_repos_scanned: 0, critical: 0, warnings: 0, info: 0 },
+    summary: {
+      projects_scanned: 0,
+      bare_repos_scanned: 0,
+      critical: 0,
+      warnings: 0,
+      info: 0,
+    },
     findings: [],
   };
 }
@@ -123,7 +129,9 @@ describe("health view bounded pressure contract", () => {
       max_concurrency: 4,
       candidate_limit: 10,
     });
-    expect(parsed._health_execution.outcomes).not.toHaveProperty("temporal_health");
+    expect(parsed._health_execution.outcomes).not.toHaveProperty(
+      "temporal_health",
+    );
   });
 
   test("reports the bounded omission count from the disk status read", async () => {
@@ -134,7 +142,9 @@ describe("health view bounded pressure contract", () => {
 
     expect(parsed.changes.recent).toHaveLength(10);
     expect(parsed._health_execution.omitted_count).toBe(47);
-    expect(parsed._health_execution.omitted_sample.length).toBeLessThanOrEqual(20);
+    expect(parsed._health_execution.omitted_sample.length).toBeLessThanOrEqual(
+      20,
+    );
   });
 
   test("health view retains worktree census evidence without cleanup", async () => {

@@ -25,10 +25,7 @@ import {
   INVENTORY_INTERNAL_BUDGET_MS,
   type InventoryBudget,
 } from "./worktree/inventory-budget";
-import {
-  initStateDb,
-  listWorktreesAcrossChanges,
-} from "./worktree/state";
+import { initStateDb, listWorktreesAcrossChanges } from "./worktree/state";
 import { listPeerSessions } from "./session";
 import {
   compactOpsFollowupAnnotation,

@@ -165,7 +165,10 @@ function makeStore(overrides?: { sourceChange?: Change }): Store {
 
   const changesDir = "/tmp/source/.adv/changes";
   mkdirSync(join(changesDir, sourceChange.id), { recursive: true });
-  writeFileSync(join(changesDir, sourceChange.id, "change.json"), JSON.stringify({ ...sourceChange, subagent_reports: undefined }));
+  writeFileSync(
+    join(changesDir, sourceChange.id, "change.json"),
+    JSON.stringify({ ...sourceChange, subagent_reports: undefined }),
+  );
 
   return {
     paths: { root: "/tmp/source", changes: changesDir },
@@ -497,7 +500,6 @@ describe("adv_report_followup_promote", () => {
       index: 0,
     });
     expect(parsed.task.metadata.followup_ref).toBeDefined();
-
   });
 
   test("post-planning creates fast-follow child with followup_ref", async () => {

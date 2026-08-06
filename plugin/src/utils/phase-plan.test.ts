@@ -35,9 +35,7 @@ const PLAN_KINDS = [
   "degraded",
 ] as const;
 
-function makeState(
-  overrides: Partial<ChangeState> = {},
-): ChangeState {
+function makeState(overrides: Partial<ChangeState> = {}): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",

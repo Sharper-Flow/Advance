@@ -320,7 +320,9 @@ describe("adv_followup_promote", () => {
     expect(parsed.child_project_id).toBe("target-project-id");
     expect(parsed.link.target_project_id).toBe("target-project-id");
     expect(parsed.link.target_path).toBe("/tmp/target");
-    expect(parsed._projectContext).toMatchObject({ stateMode: "authoritative" });
+    expect(parsed._projectContext).toMatchObject({
+      stateMode: "authoritative",
+    });
 
     expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
       expect.objectContaining({

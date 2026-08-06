@@ -40,7 +40,11 @@ function change(overrides: Partial<Change> = {}): Change {
 
 function storeFor(root: string, current: Change): Store {
   return {
-    paths: { root, changes: root, archive: join(root, "archive") } as Store["paths"],
+    paths: {
+      root,
+      changes: root,
+      archive: join(root, "archive"),
+    } as Store["paths"],
     config: null,
     changes: {
       get: async () => ({ success: true, data: current }),
@@ -57,13 +61,16 @@ async function seed(root: string, current: Change): Promise<void> {
   const dir = join(root, current.id);
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, "change.json"), JSON.stringify(current));
-  await writeFile(join(root, `${current.id}.json`), JSON.stringify({
-    schemaVersion: 2,
-    projectId: "0".repeat(40),
-    changeId: current.id,
-    projectedAt: current.created_at,
-    state: current,
-  }));
+  await writeFile(
+    join(root, `${current.id}.json`),
+    JSON.stringify({
+      schemaVersion: 2,
+      projectId: "0".repeat(40),
+      changeId: current.id,
+      projectedAt: current.created_at,
+      state: current,
+    }),
+  );
 }
 
 async function readProjection(root: string): Promise<Change> {
@@ -89,8 +96,14 @@ describe("gate tools — disk projection lifecycle", () => {
       expect(parsed.canArchive).toBe(false);
       expect(parsed._unavailable).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ scope: "gateCriteria", status: "unavailable" }),
-          expect.objectContaining({ scope: "acceptanceCriteriaProjection", status: "unavailable" }),
+          expect.objectContaining({
+            scope: "gateCriteria",
+            status: "unavailable",
+          }),
+          expect.objectContaining({
+            scope: "acceptanceCriteriaProjection",
+            status: "unavailable",
+          }),
         ]),
       );
     } finally {
@@ -101,7 +114,9 @@ describe("gate tools — disk projection lifecycle", () => {
   test("gate completion refuses a skipped gate", async () => {
     const root = await createTempDir("adv-gate-");
     try {
-      const current = change({ gates: gates({ planning: { ...pending }, execution: { ...pending } }) });
+      const current = change({
+        gates: gates({ planning: { ...pending }, execution: { ...pending } }),
+      });
       await seed(root, current);
       const parsed = JSON.parse(
         await gateTools.adv_gate_complete.execute(
@@ -119,7 +134,13 @@ describe("gate tools — disk projection lifecycle", () => {
   test("planning completion remains human-approved", async () => {
     const root = await createTempDir("adv-gate-");
     try {
-      const current = change({ gates: gates({ planning: { ...pending }, execution: { ...pending }, acceptance: { ...pending } }) });
+      const current = change({
+        gates: gates({
+          planning: { ...pending },
+          execution: { ...pending },
+          acceptance: { ...pending },
+        }),
+      });
       await seed(root, current);
       const parsed = JSON.parse(
         await gateTools.adv_gate_complete.execute(
@@ -140,7 +161,11 @@ describe("gate tools — disk projection lifecycle", () => {
       await seed(root, current);
       const parsed = JSON.parse(
         await gateTools.adv_gate_complete.execute(
-          { changeId: current.id, gateId: "acceptance", notes: "Acceptance verified." },
+          {
+            changeId: current.id,
+            gateId: "acceptance",
+            notes: "Acceptance verified.",
+          },
           storeFor(root, current),
         ),
       );
@@ -148,7 +173,9 @@ describe("gate tools — disk projection lifecycle", () => {
       expect(parsed.gateId).toBe("acceptance");
       const readback = await readProjection(root);
       expect(readback.gates.acceptance.status).toBe("done");
-      expect(readback.gates.acceptance.approval_evidence).toContain("Acceptance verified.");
+      expect(readback.gates.acceptance.approval_evidence).toContain(
+        "Acceptance verified.",
+      );
       expect(readback.projection_revision).toBe(1);
       expect(readback.projection_commits?.[0].authority_kind).toBe("mutation");
     } finally {

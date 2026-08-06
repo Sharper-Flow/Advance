@@ -34,10 +34,7 @@ function makeBlocker(
   };
 }
 
-function valueToWorkflowState(
-  value: unknown,
-  projectId: string,
-): ChangeState {
+function valueToWorkflowState(value: unknown, projectId: string): ChangeState {
   // The coordinator returns the verified disk projection (Change). Bridge it
   // to the state shape the readiness evaluator expects.
   const change = value as { id: string; title: string; created_at: string };

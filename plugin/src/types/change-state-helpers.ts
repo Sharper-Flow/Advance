@@ -35,7 +35,10 @@ export function normalizeChangeLifecycleState(
   return status === "archived" || status === "closed" ? status : "open";
 }
 
-export function getTaskFromChangeState(state: ChangeState, taskId: string): Task | null {
+export function getTaskFromChangeState(
+  state: ChangeState,
+  taskId: string,
+): Task | null {
   return state.tasks.find((candidate) => candidate.id === taskId) ?? null;
 }
 
@@ -70,13 +73,16 @@ export function createChangeState(input: {
   };
 }
 
-export function changeSeedStateFromChange(change: Change): Partial<ChangeState> {
+export function changeSeedStateFromChange(
+  change: Change,
+): Partial<ChangeState> {
   const [normalizedChange] = normalizePersistedSubagentReportState(change);
   const safeChange = normalizedChange as Change & Partial<ChangeState>;
   const status = normalizeLegacyChangeStatus(safeChange.status) as ChangeStatus;
   return {
     status,
-    lifecycleState: safeChange.lifecycleState ?? normalizeChangeLifecycleState(status),
+    lifecycleState:
+      safeChange.lifecycleState ?? normalizeChangeLifecycleState(status),
     tasks: safeChange.tasks ?? [],
     subagent_reports: safeChange.subagent_reports ?? [],
     deltas: safeChange.deltas ?? {},
@@ -105,7 +111,8 @@ export function changeSeedStateFromChange(change: Change): Partial<ChangeState> 
     seenReportIds: safeChange.seenReportIds,
     seenReportIdsTotal: safeChange.seenReportIdsTotal,
     design_concern_dispositions: safeChange.design_concern_dispositions,
-    verification_evidence_dispositions: safeChange.verification_evidence_dispositions,
+    verification_evidence_dispositions:
+      safeChange.verification_evidence_dispositions,
     signal_rejections: safeChange.signal_rejections,
     signal_rejections_total: safeChange.signal_rejections_total,
     ops_followup: safeChange.ops_followup,
@@ -163,12 +170,16 @@ export function listTasksFromChangeState(
   status?: Task["status"],
   filter?: string,
 ): Task[] {
-  let tasks = status ? state.tasks.filter((task) => task.status === status) : [...state.tasks];
+  let tasks = status
+    ? state.tasks.filter((task) => task.status === status)
+    : [...state.tasks];
   if (!filter) return tasks;
   const hasKeyMatch = filter.match(/^has_metadata_key:(.+)$/);
   const kvMatch = filter.match(/^metadata:([^=]+)=(.+)$/);
   if (hasKeyMatch) {
-    tasks = tasks.filter((task) => task.metadata && hasKeyMatch[1] in task.metadata);
+    tasks = tasks.filter(
+      (task) => task.metadata && hasKeyMatch[1] in task.metadata,
+    );
   } else if (kvMatch) {
     tasks = tasks.filter((task) => task.metadata?.[kvMatch[1]] === kvMatch[2]);
   }
@@ -183,32 +194,54 @@ export function getReadyTasksFromChangeState(state: ChangeState): {
   const blocked: Array<{ task: Task; blockedBy: string[] }> = [];
   for (const task of state.tasks) {
     if (task.status !== "pending") continue;
-    const blockers = task.deps?.filter((dep) => dep.type === "blocked_by").filter((dep) => {
-      const blockingTask = state.tasks.find((candidate) => candidate.id === dep.target);
-      return blockingTask && blockingTask.status !== "done" && blockingTask.status !== "cancelled";
-    }).map((dep) => dep.target) ?? [];
+    const blockers =
+      task.deps
+        ?.filter((dep) => dep.type === "blocked_by")
+        .filter((dep) => {
+          const blockingTask = state.tasks.find(
+            (candidate) => candidate.id === dep.target,
+          );
+          return (
+            blockingTask &&
+            blockingTask.status !== "done" &&
+            blockingTask.status !== "cancelled"
+          );
+        })
+        .map((dep) => dep.target) ?? [];
     if (blockers.length === 0) ready.push(task);
     else blocked.push({ task, blockedBy: blockers });
   }
   return { ready, blocked };
 }
 
-export function updateTaskInChangeState(state: ChangeState, taskId: string, input: UpdateTaskInput): Task {
+export function updateTaskInChangeState(
+  state: ChangeState,
+  taskId: string,
+  input: UpdateTaskInput,
+): Task {
   const task = getTaskFromChangeState(state, taskId);
   if (!task) throw new Error(`Task not found: ${taskId}`);
   task.status = input.status;
-  if (input.status === "in_progress" && !task.started_at) task.started_at = input.now;
+  if (input.status === "in_progress" && !task.started_at)
+    task.started_at = input.now;
   if (input.status === "done" || input.status === "cancelled") {
     task.completed_at = input.now;
     if (input.notes) task.completed_by = input.notes;
   }
-  if (input.implementationSummary !== undefined) task.implementation_summary = input.implementationSummary;
-  if (input.errorRecovery !== undefined) task.error_recovery = input.errorRecovery;
+  if (input.implementationSummary !== undefined)
+    task.implementation_summary = input.implementationSummary;
+  if (input.errorRecovery !== undefined)
+    task.error_recovery = input.errorRecovery;
   if (input.touchedFiles !== undefined) task.touched_files = input.touchedFiles;
   return task;
 }
 
-export function cancelTaskInChangeState(state: ChangeState, taskId: string, cancellation: Cancellation, now: string): Task {
+export function cancelTaskInChangeState(
+  state: ChangeState,
+  taskId: string,
+  cancellation: Cancellation,
+  now: string,
+): Task {
   const task = getTaskFromChangeState(state, taskId);
   if (!task) throw new Error(`Task not found: ${taskId}`);
   task.status = "cancelled";
@@ -217,7 +250,11 @@ export function cancelTaskInChangeState(state: ChangeState, taskId: string, canc
   return task;
 }
 
-export function reclassifyTaskTddInChangeState(state: ChangeState, taskId: string, reclassification: TddReclassification): Task {
+export function reclassifyTaskTddInChangeState(
+  state: ChangeState,
+  taskId: string,
+  reclassification: TddReclassification,
+): Task {
   const task = getTaskFromChangeState(state, taskId);
   if (!task) throw new Error(`Task not found: ${taskId}`);
   task.metadata ??= {};

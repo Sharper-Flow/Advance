@@ -14,9 +14,7 @@ const EPOCH = Date.parse("2026-05-05T12:00:00.000Z");
 const STALE = "2026-05-04T00:00:00.000Z"; // >24h before EPOCH
 const FRESH = "2026-05-05T11:30:00.000Z"; // 30m before EPOCH
 
-function makeState(
-  overrides: Partial<ChangeState> = {},
-): ChangeState {
+function makeState(overrides: Partial<ChangeState> = {}): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",

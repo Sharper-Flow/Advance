@@ -29,7 +29,13 @@ vi.mock("./snapshot-scan", () => ({
     scan_duration_ms: 0,
     scope: "project",
     project_id: "unknown",
-    summary: { projects_scanned: 0, bare_repos_scanned: 0, critical: 0, warnings: 0, info: 0 },
+    summary: {
+      projects_scanned: 0,
+      bare_repos_scanned: 0,
+      critical: 0,
+      warnings: 0,
+      info: 0,
+    },
     findings: [],
   })),
 }));
@@ -134,14 +140,14 @@ describe("adv_status corpus pressure", () => {
       );
     }
     const active = await store!.status({ recentLimit: 10 });
-    expect(active.changes.recent.every((item) => !item.id.startsWith("archived-"))).toBe(true);
+    expect(
+      active.changes.recent.every((item) => !item.id.startsWith("archived-")),
+    ).toBe(true);
   });
 
   test("source-ranked health reads stay bounded to the candidate limit", async () => {
     for (let i = 0; i < 36; i++) {
-      await store!.changes.save(
-        makeChange(`active-${i}`, "draft", i) as never,
-      );
+      await store!.changes.save(makeChange(`active-${i}`, "draft", i) as never);
     }
     const result = await store!.status({ recentLimit: 10, sourceRanked: true });
     expect(result.changes.recent).toHaveLength(10);

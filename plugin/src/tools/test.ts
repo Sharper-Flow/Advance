@@ -395,9 +395,7 @@ export const testTools = {
         phase?: AdvRunTestPhase;
         workdir?: string;
         timeoutMs?: number;
-        evidence_kind?:
-          | "unit"
-          | "other";
+        evidence_kind?: "unit" | "other";
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -503,31 +501,31 @@ export const testTools = {
             recordedAt,
           };
           const outcome = await coordinateChangeMutation<Change>({
-              authority: {
-                reason: "record test-run evidence",
-                evidence: args.command,
+            authority: {
+              reason: "record test-run evidence",
+              evidence: args.command,
+            },
+            changesDir: store.paths.changes,
+            intent: {
+              changeId: taskInfo.changeId,
+              mutationKind: "test_run_recorded",
+              mutateLatestProjection: (latest) => {
+                const existing = latest.test_runs?.[args.taskId] ?? [];
+                return {
+                  ...latest,
+                  test_runs: {
+                    ...(latest.test_runs ?? {}),
+                    [args.taskId]: [...existing, record].slice(
+                      -TEST_RUN_RING_BUFFER_LIMIT,
+                    ),
+                  },
+                };
               },
-              changesDir: store.paths.changes,
-              intent: {
-                changeId: taskInfo.changeId,
-                mutationKind: "test_run_recorded",
-                mutateLatestProjection: (latest) => {
-                  const existing = latest.test_runs?.[args.taskId] ?? [];
-                  return {
-                    ...latest,
-                    test_runs: {
-                      ...(latest.test_runs ?? {}),
-                      [args.taskId]: [...existing, record].slice(
-                        -TEST_RUN_RING_BUFFER_LIMIT,
-                      ),
-                    },
-                  };
-                },
-                verifyProjection: (readback) =>
-                  readback.test_runs?.[args.taskId]?.some(
-                    (candidate) => candidate.runId === runId,
-                  ) ?? false,
-              },
+              verifyProjection: (readback) =>
+                readback.test_runs?.[args.taskId]?.some(
+                  (candidate) => candidate.runId === runId,
+                ) ?? false,
+            },
           });
           if (outcome.kind === "verified") {
             evidenceRecording = { status: "recorded", runId };

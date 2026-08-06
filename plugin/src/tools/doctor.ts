@@ -160,14 +160,19 @@ async function probeSessionPointer(
   projectId: string | undefined,
 ): Promise<{
   sane: boolean;
-  probe: { status: "confirmed_present" | "confirmed_absent" | "indeterminate"; evidence: string } | null;
+  probe: {
+    status: "confirmed_present" | "confirmed_absent" | "indeterminate";
+    evidence: string;
+  } | null;
 }> {
   const activePointer = pointerRepairProvider?.getActivePointer() ?? null;
   if (!pointerRepairProvider || !activePointer || !projectId) {
     return { sane: true, probe: null };
   }
 
-  const onDisk = existsSync(join(store.paths.changes, activePointer, "change.json"));
+  const onDisk = existsSync(
+    join(store.paths.changes, activePointer, "change.json"),
+  );
   if (!onDisk) {
     return {
       sane: false,
@@ -272,7 +277,10 @@ export const doctorTools = {
       const phantomProbe = initialPointer.probe;
       for (const finding of findings) {
         if (finding.class !== "phantom_pointer") continue;
-        if (phantomProbe?.status === "confirmed_absent" && pointerRepairProvider) {
+        if (
+          phantomProbe?.status === "confirmed_absent" &&
+          pointerRepairProvider
+        ) {
           const before = activePointer;
           try {
             pointerRepairProvider.clearActivePointer();
@@ -338,7 +346,9 @@ export const doctorTools = {
         fixes_refused: fixesRefused,
         verification,
         ...(appliedCount > 0
-          ? { note: "Disk repair applied; verification reflects the repaired state." }
+          ? {
+              note: "Disk repair applied; verification reflects the repaired state.",
+            }
           : {}),
         recommendedNextAction:
           refusedCount > 0

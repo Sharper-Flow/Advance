@@ -343,5 +343,4 @@ describe("adv_epic_list worker-free projection reads", () => {
     expect(parsed.report.total_candidates).toBe(1);
     expect(parsed.report.candidates[0].id).toBe("completedEpic");
   });
-
 });

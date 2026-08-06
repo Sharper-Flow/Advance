@@ -250,9 +250,7 @@ const TestRunRecordBaseSchema = z.object({
   assertionDensity: z.number().nonnegative().optional(),
   mockSurface: z.array(MockSurfaceEntrySchema).optional(),
   behaviorSurface: z.enum(["small", "medium", "large"]).optional(),
-  evidence_kind: z
-    .enum(["unit", "other"])
-    .optional(),
+  evidence_kind: z.enum(["unit", "other"]).optional(),
   recordedAt: IsoTimestampSchema,
 });
 

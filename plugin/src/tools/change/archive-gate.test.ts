@@ -133,5 +133,4 @@ describe("archive-gate disk projection", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
-
 });

@@ -180,7 +180,6 @@ describe("adv_wisdom_add disk path", () => {
 
     expect(parsed.error).toContain("disk full");
   });
-
 });
 
 describe("adv_wisdom_list disk path", () => {

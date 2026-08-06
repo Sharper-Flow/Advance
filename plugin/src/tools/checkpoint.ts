@@ -447,18 +447,23 @@ async function fireTaskCompletedFromCheckpoint(
                   completedAt,
                   checkpointSha: sha,
                   filesTouched: touchedFiles,
-                  ...(structuredOutput && { structured_output: structuredOutput }),
+                  ...(structuredOutput && {
+                    structured_output: structuredOutput,
+                  }),
                 }
               : task,
           ),
         }),
         verifyProjection: (readback) => {
-          const task = readback.tasks.find((candidate) => candidate.id === taskId);
+          const task = readback.tasks.find(
+            (candidate) => candidate.id === taskId,
+          );
           return (
             task?.status === "done" &&
             task.verification === verification &&
             task.checkpointSha === sha &&
-            JSON.stringify(task.filesTouched ?? []) === JSON.stringify(touchedFiles)
+            JSON.stringify(task.filesTouched ?? []) ===
+              JSON.stringify(touchedFiles)
           );
         },
       },
@@ -473,8 +478,12 @@ async function fireTaskCompletedFromCheckpoint(
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
     }
-    const projectedState = readChangeProjectionState(store.paths.changes, changeId);
-    const recordedTask = projectedState?.tasks?.find((task) => task.id === taskId) ?? null;
+    const projectedState = readChangeProjectionState(
+      store.paths.changes,
+      changeId,
+    );
+    const recordedTask =
+      projectedState?.tasks?.find((task) => task.id === taskId) ?? null;
 
     if (!recordedTask) {
       return {
@@ -519,16 +528,20 @@ async function fireTaskCompletedFromCheckpoint(
             mutateLatestProjection: (latest) => ({
               ...latest,
               tasks: latest.tasks.map((task) =>
-                task.id === taskId ? { ...task, wisdom_drafts: result.drafts } : task,
+                task.id === taskId
+                  ? { ...task, wisdom_drafts: result.drafts }
+                  : task,
               ),
             }),
             verifyProjection: (readback) =>
               JSON.stringify(
-                readback.tasks.find((task) => task.id === taskId)?.wisdom_drafts ?? [],
+                readback.tasks.find((task) => task.id === taskId)
+                  ?.wisdom_drafts ?? [],
               ) === JSON.stringify(result.drafts),
           },
         });
-        if (dismissal.kind === "verified") draftsAutoDismissed = result.dismissedCount;
+        if (dismissal.kind === "verified")
+          draftsAutoDismissed = result.dismissedCount;
       }
     } catch {
       // Draft auto-dismiss is best-effort; counts remain 0 on failure.
@@ -547,7 +560,7 @@ async function fireTaskCompletedFromCheckpoint(
         recorded: false,
         error:
           specificError ??
-        `Task ${taskId} status is ${recordedTask.status ?? "unknown"} after checkpoint completion`,
+          `Task ${taskId} status is ${recordedTask.status ?? "unknown"} after checkpoint completion`,
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
     }

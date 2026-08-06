@@ -117,7 +117,10 @@ describe("reconcileRecoveredAcceptanceRemediation", () => {
         contract: {
           version: 1,
           rigor: "standard",
-          source: { artifact: "agreement", approvedAt: "2026-05-23T00:00:00.000Z" },
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-05-23T00:00:00.000Z",
+          },
           items: [],
           amendments: [],
           reviewMatrix: reviewMatrix(),
@@ -131,11 +134,17 @@ describe("reconcileRecoveredAcceptanceRemediation", () => {
       expect(result).toMatchObject({ kind: "reconciled", clearedCount: 3 });
       const disk = await loadChange(dir, change.id);
       expect(disk.success).toBe(true);
-      expect(disk.data?.design_concern_dispositions?.[0].recovery_audit).toBeUndefined();
-      expect(disk.data?.verification_evidence_dispositions?.[0].recovery_audit).toBeUndefined();
+      expect(
+        disk.data?.design_concern_dispositions?.[0].recovery_audit,
+      ).toBeUndefined();
+      expect(
+        disk.data?.verification_evidence_dispositions?.[0].recovery_audit,
+      ).toBeUndefined();
       expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeUndefined();
       expect(disk.data?.projection_revision).toBe(1);
-      expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
+      expect(disk.data?.projection_commits?.[0].authority_kind).toBe(
+        "recovery",
+      );
     } finally {
       await cleanupTempDir(dir);
     }

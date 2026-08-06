@@ -696,10 +696,10 @@ const advancePluginImpl: Plugin = async (input) => {
           // workflow-state tiers would require opening a Temporal client to
           // the target project; out of scope. The disk check is sufficient
           // signal that the change exists in the target project.
-           const reachable = await isDiskChangeReachable(
-             targetChangesDir,
-             String(args.changeId),
-           );
+          const reachable = await isDiskChangeReachable(
+            targetChangesDir,
+            String(args.changeId),
+          );
           if (reachable) {
             // KD3b: read target change.json for epic_membership.epic_id
             // Best-effort per DDC5; failures fall back to bare changeId title.
@@ -741,12 +741,12 @@ const advancePluginImpl: Plugin = async (input) => {
       } else {
         // Same-project reachability gate (AC4/AC5) — check before re-pointing
         try {
-           const reachable = store
-             ? await isDiskChangeReachable(
-                 store.paths.changes,
-                 String(args.changeId),
-               )
-             : false;
+          const reachable = store
+            ? await isDiskChangeReachable(
+                store.paths.changes,
+                String(args.changeId),
+              )
+            : false;
           if (reachable) {
             state.activeChange.id = String(args.changeId);
             const ctx = await resolveChangeContext(state.activeChange.id);
@@ -1021,7 +1021,10 @@ const advancePluginImpl: Plugin = async (input) => {
       const rest = cwd.slice(prefix.length);
       const changeId = rest.split("/")[0];
       if (!changeId) return;
-       const reachable = await isDiskChangeReachable(store.paths.changes, changeId);
+      const reachable = await isDiskChangeReachable(
+        store.paths.changes,
+        changeId,
+      );
       if (reachable) {
         state.activeChange.id = changeId;
         const ctx = await resolveChangeContext(changeId);

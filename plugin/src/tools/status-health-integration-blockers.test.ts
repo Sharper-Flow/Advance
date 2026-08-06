@@ -70,7 +70,10 @@ describe("disk-backed status and health integration", () => {
   test("source-ranked disk reads admit only the requested recent limit", async () => {
     for (let i = 0; i < 15; i++) {
       await store.changes.save(
-        change(`change-${i.toString().padStart(2, "0")}`, `2026-01-${String(i + 1).padStart(2, "0")}T00:00:00.000Z`) as never,
+        change(
+          `change-${i.toString().padStart(2, "0")}`,
+          `2026-01-${String(i + 1).padStart(2, "0")}T00:00:00.000Z`,
+        ) as never,
       );
     }
 

@@ -403,13 +403,13 @@ export const conformanceTools = {
         case "init":
           return actionInit(args, projectDir, externalRoot);
         case "lock":
-           return actionLock(args, projectDir, externalRoot);
+          return actionLock(args, projectDir, externalRoot);
         case "unlock":
           return actionUnlock(args, projectDir, externalRoot);
         case "override":
-           return actionOverride(args, projectDir, externalRoot);
+          return actionOverride(args, projectDir, externalRoot);
         case "run":
-           return actionRun(args, projectDir, externalRoot);
+          return actionRun(args, projectDir, externalRoot);
       }
     },
   },

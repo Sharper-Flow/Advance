@@ -649,7 +649,7 @@ export const advChangeArchiveHandler = async (
                   gates: {
                     ...(latest.gates ?? {}),
                     release: releaseGateCompletion.gate,
-        },
+                  },
                   phase9_status: preservePhase9Evidence(latest.phase9_status, {
                     status: "done",
                     startedAt: latest.phase9_status?.startedAt ?? archivedAt,
@@ -759,13 +759,13 @@ export const advChangeArchiveHandler = async (
               path: finalization.repoRoot,
               branch: finalization.defaultBranch,
             },
-      }
+          }
         : {}),
       ...(releaseGateCompletion
         ? {
             releaseGate: releaseGateCompletion.gate,
             releaseGateAlreadyDone: releaseGateCompletion.alreadyDone,
-    }
+          }
         : {}),
       ...openOpsObligationsPayload,
     });
