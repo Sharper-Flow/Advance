@@ -59,6 +59,14 @@ tools:
   # === ADV writes — task-level execution only ===
   # === BLOCKED: Orchestration and gate management ===
   # <<< ADV-GENERATED adv_* tools <<<
+permission:
+  # adv-tron is command-only (/adv-tron). A `task` deny removes the subagent
+  # from the Task tool description entirely, so no orchestrator can spawn it.
+  # Must live here: agent-file frontmatter overrides opencode.json agent
+  # permission, so a host-side config deny alone is silently ignored.
+  task:
+    "*": allow
+    "adv-tron": deny
 ---
 > **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.
 <!-- ADV_SYNC:START build -->
