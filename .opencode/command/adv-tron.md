@@ -1,6 +1,7 @@
 ---
 name: adv-tron
 description: Investigate codebase structure, hotspots, risks, and suggest follow-up candidates
+agent: adv-tron
 ---
 # ADV Tron — Codebase Reconnaissance
 Investigate codebase to map structure, identify hotspots, surface risks, suggest follow-up work. Read-only — × never modifies files or ADV state.
@@ -70,8 +71,8 @@ Combination routing examples:
 
 - `/adv-slop-scan <target> then /adv-optimizer <target>` — first classify slop/deletion-safety evidence, then synthesize simplification proposal.
 - `/adv-arch-scan <target> then /adv-slop-scan <target>` — first validate architecture/structural boundary, then scan quality smells if source evidence also suggests code-level slop.
-## Phase 4: Spawn Tron Sub-Agent
-Spawn `adv-tron` agent via Task tool. System prompt has behavioral instructions. Pass this packet plus mode-specific context:
+## Phase 4: Run as Tron Sub-Agent
+This command declares `agent: adv-tron` in frontmatter, so OpenCode invokes the `adv-tron` subagent directly — no Task-tool spawn. ADV orchestrator agents deny `task: adv-tron`, making `/adv-tron` the only entry point. The agent's system prompt carries behavioral instructions; establish this packet plus mode-specific context as the working scope:
 
 ```
 WORKING DIRECTORY: {workdir}
@@ -126,4 +127,4 @@ Validate findings (require file references, remove evidence-free, deduplicate). 
 | Skill | `skill("adv-tron")` |
 | Context | `adv_project_context`, `adv_change_list` |
 | Structure | lgrep file tree, lgrep repo outline |
-| Spawn | Task tool (`adv-tron` agent) |
+| Invocation | Command frontmatter `agent: adv-tron` (direct subagent invocation; not Task-spawned) |
