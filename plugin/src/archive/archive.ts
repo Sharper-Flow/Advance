@@ -38,6 +38,7 @@ import {
 } from "./projection";
 import { withArchiveProjectionLock } from "./projection-lock";
 import { readBoundedProjectionDocument } from "../storage/change-projection-reader";
+import { ARTIFACT_FILENAME, ArtifactKindSchema } from "../types/artifacts";
 import {
   addProjectWisdom,
   listProjectWisdom,
@@ -210,6 +211,20 @@ async function writeArchiveBundleFiles(
     );
   }
 
+  // KD1 (AC8 sole production point): write the six narrative artifacts from
+  // the projection (change.documents). This is the single place artifact
+  // content is written to the bundle; the sourceChangeDir copies in the
+  // callers only fill kinds absent from the projection (legacy pre-cutover
+  // changes). Makes the archive reproducible from the projection and prevents
+  // stale active-dir .md overwriting current content for transitional changes
+  // (#403).
+  for (const kind of ArtifactKindSchema.options) {
+    const content = change.documents?.[kind];
+    if (typeof content === "string" && content.length > 0) {
+      await atomicWriteFile(join(archivePath, ARTIFACT_FILENAME[kind]), content);
+    }
+  }
+
   return {};
 }
 
@@ -235,6 +250,23 @@ const GENERATED_BUNDLE_FILES = new Set([
   "spec-projection.json",
   "release-notes.json",
 ]);
+
+/**
+ * Narrative-artifact filenames present in the projection. The sourceChangeDir
+ * legacy copy skips these so it cannot overwrite projection-sourced bundle
+ * content with stale active-dir .md (transitional-change hazard, #403).
+ */
+function projectionArtifactFilenames(change: Change): Set<string> {
+  return new Set(
+    ArtifactKindSchema.options
+      .filter(
+        (k) =>
+          typeof change.documents?.[k] === "string" &&
+          change.documents[k]!.length > 0,
+      )
+      .map((k) => ARTIFACT_FILENAME[k]),
+  );
+}
 
 function buildTerminalGateSummary(change: Change): Record<string, string> {
   const gates = change.gates ?? createDefaultGates();
@@ -1184,11 +1216,17 @@ async function createArchive(
 
     // Copy sibling files from source change directory (proposal.md, problem-statement.md, etc.)
     if (sourceChangeDir) {
+      const projectionArtifactFiles = projectionArtifactFilenames(change);
       try {
         const entries = await readdir(sourceChangeDir, { withFileTypes: true });
         for (const entry of entries) {
           // Skip generated bundle files (already written from validated state)
-          if (GENERATED_BUNDLE_FILES.has(entry.name) || !entry.isFile())
+          // and narrative artifacts already written from the projection (KD1).
+          if (
+            GENERATED_BUNDLE_FILES.has(entry.name) ||
+            !entry.isFile() ||
+            projectionArtifactFiles.has(entry.name)
+          )
             continue;
           try {
             const bounded = await readBoundedProjectionDocument(
@@ -1296,12 +1334,18 @@ export async function createInRepoArchive(
     projectionManifest,
   );
 
-  // Copy sibling files from source change directory
-  if (sourceChangeDir) {
-    try {
-      const entries = await readdir(sourceChangeDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (GENERATED_BUNDLE_FILES.has(entry.name) || !entry.isFile()) continue;
+    // Copy sibling files from source change directory
+    if (sourceChangeDir) {
+      const projectionArtifactFiles = projectionArtifactFilenames(change);
+      try {
+        const entries = await readdir(sourceChangeDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (
+            GENERATED_BUNDLE_FILES.has(entry.name) ||
+            !entry.isFile() ||
+            projectionArtifactFiles.has(entry.name)
+          )
+            continue;
         try {
           const bounded = await readBoundedProjectionDocument(
             join(sourceChangeDir, entry.name),
