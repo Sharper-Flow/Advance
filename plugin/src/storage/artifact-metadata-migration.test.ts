@@ -361,4 +361,28 @@ describe("normalizeArtifactMetadataForReadback", () => {
       await cleanupTempDir(root);
     }
   });
+
+  test("does not write a completion marker for an empty store", async () => {
+    const root = await createTempDir();
+    try {
+      const active = join(root, "changes");
+      const archive = join(root, "archive");
+      const marker = join(root, "artifact-metadata-migration-complete.json");
+      await mkdir(active, { recursive: true });
+      await mkdir(archive, { recursive: true });
+
+      const report = await migrateArtifactMetadataProjections(
+        active,
+        archive,
+        marker,
+      );
+
+      expect(report).toMatchObject({ scanned: 0, migrated: 0, failed: [] });
+      await expect(readFile(marker, "utf8")).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
 });
