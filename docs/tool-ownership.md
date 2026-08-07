@@ -243,7 +243,7 @@ trust boundary.
 
 Related surfaces: `docs/cli-surface-matrix.md` (CLI disposition per tool),
 `ADV_INSTRUCTIONS.md` worktree-cleanup repair decision matrix,
-`docs/store-consolidation.md`, `docs/snapshot-health.md`.
+`docs/snapshot-health.md`.
 
 ## Visibility Profile (addProviderToolSearch AC5–AC7)
 

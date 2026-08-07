@@ -32,13 +32,13 @@ export type TerminalSource =
   | "visibility"
   | "active_disk"
   | "archive"
-  | "workflow_query";
+  | "projection_read";
 
 export type TerminalWarningCode =
   | "TERMINAL_SOURCE_DEGRADED"
   | "TERMINAL_CANDIDATE_OMITTED"
   | "SOURCE_DEADLINE_EXCEEDED"
-  | "SOURCE_WORKFLOW_DURABLY_ABSENT"
+  | "SOURCE_PROJECTION_DURABLY_ABSENT"
   | "SOURCE_BOUND_EXCEEDED"
   | "SOURCE_RANKING_DEGRADED";
 
@@ -60,7 +60,7 @@ export interface TerminalHydrationStats {
   terminalCandidates: number;
   terminalFromArchive: number;
   terminalFromDisk: number;
-  terminalFromWorkflow: number;
+  terminalFromProjection: number;
   omitted: number;
 }
 
@@ -71,11 +71,11 @@ export interface HydrationStats {
   terminalCandidates?: number;
   terminalFromArchive?: number;
   terminalFromDisk?: number;
-  terminalFromWorkflow?: number;
+  terminalFromProjection?: number;
   omitted?: number;
   /**
    * True when the request-scoped aggregate read deadline
-   * (TEMPORAL_READ_DEADLINE_BUDGET_MS) expired before all required
+   * (STATUS_READ_DEADLINE_BUDGET_MS) expired before all required
    * sources/candidates resolved. A result carrying this flag is
    * explicitly degraded — never a complete-looking partial.
    */

@@ -695,7 +695,7 @@ export const checkpointTools = {
         }
 
         // rq-archiveTargetPathRouting01.1: target_path selects the target
-        // Temporal store; it never overrides an explicit Git workdir.
+        // Store state; it never overrides an explicit Git workdir.
         const cwd = args.workdir ?? activeDefaultWorkdir;
 
         // When target_path and an explicit workdir coexist, the workdir must

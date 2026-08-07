@@ -1,8 +1,8 @@
 /**
  * Pure disk readers for active change projections.
  *
- * These helpers intentionally have no Temporal dependency and no write-side
- * policy. Legacy normalizers are applied in-memory during read so poisoned or
+ * These helpers have no write-side policy. Legacy normalizers are applied
+ * in-memory during read so poisoned or
  * pre-migration records still parse, but readers never mutate disk. All durable
  * projection writes route through the storage-owned writer paths (atomic writer
  * / conditional commit primitive). They are the only import surface for routine
@@ -190,7 +190,6 @@ export type LoadResult<T> =
       success: true;
       data: T;
       source?:
-        | "workflow"
         | "disk"
         | "archive"
         | "active_projection"
@@ -215,10 +214,9 @@ export type LoadResult<T> =
 /**
  * Predicate: true when a LoadResult carries a schema_error.
  *
- * Workflow-touching callers MUST check this before falling through to a
- * Temporal query: schema errors are not recoverable through a workflow
- * round-trip and surface as generic "Failed to query Workflow" errors when
- * masked (issue #258 Defect 1).
+ * Callers MUST check this before falling through to another read source:
+ * schema errors are not recoverable by retrying the same projection read and
+ * should surface directly (issue #258 Defect 1).
  */
 export function isSchemaError<T>(
   result: LoadResult<T>,

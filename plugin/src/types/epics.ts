@@ -377,7 +377,7 @@ export type Epic = z.infer<typeof EpicSchema>;
  * rq-epicChangeContext01 — change surfaces show compact Epic context.
  * rq-epicOptionalMembership01 — membership is optional and additive.
  * rq-epicOnePerChange01 — v1: one Epic per change (single object, not array).
- * rq-epicTemporalConstraints01 — epic_id feeds single-value Keyword index.
+ * rq-epicIndexConstraints01 — epic_id feeds single-value Keyword index.
  */
 export const EpicMembershipSchema = z.object({
   /** Parent Epic ID. */

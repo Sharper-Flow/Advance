@@ -302,7 +302,7 @@ export const getDoomLoopInfo = (
 
 /**
  * Merge in-memory doom-loop tracking with persisted error_recovery state.
- * Useful for Temporal-backed state or after session restart when retryTrackers
+ * Useful for persisted state or after session restart when retryTrackers
  * are empty but task.error_recovery still records 3+ failed attempts.
  *
  * When persisted error_recovery.error_class === "TRANSIENT", those attempts

@@ -2,7 +2,7 @@
  * Backlog Schema Migrations
  *
  * Hand-rolled branching per version. Mirrors the explicit branching style used
- * in `temporal/worker-lock.ts` rather than a generic Zod passthrough.
+ * in the storage migration boundary rather than a generic Zod passthrough.
  *
  * Writes against an old schema are refused unless the caller explicitly
  * consents to migration.

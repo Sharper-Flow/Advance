@@ -12,21 +12,19 @@ import { RESUME_FRESHNESS_TRIGGER_MINUTES } from "./resume-freshness-resolver";
 import type { Change } from "../types";
 
 /**
- * Resolve proposal content for a change with Temporal-first precedence
- * (KD-6). Checks `state.documents.proposal` (already on the Change object
- * returned by store.changes.get via mapTemporalChangeStateToChange) before
+ * Resolve proposal content for a change from its persisted documents before
  * falling back to disk + scaffold via `loadProposalWithFallback`.
  *
  * Keeps the context-snapshot helpers free from a tool-layer import while
- * still routing reads through Temporal.
+ * still keeping context-snapshot helpers free from tool-layer imports.
  */
 async function loadProposalForSnapshot(
   store: Store,
   change: Change,
 ): Promise<{ content: string; warning?: string }> {
-  const temporalContent = change.documents?.proposal;
-  if (typeof temporalContent === "string" && temporalContent.length > 0) {
-    return { content: temporalContent };
+  const persistedContent = change.documents?.proposal;
+  if (typeof persistedContent === "string" && persistedContent.length > 0) {
+    return { content: persistedContent };
   }
   const changeDir = join(store.paths.changes, change.id);
   return loadProposalWithFallback(changeDir, change.title, {

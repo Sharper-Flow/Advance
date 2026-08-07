@@ -309,7 +309,7 @@ export function comparePluginBundleGenerations(
 /**
  * Check the code-identity guard used by read surfaces. Unknown freshness is
  * deliberately allowed: an absent/unreadable manifest must not turn a routine
- * read into a Temporal-availability failure. Only a generation mismatch is a
+ * read into a bundle-availability failure. Only a generation mismatch is a
  * typed refusal.
  */
 export async function getPluginBundleGenerationGuardError(

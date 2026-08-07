@@ -84,8 +84,8 @@ export async function verifyBranchIntegration(
       if (registrySnapshot.unavailable) {
         return fail(
           "git_failed",
-          "Failed to read worktree registry: Temporal worktree registry snapshot unavailable.",
-          "Verify Temporal project workflow is reachable and the worktree registry is populated.",
+          "Failed to read worktree registry: project registry snapshot unavailable.",
+          "Verify the project registry is readable and populated.",
         );
       }
       registryEntry = registrySnapshot.records.find((r) => r.branch === branch);
@@ -93,7 +93,7 @@ export async function verifyBranchIntegration(
       return fail(
         "git_failed",
         `Failed to read worktree registry: ${String(err)}`,
-        "Verify Temporal project workflow is reachable and the worktree registry is populated.",
+        "Verify the project registry is readable and populated.",
       );
     }
   }
@@ -150,7 +150,7 @@ export async function verifyBranchIntegration(
         return fail(
           "git_failed",
           `Failed to query change summaries: ${String(err)}`,
-          "Verify Temporal project workflow is reachable.",
+          "Verify the project registry is readable.",
         );
       }
     }

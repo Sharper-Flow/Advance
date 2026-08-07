@@ -39,7 +39,7 @@ It combines:
 
 - **Spec law** — durable capability requirements in `.adv/specs/`
 - **7-gate delivery** — proposal → discovery → design → planning → execution → acceptance → release
-- **Temporal-backed orchestration** — durable change/task workflows that survive process and context loss
+- **Disk-backed persistence** — transactional change/task/gate projections that survive process and context loss
 - **MCP tool surface** — structured state mutation and inspection, not hidden chat memory
 - **Context engineering** — one coherent orchestrator, focused sub-agent packets for deep work
 - **TDD evidence capture** — red/green proof recorded on tasks
@@ -79,7 +79,7 @@ That is the harness engineering layer: not a bigger prompt, but a stronger opera
 
 | Single-aspect approach               | What it helps with             | What it still misses                                              | Advance adds                                                         |
 | ------------------------------------ | ------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Durable functions / workflow engines | Process survival               | Requirements, review, TDD proof, acceptance, archive              | Temporal-backed workflows bound to specs, gates, tasks, and evidence |
+| Durable state stores             | Process survival               | Requirements, review, TDD proof, acceptance, archive              | Disk projections bound to specs, gates, tasks, and evidence          |
 | Prompt checklists                    | Agent behavior hints           | Enforcement, persistence, machine-readable state                  | MCP tools, gate state, validators, guardrails                        |
 | Test runners                         | Verification command execution | Scope control, red/green audit trail, design agreement            | Per-task TDD evidence plus change contract                           |
 | Memory layers                        | Session continuity             | Acceptance criteria, release governance, conflict detection       | External change state, wisdom, agenda, context snapshots             |
@@ -91,7 +91,7 @@ Advance does not claim one mechanism is enough. It makes the mechanisms cooperat
 ```text
 specs define truth
 gates define lifecycle
-Temporal preserves workflow
+disk projections preserve state
 MCP tools expose state
 tasks carry evidence
 worktrees isolate change
@@ -108,12 +108,11 @@ Advance is an original implementation, but it is not an isolated idea. It owes a
 
 | Inspo tool                                                          | Technique / idea                                                                                        | Upgrade with Advance                                                                                                                         |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Beads](https://github.com/steveyegge/beads)                        | Agent-friendly task memory, dependency graphs, ready-task discovery, structured issue state.            | Binds tasks to gates, contracts, TDD evidence, checkpoint commits, worktrees, and Temporal recovery.                                         |
+| [Beads](https://github.com/steveyegge/beads)                        | Agent-friendly task memory, dependency graphs, ready-task discovery, structured issue state.            | Binds tasks to gates, contracts, TDD evidence, checkpoint commits, worktrees, and crash-safe disk recovery.                                 |
 | [Spec Kit](https://github.com/github/spec-kit)                      | Spec-driven flow: define, plan, task, implement.                                                        | Adds durable gates, user checkpoints, MCP tools, contract review matrices, spec promotion, and release governance.                           |
-| [OpenSpec](https://github.com/Fission-AI/OpenSpec)                  | Proposal/change folders, agreed-before-build behavior, deltas, design notes, archive-as-spec-promotion. | Makes the lifecycle stateful and auditable with Temporal, artifact readiness, shared ADV state, review, harden, and release controls.        |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec)                  | Proposal/change folders, agreed-before-build behavior, deltas, design notes, archive-as-spec-promotion. | Makes the lifecycle stateful and auditable with disk projections, artifact readiness, shared ADV state, review, harden, and release controls. |
 | [OpenCode](https://github.com/anomalyco/opencode)                   | Local agent host, plugins, slash commands, sub-agents, tool-mediated development.                       | Adds context engineering: one primary orchestrator, bounded sub-agents, structured tools, gate contracts, and evidence capture.              |
-| [opencode-worktree](https://github.com/kdcokenny/opencode-worktree) | Isolated OpenCode agent worktrees with terminal spawning, sync, and cleanup.                            | Makes worktrees part of the delivery contract: gate ownership, Temporal state, task checkpoints, branch-local specs, and safe archive merge. |
-| [Temporal](https://temporal.io/)                                    | Durable workflow execution, signal/query state, replay-safe orchestration.                              | Uses Temporal as the persistence spine for changes, tasks, gates, recovery state, and multi-session handoffs.                                |
+| [opencode-worktree](https://github.com/kdcokenny/opencode-worktree) | Isolated OpenCode agent worktrees with terminal spawning, sync, and cleanup.                            | Makes worktrees part of the delivery contract: gate ownership, disk state, task checkpoints, branch-local specs, and safe archive merge.     |
 
 The pattern is deliberate: take strong primitives from each predecessor, then vertically integrate them into one enforceable agent harness.
 
@@ -124,8 +123,8 @@ Advance is intentionally unusual. It is not just commands around an LLM.
 | Layer                 | Technology / system                                 | Why it matters                                                                     |
 | --------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Host                  | OpenCode plugin                                     | Runs where coding agents already work                                              |
-| Runtime               | Bun host + Node worker path                         | Matches OpenCode runtime while supporting worker code that needs Node              |
-| Durable orchestration | Temporal workflows                                  | Recovers task/change state across crashes, compaction, and long-running work       |
+| Runtime               | Bun host + Node tooling                            | Matches the OpenCode runtime and the plugin's build/test requirements              |
+| Persistence           | JSON disk projections + transactional file locks  | Recovers task/change state across crashes, compaction, and long-running work       |
 | Context engineering   | Primary orchestrator + bounded sub-agent packets    | Keeps user interaction coherent while shedding deep work to focused workers        |
 | Tool API              | MCP-style ADV tools                                 | State changes are explicit, typed, inspectable, and auditable                      |
 | Contracts             | `.adv/specs/` + proposal/agreement/design artifacts | Requirements become durable law, not chat context                                  |
@@ -179,9 +178,9 @@ Advance narrows “done” to evidence:
 
 Specs are laws. Proposals and implementations can evolve, but archive validates against the current spec contract. When behavior changes permanently, archive applies spec deltas.
 
-### Durable task orchestration
+### Durable task state
 
-Temporal-backed workflows track changes, task runs, gates, evidence, and recovery state. If an agent session dies or compacts, the next session resumes from durable state instead of reconstructing intent from chat.
+Disk projections track changes, task runs, gates, evidence, and recovery state. If an agent session dies or compacts, the next session resumes from durable files instead of reconstructing intent from chat. Each change projection is updated under a per-change advisory lock with read-latest-inside-lock, atomic temp-write/rename/fsync, in-lock readback, and revision/operation-identity verification.
 
 ### TDD evidence, not test theater
 
@@ -196,7 +195,7 @@ Every `/adv-apply` task with file changes creates a local checkpoint through `ad
 Mutating work runs in per-change worktrees. ADV state is external and shared across worktrees; specs remain git-tracked and branch-local. That gives isolation without losing coordination.
 
 > [!TIP]
-> Use worktrees for any agent run that will edit files. Advance materializes or resumes a `change/<change-id>` worktree, routes mutating tools there, and leaves the main checkout available for review, merge, and release. This pattern is inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), which showed how worktrees make OpenCode agent sessions safer and easier to parallelize. Advance adds gate ownership, Temporal state, task checkpoints, branch-local specs, and archive finalization.
+> Use worktrees for any agent run that will edit files. Advance materializes or resumes a `change/<change-id>` worktree, routes mutating tools there, and leaves the main checkout available for review, merge, and release. This pattern is inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), which showed how worktrees make OpenCode agent sessions safer and easier to parallelize. Advance adds gate ownership, shared disk projections, task checkpoints, branch-local specs, and archive finalization.
 
 ### Bounded autonomy
 
@@ -295,40 +294,20 @@ pnpm run check
 pnpm run build
 ```
 
-Requires Node.js 24+ and pnpm 11.9.0. CI runs SDK parity, schema-drift, type, lint, format, Temporal-backed test, Bun CLI test, and build checks on Node 24.x.
+Requires Node.js 24+ and pnpm 11.9.0. CI runs SDK parity, schema-drift, type, lint, format, unit tests, Bun CLI tests, and build checks on Node 24.x.
 
 ## Runtime model
 
-OpenCode ships as a Bun executable. Advance supports that host while running Temporal worker code through a Node-compatible worker path.
+OpenCode runs on Bun, while the plugin's build and test tooling runs on Node. No external database, server, worker, CLI service, or runtime environment variables are required.
 
-Current Temporal defaults:
-
-| Setting    | Default               |
-| ---------- | --------------------- |
-| Address    | `127.0.0.1:7233`      |
-| Namespace  | `default`             |
-| Task queue | `advance-<projectId>` |
-
-Environment variables:
-
-| Variable                    | Default          | Purpose                                                           |
-| --------------------------- | ---------------- | ----------------------------------------------------------------- |
-| `ADV_TEMPORAL_ADDRESS`      | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in.          |
-| `ADV_TEMPORAL_NAMESPACE`    | `default`        | Temporal namespace.                                               |
-| `ADV_TEMPORAL_ALLOW_REMOTE` | unset            | Set to `true` to permit non-loopback addresses.                   |
-| `ADV_NODE_PATH`             | unset            | Absolute Node v20+ path for Bun hosts when Node is not on `PATH`. |
-
-Production storage is Temporal-only. Legacy file/SQLite utilities are retained for tests, migrations, repair, and cross-repo tooling; they are not a runtime fallback.
-
-See [`docs/temporal-recovery.md`](docs/temporal-recovery.md) for worker recovery details.
+Mutable state is stored in per-project disk projections under `~/.local/share/opencode/plugins/advance/<projectId>/`. A change lives at `changes/<changeId>/change.json` as `{schemaVersion:2,state:{...}}`. Different changes do not block one another; writes for the same change serialize through a 15-second advisory file lock with jittered backoff and stale-PID reclaim. Commits use atomic temp-write/rename/fsync, in-lock readback, and revision/operation-identity proofs, failing closed as `operator_required` on any problem. Epic state uses `active-epics/<epicId>/active-projection.json` with expected-version optimistic concurrency.
 
 ## Repository map
 
 ```text
 plugin/              TypeScript OpenCode plugin implementation
   src/tools/         MCP tool implementations
-  src/storage/       persistence, migrations, Temporal integration, external state
-  src/temporal/      workflows, worker bootstrap, recovery helpers
+  src/storage/       disk projections, transactional writes, locks, and state helpers
   src/validator/     spec validation, prep readiness, task classification
   src/events/        terminal UI/status helpers
   src/utils/         project IDs, debug logs, context snapshots, safe helpers
@@ -337,7 +316,7 @@ plugin/              TypeScript OpenCode plugin implementation
 .opencode/command/   slash-command workflow contracts
 .opencode/agents/    bundled/repo-local ADV agents and overlays
 skills/              reusable methodology skills
-docs/                gates, checklists, design notes, specs, recovery docs
+docs/                 gates, checklists, design notes, and specs
 scripts/             sync, migration, maintenance, blind-test helpers
 ```
 
@@ -350,8 +329,6 @@ scripts/             sync, migration, maintenance, blind-test helpers
 | [`AGENTS.md`](AGENTS.md)                                 | Contributor quick-reference: architecture, commands, gotchas |
 | [`docs/adv-gates.md`](docs/adv-gates.md)                 | Gate contracts and sequencing                                |
 | [`docs/checklists/`](docs/checklists/)                   | Prep, review, and harden checklists                          |
-| [`docs/temporal-recovery.md`](docs/temporal-recovery.md) | Temporal worker recovery model                               |
-| [`docs/store-consolidation.md`](docs/store-consolidation.md) | Orphan identity-store recovery (`adv_store_consolidate`) |
 | [`docs/specs/`](docs/specs/)                             | Generated/spec-facing documentation                          |
 
 ## License

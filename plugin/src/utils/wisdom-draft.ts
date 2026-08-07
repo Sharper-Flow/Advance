@@ -5,7 +5,7 @@
  * Backing for rq-wisdomAutoSurfacing01. These helpers do NOT mutate state;
  * callers (tools/task.ts, tools/checkpoint.ts, tools/wisdom.ts) own signal
  * emission. Keeping the logic pure makes the lifecycle state machine
- * testable without spinning up Temporal.
+ * testable without requiring external runtime services.
  */
 import { randomUUID } from "node:crypto";
 import type { ErrorRecovery, Task, WisdomDraft } from "../types";
@@ -74,7 +74,7 @@ export function maybeCreateWisdomDraftFromErrorRecovery(
     id: generateWisdomDraftId(),
     suggested_type: "failure",
     // Cap at 2000 chars (matches WisdomEntrySchema.content limit and
-    // WisdomDraftSchema.suggested_content schema) to bound Temporal signal
+    // WisdomDraftSchema.suggested_content schema) to bound persisted content
     // payload size when many SEMANTIC attempts are joined.
     suggested_content:
       suggestedContent.length > 2000

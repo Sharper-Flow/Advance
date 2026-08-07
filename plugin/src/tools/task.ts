@@ -789,7 +789,7 @@ export const taskTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+          "Optional absolute path to another ADV project. When provided, mutates that project's disk-backed store.",
         ),
       target_confirmed: z
         .literal(true)

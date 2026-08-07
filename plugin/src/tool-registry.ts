@@ -811,10 +811,10 @@ export function createToolMap(
       store,
     ),
 
-    // Temporal operator tools
+    // Operator tools
     // rq-doctorConsolidation01 / rq-recoverySurfaceParity01
-    // (tk-dc21b6a3658d / tk-0528be678596): the four adv_temporal_*
-    // operator tools (diagnose / reconnect / register_search_attributes /
+    // (tk-dc21b6a3658d / tk-0528be678596): the former operator tools
+    // (diagnose / reconnect / register_search_attributes /
     // worker_restart) are retired. adv_doctor is the single diagnose→safe-
     // fix→verify entry point; unsafe escalations (suspect lock reclaim,
     // wrong-type SAs, ambiguous ownership) return typed approval-required
@@ -827,15 +827,10 @@ export function createToolMap(
       "adv_gate_status",
       store,
     ),
-    // adv_gate_complete — fixTemporalTimeoutsWorker AC1. The gate signal
-    // (gateCompletedSignal via fireSignalAndRefresh) is lighter than
-    // archive's git finalization, but under worker contention the default
-    // 10s safety-net is sometimes exceeded: the signal may have landed
-    // while the agent sees a bare ToolExecutionTimeout. 30s covers the
-    // Temporal signal + cache-refresh round trip with headroom, and the
-    // onToolTimeout classifier returns a typed "may have landed — verify
-    // via adv_gate_status" advisory instead of the generic timeout so
-    // the caller does not blindly re-fire the signal.
+    // adv_gate_complete uses a longer safety-net because the durable write
+    // may have landed while the agent sees a ToolExecutionTimeout. The
+    // classifier returns a typed "may have landed — verify via
+    // adv_gate_status" advisory instead of encouraging a blind retry.
     adv_gate_complete: registerTool(
       gateTools.adv_gate_complete.description,
       gateTools.adv_gate_complete.args,

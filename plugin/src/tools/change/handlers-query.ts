@@ -650,7 +650,7 @@ export const advChangeValidateHandler = async (
   store: Store,
 ) => {
   // tk-f4a18a9705ef: bound the authoritative input load (change read +
-  // validation context) so a slow Temporal read degrades structurally
+  // validation context) so a slow projection read degrades structurally
   // below the 10s safeExecute ceiling instead of surfacing as an
   // unclassified whole-tool ToolExecutionTimeout. Early-return
   // responses travel through the union so existing error output shapes
@@ -706,7 +706,7 @@ export const advChangeValidateHandler = async (
       hint:
         "Validation input load exceeded its internal time budget (below the 10s tool ceiling). " +
         "No validation verdict was produced and authoritative state is untouched. " +
-        "Likely a slow Temporal query or peer hydration — retry; if persistent, run adv_status and adv_doctor to check worker/workflow health.",
+        "Likely a slow projection read or peer hydration — retry; if persistent, run adv_status and adv_doctor to inspect project health.",
     });
   }
   if (inputs.kind === "response") {
@@ -798,7 +798,7 @@ export const queryChangeTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When artifact include flags are requested, routes reads through the target project's Temporal store/documents; otherwise reads a disk snapshot and returns _projectContext.",
+          "Optional absolute path to another ADV project. When artifact include flags are requested, reads that project's persisted documents; otherwise reads a disk snapshot and returns _projectContext.",
         ),
       include: z
         .object({

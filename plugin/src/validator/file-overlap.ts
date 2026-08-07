@@ -6,8 +6,8 @@
  * autonomous execution begins.
  *
  * Spec anchors:
- * - rq-worktreeRegistry01 (per-change workflow worktree state via Temporal search attributes)
- * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes via signals)
+ * - rq-worktreeRegistry01 (per-change worktree state via the project registry)
+ * - rq-multiSessionCoordination01 (peer-session writes use storage locking)
  */
 
 import {
@@ -48,7 +48,7 @@ export interface FileOverlapDeps {
  *                            currentBranch override
  *
  * When `opts.registry` and `opts.changeSummaries` are both supplied, the
- * function skips Temporal I/O and uses the injected snapshots directly.
+ * function skips storage I/O and uses the injected snapshots directly.
  * Otherwise it resolves workflow access via `initStateDb` and reads the
  * live `worktree_registry` + `change_summaries` from the project workflow.
  */

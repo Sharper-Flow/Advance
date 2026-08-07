@@ -35,7 +35,7 @@ interface ProjectWisdomEntry {
   source_task?: string;
   /** ISO8601 timestamp when promoted to project level */
   promoted_at: string;
-  /** Optional relevance tags for future filtering (e.g. ["temporal", "auth"]) */
+  /** Optional relevance tags for future filtering (e.g. ["storage", "auth"]) */
   tags?: string[];
   /** If set, identifies the change that superseded this wisdom (soft-delete marker) */
   invalidated_by?: string;

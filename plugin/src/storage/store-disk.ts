@@ -1,35 +1,33 @@
 /**
  * Disk-only Store backend (P2.7).
  *
- * Replaces the SQLite-backed `createLegacyStore` with a minimal,
- * disk-native Store implementation. Used as the substrate that
- * `createTemporalStoreBackend` wraps for the Temporal-only architecture.
+ * Replaces the SQLite-backed `createLegacyStore` with the sole disk-native
+ * Store implementation.
  *
- * Why a disk-only backend at all (instead of pure-Temporal)?
+ * The filesystem is the source of truth for paths, artifacts, cross-repo
+ * initialization, and cold-start reads.
  *
- * The Temporal store still needs a few things from a non-Temporal source:
  *   - **Paths**: ProjectPaths is the canonical computation that maps repo
  *     root + config to changes/specs/wisdom directories.
  *   - **Disk artifact writes**: changes.create, changes.save,
  *     changes.updateArtifacts manipulate proposal.md / change.json on disk.
- *     These are the source-of-truth files that survive workflow eviction.
+ *     These are the source-of-truth files.
  *   - **Cross-repo target init**: when adv_change_create is called with
  *     `target_path`, the cross-project flow needs to scaffold a change in
- *     the target repo's filesystem before any Temporal workflow exists.
+ *     the target repo's filesystem before any other state exists.
  *   - **Cold-start fallbacks**: when Visibility API isn't available
  *     (test mocks), listChangeDirs reads disk directly.
  *
  * The previous `createLegacyStore` did all this PLUS maintained a SQLite
  * cache for FTS, dependency resolution, and stale-status calculation.
- * P2.3 replaced the FTS need with linear scan, P2.4 replaced the listing
- * need with the Visibility API, and the Temporal store overrides every
- * task / gate / wisdom-mutation method. So SQLite has zero remaining
+ * P2.3 replaced the FTS need with linear scan and P2.4 replaced the listing
+ * need with direct disk reads. So SQLite has zero remaining
  * consumers — and along with it the 11 legacy files (sqlite.ts, health.ts,
  * corruption-recovery.ts, store-sync.ts, store-context.ts, store-changes,
  * store-tasks, store-gates, store-specs, store-locks, store-legacy itself).
  *
- * This module provides the disk-only minimum the Temporal store needs to
- * function; everything else is overridden upstream in `store-temporal.ts`.
+ * This module provides the complete Store implementation; all namespaces
+ * use the disk-backed operations defined here.
  */
 
 import { mkdir } from "fs/promises";
@@ -681,8 +679,7 @@ export async function createDiskStore(
       },
 
       // Disk store has no in-memory cache; refresh and invalidate are no-ops.
-      // The Store interface requires the methods so the temporal store
-      // (which does cache) can satisfy the contract.
+      // The Store interface requires these no-op cache hooks.
       refresh: async (_changeId: string): Promise<void> => {
         // intentional no-op
       },
@@ -723,10 +720,8 @@ export async function createDiskStore(
     },
 
     // -------------------------------------------------------------------
-    // Tasks — store-temporal overrides every method, but Store interface
-    // requires the namespace to exist. Provide thin disk-backed
-    // implementations for the rare path that reaches here (cross-repo
-    // tooling pre-Temporal-bootstrap, test fallbacks).
+    // Tasks — provide thin disk-backed implementations for cross-repo
+    // tooling and other callers that use the Store interface.
     // -------------------------------------------------------------------
     tasks: {
       list: async (changeId, status, filter) => {
@@ -1024,7 +1019,7 @@ export async function createDiskStore(
     // -------------------------------------------------------------------
     // Spec deltas (append-only, add-only)
     //
-    // Disk fallback mirrors the Temporal reducer contract: accept existing
+    // Disk implementation accepts existing
     // or valid new kebab-case capability keys, reject duplicate delta ids
     // and duplicate add-requirement ids atomically, and never touch global
     // spec files (archive remains the sole global-spec writer).

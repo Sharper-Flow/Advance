@@ -391,9 +391,7 @@ export const conformanceTools = {
     ): Promise<string> => {
       const externalRoot = store.paths.external;
       if (!externalRoot) {
-        return makeError(
-          "adv_conformance requires external state root (project must be Temporal-enabled)",
-        );
+        return makeError("adv_conformance requires an external state root");
       }
       const projectDir = store.paths.root;
       const args = ConformanceArgsSchema.parse(rawArgs);

@@ -84,8 +84,8 @@ export async function normalizeArtifactMetadataForReadback(
   >) {
     const metadata: ArtifactMetadata = { ...rawMetadata };
     if (metadata.path) {
-      // Readback re-validates paths because workflow state can retain legacy
-      // path metadata after active artifacts moved to Temporal-only content.
+      // Readback re-validates paths because persisted state can retain legacy
+      // path metadata after active artifacts moved to content-only storage.
       const readable =
         metadata.source !== "temporal" &&
         metadata.readable !== false &&
@@ -172,7 +172,7 @@ export async function readArtifact(
 }
 /**
  * Load proposal content with the legacy scaffold-fallback semantics layered
- * over the new Temporal-first read path. Returns generated scaffold text
+ * over the persisted-projection-first read path. Returns generated scaffold text
  * when no proposal content is available from any source — matches the
  * pre-migration `loadProposalWithFallback` contract that downstream callers
  * (clarify-readiness checks, snapshot rendering, context fetching) rely on.
@@ -209,7 +209,7 @@ export async function loadProposalForContext(
 `;
   return {
     content: scaffold,
-    warning: `⚠️  proposal content not found in Temporal state.documents or disk for change ${changeId}. Using auto-generated scaffold. Run /adv-proposal to create a proper proposal.`,
+    warning: `⚠️  proposal content not found in persisted documents or disk for change ${changeId}. Using auto-generated scaffold. Run /adv-proposal to create a proper proposal.`,
   };
 }
 /**

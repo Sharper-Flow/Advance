@@ -23,8 +23,8 @@ Complete installation instructions for the ADV spec-driven development plugin.
 
 | Dependency   | Version            | Check Command        |
 | ------------ | ------------------ | -------------------- |
-| Node.js      | 20.x or higher     | `node --version`     |
-| pnpm         | 10.x (recommended) | `pnpm --version`     |
+| Node.js      | 24.x or higher     | `node --version`     |
+| pnpm         | 11.x               | `pnpm --version`     |
 | OpenCode CLI | 1.15.5 or newer    | `opencode --version` |
 
 `pnpm` must be on `PATH` when worktrees are created: `.opencode/worktree.jsonc`
@@ -35,95 +35,27 @@ new ADV worktrees.
 
 | Dependency        | Purpose                                                                                                                                 |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Bun               | 1.3+ for the standalone `bin/adv` CLI                                                                                                   |
 | Git               | Version control, change tracking                                                                                                        |
-| Temporal CLI      | Local dev server for ADV's Temporal-backed runtime                                                                                      |
 | jq                | Required only for `deploy-local.sh --fix` (config patching)                                                                             |
 | rsync             | Required for `deploy-local.sh` runtime plugin deployment                                                                                |
 | GitHub CLI (`gh`) | Required for `/adv-triage` and any ADV command that reads/writes GitHub issues or Projects v2. See **GitHub CLI authentication** below. |
 
-### Temporal-backed storage
+### Disk-backed storage
 
-ADV uses a Temporal-backed durable-execution architecture for change/task/gate
-state. Runtime storage is Temporal-only; the old SQLite-backed legacy store was
-removed. A disk-only substrate remains for markdown/JSON artifacts and recovery
-utilities, not as a runtime fallback.
+Advance requires no database, server, worker, or runtime service. Authoritative
+change, task, gate, and artifact state is stored in per-project disk projections
+under `~/.local/share/opencode/plugins/advance/<projectId>/`; each change is a
+`changes/<changeId>/change.json` document with `{schemaVersion:2,state:{...}}`.
 
-Install the Temporal CLI (for a local dev server):
-
-```bash
-brew install temporal     # macOS
-# or
-curl -sSf https://temporal.download/cli.sh | sh   # Linux
-```
-
-Start a local dev server (default loopback address and namespace):
-
-```bash
-temporal server start-dev
-```
-
-#### Persistent dev-server storage (recommended)
-
-The default `temporal server start-dev` invocation runs the embedded SQLite
-backend in **ephemeral mode** — when you stop the server, its database is
-discarded. ADV registers custom search attributes such as `AdvChangeId`,
-`AdvChangeStatus`, `AdvLifecycleState`, `AdvAffectedProjects`, and worktree/
-backlog/Epic Visibility attributes on each session start; on an ephemeral
-server those registrations are lost on every restart, and partial-failure
-states can accumulate as wrong-type attribute leftovers across sessions.
-Persisting the dev-server SQLite file keeps the registrations stable across
-restarts and avoids re-registration churn.
-
-Recommended path (cross-platform):
-
-| OS    | Path                                                                                       |
-| ----- | ------------------------------------------------------------------------------------------ |
-| Linux | `$XDG_DATA_HOME/temporal/dev-server.db` (fallback `~/.local/share/temporal/dev-server.db`) |
-| macOS | `~/Library/Application Support/temporal/dev-server.db`                                     |
-
-Example (Linux/XDG):
-
-```bash
-mkdir -p ~/.local/share/temporal
-temporal server start-dev \
-  --db-filename ~/.local/share/temporal/dev-server.db
-```
-
-Example (macOS):
-
-```bash
-mkdir -p "$HOME/Library/Application Support/temporal"
-temporal server start-dev \
-  --db-filename "$HOME/Library/Application Support/temporal/dev-server.db"
-```
-
-The minimal `temporal server start-dev` command remains valid for one-off
-ephemeral testing (CI, throwaway sandboxes), but the persistent variant is
-the recommended default for ongoing development.
-
-Configure via environment variables (see `plugin/.env.example` — Bun hosts
-should review the **Bun out-of-process Temporal worker** section for
-`ADV_NODE_PATH`):
-
-| Variable                    | Default          | Purpose                                                  |
-| --------------------------- | ---------------- | -------------------------------------------------------- |
-| `ADV_TEMPORAL_ADDRESS`      | `127.0.0.1:7233` | Temporal frontend address. Non-loopback requires opt-in. |
-| `ADV_TEMPORAL_NAMESPACE`    | `default`        | Temporal namespace (regex-validated).                    |
-| `ADV_TEMPORAL_ALLOW_REMOTE` | _(unset)_        | Set to `true` to permit non-loopback addresses.          |
-| `ADV_TEMPORAL_TASK_QUEUE`   | _(worker-only)_  | Task queue the worker subscribes to.                     |
-| `ADV_TEMPORAL_TASK_QUEUES`  | _(worker-only)_  | Comma-separated queues for multi-queue child mode.       |
-| `ADV_TEMPORAL_MULTI_QUEUE`  | _(worker-only)_  | Set internally to `1` for multi-queue child mode.       |
-| `ADV_TEMPORAL_PROJECT_ID`   | _(worker-only)_  | Set internally by the runtime manager.                   |
-| `ADV_ORPHAN_QUEUE_ADOPTION` | _(unset → on)_   | Emergency kill-switch. `0` disables auto-adoption of orphan session queues; any other value (or unset) leaves it on. See `rq-isolSessionTaskQueue05`. |
-
-Activation happens in code by passing a Temporal client bundle into
-`createStore({ temporalBundle })`; production bootstrap owns that wiring. On a
-Node plugin host the worker runs in-process. On a Bun plugin host (opencode's
-shipping binary) the plugin spawns a Node child process. Multi-queue child mode
-is configured internally with `ADV_TEMPORAL_MULTI_QUEUE=1` and
-`ADV_TEMPORAL_TASK_QUEUES`; users normally only set `ADV_NODE_PATH` when Node is
-not on the plugin host's `PATH`. There is no legacy file-backed runtime
-fallback.
+Writes use a per-change advisory lock with a 15-second budget, jittered backoff,
+and stale-PID reclaim. The transaction reads the latest projection inside the
+lock, applies the mutation, writes through an atomic temp-file/rename/fsync
+sequence, reads back while still locked, and proves the revision and operation
+identity. Any failure is reported as `operator_required` rather than silently
+overwriting state. Different changes are independent. Epic projections live at
+`active-epics/<epicId>/active-projection.json` and use expected-version
+optimistic concurrency.
 
 ### GitHub CLI authentication
 
@@ -191,69 +123,18 @@ If `/adv-triage` reports `gh: not found`, `403`, or `Resource not accessible by 
 
 `gho_*` tokens are bound to the machine that ran `gh auth login`. Repeat the login (or copy the `~/.config/gh/hosts.yml` file with care) on every machine an ADV agent will run from — devboxes, CI runners, alternate laptops. There is no shared/global token store; each machine authenticates independently.
 
-### Bun runtime troubleshooting
+### Bun CLI troubleshooting
 
-Opencode ships as a compiled Bun executable. `@temporalio/worker` cannot run
-in-process inside Bun: the SDK spawns a Node worker thread whose
-`require('@temporalio/common')` fails from Bun's install-cache path. The
-plugin works around this by spawning a Node child process instead — but that
-requires a Node binary reachable from the plugin host.
+The standalone `bin/adv` CLI requires Bun 1.3 or newer. Verify the installation
+with:
 
-**Symptom**: after plugin load, `adv_status` reports
-`worker_process_alive: { status: "available", value: false }` OR the session emits (to the debug log, not
-stdout) "Temporal worker cannot run under bun. Install Node (v20+) on PATH
-or set ADV_NODE_PATH."
+```bash
+bun --version
+adv --version
+```
 
-**Remediation**:
-
-1. Install Node.js v20 or later. Any install that puts a `node` binary on
-   your shell `PATH` works (nvm, system package, asdf, etc.).
-
-   ```bash
-   # via nvm (recommended for dev machines)
-   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-   nvm install --lts
-
-   # or macOS via Homebrew
-   brew install node
-   ```
-
-2. Verify opencode sees Node on `PATH`:
-   ```bash
-   which node && node --version
-   ```
-3. If Node lives at a non-standard path (e.g. a nvm-managed version that
-   isn't on the login shell's default `PATH`), set `ADV_NODE_PATH`:
-   ```bash
-   # in ~/.zshenv or ~/.bashrc
-   export ADV_NODE_PATH="$HOME/.nvm/versions/node/v22.21.0/bin/node"
-   ```
-4. Restart opencode.
-
-If Node is genuinely unavailable, install Node (v20+) following the steps
-above. ADV is Temporal-only at runtime — there is no file-backed fallback.
-
-#### Health metrics: `worker_alive` and `worker_process_alive`
-
-`adv_status` exposes `worker_alive` and `worker_process_alive` alongside
-`server_alive`. Both worker fields use the same three-state vocabulary and are
-scoped to the process answering the query:
-
-| Field                  | `{ status: "available", value: true }` | `{ status: "available", value: false }` | `{ status: "unavailable", reason }` |
-| ---------------------- | ---------------------------------------- | ----------------------------------------- | ------------------------------------- |
-| `worker_alive`         | This process has affirmative local or queue-serviceability evidence of a live worker. | This process could observe no live local or serviceable worker. | This process cannot observe worker liveness. `reason` is `not_host_capable`, `probe_failed`, or `probe_timeout`. |
-| `worker_process_alive` | This process observes its worker process running. | This process observes its worker process is not running. | This process cannot observe worker-process liveness. `reason` is `not_host_capable`, `probe_failed`, or `probe_timeout`. |
-
-Only `{ status: "available", value: true }` is affirmatively alive, matching
-`isWorkerAffirmativelyAlive`. `not_host_capable` means the queried process does
-not host workers (for example, the Vision-managed MCP server); re-check from the
-host plugin via `adv_doctor`. For available `false`, follow the Node-install
-steps above and inspect `$ADV_CACHE_DIR/adv-debug.log` for the crash or init
-failure. For `probe_failed` or `probe_timeout`, use `adv_doctor` from the host
-plugin and inspect the probe error before retrying.
-
-> The OOP worker uses exponential backoff (1s / 3s / 10s, max 3 attempts)
-> before marking the queue dead.
+The plugin itself uses Node.js 24+ for builds and tests. No separate runtime
+service is needed.
 
 ---
 
@@ -445,7 +326,6 @@ The `--fix` flag will:
 - Rebuild `plugin/dist` when it is missing or older than plugin build inputs
 - Refuse to deploy stale dist if the build fails or freshness is still unproven
 - Sync `plugin/` to the stable runtime path `~/.local/share/Advance/plugin/`
-- Bounce exact-path deployed Temporal workers running `dist/temporal/worker.js` by classifying them with the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker: self-roll-capable workers are advisory only, while legacy workers are sent `SIGTERM`; fail closed with an `[ADV:ACTION_REQUIRED]` block if any legacy worker cannot be refreshed
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy the repo-owned `adv` runtime agent as a full file and leave repo-local-only agents in-tree
 - Apply repo-owned managed overlay blocks to shared global agents like `general`, `build`, and `plan` without replacing the full file
@@ -1278,7 +1158,7 @@ your-project/
 | `changes_dir`  | `".adv/changes"` | Directory for change proposals                                                                       |
 | `archive_dir`  | `".adv/archive"` | Directory for archived changes                                                                       |
 | `docs_dir`     | `"docs/specs"`   | Directory for generated docs                                                                         |
-| `db_dir`       | `".adv/db"`      | Deprecated compatibility field; ignored by Temporal-only runtime and not allocated in external state |
+| `db_dir`       | `".adv/db"`      | Deprecated compatibility field; ignored by the disk-projection runtime and not allocated in external state |
 | `project_file` | `"project.md"`   | Optional project context file                                                                        |
 
 ---
@@ -1455,7 +1335,7 @@ pnpm dlx tsx scripts/migrate-openspec.ts /path/to/your-project/openspec ./specs
 
 ## ADV CLI (`bin/adv`)
 
-Standalone terminal client for viewing ADV status without an OpenCode session. `adv status` reads live Temporal-backed ADV state for active changes and fails closed with remediation when live state is unavailable; `adv roadmap` reads the generated roadmap snapshot file; `adv epic list --json` reads live Epic IDs from Temporal Visibility.
+Standalone terminal client for viewing ADV status without an OpenCode session. `adv status` reads disk-backed change projections; `adv roadmap` reads the generated roadmap snapshot file; `adv epic list --json` reads disk-backed Epic projections.
 
 **Requirements:** Bun 1.3+ must be installed (`bun --version` to check).
 
@@ -1514,19 +1394,6 @@ If you customized your global `plan.md` or `build.md`, the sync script only patc
 - `plan.md` `tools:` — `webfetch: true`, `firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`
 - `build.md` `tools:` — `adv_task_update: true`, `adv_run_test: true`, `adv_task_checkpoint: true`, `adv_wisdom_add: true`, plus `webfetch: true` and exact Firecrawl grants (`firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`)
 
-### Temporal Worker Errors
-
-If ADV reports either worker field as `{ status: "available", value: false }`,
-verify the local Temporal dev server and Node worker host:
-
-```bash
-temporal server start-dev
-node --version
-```
-
-For Bun-hosted OpenCode builds, set `ADV_NODE_PATH` if Node is not available on
-the plugin host's `PATH`.
-
 ### Permission Issues
 
 Ensure write access to all ADV directories:
@@ -1534,22 +1401,6 @@ Ensure write access to all ADV directories:
 ```bash
 chmod -R u+w specs changes archive docs .adv temp
 ```
-
-### Temporal State Recovery
-
-Use the orphan-sweep CLI to re-seed disk-only change snapshots into Temporal:
-
-```bash
-# Preview changes under the default ADV state root
-cd /path/to/Advance/plugin
-pnpm exec tsx scripts/orphan-sweep.ts --dry-run
-
-# Execute re-seed
-pnpm exec tsx scripts/orphan-sweep.ts
-```
-
-After repair, **restart OpenCode** so the plugin reconnects to the refreshed
-Temporal workflow set.
 
 ### Shallow Clones Refuse ADV State (`UnstableIdentityError`)
 
@@ -1562,8 +1413,8 @@ boundary moves.
 
 ADV therefore refuses to initialize or mutate state in a shallow repository.
 Any ADV state operation fails with a typed `UnstableIdentityError` naming the
-repo path and the remediation command; **no external store or Temporal state is
-created** under the unstable identity.
+repo path and the remediation command; no projection is created under the
+unstable identity.
 
 **Remediation:**
 
@@ -1578,15 +1429,11 @@ previously "missing" state reappears. Partial clones created with
 the same way; remove the grafts (or migrate to `git replace`) and unshallow if
 needed.
 
-**Already orphaned?** If a shallow clone already minted state under a
-boundary SHA (before the guard shipped), recover it with the store
-consolidation tool — see [Store consolidation (`adv_store_consolidate`)](docs/store-consolidation.md).
-
 ### Stale Spec Rows After Deletion
 
 If you delete a spec from `.adv/specs/` but `adv_spec list` still shows it,
-restart OpenCode. Specs are read from disk/Temporal activity paths; there is no
-SQLite cache to rebuild.
+restart OpenCode. Specs are read directly from disk; there is no cache to
+rebuild.
 
 **Fix:**
 
@@ -1595,47 +1442,6 @@ SQLite cache to rebuild.
 
 **Why restart is required:** The ADV plugin is a long-running server process.
 Restarting clears in-memory handles and reloads the current disk artifacts.
-
-### Temporal Test Servers Blocking Worktree Cleanup
-
-If an interrupted Temporal integration test leaves behind a
-`/tmp/temporal-test-server-sdk-typescript-*` process, `git worktree remove`
-may fail because the child inherited the worktree plugin directory as its cwd.
-
-Current releases run Temporal test environments from a stable temp cwd
-(`/tmp/advance-temporal-test-cwd`) and spawn out-of-process Temporal workers
-from `/tmp/advance-temporal-worker-cwd` to avoid pinning worktrees going
-forward. Older leaked processes may still need manual cleanup.
-
-Detect lingering test servers:
-
-```bash
-python3 - <<'PY'
-import os, json
-needle='/tmp/temporal-test-server-sdk-typescript-'
-rows=[]
-for pid in filter(str.isdigit, os.listdir('/proc')):
-    try:
-        cmd=open(f'/proc/{pid}/cmdline','rb').read().replace(b'\x00',b' ').decode().strip()
-    except Exception:
-        continue
-    if needle in cmd:
-        try:
-            cwd=os.readlink(f'/proc/{pid}/cwd')
-        except Exception:
-            cwd=''
-        rows.append({'pid': int(pid), 'cwd': cwd, 'cmd': cmd})
-print(json.dumps(rows, indent=2))
-PY
-```
-
-Kill leaked processes if needed:
-
-```bash
-kill <pid1> <pid2> ...
-```
-
-Then retry worktree cleanup.
 
 ### Commands Not Found or Config Out of Date
 
@@ -1678,10 +1484,8 @@ ls ~/.local/share/Advance/plugin/dist/index.js
 | Variable                               | Default                      | Description                                                                                                                         |
 | -------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `ADV_DEBUG`                            | `"0"`                        | Set to `"1"` for debug logging                                                                                                      |
-| `ADV_PROFILE`                          | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$ADV_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use)     |
+| `ADV_PROFILE`                          | `"0"`                        | Set to `"1"` to write startup profile events to `$ADV_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use)                |
 | `ADV_CACHE_DIR`                        | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1`                                                                                 |
-| `ADV_FORCE_IN_PROCESS_WORKER`          | unset                        | Force in-process Temporal worker; rollback/debug escape hatch for worker singleton issues                                           |
-| `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` | `10000`                      | Worker restart queue-serviceability verification timeout                                                                            |
 | `OPENCODE_EXPERIMENTAL_WORKSPACES`     | unset                        | Set to `true` and restart OpenCode to enable native workspace warp for ADV worktrees; otherwise ADV downgrades to terminal mode     |
 | `OPENCODE_EXPERIMENTAL`                | unset                        | Broader OpenCode experimental opt-in that also enables workspace warp; prefer `OPENCODE_EXPERIMENTAL_WORKSPACES=true` when possible |
 

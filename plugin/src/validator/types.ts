@@ -150,7 +150,7 @@ export interface ConflictInventoryEntry {
  * Explicit completeness state for the conflict inventory.
  *
  * - complete: All changes were enumerated and hydrated successfully.
- * - degraded: Some changes could not be fully hydrated (e.g. Temporal workflow
+ * - degraded: Some changes could not be fully hydrated (e.g. projection
  *   evicted); conflict detection proceeds but with reduced confidence.
  * - blocked: The inventory source failed or was unreachable; no reliable
  *   conflict detection is possible.

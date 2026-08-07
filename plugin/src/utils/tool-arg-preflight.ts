@@ -83,7 +83,7 @@ const ARTIFACT_FIELDS = [
 
 // rq-toolPlaceholderPolicy01: preflight is the pure/synchronous tool-boundary
 // policy executor. Keep this table limited to structural placeholder decisions;
-// no fs/store/Temporal lookups here.
+// no fs/store lookups here.
 const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_delta_add: {
     // Optional audit identity.

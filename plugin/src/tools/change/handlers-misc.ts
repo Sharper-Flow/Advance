@@ -233,7 +233,7 @@ export const advChangeReenterHandler = async (
 
     // M2a (terminatechangeworkflowonarchi): change workflows now Complete
     // on archive/close. Reenter on a Completed workflow would fail with an
-    // opaque WorkflowExecutionAlreadyCompleted error from Temporal. Reject
+    // opaque completed-operation error. Reject
     // at the tool layer with a domain-level message and remediation hint.
     if (result.data.status === "archived" || result.data.status === "closed") {
       return formatToolOutput({
@@ -412,7 +412,7 @@ export const miscChangeTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When provided, routes the re-entry through that project's Temporal-backed target store.",
+          "Optional absolute path to another ADV project. When provided, routes the re-entry through that project's disk-backed store.",
         ),
       target_confirmed: z
         .literal(true)

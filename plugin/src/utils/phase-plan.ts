@@ -632,10 +632,8 @@ export function degradedPhasePlan(
  * unavailable authoritative state never becomes an invented next action
  * (SC3/AC3).
  *
- * Intentionally NOT used from `temporal/workflows.ts`: inside the workflow
- * the state is always well-formed and a throw must surface deterministically
- * rather than be masked. Logging is the caller's responsibility — this
- * module stays workflow-safe (no debug-log import, no `node:*`).
+ * Logging is the caller's responsibility — this module stays pure (no
+ * debug-log import, no `node:*`).
  */
 export function derivePhasePlanSafe(
   state: ChangeState,

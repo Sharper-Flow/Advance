@@ -2,7 +2,7 @@
  * Change Selection Helper
  *
  * Pure function for resolving bulk-close target selections.
- * Shared between legacy and Temporal storage adapters to prevent filter drift.
+ * Shared by storage consumers to prevent filter drift.
  */
 
 import type { BulkCloseSelector, Change, ChangeListResponse } from "../types";

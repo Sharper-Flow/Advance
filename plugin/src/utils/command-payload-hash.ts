@@ -1,7 +1,7 @@
 /**
  * Host-only SHA-256 authority for tool and command idempotency identities.
  *
- * This module must never be imported by Temporal workflow-reachable code.
+ * This module is a host-side helper and must stay outside runtime adapters.
  * `canonicalCommandPayloadString` remains workflow-safe so the host and legacy
  * workflow fallback agree on exactly which transport fields are excluded.
  */

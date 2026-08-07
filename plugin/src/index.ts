@@ -449,14 +449,14 @@ const advancePluginImpl: Plugin = async (input) => {
     getRegisteredAdvToolEntries().map((e) => [e.name, e.args] as const),
   );
 
-  // No handoff.json hydration: session startup is now workflow-backed.
+  // No handoff.json hydration: session startup uses explicit disk projections.
   // The old external handoff file is transitional legacy state and will be
   // deleted in Phase D. Fresh sessions derive active context from explicit
   // tool calls / status queries rather than consuming a sidecar JSON file.
 
   // Detect peer OpenCode sessions in this project (multi-session is supported;
-  // emit informational marker only — Temporal serializes state writes and
-  // per-worktree git isolation eliminates working-tree races).
+  // emit informational marker only — per-worktree git isolation eliminates
+  // working-tree races).
   // J4: Linux-only platform guard inside detectPeerSessions; gate the call.
   if (process.platform === "linux") {
     try {
@@ -633,8 +633,8 @@ const advancePluginImpl: Plugin = async (input) => {
   ) => {
     // Code-identity guard: once a deployed manifest supersedes this loaded
     // bundle, refuse ADV traffic before any read can answer from stale code.
-    // Unknown freshness remains allowed so missing manifests and Temporal
-    // outages are not conflated with a generation mismatch.
+    // Unknown freshness remains allowed so missing manifests are not conflated
+    // with a generation mismatch.
     if (toolName.startsWith("adv_")) {
       const refusal = await getPluginBundleGenerationGuardError(
         pluginBundleDistDir,
@@ -693,9 +693,8 @@ const advancePluginImpl: Plugin = async (input) => {
           });
           const targetChangesDir = join(targetCtx.externalRoot, "changes");
           // Cross-project uses disk-only check (KD3) — Visibility and
-          // workflow-state tiers would require opening a Temporal client to
-          // the target project; out of scope. The disk check is sufficient
-          // signal that the change exists in the target project.
+          // The disk check is the authoritative signal that the change exists
+          // in the target project.
           const reachable = await isDiskChangeReachable(
             targetChangesDir,
             String(args.changeId),

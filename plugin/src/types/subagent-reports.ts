@@ -26,8 +26,8 @@ export const SUBAGENT_REPORT_SCHEMA_VERSION = "1.0";
  * immediately re-emitted its own hardcoded `3`, re-bricking it. Divergent
  * literals defeat repair.
  *
- * Declared here (types/) rather than in tools/ because the Temporal workflow
- * bundle root reaches change-state.ts and must not statically import from
+ * Declared here (types/) rather than in tools/ because the shared type module
+ * must not statically import from
  * storage/, tools/, tool-registry.ts, plugin-init.ts, or node:*.
  */
 export const SUBAGENT_REPORT_MAX_RETRIES = 3;
@@ -1362,11 +1362,10 @@ export type SupportedSubagentReport = z.infer<
 /**
  * Stable persisted sub-agent report identity shared by every sidecar
  * (tools/change.ts, tools/subagent-report.ts, tools/_recovery-writers.ts,
- * tools/followup.ts, utils/loop-ledger.ts, temporal/change-state.ts).
+ * tools/followup.ts, and utils/loop-ledger.ts).
  *
- * Lives in `types/` (workflow-safe vocabulary) rather than
- * `temporal/contracts.ts` so both tool and workflow layers import the same
- * pure helper without the workflow bundle owning cross-layer identity.
+ * Lives in `types/` so all layers import the same pure helper without
+ * cross-layer identity logic being duplicated.
  *
  * Format (byte-stable — pinned by `subagent-reports.test.ts`):
  * - taskId present: `changeId|taskId|agent|attempt` (legacy shape)

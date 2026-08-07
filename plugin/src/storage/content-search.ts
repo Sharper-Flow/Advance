@@ -74,7 +74,7 @@ export function matchesContent(
 }
 
 // =============================================================================
-// Filter helpers — used by store-temporal `changes.list`
+// Filter helpers — used by the disk-backed `changes.list`
 // =============================================================================
 
 export interface ChangeFilterShape {
@@ -93,8 +93,7 @@ export interface ChangeFilterable {
 
 /**
  * Apply the supported substring/prefix/timestamp filters to a flat array of
- * changes. Used by `Store.changes.list({ filter })` in the Temporal-only
- * adapter.
+ * changes. Used by `Store.changes.list({ filter })`.
  *
  * Filters AND-combine. An empty/undefined filter returns the input unchanged.
  */

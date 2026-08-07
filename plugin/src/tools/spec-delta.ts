@@ -56,7 +56,7 @@ const targetArgs = {
     .string()
     .optional()
     .describe(
-      "Optional absolute path to another ADV project. When provided, routes the add through that project's Temporal-backed target store.",
+      "Optional absolute path to another ADV project. When provided, routes the add through that project's disk-backed store.",
     ),
   target_confirmed: z
     .literal(true)

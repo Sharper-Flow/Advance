@@ -54,7 +54,7 @@ export interface GitFinalizeDeps {
    * archive finalization path to serialize ephemeral `git worktree add/remove`
    * operations against peer sessions. The lock callback is supplied by the caller
    * (e.g. `adv_change_archive`) so `git-finalize.ts` does not need to import
-   * worker-lock / temporal internals, preserving the workflow-bundle boundary.
+   * worker-lock internals, preserving the runtime-bundle boundary.
    */
   ephemeralWorktreeLock?: {
     acquire: (

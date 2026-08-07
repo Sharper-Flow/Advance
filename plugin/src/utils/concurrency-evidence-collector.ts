@@ -15,7 +15,6 @@ export type EvidenceSource =
   | "historical_baseline"
   | "session_db"
   | "process_snapshot"
-  | "temporal_visibility"
   | "workload_gate_event"
   | "unsupported_inference";
 
@@ -38,20 +37,10 @@ export interface ProcessSample {
   provenance: string;
 }
 
-export interface WorkflowSample {
-  workflowId: string;
-  runId?: string;
-  status: string;
-  taskQueue?: string;
-  source: EvidenceSource;
-  provenance: string;
-}
-
 export interface ConcurrencyEvidenceSnapshot {
   checkedAt: string;
   sessionSamples: SessionSample[];
   processSamples: ProcessSample[];
-  workflowSamples: WorkflowSample[];
   historicalPeak?: {
     totalAgents: number;
     orchestrators: number;
@@ -78,7 +67,6 @@ export interface ConcurrencyEvidenceReport {
     projectPopulationObserved: number;
     /** Per-project, verified-interval populations and role-specific peaks. */
     projectPeaks: ProjectConcurrencyPeak[];
-    failedWorkflowSamples: number;
     workerRssMinMb?: number;
     workerRssMaxMb?: number;
     historicalPeakMeetsTenAgentTarget: boolean;
@@ -107,8 +95,6 @@ export interface CollectOptions {
   projectShardsRoot?: string;
   /** Read the global OpenCode session DB at this path. */
   globalDbPath?: string;
-  /** Optional Temporal workflow visibility sampler. */
-  sampleWorkflows?: () => Promise<WorkflowSample[]>;
   /** Maximum number of sessions to sample per source. */
   sessionLimit?: number;
   /** Maximum number of processes to sample. */
@@ -156,10 +142,6 @@ export async function collectConcurrencyEvidence(
   const invalidIntervalSamples = snapshot.sessionSamples.filter(
     (sample) => !toVerifiedInterval(sample),
   ).length;
-  const failedWorkflowSamples = snapshot.workflowSamples.filter(
-    (w) => w.status === "FAILED" || w.status === "TERMINATED",
-  ).length;
-
   const processRssValues = snapshot.processSamples
     .map((p) => p.rssMb)
     .filter((n) => Number.isFinite(n));
@@ -205,7 +187,6 @@ export async function collectConcurrencyEvidence(
       unknownRolesObserved: unknownRoles,
       projectPopulationObserved: projectPeaks.length,
       projectPeaks,
-      failedWorkflowSamples,
       workerRssMinMb,
       workerRssMaxMb,
       historicalPeakMeetsTenAgentTarget:
@@ -229,7 +210,6 @@ async function buildSnapshot(
   const limits: string[] = [];
   const sessionSamples: SessionSample[] = [];
   const processSamples: ProcessSample[] = [];
-  const workflowSamples: WorkflowSample[] = [];
 
   // 1. Historical baseline (always recorded, provenance-bound).
   const historicalPeak = {
@@ -288,27 +268,10 @@ async function buildSnapshot(
     );
   }
 
-  // 5. Optional Temporal workflow samples (bounded, read-only, caller-supplied).
-  if (options.sampleWorkflows) {
-    try {
-      const samples = await options.sampleWorkflows();
-      workflowSamples.push(...samples);
-    } catch (err) {
-      limits.push(
-        `Temporal workflow sampling skipped: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  } else {
-    limits.push(
-      "Temporal workflow visibility not sampled in this run; no client provided.",
-    );
-  }
-
   return {
     checkedAt,
     sessionSamples,
     processSamples,
-    workflowSamples,
     historicalPeak,
     limits,
   };
@@ -324,9 +287,6 @@ function collectProvenance(snapshot: ConcurrencyEvidenceSnapshot): string[] {
   }
   for (const sample of snapshot.processSamples) {
     provenance.add(`process_snapshot: ${sample.provenance}`);
-  }
-  for (const sample of snapshot.workflowSamples) {
-    provenance.add(`temporal_visibility: ${sample.provenance}`);
   }
   return Array.from(provenance);
 }
@@ -669,9 +629,6 @@ export function renderMarkdownReport(
   lines.push(`- Sub-agents observed: **${report.summary.subAgentsObserved}**`);
   lines.push(`- Roles unknown: **${report.summary.unknownRolesObserved}**`);
   lines.push(
-    `- Failed workflow samples: **${report.summary.failedWorkflowSamples}**`,
-  );
-  lines.push(
     `- Worker RSS min: **${report.summary.workerRssMinMb ?? "unavailable"} MB**`,
   );
   lines.push(
@@ -766,20 +723,6 @@ export function renderMarkdownReport(
     }
   }
   lines.push("");
-  lines.push("## Workflow Samples");
-  lines.push("");
-  if (report.snapshot.workflowSamples.length === 0) {
-    lines.push("No workflow samples available.");
-  } else {
-    lines.push("| workflowId | status | taskQueue | source |");
-    lines.push("|---|---|---|---|");
-    for (const w of report.snapshot.workflowSamples) {
-      lines.push(
-        `| ${w.workflowId} | ${w.status} | ${w.taskQueue ?? ""} | ${w.source} |`,
-      );
-    }
-  }
-  lines.push("");
   return lines.join("\n");
 }
 
@@ -788,29 +731,12 @@ function truncateCommand(command: string): string {
   return command.slice(0, 77) + "...";
 }
 
-export function createWorkflowSampler(
-  listWorkflows: () => Promise<
-    { workflowId: string; runId?: string; status: string; taskQueue?: string }[]
-  >,
-  provenance: string,
-): () => Promise<WorkflowSample[]> {
-  return async () => {
-    const rows = await listWorkflows();
-    return rows.map((r) => ({
-      ...r,
-      source: "temporal_visibility" as EvidenceSource,
-      provenance,
-    }));
-  };
-}
-
 /** Baseline-only snapshot for environments without live data sources. */
 export function createBaselineSnapshot(): ConcurrencyEvidenceSnapshot {
   return {
     checkedAt: new Date().toISOString(),
     sessionSamples: [],
     processSamples: [],
-    workflowSamples: [],
     historicalPeak: {
       totalAgents: HISTORICAL_PEAK_TOTAL_AGENTS,
       orchestrators: HISTORICAL_PEAK_ORCHESTRATORS,

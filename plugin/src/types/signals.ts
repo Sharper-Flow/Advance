@@ -2,7 +2,7 @@
  * Signal Payload Types
  *
  * Zod schemas for the signal-driven change workflow contract.
- * Tool-layer adapters validate these before firing Temporal signals.
+ * Tool-layer adapters validate these before persisting state transitions.
  */
 
 import { z } from "zod";
@@ -83,7 +83,7 @@ const DocumentUpdateBaseSchema = z.object({
   updatedAt: IsoTimestampSchema,
   mutationReceiptId: z.string().min(1).optional(),
   /**
-   * Caller-stable operation identity. Survives Temporal retries and
+   * Caller-stable operation identity. Survives retries and
    * continue-as-new so the workflow reducer can deduplicate the same logical
    * command and detect payload conflicts (AC3).
    */

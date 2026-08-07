@@ -8,8 +8,8 @@
  *   - projects: every local ADV project state dir, canonical and oc-shard
  *     layouts (synthetic test ids and non-project leftovers excluded);
  *   - workflows: running change workflows per project via an injectable
- *     Temporal probe (an unavailable probe is incomplete inventory);
- *   - processes: deployed/foreign Temporal workers and live OpenCode
+ *     probe (an unavailable probe is incomplete inventory);
+ *   - processes: deployed/foreign workers and live OpenCode
  *     sessions from the process table;
  *   - sessions: loaded-build registry entries (digest attribution).
  *
@@ -151,7 +151,7 @@ export interface CollectMachineInventoryInput {
   extraProjectRoots?: string[];
   isAlive?: (pid: number, startTicks: string | null) => boolean;
   /**
-   * Temporal probe: running change workflows for a project. When absent the
+   * Probe for running change workflows for a project. When absent the
    * workflow inventory is unavailable — incomplete inventory blocks
    * activation (fail-safe).
    */
@@ -195,13 +195,7 @@ export async function collectMachineInventory(
   }
 
   const processes = collectProcessInventory({
-    deployedWorkerScript: join(
-      input.deployRoot,
-      "plugin",
-      "dist",
-      "temporal",
-      "worker.js",
-    ),
+    deployedWorkerScript: join(input.deployRoot, "plugin", "dist", "worker.js"),
     procRoot: input.procRoot,
   });
 
@@ -337,7 +331,8 @@ export function validateMigrationReadiness(
       join(
         worker.workerScriptPath.slice(
           0,
-          worker.workerScriptPath.length - "dist/temporal/worker.js".length,
+          worker.workerScriptPath.length -
+            worker.workerScriptPath.split("/").slice(-2).join("/").length,
         ),
         "dist",
         BUILD_IDENTITY_FILENAME,

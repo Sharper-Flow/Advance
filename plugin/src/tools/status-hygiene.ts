@@ -111,7 +111,7 @@ export async function computeExternalStateHygiene(
   }
 
   // In-repo .adv/archive/ is valid (addagentmeshandinrepoarchive policy).
-  // Only flag .adv/changes/ as a recommendation if present — pre-Temporal
+  // Only flag .adv/changes/ as a recommendation if present — older
   // migrations may have left stale data there, but the dir itself is the
   // configured changes_dir and expected to exist.
   const repoRoot = store.paths.root;
@@ -136,7 +136,7 @@ export async function computeExternalStateHygiene(
   }
   if (staleDbDir && externalRoot) {
     recommendations.push(
-      `dry-run: stale physical db/ detected at ${externalRoot}/db (legacy pre-Temporal SQLite)\n` +
+      `dry-run: stale physical db/ detected at ${externalRoot}/db (legacy SQLite)\n` +
         `  Inspect: du -sh "${externalRoot}/db" && ls "${externalRoot}/db"\n` +
         `  Backup:  tar -czf /tmp/adv-legacy-db-$(date +%s).tar.gz -C "${externalRoot}" db\n` +
         `  Remove:  rm -rf "${externalRoot}/db"`,
@@ -164,7 +164,7 @@ export async function computeExternalStateHygiene(
   if (inRepoChanges && repoRoot) {
     recommendations.push(
       `dry-run: in-repo .adv/changes/ detected at ${repoRoot}/.adv/changes\n` +
-        `  This may be pre-Temporal data. Specs (.adv/specs/) are always in-repo and OK.\n` +
+        `  This may be legacy data. Specs (.adv/specs/) are always in-repo and OK.\n` +
         `  Inspect: ls -la "${repoRoot}/.adv/changes"\n` +
         `  Backup:  tar -czf /tmp/adv-repo-changes-backup-$(date +%s).tar.gz -C "${repoRoot}/.adv" changes\n` +
         `  Remove:  rm -rf "${repoRoot}/.adv/changes"  # after confirming specs are preserved`,

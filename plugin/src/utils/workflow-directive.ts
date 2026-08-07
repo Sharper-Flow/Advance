@@ -17,8 +17,8 @@
  * No persistence, no caching, no `defineUpdate`. Equal (state, epoch) inputs
  * produce structurally equal output (referentially transparent).
  *
- * Workflow-safe: imports from `../types`, `../temporal/*`, `./buckets`, and
- * `./phase-plan` only. No tools, storage, manifest, or `node:` imports.
+ * Pure: imports from `../types`, `./buckets`, and `./phase-plan` only. No
+ * tools, storage, manifest, or `node:` imports.
  */
 
 import type { GateId, GateReadinessBlocker } from "../types";
@@ -173,10 +173,8 @@ export function deriveWorkflowDirective(
  * and load-bearing reads (gate status, status enrichment) fall back to
  * gate-derived next-action.
  *
- * Intentionally NOT used from `temporal/workflows.ts`: inside the workflow the
- * state is always well-formed and a throw must surface deterministically rather
- * than be masked. Logging is the caller's responsibility — this module stays
- * workflow-safe (no debug-log import, no `node:`).
+ * Logging is the caller's responsibility — this module stays pure (no
+ * debug-log import, no `node:`).
  */
 export function deriveDirectiveSafe(
   state: ChangeState,
