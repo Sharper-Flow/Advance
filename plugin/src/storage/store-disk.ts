@@ -94,7 +94,26 @@ import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
 import { createLogger } from "../utils/debug-log";
 import { createEpicDiskOps } from "./epics-disk";
-import { migrateArtifactMetadataProjections } from "./artifact-metadata-migration";
+
+/** Keep broad list hydration from exhausting the tool timeout on large stores. */
+export const CHANGE_LIST_DEFAULT_VALIDATION_CONCURRENCY = 4;
+
+export async function loadChangesInBatches<T>(
+  ids: string[],
+  concurrency: number,
+  loader: (id: string) => Promise<T>,
+): Promise<T[]> {
+  const boundedConcurrency = Math.max(1, Math.floor(concurrency));
+  const loaded: T[] = [];
+  for (let i = 0; i < ids.length; i += boundedConcurrency) {
+    loaded.push(
+      ...(await Promise.all(
+        ids.slice(i, i + boundedConcurrency).map((id) => loader(id)),
+      )),
+    );
+  }
+  return loaded;
+}
 
 const logger = createLogger("store-disk");
 
@@ -149,15 +168,6 @@ export async function createDiskStore(
   if (paths.external) {
     await mkdir(paths.external, { recursive: true });
   }
-
-  // Repair pre-disk artifact metadata before exposing the store. The migration
-  // is storage-owned and fail-closed: malformed projections are reported and
-  // left untouched by migrateArtifactMetadataProjections.
-  await migrateArtifactMetadataProjections(
-    paths.changes,
-    paths.archive,
-    paths.artifactMetadataMigrationMarker,
-  );
 
   const loadArchivedChanges = async (): Promise<Change[]> => {
     const archiveDirs = await listChangeDirs(paths.archive);
@@ -279,6 +289,16 @@ export async function createDiskStore(
           } satisfies NonNullable<ProjectConfig["features"]>,
         });
       }
+      // Repair pre-disk artifact metadata only on the authoritative
+      // initialization path. Snapshot reads must not scan or rewrite the
+      // target project's projections while constructing a read store.
+      const { migrateArtifactMetadataProjections } =
+        await import("./artifact-metadata-migration");
+      await migrateArtifactMetadataProjections(
+        paths.changes,
+        paths.archive,
+        paths.artifactMetadataMigrationMarker,
+      );
     },
     sync: async () => {
       // No-op — disk is the source of truth in this backend.
@@ -372,7 +392,11 @@ export async function createDiskStore(
     // -------------------------------------------------------------------
     changes: {
       list: async (filter) => {
-        const ids = await listChangeDirs(paths.changes);
+        const discoveredIds = await listChangeDirs(paths.changes);
+        const ids =
+          filter?.maxCandidates === undefined
+            ? discoveredIds
+            : discoveredIds.slice(0, Math.max(0, filter.maxCandidates));
         // When status is explicitly "archived"/"closed", auto-enable the
         // corresponding include flag so the status filter isn't immediately
         // undone by the exclusion below.
@@ -382,18 +406,14 @@ export async function createDiskStore(
           filter?.includeClosed || filter?.status === "closed";
         const concurrency = Math.max(
           1,
-          Math.floor(filter?.validationConcurrency ?? Math.max(ids.length, 1)),
+          Math.floor(
+            filter?.validationConcurrency ??
+              Math.min(ids.length, CHANGE_LIST_DEFAULT_VALIDATION_CONCURRENCY),
+          ),
         );
-        const loaded: Awaited<ReturnType<typeof loadChange>>[] = [];
-        for (let i = 0; i < ids.length; i += concurrency) {
-          loaded.push(
-            ...(await Promise.all(
-              ids
-                .slice(i, i + concurrency)
-                .map((id) => loadChange(paths.changes, id)),
-            )),
-          );
-        }
+        const loaded = await loadChangesInBatches(ids, concurrency, (id) =>
+          loadChange(paths.changes, id),
+        );
         let changes = loaded
           .filter((r): r is { success: true; data: Change } =>
             Boolean(r.success && r.data),

@@ -314,6 +314,8 @@ export interface ReadStore extends StoreBase {
       offset?: number;
       /** Internal caller-specific cap for per-change hydration. */
       validationConcurrency?: number;
+      /** Internal caller-specific cap for diagnostic hydration. */
+      maxCandidates?: number;
     }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<LoadResult<Change | null>>;
   };
@@ -686,6 +688,8 @@ export interface Store extends ReadStore, CommandStore {
        * this to keep its request-wide Store work within its four-read budget.
        */
       validationConcurrency?: number;
+      /** Internal caller-specific cap for diagnostic hydration. */
+      maxCandidates?: number;
     }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<LoadResult<Change | null>>;
     /**

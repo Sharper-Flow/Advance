@@ -11,6 +11,42 @@ import { SAMPLE_CHANGE } from "../__tests__/setup";
 
 const mockGetWorktreeCensus = vi.hoisted(() => vi.fn());
 const mockScanSnapshotHealth = vi.hoisted(() => vi.fn());
+const targetStoreRef = vi.hoisted(() => ({ current: null as Store | null }));
+const mockWithTargetPathStore = vi.hoisted(() =>
+  vi.fn(
+    async (
+      input: {
+        store: Store;
+        target_path: string;
+        mutation?: boolean;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
+      fn: (scope: { store: Store; context: unknown }) => Promise<string>,
+    ) => {
+      if (
+        input.mutation &&
+        (!input.target_confirmed || !input.confirmationEvidence?.trim())
+      ) {
+        throw new Error(
+          "Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence",
+        );
+      }
+      const targetStore = targetStoreRef.current ?? input.store;
+      return fn({
+        store: targetStore,
+        context: {
+          root: targetStore.paths.root,
+          projectId: "target-project",
+          externalRoot: targetStore.paths.external,
+          trusted: Boolean(input.target_confirmed),
+          trustSource: "explicit",
+          stateMode: "disk-snapshot",
+        },
+      });
+    },
+  ),
+);
 
 vi.mock("../utils/worktree-census", () => ({
   getWorktreeCensus: mockGetWorktreeCensus,
@@ -18,6 +54,11 @@ vi.mock("../utils/worktree-census", () => ({
 
 vi.mock("./snapshot-scan", () => ({
   scanSnapshotHealth: mockScanSnapshotHealth,
+}));
+
+vi.mock("./target-project", () => ({
+  formatTargetProjectContext: (context: Record<string, unknown>) => context,
+  withTargetPathStore: mockWithTargetPathStore,
 }));
 
 function makeStore(root: string, overrides: Partial<Store> = {}): Store {
@@ -58,11 +99,14 @@ describe("adv_doctor disk diagnostics", () => {
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "adv-doctor-test-"));
     setHealthyProbes();
+    targetStoreRef.current = null;
+    mockWithTargetPathStore.mockClear();
     setDoctorPointerRepairProvider(null);
   });
 
   afterEach(async () => {
     setDoctorPointerRepairProvider(null);
+    targetStoreRef.current = null;
     await rm(root, { recursive: true, force: true });
   });
 
@@ -73,9 +117,8 @@ describe("adv_doctor disk diagnostics", () => {
   });
 
   test("healthy disk state returns verified predicates without fixes", async () => {
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const store = makeStore(root);
+    const parsed = JSON.parse(await doctorTools.adv_doctor.execute({}, store));
 
     expect(parsed.success).toBe(true);
     expect(parsed.findings).toEqual(
@@ -83,6 +126,9 @@ describe("adv_doctor disk diagnostics", () => {
     );
     expect(parsed.fixes_applied).toEqual([]);
     expect(parsed.fixes_refused).toEqual([]);
+    expect(parsed.verification.projection_scan.status).toBe("complete");
+    expect(store.status).toHaveBeenCalledTimes(1);
+    expect(store.changes.list).toHaveBeenCalledTimes(1);
     expect(parsed.verification).toMatchObject({
       healthy: true,
       projection_readable: true,
@@ -90,6 +136,28 @@ describe("adv_doctor disk diagnostics", () => {
       session_pointer_sane: true,
       worktree_census_reachable: true,
     });
+  });
+
+  test("returns partial projection evidence instead of claiming a full scan", async () => {
+    for (let index = 0; index < 65; index++) {
+      const directory = join(root, "changes", `change-${index}`);
+      await mkdir(directory, { recursive: true });
+      await writeFile(
+        join(directory, "change.json"),
+        JSON.stringify({ ...SAMPLE_CHANGE, id: `change-${index}` }),
+      );
+    }
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
+    );
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.verification.canonical_projection_consistent).toBe(false);
+    const scan = parsed.verification.projection_scan;
+    expect(["partial", "budget_exceeded"]).toContain(scan.status);
+    expect(scan.scanned).toBeLessThanOrEqual(64);
+    expect(scan.scanned + scan.omitted).toBe(65);
   });
 
   test("projection failures are reported as unhealthy rather than hidden", async () => {
@@ -106,6 +174,65 @@ describe("adv_doctor disk diagnostics", () => {
         expect.objectContaining({
           class: "unhealthy",
           finding: "projectionReadable",
+        }),
+      ]),
+    );
+  });
+
+  test("malformed canonical change is reported as an unhealthy divergence", async () => {
+    const changeId = "malformed-canonical-change";
+    await mkdir(join(root, "changes", changeId), { recursive: true });
+    await writeFile(
+      join(root, "changes", changeId, "change.json"),
+      "{ malformed json",
+    );
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
+    );
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.verification.healthy).toBe(false);
+    expect(parsed.verification.canonical_projection_consistent).toBe(false);
+    expect(parsed.verification.projection_scan).toMatchObject({
+      status: "complete",
+      scanned: 1,
+      omitted: 0,
+      divergence_count: 1,
+    });
+    expect(parsed.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          class: "unhealthy",
+          finding: "canonical_projection_divergence",
+          detail: expect.stringContaining("corrupt"),
+        }),
+      ]),
+    );
+  });
+
+  test("schema-invalid canonical change is reported as an unhealthy divergence", async () => {
+    const changeId = "schema-invalid-canonical-change";
+    await mkdir(join(root, "changes", changeId), { recursive: true });
+    await writeFile(
+      join(root, "changes", changeId, "change.json"),
+      JSON.stringify({ id: changeId }),
+    );
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
+    );
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.verification.healthy).toBe(false);
+    expect(parsed.verification.canonical_projection_consistent).toBe(false);
+    expect(parsed.verification.projection_scan.divergence_count).toBe(1);
+    expect(parsed.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          class: "unhealthy",
+          finding: "canonical_projection_divergence",
+          detail: expect.stringContaining("schema_error"),
         }),
       ]),
     );
@@ -256,5 +383,92 @@ describe("adv_doctor disk diagnostics", () => {
     expect(doctorTools.adv_doctor.args).not.toHaveProperty(
       "approvedLockReclaim",
     );
+  });
+
+  test("rejects an untrusted target_path without confirmation", async () => {
+    await expect(
+      doctorTools.adv_doctor.execute(
+        { target_path: "/target/project" },
+        makeStore(root),
+      ),
+    ).rejects.toThrow(/target_confirmed.*confirmationEvidence/i);
+    expect(mockWithTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target/project",
+        mutation: true,
+        stateRequirement: "snapshot-ok",
+      }),
+      expect.any(Function),
+    );
+  });
+
+  test("confirmed target_path routes diagnostics to the target store", async () => {
+    const currentStore = makeStore(root);
+    const targetStore = makeStore(join(root, "target"));
+    targetStoreRef.current = targetStore;
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute(
+        {
+          target_path: "/target/project",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target doctor",
+        },
+        currentStore,
+      ),
+    );
+
+    expect(mockWithTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target_path: "/target/project",
+        mutation: true,
+        stateRequirement: "snapshot-ok",
+        target_confirmed: true,
+        confirmationEvidence: "user approved target doctor",
+      }),
+      expect.any(Function),
+    );
+    expect(targetStore.status).toHaveBeenCalled();
+    expect(currentStore.status).not.toHaveBeenCalled();
+    expect(parsed._projectContext).toEqual(
+      expect.objectContaining({ root: targetStore.paths.root }),
+    );
+  });
+
+  test("foreign target diagnostics do not probe or clear the current-session pointer", async () => {
+    const provider = {
+      getActivePointer: vi.fn(() => "phantom-change"),
+      clearActivePointer: vi.fn(),
+    };
+    setDoctorPointerRepairProvider(provider);
+    targetStoreRef.current = makeStore(join(root, "foreign-target"));
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute(
+        {
+          target_path: "/foreign/project",
+          target_confirmed: true,
+          confirmationEvidence: "user approved foreign target doctor",
+        },
+        makeStore(root),
+      ),
+    );
+
+    expect(provider.getActivePointer).not.toHaveBeenCalled();
+    expect(provider.clearActivePointer).not.toHaveBeenCalled();
+    expect(parsed.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          class: "informational",
+          finding: "session_pointer_out_of_scope",
+        }),
+      ]),
+    );
+    expect(parsed.findings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ class: "phantom_pointer" }),
+      ]),
+    );
+    expect(parsed.verification.session_pointer_sane).toBe(true);
   });
 });

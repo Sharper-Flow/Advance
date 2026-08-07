@@ -15,6 +15,15 @@ import { getWorktreeCensus } from "../utils/worktree-census";
 import { scanSnapshotHealth } from "./snapshot-scan";
 import { findProjectionDivergences } from "../storage/projection-health";
 import { reclaimDeadWorkerLock } from "../storage/worker-lock";
+import {
+  formatTargetProjectContext,
+  withTargetPathStore,
+} from "./target-project";
+
+const DOCTOR_CHANGE_READ_CONCURRENCY = 4;
+const DOCTOR_CHANGE_READ_LIMIT = 32;
+const DOCTOR_PROJECTION_SCAN_LIMIT = 64;
+const DOCTOR_PROJECTION_SCAN_BUDGET_MS = 1500;
 
 export type DoctorFindingClass =
   | "healthy"
@@ -54,6 +63,12 @@ interface DoctorVerification {
   worktree_census_reachable: boolean;
   canonical_projection_consistent: boolean;
   worker_lock_sane: boolean;
+  projection_scan: {
+    status: "complete" | "partial" | "budget_exceeded";
+    scanned: number;
+    omitted: number;
+    divergence_count: number;
+  };
   rechecked_at: string;
 }
 
@@ -113,9 +128,12 @@ async function probeDiskState(
   let projectionReadable = false;
   try {
     await Promise.all([
-      store.status(),
+      store.status({ recentLimit: 10, sourceRanked: true }),
       store.specs.list(),
-      store.changes.list({}),
+      store.changes.list({
+        maxCandidates: DOCTOR_CHANGE_READ_LIMIT,
+        validationConcurrency: DOCTOR_CHANGE_READ_CONCURRENCY,
+      }),
     ]);
     projectionReadable = true;
   } catch (err) {
@@ -155,20 +173,31 @@ async function probeDiskState(
     );
   }
 
-  const projectionDivergences = await findProjectionDivergences({
-    changesDir: store.paths.changes,
-    summariesDir:
-      store.paths.summariesDir ??
-      join(dirname(store.paths.changes), "summaries"),
-  });
-  if (projectionDivergences.length > 0) {
+  const projectionDivergences = await findProjectionDivergences(
+    {
+      changesDir: store.paths.changes,
+      summariesDir:
+        store.paths.summariesDir ??
+        join(dirname(store.paths.changes), "summaries"),
+    },
+    {
+      maxChanges: DOCTOR_PROJECTION_SCAN_LIMIT,
+      budgetMs: DOCTOR_PROJECTION_SCAN_BUDGET_MS,
+    },
+  );
+  if (projectionDivergences.divergences.length > 0) {
     errors.push(
-      projectionDivergences
+      projectionDivergences.divergences
         .map(
           (divergence) =>
             `${divergence.change_id}: ${divergence.reasons.join(", ")}`,
         )
         .join("; "),
+    );
+  }
+  if (projectionDivergences.truncated || projectionDivergences.budgetExceeded) {
+    errors.push(
+      `projection divergence scan was ${projectionDivergences.budgetExceeded ? "budget-exhausted" : "bounded"}; ${projectionDivergences.omitted} projection(s) were not inspected`,
     );
   }
 
@@ -189,7 +218,10 @@ async function probeDiskState(
     projectionReadable,
     snapshotIntegrity,
     worktreeCensusReachable,
-    canonicalProjectionConsistent: projectionDivergences.length === 0,
+    canonicalProjectionConsistent:
+      projectionDivergences.divergences.length === 0 &&
+      !projectionDivergences.truncated &&
+      !projectionDivergences.budgetExceeded,
     projectionDivergences,
     workerLockSane,
     workerLockReclaimed:
@@ -201,6 +233,7 @@ async function probeDiskState(
 async function probeSessionPointer(
   store: Store,
   projectId: string | undefined,
+  enabled = true,
 ): Promise<{
   sane: boolean;
   probe: {
@@ -208,6 +241,8 @@ async function probeSessionPointer(
     evidence: string;
   } | null;
 }> {
+  if (!enabled) return { sane: true, probe: null };
+
   const activePointer = pointerRepairProvider?.getActivePointer() ?? null;
   if (!pointerRepairProvider || !activePointer || !projectId) {
     return { sane: true, probe: null };
@@ -277,159 +312,215 @@ export const doctorTools = {
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
     },
-    execute: async (_args: DoctorInput, store: Store): Promise<string> => {
-      const projectId = projectFromStore(store);
-      const findings: DoctorFinding[] = [];
-      const fixesApplied: DoctorFixApplied[] = [];
-      const fixesRefused: DoctorFixRefused[] = [];
-      const startedAt = new Date().toISOString();
-
-      const initialDisk = await probeDiskState(store, projectId);
-      const initialPointer = await probeSessionPointer(store, projectId);
-      const initialChecks = {
-        projectionReadable: initialDisk.projectionReadable,
-        snapshotIntegrity: initialDisk.snapshotIntegrity,
-        sessionPointerSane: initialPointer.sane,
-        worktreeCensusReachable: initialDisk.worktreeCensusReachable,
-        canonicalProjectionConsistent:
-          initialDisk.canonicalProjectionConsistent,
-        workerLockSane: initialDisk.workerLockSane,
-      };
-
-      if (initialDisk.workerLockReclaimed) {
-        fixesApplied.push({
-          class: "informational",
-          action: "remove_dead_worker_lock",
-          outcome: "applied",
-          evidence: `Removed retired worker.lock for dead PID ${initialDisk.workerLockReclaimed.pid}.`,
-        });
+    execute: async (args: DoctorInput, store: Store): Promise<string> => {
+      if (!args.target_path) {
+        return executeDoctor(store, projectFromStore(store));
       }
 
-      for (const [name, passed] of Object.entries(initialChecks)) {
-        if (!passed) {
-          if (name === "canonicalProjectionConsistent") {
-            for (const divergence of initialDisk.projectionDivergences) {
-              addNonHealthyFinding(findings, {
-                class: "unhealthy",
-                finding: "canonical_projection_divergence",
-                detail: `${divergence.change_id}: ${divergence.reasons.join("; ")}`,
-                severity: "error",
-              });
-            }
-            continue;
-          }
-          addNonHealthyFinding(findings, {
-            class: "unhealthy",
-            finding: name,
-            detail:
-              initialDisk.errors.join("; ") ||
-              "disk probe reported an unhealthy state",
-          });
-        }
-      }
-
-      if (initialPointer.probe && !initialPointer.sane) {
-        addNonHealthyFinding(findings, {
-          class: "phantom_pointer",
-          detail: `Session active-change pointer is not sane (${initialPointer.probe.evidence})`,
-        });
-      }
-
-      if (findings.length === 0) {
-        findings.push({ class: "healthy", detail: "All disk checks passed" });
-      }
-
-      const activePointer = pointerRepairProvider?.getActivePointer() ?? null;
-      const phantomProbe = initialPointer.probe;
-      for (const finding of findings) {
-        if (finding.class !== "phantom_pointer") continue;
-        if (
-          phantomProbe?.status === "confirmed_absent" &&
-          pointerRepairProvider
-        ) {
-          const before = activePointer;
-          try {
-            pointerRepairProvider.clearActivePointer();
-            fixesApplied.push({
-              class: "phantom_pointer",
-              action: "clear_session_pointer",
-              outcome: "applied",
-              before,
-              after: null,
-              evidence: `Cleared phantom session pointer '${before}': ${phantomProbe.evidence}`,
-            });
-          } catch (err) {
-            fixesApplied.push({
-              class: "phantom_pointer",
-              action: "clear_session_pointer",
-              outcome: "failed",
-              before,
-              evidence: `clearActivePointer threw: ${err instanceof Error ? err.message : String(err)}`,
-            });
-          }
-        } else {
-          fixesRefused.push({
-            class: "phantom_pointer",
-            outcome: "approval_required",
-            operator_action:
-              "Confirm the session pointer target or clear it explicitly, then rerun adv_doctor.",
-            proposal: `Session pointer '${activePointer ?? "unknown"}' could not be proven sane. Doctor refuses to clear an indeterminate pointer.`,
-            evidence: phantomProbe?.evidence ?? "no probe result",
-          });
-        }
-      }
-
-      const recheckDisk = await probeDiskState(store, projectId);
-      const recheckPointer = await probeSessionPointer(store, projectId);
-      const verification: DoctorVerification = {
-        healthy:
-          recheckDisk.projectionReadable &&
-          recheckDisk.snapshotIntegrity &&
-          recheckPointer.sane &&
-          recheckDisk.worktreeCensusReachable &&
-          recheckDisk.canonicalProjectionConsistent &&
-          recheckDisk.workerLockSane,
-        projection_readable: recheckDisk.projectionReadable,
-        snapshot_integrity: recheckDisk.snapshotIntegrity,
-        session_pointer_sane: recheckPointer.sane,
-        worktree_census_reachable: recheckDisk.worktreeCensusReachable,
-        canonical_projection_consistent:
-          recheckDisk.canonicalProjectionConsistent,
-        worker_lock_sane: recheckDisk.workerLockSane,
-        rechecked_at: new Date().toISOString(),
-      };
-
-      const appliedCount = fixesApplied.filter(
-        (fix) => fix.outcome === "applied",
-      ).length;
-      const failedCount = fixesApplied.filter(
-        (fix) => fix.outcome === "failed",
-      ).length;
-      const refusedCount = fixesRefused.length;
-      const success =
-        verification.healthy && failedCount === 0 && refusedCount === 0;
-
-      return formatToolOutput({
-        success,
-        started_at: startedAt,
-        findings,
-        fixes_applied: fixesApplied,
-        fixes_refused: fixesRefused,
-        verification,
-        ...(appliedCount > 0
-          ? {
-              note: "Disk repair applied; verification reflects the repaired state.",
-            }
-          : {}),
-        recommendedNextAction:
-          refusedCount > 0
-            ? `${refusedCount} approval-required proposal(s) returned; resolve them and rerun adv_doctor.`
-            : failedCount > 0
-              ? `${failedCount} disk repair(s) failed; rerun adv_doctor after resolving the reported error.`
-              : verification.healthy
-                ? "System healthy; no action needed."
-                : "Disk state is unhealthy; inspect the reported predicates and rerun adv_doctor.",
-      });
+      return withTargetPathStore(
+        {
+          currentProjectPath: store.paths.root,
+          target_path: args.target_path,
+          mutation: true,
+          stateRequirement: "snapshot-ok",
+          target_confirmed: args.target_confirmed,
+          confirmationEvidence: args.confirmationEvidence,
+        },
+        async ({ context, store: targetStore }) =>
+          executeDoctor(
+            targetStore,
+            projectFromStore(targetStore),
+            formatTargetProjectContext(context),
+            context.trustSource === "current_project",
+          ),
+      );
     },
   },
 };
+
+async function executeDoctor(
+  store: Store,
+  projectId: string | undefined,
+  projectContext?: unknown,
+  sessionPointerEnabled = true,
+): Promise<string> {
+  const findings: DoctorFinding[] = [];
+  const fixesApplied: DoctorFixApplied[] = [];
+  const fixesRefused: DoctorFixRefused[] = [];
+  const startedAt = new Date().toISOString();
+
+  const initialDisk = await probeDiskState(store, projectId);
+  const initialPointer = await probeSessionPointer(
+    store,
+    projectId,
+    sessionPointerEnabled,
+  );
+  const initialChecks = {
+    projectionReadable: initialDisk.projectionReadable,
+    snapshotIntegrity: initialDisk.snapshotIntegrity,
+    sessionPointerSane: initialPointer.sane,
+    worktreeCensusReachable: initialDisk.worktreeCensusReachable,
+    canonicalProjectionConsistent: initialDisk.canonicalProjectionConsistent,
+    workerLockSane: initialDisk.workerLockSane,
+  };
+
+  if (initialDisk.workerLockReclaimed) {
+    fixesApplied.push({
+      class: "informational",
+      action: "remove_dead_worker_lock",
+      outcome: "applied",
+      evidence: `Removed retired worker.lock for dead PID ${initialDisk.workerLockReclaimed.pid}.`,
+    });
+  }
+
+  for (const [name, passed] of Object.entries(initialChecks)) {
+    if (!passed) {
+      if (name === "canonicalProjectionConsistent") {
+        for (const divergence of initialDisk.projectionDivergences
+          .divergences) {
+          addNonHealthyFinding(findings, {
+            class: "unhealthy",
+            finding: "canonical_projection_divergence",
+            detail: `${divergence.change_id}: ${divergence.reasons.join("; ")}`,
+            severity: "error",
+          });
+        }
+        continue;
+      }
+      addNonHealthyFinding(findings, {
+        class: "unhealthy",
+        finding: name,
+        detail:
+          initialDisk.errors.join("; ") ||
+          "disk probe reported an unhealthy state",
+      });
+    }
+  }
+
+  if (!sessionPointerEnabled) {
+    addNonHealthyFinding(findings, {
+      class: "informational",
+      finding: "session_pointer_out_of_scope",
+      detail:
+        "Current-session pointer was not probed or repaired for a foreign target project.",
+    });
+  } else if (initialPointer.probe && !initialPointer.sane) {
+    addNonHealthyFinding(findings, {
+      class: "phantom_pointer",
+      detail: `Session active-change pointer is not sane (${initialPointer.probe.evidence})`,
+    });
+  }
+
+  if (findings.length === 0) {
+    findings.push({ class: "healthy", detail: "All disk checks passed" });
+  }
+
+  const activePointer = sessionPointerEnabled
+    ? (pointerRepairProvider?.getActivePointer() ?? null)
+    : null;
+  const phantomProbe = initialPointer.probe;
+  for (const finding of findings) {
+    if (finding.class !== "phantom_pointer") continue;
+    if (phantomProbe?.status === "confirmed_absent" && pointerRepairProvider) {
+      const before = activePointer;
+      try {
+        pointerRepairProvider.clearActivePointer();
+        fixesApplied.push({
+          class: "phantom_pointer",
+          action: "clear_session_pointer",
+          outcome: "applied",
+          before,
+          after: null,
+          evidence: `Cleared phantom session pointer '${before}': ${phantomProbe.evidence}`,
+        });
+      } catch (err) {
+        fixesApplied.push({
+          class: "phantom_pointer",
+          action: "clear_session_pointer",
+          outcome: "failed",
+          before,
+          evidence: `clearActivePointer threw: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    } else {
+      fixesRefused.push({
+        class: "phantom_pointer",
+        outcome: "approval_required",
+        operator_action:
+          "Confirm the session pointer target or clear it explicitly, then rerun adv_doctor.",
+        proposal: `Session pointer '${activePointer ?? "unknown"}' could not be proven sane. Doctor refuses to clear an indeterminate pointer.`,
+        evidence: phantomProbe?.evidence ?? "no probe result",
+      });
+    }
+  }
+
+  const appliedCount = fixesApplied.filter(
+    (fix) => fix.outcome === "applied",
+  ).length;
+  const shouldRecheck =
+    appliedCount > 0 &&
+    !initialDisk.projectionDivergences.budgetExceeded &&
+    !initialDisk.projectionDivergences.truncated;
+  const recheckDisk = shouldRecheck
+    ? await probeDiskState(store, projectId)
+    : initialDisk;
+  const recheckPointer = shouldRecheck
+    ? await probeSessionPointer(store, projectId, sessionPointerEnabled)
+    : initialPointer;
+  const verification: DoctorVerification = {
+    healthy:
+      recheckDisk.projectionReadable &&
+      recheckDisk.snapshotIntegrity &&
+      recheckPointer.sane &&
+      recheckDisk.worktreeCensusReachable &&
+      recheckDisk.canonicalProjectionConsistent &&
+      recheckDisk.workerLockSane,
+    projection_readable: recheckDisk.projectionReadable,
+    snapshot_integrity: recheckDisk.snapshotIntegrity,
+    session_pointer_sane: recheckPointer.sane,
+    worktree_census_reachable: recheckDisk.worktreeCensusReachable,
+    canonical_projection_consistent: recheckDisk.canonicalProjectionConsistent,
+    worker_lock_sane: recheckDisk.workerLockSane,
+    projection_scan: {
+      status: recheckDisk.projectionDivergences.budgetExceeded
+        ? "budget_exceeded"
+        : recheckDisk.projectionDivergences.truncated
+          ? "partial"
+          : "complete",
+      scanned: recheckDisk.projectionDivergences.scanned,
+      omitted: recheckDisk.projectionDivergences.omitted,
+      divergence_count: recheckDisk.projectionDivergences.divergences.length,
+    },
+    rechecked_at: new Date().toISOString(),
+  };
+
+  const failedCount = fixesApplied.filter(
+    (fix) => fix.outcome === "failed",
+  ).length;
+  const refusedCount = fixesRefused.length;
+  const success =
+    verification.healthy && failedCount === 0 && refusedCount === 0;
+
+  return formatToolOutput({
+    success,
+    started_at: startedAt,
+    findings,
+    fixes_applied: fixesApplied,
+    fixes_refused: fixesRefused,
+    verification,
+    ...(projectContext ? { _projectContext: projectContext } : {}),
+    ...(appliedCount > 0
+      ? {
+          note: "Disk repair applied; verification reflects the repaired state.",
+        }
+      : {}),
+    recommendedNextAction:
+      refusedCount > 0
+        ? `${refusedCount} approval-required proposal(s) returned; resolve them and rerun adv_doctor.`
+        : failedCount > 0
+          ? `${failedCount} disk repair(s) failed; rerun adv_doctor after resolving the reported error.`
+          : verification.healthy
+            ? "System healthy; no action needed."
+            : "Disk state is unhealthy; inspect the reported predicates and rerun adv_doctor.",
+  });
+}
