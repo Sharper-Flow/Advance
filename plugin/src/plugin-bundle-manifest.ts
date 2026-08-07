@@ -14,8 +14,8 @@
  *     before the bundler runs and never recomputed from the final bytes.
  *   - `files.index` is the SHA-256 of the final `index.js` and is diagnostic
  *     only; equality of `generation` is the staleness authority.
- *   - `files.mcp-server` is the SHA-256 of the final `mcp-server.js` and is
- *     diagnostic only.
+ *   - `files.mcp-server` and `files.reconcile-cli` are SHA-256s of their final
+ *     bundles and are diagnostic only.
  *   - The manifest is written LAST (after both bundle files exist) via temp-file
  *     + rename so concurrent readers never observe a partial write.
  */
@@ -30,14 +30,20 @@ export const PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION = 1;
 
 export const PLUGIN_BUNDLE_STALE_ADVISORY = "PLUGIN_BUNDLE_STALE";
 
-export type PluginBundleFile = "index" | "mcp-server";
+export type PluginBundleFile = "index" | "mcp-server" | "reconcile-cli";
+
+export interface PluginBundleFiles {
+  index: string;
+  "mcp-server"?: string;
+  "reconcile-cli"?: string;
+}
 
 export interface PluginBundleManifest {
   schema_version: typeof PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION;
   /** Opaque pre-bundle generation token. */
   generation: string;
   /** Per-file SHA-256 hex digests keyed by bundle file name. */
-  files: Record<PluginBundleFile, string>;
+  files: PluginBundleFiles;
   /** ISO timestamp of when the manifest was written. */
   built_at: string;
 }
@@ -134,7 +140,8 @@ async function hashFileSha256(path: string): Promise<string> {
 }
 
 /**
- * Hash the plugin bundle's `index.js` and `mcp-server.js` and atomically write
+ * Hash the plugin bundle's `index.js`, `mcp-server.js`, and `reconcile-cli.js`
+ * and atomically write
  * the manifest into `distDir`. Must run AFTER the bundler has finished writing
  * both artifacts (the manifest is the LAST write of the plugin build). Throws
  * when either artifact is missing — a build that cannot produce both bundles
@@ -147,8 +154,9 @@ export async function writePluginBundleManifest(
 ): Promise<PluginBundleManifest> {
   const indexPath = join(distDir, "index.js");
   const mcpServerPath = join(distDir, "mcp-server.js");
+  const reconcileCliPath = join(distDir, "reconcile-cli.js");
 
-  const [indexSha256, mcpServerSha256] = await Promise.all([
+  const [indexSha256, mcpServerSha256, reconcileCliSha256] = await Promise.all([
     hashFileSha256(indexPath).catch((err: NodeJS.ErrnoException) => {
       throw new Error(
         `Cannot write plugin bundle manifest: index.js is missing from ${distDir} (${err.code ?? err.message}).`,
@@ -159,13 +167,22 @@ export async function writePluginBundleManifest(
         `Cannot write plugin bundle manifest: mcp-server.js is missing from ${distDir} (${err.code ?? err.message}).`,
       );
     }),
+    hashFileSha256(reconcileCliPath).catch((err: NodeJS.ErrnoException) => {
+      throw new Error(
+        `Cannot write plugin bundle manifest: reconcile-cli.js is missing from ${distDir} (${err.code ?? err.message}).`,
+      );
+    }),
   ]);
 
   const builtAt = (options.now ?? (() => new Date()))().toISOString();
   const manifest: PluginBundleManifest = {
     schema_version: PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION,
     generation,
-    files: { index: indexSha256, "mcp-server": mcpServerSha256 },
+    files: {
+      index: indexSha256,
+      "mcp-server": mcpServerSha256,
+      "reconcile-cli": reconcileCliSha256,
+    },
     built_at: builtAt,
   };
 
@@ -223,6 +240,13 @@ export async function readPluginBundleManifest(
     "mcp-server" in files &&
     (typeof files["mcp-server"] !== "string" ||
       !/^[0-9a-f]{64}$/.test(files["mcp-server"]))
+  ) {
+    return null;
+  }
+  if (
+    "reconcile-cli" in files &&
+    (typeof files["reconcile-cli"] !== "string" ||
+      !/^[0-9a-f]{64}$/.test(files["reconcile-cli"]))
   ) {
     return null;
   }

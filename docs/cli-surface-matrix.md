@@ -58,6 +58,7 @@
 | `adv dashboard` | read-only local server | Serves configured state over loopback by default |
 | `adv dashboard doctor` | read-only diagnostics | Checks service health and prints remediation |
 | `adv dashboard install` | mutates local user state | Writes dashboard config/systemd unit and enables the user service; use `--dry-run` to preview |
+| `adv reconcile` | operator-only plan/apply | Bundled disk-only reconciliation handler shared with `adv_store_reconcile`; plan/dry-run emit `plan_hash`, apply requires matching approval and preserves typed refusal exit codes |
 
 ## Tool Matrix
 
@@ -85,6 +86,7 @@
 | `adv_snapshot_health` | `mcp+cli-additive` | CLI scan additive; repair remains approval-gated MCP-only |
 | `adv_store_consolidate` | `keep-mcp-only` | Ops recovery tool; scan/dry_run read-only, execute approval-gated |
 | `adv_store_cleanup` | `keep-mcp-only` | Maintenance-only legacy agenda cleanup; scan/dry_run read-only, execute approval-gated |
+| `adv_store_reconcile` | `mcp+cli-additive` | Operator-only MCP and `bin/adv reconcile` surfaces share the same plan/dry-run/apply handler and approval contract |
 | `adv_session_list` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_session_show` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_worktree_triage` | `mcp+cli-additive` | Human inventory/report; additive CLI output |

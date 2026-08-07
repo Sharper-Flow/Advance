@@ -17,7 +17,7 @@
   "author": "Anomaly",
   "scripts": {
     "build": "tsx scripts/build-plugin.ts && pnpm run build:identity",
-    "build:mcp-server": "tsup src/mcp-server/index.ts --format esm --out-dir dist --no-splitting",
+    "build:mcp-server": "tsup src/mcp-server/index.ts src/reconcile-cli.ts --format esm --out-dir dist --no-splitting",
     "build:identity": "tsx scripts/write-build-identity.ts",
     "dev": "tsup src/index.ts --format esm --watch",
     "check": "pnpm run schemas:check && pnpm run typecheck && pnpm run generate:manifests:check && tsx scripts/check-frontmatter.ts && tsx scripts/check-test-isolation.ts && tsx scripts/check-lockfile-policy.ts && pnpm run lint && pnpm run format:check",

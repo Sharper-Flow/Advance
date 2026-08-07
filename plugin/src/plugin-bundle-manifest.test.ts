@@ -38,6 +38,7 @@ const tempDistDir = async (withFiles = true) => {
   if (withFiles) {
     await writeFile(join(dir, "index.js"), "// plugin bundle v1\n");
     await writeFile(join(dir, "mcp-server.js"), "// mcp server bundle v1\n");
+    await writeFile(join(dir, "reconcile-cli.js"), "// reconcile bundle v1\n");
   }
   return dir;
 };
@@ -62,6 +63,9 @@ describe("plugin bundle manifest", () => {
     expect(manifest.files["mcp-server"]).toBe(
       sha256("// mcp server bundle v1\n"),
     );
+    expect(manifest.files["reconcile-cli"]).toBe(
+      sha256("// reconcile bundle v1\n"),
+    );
     expect(manifest.built_at).toBe(NOW.toISOString());
 
     const raw = await readFile(
@@ -72,6 +76,7 @@ describe("plugin bundle manifest", () => {
     expect(parsed.schema_version).toBe(1);
     expect(parsed.files.index).toBe(manifest.files.index);
     expect(parsed.files["mcp-server"]).toBe(manifest.files["mcp-server"]);
+    expect(parsed.files["reconcile-cli"]).toBe(manifest.files["reconcile-cli"]);
   });
 
   test("write is atomic via temp+rename and leaves no temp files", async () => {
@@ -92,6 +97,7 @@ describe("plugin bundle manifest", () => {
     const dir = await createTempDir("plugin-bundle-manifest-");
     tempDirs.push(dir);
     await writeFile(join(dir, "mcp-server.js"), "// mcp only\n");
+    await writeFile(join(dir, "reconcile-cli.js"), "// reconcile only\n");
     await expect(
       writePluginBundleManifest(dir, generatePluginBundleGeneration()),
     ).rejects.toThrow(/index\.js/);
@@ -101,6 +107,7 @@ describe("plugin bundle manifest", () => {
     const dir = await createTempDir("plugin-bundle-manifest-");
     tempDirs.push(dir);
     await writeFile(join(dir, "index.js"), "// index only\n");
+    await writeFile(join(dir, "reconcile-cli.js"), "// reconcile only\n");
     await expect(
       writePluginBundleManifest(dir, generatePluginBundleGeneration()),
     ).rejects.toThrow(/mcp-server\.js/);

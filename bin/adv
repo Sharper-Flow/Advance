@@ -12,6 +12,7 @@
 import { join } from "path";
 import { parseArgs } from "node:util";
 import { mkdir, readFile, writeFile } from "fs/promises";
+import { pathToFileURL } from "node:url";
 
 import { listChanges } from "./lib/changes";
 import {
@@ -77,6 +78,27 @@ const EPIC_READ_ONLY_SUBCOMMANDS = new Set(["list"]);
  * projection with no polling worker to gate the status table.
  */
 const RESUME_ENRICHMENT_BUDGET_MS = 2_000;
+
+/** Load the generated standalone reconciliation bundle, never plugin source. */
+async function runReconcile(argv: string[]): Promise<number> {
+  const bundlePath =
+    process.env.ADV_RECONCILE_CLI_BUNDLE ??
+    join(import.meta.dir, "../plugin/dist/reconcile-cli.js");
+  try {
+    const bundle = (await import(pathToFileURL(bundlePath).href)) as {
+      runReconcileCli?: (args: string[]) => Promise<number>;
+    };
+    if (typeof bundle.runReconcileCli !== "function") {
+      throw new Error("bundle does not export runReconcileCli");
+    }
+    return await bundle.runReconcileCli(argv);
+  } catch (error) {
+    process.stderr.write(
+      `reconcile: standalone bundle unavailable at ${bundlePath}: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    return 2;
+  }
+}
 
 // =============================================================================
 // Subcommands
@@ -583,6 +605,7 @@ SUBCOMMANDS:
   slop-scan            Run deterministic slop scanner
   epic list            Show active Epic IDs from disk projections (JSON-only)
   census               Audit machine-wide ADV stores (read-only)
+  reconcile            Reconcile store residue (plan/dry-run/apply)
 
 FLAGS (global):
   -h, --help              Show this help
@@ -599,6 +622,17 @@ FLAGS (dashboard only):
 FLAGS (dashboard install/doctor):
       --profile pokeedge   Use the PokeEdge dashboard profile
       --dry-run            Preview planned writes/checks before mutation
+
+FLAGS (reconcile):
+      --mode <plan|dry_run|apply>  Select reconciliation mode (default: plan)
+      --plan | --dry-run | --apply  Mode aliases
+      --target-path <path>          Optional target ADV project
+      --target-confirmed            Approve an untrusted target mutation
+      --confirmation-evidence <text> Evidence for target approval
+      --confirm-plan-hash <hash>     Required approval hash for apply
+      --resume-from <run-id>        Resume an interrupted run
+      --max-records <N>             Bound the residue scan
+      --budget-ms <N>               Bound the residue scan time
 
 EXIT CODES:
   0  Success
@@ -720,6 +754,10 @@ async function main(argv: string[]): Promise<number> {
       (censusValues["no-color"] as boolean) ?? false,
       (censusValues.json as boolean) ?? false,
     );
+  }
+
+  if (subcommand === "reconcile") {
+    return runReconcile(argv.slice(1));
   }
 
   if (subcommand === "epic") {

@@ -7,6 +7,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     "mcp-server": "src/mcp-server/index.ts",
+    "reconcile-cli": "src/reconcile-cli.ts",
   },
   format: ["esm"],
   splitting: false,

@@ -220,7 +220,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/mcp-server.js dist/plugin-bundle-manifest.json; do
+	for output_rel in dist/index.js dist/mcp-server.js dist/reconcile-cli.js dist/plugin-bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
@@ -339,6 +339,18 @@ validate_plugin_bundle_manifest() {
 			return 1
 		fi
 		if ! __validate_file_hash "$dist_dir/mcp-server.js" "$expected_mcp_hash" "mcp-server"; then
+			return 1
+		fi
+	fi
+
+	local expected_reconcile_cli_hash
+	expected_reconcile_cli_hash="$(jq -r '.files["reconcile-cli"] // empty' "$manifest_path" 2>/dev/null)"
+	if [ -n "$expected_reconcile_cli_hash" ]; then
+		if ! [[ "$expected_reconcile_cli_hash" =~ ^[0-9a-f]{64}$ ]]; then
+			echo "    ✗  plugin bundle manifest has no valid files.reconcile-cli hash: $manifest_path"
+			return 1
+		fi
+		if ! __validate_file_hash "$dist_dir/reconcile-cli.js" "$expected_reconcile_cli_hash" "reconcile-cli"; then
 			return 1
 		fi
 	fi
@@ -1280,7 +1292,7 @@ fi
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    dry-run: would exclude plugin bundle manifest from payload rsync"
-	echo "    dry-run: would validate copied plugin bundle index"
+	echo "    dry-run: would validate copied plugin bundle index, mcp-server, and reconcile-cli bundles"
 	echo "    dry-run: would publish plugin bundle manifest last"
 else
 	check_rsync || exit 1
@@ -1288,7 +1300,7 @@ else
 	rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME" "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin payload: $ADV_RUNTIME_PLUGIN_PATH"
 	if ! validate_plugin_bundle_manifest "$PLUGIN_BUNDLE_MANIFEST" "$ADV_RUNTIME_PLUGIN_PATH/dist"; then
-		echo "    ✗  refusing to publish plugin bundle manifest: copied index validation failed"
+		echo "    ✗  refusing to publish plugin bundle manifest: copied bundle validation failed"
 		exit 1
 	fi
 	# Copy to a same-directory temporary file and rename it into place. The
