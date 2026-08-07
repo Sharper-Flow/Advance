@@ -110,6 +110,12 @@ export {
   WorktreeDeletionPlanner,
   createWorktreeDeletionPlanner,
 } from "./deletion-planner";
+export {
+  WorktreeDeletionExecutor,
+  executeWorktreeDeletion,
+  applyWorktreeDeletion,
+  executeDeletion,
+} from "./deletion-executor";
 
 /** Maximum retries for worktree state initialization */
 const DB_MAX_RETRIES = 3;

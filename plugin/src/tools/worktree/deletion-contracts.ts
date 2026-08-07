@@ -121,6 +121,11 @@ export const WorktreeDeletionPlanSchema = z
 export type WorktreeDeletionPlan = z.infer<typeof WorktreeDeletionPlanSchema>;
 
 const DeletionFailureStatusSchema = z.enum([
+  "refused",
+  "busy",
+  "indeterminate",
+  "repair_required",
+  "unsupported",
   "invalid_plan",
   "expired",
   "drifted",
@@ -136,6 +141,8 @@ export const WorktreeDeletionResultSchema = z.union([
       status: z.literal("deleted"),
       repository: NonEmptyTextSchema.optional(),
       worktree: NonEmptyTextSchema.optional(),
+      warning: NonEmptyTextSchema.optional(),
+      stage: NonEmptyTextSchema.optional(),
     })
     .strict(),
   z
@@ -143,6 +150,8 @@ export const WorktreeDeletionResultSchema = z.union([
       ok: z.literal(false),
       status: DeletionFailureStatusSchema,
       reason: NonEmptyTextSchema,
+      stage: NonEmptyTextSchema.optional(),
+      warning: NonEmptyTextSchema.optional(),
     })
     .strict(),
 ]);
