@@ -258,7 +258,7 @@ Every ambiguity finding emitted by /adv-proposal MUST include either a verbatim 
 
 **ID:** `rq-prop-context1` | **Priority:** **[MUST]**
 
-After Quick Contract confirmation, /adv-task must always persist contract context to proposal.md, and downstream workflows must tolerate missing or empty legacy proposal files via scaffold fallback warnings.
+After Quick Contract confirmation, /adv-task must always persist contract context to change.documents.proposal as the sole live authority via the proposal parameter; proposal.md is materialized only at archive time via writeArchiveBundleFiles, and downstream workflows must tolerate missing or empty legacy proposal files via scaffold fallback warnings.
 
 **Tags:** `proposal`, `adv-task`, `context`
 
@@ -276,8 +276,8 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **Then:**
 
-- proposal.md is written in the change directory
-- The file includes intent, scope, and user outcomes
+- change.documents.proposal is persisted via the proposal parameter; no proposal.md is written to the active change directory
+- The persisted proposal includes intent, scope, and user outcomes
 
 **Legacy missing proposal is non-blocking** (`rq-prop-context1.2`)
 

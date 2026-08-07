@@ -29,7 +29,7 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 
 **Then:**
 
-- Design decisions from design.md are consumed
+- Design decisions from change.documents.design are consumed
 - Tasks are created via adv_task_add based on validated decisions
 - Tasks are sequenced with proper blocked_by dependencies
 - Architecture correction tasks block feature tasks
@@ -96,7 +96,7 @@ Defines the responsibilities and boundaries of /adv-prep. The prep command is th
 
 **ID:** `rq-prep-synth1` | **Priority:** **[MUST]**
 
-When a change has zero tasks and design gate is complete, /adv-prep must synthesize the full task graph from design decisions in design.md. Tasks must be created in priority order: architecture corrections first, then core implementation, then cross-cutting concerns, then verification.
+When a change has zero tasks and design gate is complete, /adv-prep must synthesize the full task graph from design decisions in change.documents.design. Tasks must be created in priority order: architecture corrections first, then core implementation, then cross-cutting concerns, then verification.
 
 **Tags:** `prep`, `boundary`, `task-synthesis`
 
@@ -113,7 +113,7 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 
 **Then:**
 
-- Design decisions in design.md are read
+- Design decisions in change.documents.design are read
 - Tasks are synthesized from action items and findings
 - Architecture correction tasks are created first with highest priority
 - Core implementation tasks follow with proper dependencies
@@ -173,7 +173,7 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 
 **Given:**
 
-- agreement.md contains approved `AC*` and `SC*` items and design.md is complete
+- change.documents.agreement contains approved `AC*` and `SC*` items and change.documents.design is complete
 
 **When:** /adv-prep synthesizes the task graph
 
@@ -194,7 +194,7 @@ When a change has zero tasks and design gate is complete, /adv-prep must synthes
 **Then:**
 
 - The gap is reported as requiring discovery or design re-entry
-- /adv-prep does not rewrite agreement.md to fix the criterion
+- /adv-prep does not rewrite change.documents.agreement to fix the criterion
 - The planning gate remains pending until the upstream criteria gap is resolved
 
 ---
