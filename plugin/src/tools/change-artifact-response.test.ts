@@ -52,24 +52,11 @@ function storeFor(root: string, created: Change): Store {
     },
     config: null,
     changes: {
+      // Mirrors ChangeCreateStorageResult post-KD2: only the change.json
+      // projection path survives; narrative artifacts live in the projection.
       create: vi.fn(async () => ({
         changeId: created.id,
-        path: join(root, "changes", created.id, "proposal.md"),
-        proposalPath: join(root, "changes", created.id, "proposal.md"),
-        problemStatementPath: join(
-          root,
-          "changes",
-          created.id,
-          "problem-statement.md",
-        ),
-        agreementPath: join(root, "changes", created.id, "agreement.md"),
-        designPath: join(root, "changes", created.id, "design.md"),
-        executiveSummaryPath: join(
-          root,
-          "changes",
-          created.id,
-          "executive-summary.md",
-        ),
+        path: join(root, "changes", created.id, "change.json"),
       })),
       get: vi.fn(async () => ({ success: true, data: created })),
       listSummary: vi.fn(async () => ({ changes: [] })),

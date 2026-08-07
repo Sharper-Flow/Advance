@@ -353,11 +353,7 @@ export async function createChangeScaffold(
   artifacts?: import("../types").ArtifactPayload,
 ): Promise<{
   changePath: string;
-  proposalPath: string;
-  problemStatementPath?: string;
-  agreementPath?: string;
-  designPath?: string;
-  executiveSummaryPath?: string;
+  documents: import("../types").ArtifactPayload;
 }> {
   const proposalContent = artifacts?.proposal;
   const problemStatementContent = artifacts?.problemStatement;
@@ -366,7 +362,6 @@ export async function createChangeScaffold(
   const executiveSummaryContent = artifacts?.executiveSummary;
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
-  const proposalPath = join(changeDir, "proposal.md");
 
   // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
   // before any partial scaffold write so tool-layer bypasses cannot create
@@ -393,7 +388,9 @@ export async function createChangeScaffold(
 
   await mkdir(changeDir, { recursive: true });
 
-  // Create proposal.md template with structured sections
+  // Build the initial projection documents. Narrative markdown is a legacy
+  // read fallback; the projection is the active record for newly-created
+  // changes.
   const defaultProposalContent = `# ${title}
 
 ## Why
@@ -440,51 +437,21 @@ export async function createChangeScaffold(
 - Run full test suite to verify no regressions
 `;
 
-  await atomicWriteFile(
-    proposalPath,
-    proposalContent ?? defaultProposalContent,
-  );
-
-  // Optional narrative artifacts — table-driven so adding a new artifact
-  // is a single descriptor entry rather than four hand-coded if-blocks.
-  // Mirror of the artifact array in updateChangeArtifacts() — keep in sync.
-  const optionalArtifacts = [
-    {
-      key: "problemStatementPath",
-      content: problemStatementContent,
-      filename: "problem-statement.md",
-    },
-    {
-      key: "agreementPath",
-      content: agreementContent,
-      filename: "agreement.md",
-    },
-    { key: "designPath", content: designContent, filename: "design.md" },
-    {
-      key: "executiveSummaryPath",
-      content: executiveSummaryContent,
-      filename: "executive-summary.md",
-    },
-  ] as const;
-
-  const optionalPaths: {
-    problemStatementPath?: string;
-    agreementPath?: string;
-    designPath?: string;
-    executiveSummaryPath?: string;
-  } = {};
-
-  for (const { key, content, filename } of optionalArtifacts) {
-    if (!content) continue;
-    const filePath = join(changeDir, filename);
-    await atomicWriteFile(filePath, content);
-    optionalPaths[key] = filePath;
-  }
-
   return {
     changePath,
-    proposalPath,
-    ...optionalPaths,
+    documents: {
+      proposal: proposalContent ?? defaultProposalContent,
+      ...(problemStatementContent !== undefined
+        ? { problemStatement: problemStatementContent }
+        : {}),
+      ...(agreementContent !== undefined
+        ? { agreement: agreementContent }
+        : {}),
+      ...(designContent !== undefined ? { design: designContent } : {}),
+      ...(executiveSummaryContent !== undefined
+        ? { executiveSummary: executiveSummaryContent }
+        : {}),
+    },
   };
 }
 

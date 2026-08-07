@@ -1,8 +1,11 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtemp, mkdir, readFile, writeFile } from "fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createDiskStore } from "./store-disk";
+import { readArtifact } from "../tools/change/artifacts";
+import { createInRepoArchive } from "../archive/archive";
+import type { Change } from "../types";
 
 async function makeTempProject(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "adv-store-disk-"));
@@ -53,6 +56,73 @@ describe("store-disk — bounded warnings + monotonic IDs", () => {
   afterEach(() => {
     process.env.ADV_DEBUG = originalAdvDebug;
     vi.restoreAllMocks();
+  });
+
+  test("creates artifacts only in change.documents, not active markdown files", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const proposal = "# Projection proposal";
+    const agreement = "# Projection agreement";
+    const created = await store.changes.create("Projection Change", {
+      artifacts: { proposal, agreement },
+    });
+
+    const activeDir = join(dir, ".adv/changes", created.changeId);
+    expect(await readdir(activeDir)).toEqual(["change.json"]);
+    const projection = JSON.parse(
+      await readFile(join(activeDir, "change.json"), "utf-8"),
+    );
+    expect(projection.documents).toMatchObject({ proposal, agreement });
+
+    await expect(
+      readArtifact(store, created.changeId, "proposal"),
+    ).resolves.toEqual({
+      content: proposal,
+      source: "active_projection",
+    });
+    await expect(
+      readArtifact(store, created.changeId, "agreement"),
+    ).resolves.toEqual({
+      content: agreement,
+      source: "active_projection",
+    });
+  });
+
+  test("keeps legacy active markdown readable and archivable with empty projection", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const changeId = "legacy-artifacts";
+    const activeDir = join(dir, ".adv/changes", changeId);
+    const proposal = "# Legacy proposal";
+    await mkdir(activeDir, { recursive: true });
+    const legacyChange = {
+      id: changeId,
+      title: "Legacy artifacts",
+      status: "active",
+      created_at: new Date().toISOString(),
+      tasks: [],
+      deltas: {},
+      documents: {},
+    } as Change;
+    await writeFile(
+      join(activeDir, "change.json"),
+      JSON.stringify(legacyChange),
+    );
+    await writeFile(join(activeDir, "proposal.md"), proposal);
+
+    await expect(readArtifact(store, changeId, "proposal")).resolves.toEqual({
+      content: proposal,
+      source: "disk",
+    });
+
+    const archivePath = await createInRepoArchive(
+      legacyChange,
+      join(dir, ".adv/archive"),
+      activeDir,
+    );
+    await expect(
+      readFile(join(archivePath, "proposal.md"), "utf-8"),
+    ).resolves.toBe(proposal);
   });
 
   test("wisdom.search warns on unreadable project wisdom and returns change wisdom", async () => {

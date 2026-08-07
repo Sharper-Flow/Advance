@@ -4,14 +4,14 @@
  * Replaces the SQLite-backed `createLegacyStore` with the sole disk-native
  * Store implementation.
  *
- * The filesystem is the source of truth for paths, artifacts, cross-repo
+ * The filesystem is the source of truth for paths, projections, cross-repo
  * initialization, and cold-start reads.
  *
  *   - **Paths**: ProjectPaths is the canonical computation that maps repo
  *     root + config to changes/specs/wisdom directories.
- *   - **Disk artifact writes**: changes.create, changes.save,
- *     changes.updateArtifacts manipulate proposal.md / change.json on disk.
- *     These are the source-of-truth files.
+ *   - **Disk projection writes**: changes.create and changes.save persist
+ *     change.json; changes.updateArtifacts remains the legacy disk-artifact
+ *     materialization path until its projection-only follow-up lands.
  *   - **Cross-repo target init**: when adv_change_create is called with
  *     `target_path`, the cross-project flow needs to scaffold a change in
  *     the target repo's filesystem before any other state exists.
@@ -584,15 +584,12 @@ export async function createDiskStore(
             ? { epic_membership: initialMetadata.epic_membership }
             : {}),
         } as Change;
+        change.documents = scaffold.documents;
         await persistChangeProjection(paths, change, `create:${changeId}`);
 
         return {
           changeId,
-          path: scaffold.proposalPath,
-          problemStatementPath: scaffold.problemStatementPath,
-          agreementPath: scaffold.agreementPath,
-          designPath: scaffold.designPath,
-          executiveSummaryPath: scaffold.executiveSummaryPath,
+          path: scaffold.changePath,
           duplicateWarning,
         };
       },

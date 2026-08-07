@@ -743,7 +743,7 @@ describe("createChangeScaffold", () => {
     await cleanupTempDir(tempDir);
   });
 
-  test("creates change directory with proposal.md", async () => {
+  test("creates change directory with projection-backed proposal", async () => {
     const changesDir = join(tempDir, "changes");
     const result = await createChangeScaffold(
       changesDir,
@@ -751,10 +751,13 @@ describe("createChangeScaffold", () => {
       "Add New Feature",
     );
 
-    expect(result.proposalPath).toContain("proposal.md");
-    expect(await fileExists(result.proposalPath)).toBe(true);
+    expect(result.changePath).toContain("change.json");
+    expect(result.documents.proposal).toBeDefined();
+    expect(
+      await fileExists(join(changesDir, "newFeature", "proposal.md")),
+    ).toBe(false);
 
-    const content = await readFile(result.proposalPath, "utf-8");
+    const content = result.documents.proposal!;
     expect(content).toContain("# Add New Feature");
   });
 
@@ -766,7 +769,7 @@ describe("createChangeScaffold", () => {
       "Test All Sections",
     );
 
-    const content = await readFile(result.proposalPath, "utf-8");
+    const content = result.documents.proposal!;
 
     // All 8 sections from the structured proposal template
     expect(content).toContain("## Why");
@@ -788,7 +791,7 @@ describe("createChangeScaffold", () => {
       "Test Guidance Content",
     );
 
-    const content = await readFile(result.proposalPath, "utf-8");
+    const content = result.documents.proposal!;
 
     // Validation Plan should mention TDD
     expect(content).toMatch(/TDD|test.*first|red.*green/i);
@@ -807,7 +810,7 @@ describe("createChangeScaffold", () => {
       { proposal: customProposal },
     );
 
-    const content = await readFile(result.proposalPath, "utf-8");
+    const content = result.documents.proposal!;
     expect(content).toBe(customProposal);
   });
 
@@ -824,15 +827,10 @@ describe("createChangeScaffold", () => {
       "Blank artifact fields are not allowed: problemStatement. Omit fields you do not intend to change.",
     );
 
-    expect(
-      await fileExists(join(changesDir, "blankScaffold", "proposal.md")),
-    ).toBe(false);
-    expect(
-      await fileExists(join(changesDir, "blankScaffold", "agreement.md")),
-    ).toBe(false);
+    expect(await fileExists(join(changesDir, "blankScaffold"))).toBe(false);
   });
 
-  test("writes problem-statement.md when problemStatement is provided", async () => {
+  test("returns problemStatement for projection persistence when provided", async () => {
     const changesDir = join(tempDir, "changes");
     const problemStatement =
       "PROBLEM\n  The widget is broken.\n\nDESIRED OUTCOME\n  The widget works.";
@@ -843,11 +841,12 @@ describe("createChangeScaffold", () => {
       { problemStatement },
     );
 
-    expect(result.problemStatementPath).toContain("problem-statement.md");
-    expect(await fileExists(result.problemStatementPath)).toBe(true);
-
-    const content = await readFile(result.problemStatementPath, "utf-8");
-    expect(content).toBe(problemStatement);
+    expect(result.documents.problemStatement).toBe(problemStatement);
+    expect(
+      await fileExists(
+        join(changesDir, "withProblemStatement", "problem-statement.md"),
+      ),
+    ).toBe(false);
   });
 
   test("does not write problem-statement.md when problemStatement is omitted", async () => {
@@ -858,7 +857,7 @@ describe("createChangeScaffold", () => {
       "No Problem Statement",
     );
 
-    expect(result.problemStatementPath).toBeUndefined();
+    expect(result.documents.problemStatement).toBeUndefined();
     const psPath = join(
       changesDir,
       "withoutProblemStatement",
@@ -949,6 +948,10 @@ describe("updateChangeArtifacts", () => {
       proposal: "# Original proposal",
       problemStatement: "Original problem statement",
     });
+    await writeFile(
+      join(changesDir, "proposalOnly", "problem-statement.md"),
+      "Original problem statement",
+    );
 
     const result = await updateChangeArtifacts(changesDir, "proposalOnly", {
       proposal: "# Updated proposal only",
@@ -973,6 +976,10 @@ describe("updateChangeArtifacts", () => {
       proposal: "# Original proposal",
       problemStatement: "Original problem statement",
     });
+    await writeFile(
+      join(changesDir, "psOnly", "proposal.md"),
+      "# Original proposal",
+    );
 
     const result = await updateChangeArtifacts(changesDir, "psOnly", {
       problemStatement: "Updated problem statement only",
@@ -999,6 +1006,14 @@ describe("updateChangeArtifacts", () => {
       agreement: "Original agreement",
       design: "Original design",
     });
+    await writeFile(
+      join(changesDir, "rejectBlank", "proposal.md"),
+      "# Original proposal",
+    );
+    await writeFile(
+      join(changesDir, "rejectBlank", "design.md"),
+      "Original design",
+    );
 
     const result = await updateChangeArtifacts(changesDir, "rejectBlank", {
       proposal: "# Updated proposal",
@@ -1136,8 +1151,8 @@ describe("createChangeScaffold with agreement and design", () => {
       "Test Agreement",
       { agreement: "# Agreement\n\nObjectives here." },
     );
-    expect(result.agreementPath).toContain("agreement.md");
-    const content = await readFile(result.agreementPath!, "utf-8");
+    expect(result.documents.agreement).toBeDefined();
+    const content = result.documents.agreement!;
     expect(content).toContain("Agreement");
     expect(content).toContain("Objectives here");
   });
@@ -1149,8 +1164,8 @@ describe("createChangeScaffold with agreement and design", () => {
       "Test Design",
       { design: "# Design\n\nArchitecture overview." },
     );
-    expect(result.designPath).toContain("design.md");
-    const content = await readFile(result.designPath!, "utf-8");
+    expect(result.documents.design).toBeDefined();
+    const content = result.documents.design!;
     expect(content).toContain("Design");
     expect(content).toContain("Architecture overview");
   });
@@ -1161,8 +1176,8 @@ describe("createChangeScaffold with agreement and design", () => {
       "testNoArtifacts",
       "No Artifacts",
     );
-    expect(result.agreementPath).toBeUndefined();
-    expect(result.designPath).toBeUndefined();
+    expect(result.documents.agreement).toBeUndefined();
+    expect(result.documents.design).toBeUndefined();
     // Verify files don't exist
     const agreementPath = join(changesDir, "testNoArtifacts", "agreement.md");
     const designPath = join(changesDir, "testNoArtifacts", "design.md");
@@ -1180,8 +1195,8 @@ describe("createChangeScaffold with agreement and design", () => {
           "# Executive Summary\n\n## Outcome\nThe change landed well.",
       },
     );
-    expect(result.executiveSummaryPath).toContain("executive-summary.md");
-    const content = await readFile(result.executiveSummaryPath!, "utf-8");
+    expect(result.documents.executiveSummary).toBeDefined();
+    const content = result.documents.executiveSummary!;
     expect(content).toContain("Executive Summary");
     expect(content).toContain("The change landed well");
   });
@@ -1192,7 +1207,7 @@ describe("createChangeScaffold with agreement and design", () => {
       "testNoExecSummary",
       "No Exec Summary",
     );
-    expect(result.executiveSummaryPath).toBeUndefined();
+    expect(result.documents.executiveSummary).toBeUndefined();
     const execSummaryPath = join(
       changesDir,
       "testNoExecSummary",

@@ -201,16 +201,11 @@ export interface ChangeCreateResult {
 }
 
 /**
- * Storage-only create result. These paths are retained for internal follow-up
- * linkage while lifecycle tool responses intentionally omit them.
+ * Storage-only create result. The projection path is retained for internal
+ * follow-up linkage; narrative artifact paths are no longer created.
  */
 export interface ChangeCreateStorageResult extends ChangeCreateResult {
   path: string;
-  problemStatementPath?: string;
-  agreementPath?: string;
-  designPath?: string;
-  executiveSummaryPath?: string;
-  acceptancePath?: string;
 }
 
 export interface UpdateArtifactsResult {

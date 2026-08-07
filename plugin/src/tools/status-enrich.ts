@@ -182,9 +182,9 @@ export async function enrichRecentChangeStatus(
   let proposalText: string;
   if (resolved?.change) {
     // AC4: the request already hydrated this change record — reuse it to
-    // avoid a second store.changes.get. The proposal is a separate file
-    // (proposal.md), not an inline field on change.json, so it must still
-    // be read from disk regardless of which path loaded the Change record.
+    // avoid a second store.changes.get. Proposal content still goes through
+    // readArtifact so it follows the authority chain (projection → disk →
+    // archive bundle) regardless of which path loaded the Change record.
     changeData = resolved.change;
     proposalText =
       (await readArtifact(store, changeId, "proposal"))?.content ?? "";
