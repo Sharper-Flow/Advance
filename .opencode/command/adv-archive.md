@@ -384,7 +384,8 @@ If the script is absent → record `deploy_action: not available`. If the projec
 > **Local runtime activation callout.** `deploy_action: ran` means assets synced to the runtime path — it does NOT reload already-running OpenCode sessions, which keep the cached bundle in process memory. To activate local runtime changes after archive:
 >
 > 1. Run `./scripts/deploy-local.sh --fix` from the repo root as the primary deploy. It rebuilds a stale plugin distribution before syncing to the runtime path, so no separate manual build step is required.
-> 2. Restart the relevant OpenCode session / plugin host so host-loaded tool code reloads, then re-invoke the affected tool. OpenCode does not auto-restart or live-reload the host from deploy; activation requires the restart.
+> 2. The same command classifies matching deployed Temporal workers by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker. Self-roll-capable workers are reported as advisory and are not signaled; legacy workers receive `SIGTERM`. If the refresh fails, the deploy fails closed with an `[ADV:ACTION_REQUIRED]` block; route recovery through `adv_doctor` rather than retrying manual termination.
+> 3. Restart the relevant OpenCode session / plugin host so host-loaded tool code reloads, then re-invoke the affected tool. OpenCode does not auto-restart or live-reload the host from deploy; activation requires the restart.
 >
 > Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle, and re-invoke the affected tool only after restart. Record activation status through the existing Phase 8 `Local deploy` row: when `deploy_action: ran` is recorded but the rebuilt bundle is not yet loaded by a restarted host, set the existing `Local deploy` field to `ran; OpenCode activation pending restart`; do not append a separate activation line to the report.
 

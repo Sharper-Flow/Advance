@@ -116,7 +116,7 @@ When task contributes to another ADV-enabled project, use ADV tools with explici
 | Operation | Required behavior |
 | --- | --- |
 | Target reads | `adv_change_show`, task/gate/status reads with `target_path`; inspect `_projectContext` |
-| Target mutations | `authoritative` tools with `target_path`; fail closed if unavailable |
+| Target mutations | `temporal-required` tools with `target_path`; fail closed if unavailable |
 | Untrusted target mutations | `target_confirmed: true` + `confirmationEvidence` |
 
 `cross_project_links` records provenance. `external_dependencies` are advisory.
