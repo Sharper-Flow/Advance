@@ -13,6 +13,8 @@ import {
 } from "../__tests__/setup";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import type { Store } from "../storage/store-types";
+import { ChangeSchema } from "../types";
+import { SAMPLE_CHANGE } from "../__tests__/setup";
 
 async function initGitRepo(dir: string): Promise<void> {
   const { execFile } = await import("child_process");
@@ -185,5 +187,70 @@ describe("adv_launcher_projection_rebuild", () => {
       "change-a",
       "change-b",
     ]);
+  });
+
+  test("regenerates stale summary counts from canonical change.json, never flat state", async () => {
+    const changeId = "promotePptPricesCanonical";
+    const canonical = ChangeSchema.parse({
+      ...SAMPLE_CHANGE,
+      id: changeId,
+      title: "Canonical prices",
+      status: "draft",
+      lifecycleState: "open",
+      projection_revision: 21,
+      state_revision: 21,
+      tasks: Array.from({ length: 12 }, (_, i) => ({
+        id: `tk-${i}`,
+        title: `Task ${i}`,
+        type: "code",
+        status: "pending",
+        priority: i,
+        created_at: "2026-07-23T10:00:00.000Z",
+      })),
+    });
+    await mkdir(join(store.paths.changes, changeId), { recursive: true });
+    await writeFile(
+      join(store.paths.changes, changeId, "change.json"),
+      JSON.stringify(canonical),
+    );
+    await writeFile(
+      join(store.paths.changes, `${changeId}.json`),
+      JSON.stringify({
+        state: { tasks: [], projection_revision: 0, state_revision: 0 },
+      }),
+    );
+    await writeSummaryProjection(
+      store.paths.summariesDir,
+      store.paths.changes,
+      changeId,
+    );
+
+    const result =
+      await launcherProjectionTools.adv_launcher_projection_rebuild.execute(
+        {},
+        store,
+      );
+    const parsed = parseToolOutput<{
+      ok: boolean;
+      degraded: boolean;
+    }>(result);
+    expect(parsed.ok).toBe(true);
+
+    const pointer = JSON.parse(
+      await import("fs/promises").then((m) =>
+        m.readFile(
+          join(store.paths.summariesDir, changeId, "current.json"),
+          "utf-8",
+        ),
+      ),
+    );
+    const shard = JSON.parse(
+      await import("fs/promises").then((m) =>
+        m.readFile(pointer.shard_path, "utf-8"),
+      ),
+    );
+    expect(pointer.projection_revision).toBe(21);
+    expect(shard.task_count).toBe(12);
+    expect(shard.projection_revision).toBe(21);
   });
 });

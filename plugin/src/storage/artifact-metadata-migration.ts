@@ -209,7 +209,15 @@ export async function migrateArtifactMetadataProjections(
       `Artifact metadata migration scan capped at ${ARTIFACT_METADATA_MIGRATION_MAX_PROJECTIONS} projections per directory`,
     );
   }
-  if (completionMarkerPath && report.failed.length === 0 && !report.truncated) {
+  // An empty store needs no completion marker. Besides avoiding a meaningless
+  // write, this prevents read-only tooling that constructs a store against a
+  // source checkout from creating `plugin/.adv/` residue.
+  if (
+    completionMarkerPath &&
+    report.scanned > 0 &&
+    report.failed.length === 0 &&
+    !report.truncated
+  ) {
     await writeCompletionMarker(completionMarkerPath, report);
   }
   return report;

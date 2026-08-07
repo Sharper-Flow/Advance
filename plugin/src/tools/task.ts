@@ -1338,7 +1338,9 @@ export const taskTools = {
                 unknown.length === 1
                   ? `Unknown task ID in blockedBy: '${unknown[0]}' does not exist in change '${changeId}'.`
                   : `Unknown task IDs in blockedBy: ${unknown.map((id) => `'${id}'`).join(", ")} do not exist in change '${changeId}'.`,
-              hint: `Fetch the current task IDs with 'adv_task_list changeId: ${changeId}' and copy exact IDs into blockedBy.`,
+              hint: state
+                ? `Read canonical task IDs from 'adv_task_list changeId: ${changeId}' and copy exact IDs into blockedBy.`
+                : `Canonical change.json task reads are unavailable for '${changeId}'. Run adv_doctor and stop; do not retry in a loop while projection health is degraded.`,
               unknownTaskIds: unknown,
               validTaskIds: Array.from(validIdSet),
             });

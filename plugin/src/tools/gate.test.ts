@@ -149,6 +149,8 @@ describe("gate tools — disk projection lifecycle", () => {
         ),
       );
       expect(parsed.error).toContain("userApproved");
+      expect(parsed.userApproved).toBe(false);
+      expect(parsed.requiredUserApproval).toBe(true);
     } finally {
       await cleanupTempDir(root);
     }
@@ -207,6 +209,39 @@ describe("gate tools — disk projection lifecycle", () => {
       expect(parsed.error).toContain("task(s) not done");
       expect(parsed.incompleteTasks).toEqual([
         expect.objectContaining({ id: "tk-open", status: "in_progress" }),
+      ]);
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("execution completion uses loaded durable tasks when projection envelope is absent", async () => {
+    const root = await createTempDir("adv-gate-");
+    try {
+      const task = {
+        id: "tk-open",
+        title: "Open task",
+        status: "pending",
+        priority: 1,
+        created_at: "2026-01-01T00:00:00Z",
+      } as Task;
+      const current = change({
+        tasks: [task],
+        gates: gates({ execution: { ...pending }, acceptance: { ...pending } }),
+      });
+      const dir = join(root, current.id);
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, "change.json"), JSON.stringify(current));
+
+      const parsed = JSON.parse(
+        await gateTools.adv_gate_complete.execute(
+          { changeId: current.id, gateId: "execution" },
+          storeFor(root, current),
+        ),
+      );
+      expect(parsed.error).toContain("task(s) not done");
+      expect(parsed.incompleteTasks).toEqual([
+        expect.objectContaining({ id: "tk-open", status: "pending" }),
       ]);
     } finally {
       await cleanupTempDir(root);

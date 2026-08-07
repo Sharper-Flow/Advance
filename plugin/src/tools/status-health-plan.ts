@@ -59,6 +59,10 @@ export const HEALTH_COMPOSITION_RESERVE_MS = 500;
 export const HEALTH_MAX_CONCURRENCY = 4;
 export const HEALTH_CANDIDATE_LIMIT = 10;
 const DEFAULT_PROVIDER_CAP_MS = 1_500;
+// `opencode debug agent` is an advisory subprocess probe. Keep it from
+// consuming the entire health cutoff when the host CLI is unavailable or
+// waiting on another process. The executor still reports `timeout` honestly.
+const TOOL_LANE_PROJECTION_CAP_MS = 1_500;
 
 export interface HealthRequestContext {
   startTime: number;
@@ -469,7 +473,7 @@ export async function runHealthStatus(
     {
       source: "tool_lane_projections",
       dependencies: [],
-      cap: 5_000,
+      cap: TOOL_LANE_PROJECTION_CAP_MS,
       cancellability: "bounded_non_cancellable",
       async run(ctx): Promise<HealthProviderOutcome> {
         const providerStart = ctx.clock.now();

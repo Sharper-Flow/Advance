@@ -32,7 +32,7 @@ describe("MCP host-probe field contract", () => {
     });
   });
 
-  it("keeps status classified as a diagnostics read", () => {
-    expect(TOOL_CLASSIFICATIONS.status).toContain("needs-temporal-diagnostics");
+  it("keeps status classified as a read-model read", () => {
+    expect(TOOL_CLASSIFICATIONS.status).toContain("needs-read-model");
   });
 });

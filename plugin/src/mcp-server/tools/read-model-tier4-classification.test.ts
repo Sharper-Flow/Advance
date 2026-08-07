@@ -1,6 +1,5 @@
 /**
- * RED-phase structural test proving that the Tier-4 MCP classification table
- * cannot distinguish read-model-backed tools from Temporal diagnostics tools.
+ * Structural test for the Tier-4 MCP read-model classification table.
  */
 import { describe, expect, it } from "vitest";
 import ts from "typescript";
@@ -90,12 +89,6 @@ describe("Tier-4 read-model classification", () => {
     );
   });
 
-  it("ToolClassification type includes needs-temporal-diagnostics", () => {
-    expect(literalUnionMembers(source, "ToolClassification")).toContain(
-      "needs-temporal-diagnostics",
-    );
-  });
-
   it("read-model-backed tools are classified as needs-read-model", () => {
     const map = toolClassificationMap(source);
     for (const tool of ["epic_list", "epic_show", "wip_state"]) {
@@ -105,9 +98,8 @@ describe("Tier-4 read-model classification", () => {
     }
   });
 
-  it("status is read-model-backed and not temporal-reachability gated", () => {
+  it("status is read-model-backed", () => {
     const map = toolClassificationMap(source);
     expect(map["status"]).toContain("needs-read-model");
-    expect(map["status"]).not.toContain("needs-temporal");
   });
 });

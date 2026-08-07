@@ -1,8 +1,12 @@
 /** Sub-agent report identity and validation contracts. */
 
 import { describe, expect, test } from "vitest";
-import { SubagentConsumerWarningSchema } from "../types";
+import {
+  SubagentConsumerWarningSchema,
+  type ScopedSubagentReport,
+} from "../types";
 import { subagentReportKey } from "../types/subagent-reports";
+import { verificationWarnings } from "./subagent-report";
 
 describe("subagent report contracts", () => {
   test("keys task-scoped reports deterministically", () => {
@@ -47,5 +51,18 @@ describe("subagent report contracts", () => {
       SubagentConsumerWarningSchema.safeParse({ code: "", message: "" })
         .success,
     ).toBe(false);
+  });
+
+  test("does not fabricate missing test evidence for independent reviewer summaries", () => {
+    const report = {
+      agent: "adv-reviewer",
+      verification: {
+        tests_run: ["pnpm --dir plugin run check"],
+        results: "pass",
+        evidence: "Plugin check passed.",
+      },
+    } as ScopedSubagentReport;
+
+    expect(verificationWarnings(report)).toEqual([]);
   });
 });

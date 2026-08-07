@@ -611,7 +611,7 @@ function latestDurableByCommand(
   return map;
 }
 
-function verificationWarnings(
+export function verificationWarnings(
   report: ScopedSubagentReport,
   task?: Task,
   durableRecords?: readonly DurableTestRunLike[],
@@ -623,7 +623,7 @@ function verificationWarnings(
     // execution evidence. Suppress verification_missing for review policy only;
     // test/static_check still require durable adv_run_test evidence.
     const policy = task ? resolveTaskEvidence(task).policy : undefined;
-    if (policy === "review") {
+    if (!task || policy === "review") {
       return [];
     }
     return report.verification.tests_run.map((command) => ({

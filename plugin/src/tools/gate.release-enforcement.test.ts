@@ -110,7 +110,11 @@ describe("release gate fail-closed enforcement", () => {
   });
 
   test("allows release completion only after durable reachability proof", async () => {
-    git.resolveReleaseReachability.mockReturnValue({ reachable: true });
+    git.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "origin_default",
+      releasedCommitSha: "released-sha",
+    });
     const root = await createTempDir("adv-release-gate-");
     try {
       const current = change({
@@ -139,6 +143,51 @@ describe("release gate fail-closed enforcement", () => {
         await readFile(join(root, current.id, "change.json"), "utf8"),
       );
       expect(readback.gates.release.status).toBe("done");
+      expect(readback.gates.release.approval_evidence).toContain(
+        "proof=origin_default",
+      );
+      expect(readback.gates.release.approval_evidence).toContain(
+        "releasedCommitSha=released-sha",
+      );
+    } finally {
+      git.resolveReleaseReachability.mockReturnValue({
+        reachable: false,
+        proof: "origin_unmerged",
+        details: ["tip not on origin/trunk"],
+      });
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("refuses a reachable result that lacks durable commit proof", async () => {
+    git.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+    } as never);
+    const root = await createTempDir("adv-release-gate-");
+    try {
+      const current = change({
+        phase9_status: {
+          status: "done",
+          startedAt: "2026-01-01T00:00:00Z",
+          completedAt: "2026-01-01T00:00:01Z",
+          defaultBranch: "trunk",
+          pushStatus: "pushed",
+        } as Change["phase9_status"],
+      });
+      const store = await storeFor(root, current);
+      const parsed = JSON.parse(
+        await gateTools.adv_gate_complete.execute(
+          { changeId: current.id, gateId: "release" },
+          store,
+        ),
+      );
+      expect(parsed.success).toBeUndefined();
+      expect(parsed.code).toBe("RELEASE_REQUIRES_DURABLE_PROOF");
+      expect(
+        JSON.parse(
+          await readFile(join(root, current.id, "change.json"), "utf8"),
+        ).gates.release.status,
+      ).toBe("pending");
     } finally {
       git.resolveReleaseReachability.mockReturnValue({
         reachable: false,

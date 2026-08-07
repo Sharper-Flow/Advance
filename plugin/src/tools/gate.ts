@@ -58,6 +58,7 @@ import {
   coercePrWorkflowRoute,
   resolveReleaseReachability,
   verifyChangeBranchPushed,
+  type ReleaseReachabilityProof,
 } from "./archive-helpers/git-finalize";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import { renderAcceptanceProjection } from "../gates/gate-readiness";
@@ -448,11 +449,66 @@ function releaseRequiresDefaultBranchPushResponse(input: {
   });
 }
 
+function releaseRequiresDurableProofResponse(input: {
+  changeId: string;
+  reason: string;
+}): string {
+  return formatToolOutput({
+    error: `RELEASE_REQUIRES_DURABLE_PROOF: ${input.reason}`,
+    code: "RELEASE_REQUIRES_DURABLE_PROOF",
+    requirement: "rq-releaseFinalization01",
+    changeId: input.changeId,
+    remediation: `Run /adv-archive ${input.changeId} to record durable Phase 9 reachability evidence, then retry release gate completion.`,
+  });
+}
+
+interface ReleaseFinalizationCheck {
+  blocker?: string;
+  evidence?: string;
+}
+
+function durableReleaseProofEvidence(input: {
+  changeId: string;
+  repoRoot: string;
+  defaultBranch: string;
+  route: { route: string };
+  reachability: Extract<ReleaseReachabilityProof, { reachable: true }>;
+}): ReleaseFinalizationCheck {
+  const releasedCommitSha = input.reachability.releasedCommitSha?.trim();
+  if (!releasedCommitSha) {
+    return {
+      blocker: releaseRequiresDurableProofResponse({
+        changeId: input.changeId,
+        reason:
+          "release reachability was reported without a released commit SHA",
+      }),
+    };
+  }
+
+  return {
+    evidence: [
+      "Phase 9 finalization shipped",
+      `defaultBranch=${input.defaultBranch}`,
+      `repoRoot=${input.repoRoot}`,
+      "pushStatus=verified",
+      `proof=${input.reachability.proof}`,
+      `releasedCommitSha=${releasedCommitSha}`,
+      `route=${input.route.route}`,
+      ...(input.reachability.prNumber
+        ? [`prNumber=${input.reachability.prNumber}`]
+        : []),
+      ...(input.reachability.mergeCommitOid
+        ? [`mergeCommitOid=${input.reachability.mergeCommitOid}`]
+        : []),
+    ].join("; "),
+  };
+}
+
 function getReleaseFinalizationBlocker(input: {
   store: Store;
   change: Change;
   changeId: string;
-}): string | null {
+}): ReleaseFinalizationCheck {
   const { archiveMode } = detectArchiveMode(input.store.config ?? {});
   const repoRoot = resolveRepoRoot(input.store.paths.root);
   const { branch: defaultBranch } = detectDefaultBranch(repoRoot);
@@ -469,7 +525,15 @@ function getReleaseFinalizationBlocker(input: {
       repo: input.change.phase9_status?.repo,
       changeTipSha: input.change.phase9_status?.changeTipSha,
     });
-    if (reachability.reachable) return null;
+    if (reachability.reachable) {
+      return durableReleaseProofEvidence({
+        changeId: input.changeId,
+        repoRoot,
+        defaultBranch,
+        route,
+        reachability,
+      });
+    }
 
     // No merged PR/default proof; surface branch push failure as actionable
     // detail without making the live branch a hard requirement.
@@ -479,13 +543,15 @@ function getReleaseFinalizationBlocker(input: {
       details.unshift(`change branch not pushed: ${pushCheck.reason}`);
     }
 
-    return releaseRequiresPrHandoffResponse({
-      changeId: input.changeId,
-      reason:
-        details.length > 0
-          ? details.join("; ")
-          : "merged PR proof not found and change branch not pushed to origin",
-    });
+    return {
+      blocker: releaseRequiresPrHandoffResponse({
+        changeId: input.changeId,
+        reason:
+          details.length > 0
+            ? details.join("; ")
+            : "merged PR proof not found and change branch not pushed to origin",
+      }),
+    };
   }
 
   const route = classifyFinalizationRoute(repoRoot, defaultBranch);
@@ -498,34 +564,50 @@ function getReleaseFinalizationBlocker(input: {
     repo: input.change.phase9_status?.repo,
     changeTipSha: input.change.phase9_status?.changeTipSha,
   });
-  if (reachability.reachable) return null;
+  if (reachability.reachable) {
+    return durableReleaseProofEvidence({
+      changeId: input.changeId,
+      repoRoot,
+      defaultBranch,
+      route,
+      reachability,
+    });
+  }
 
   if (reachability.proof === "origin_push_unverified") {
-    return releaseRequiresDefaultBranchPushResponse({
-      changeId: input.changeId,
-      defaultBranch,
-      reason:
-        reachability.details?.join("; ") ??
-        `${defaultBranch} not pushed to origin`,
-    });
+    return {
+      blocker: releaseRequiresDefaultBranchPushResponse({
+        changeId: input.changeId,
+        defaultBranch,
+        reason:
+          reachability.details?.join("; ") ??
+          `${defaultBranch} not pushed to origin`,
+      }),
+    };
   }
 
   if (reachability.proof === "pr_unmerged") {
-    return releaseRequiresPrHandoffResponse({
-      changeId: input.changeId,
-      reason: [
-        reachability.autoMergeArmed ? "pending auto-merge" : "PR is not merged",
-        ...(reachability.details ?? []),
-      ].join("; "),
-    });
+    return {
+      blocker: releaseRequiresPrHandoffResponse({
+        changeId: input.changeId,
+        reason: [
+          reachability.autoMergeArmed
+            ? "pending auto-merge"
+            : "PR is not merged",
+          ...(reachability.details ?? []),
+        ].join("; "),
+      }),
+    };
   }
 
-  return releaseRequiresTrunkMergeResponse({
-    changeId: input.changeId,
-    defaultBranch:
-      route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`,
-    unmergedCommits: reachability.details ?? [],
-  });
+  return {
+    blocker: releaseRequiresTrunkMergeResponse({
+      changeId: input.changeId,
+      defaultBranch:
+        route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`,
+      unmergedCommits: reachability.details ?? [],
+    }),
+  };
 }
 
 /**
@@ -840,6 +922,8 @@ async function handlePlanningGateCompletion({
         "Planning gate requires userApproved: true. The user must explicitly approve the prep contract (via question tool) before this gate can be completed.",
       changeId,
       gateId,
+      userApproved: false,
+      requiredUserApproval: true,
       hint: "Present the vision document to the user, obtain approval via question tool, then call adv_gate_complete with userApproved: true.",
     });
   }
@@ -1342,10 +1426,15 @@ export const gateTools = {
         }
 
         if (gateId === "execution") {
-          const workflowTasks =
-            readChangeProjectionState(activeStore.paths.changes, changeId)
-              ?.tasks ?? [];
-          const tasks = workflowTasks;
+          const projectedState = readChangeProjectionState(
+            activeStore.paths.changes,
+            changeId,
+          );
+          // Disk projection is authoritative after Temporal removal. Keep the
+          // loaded change as a compatibility fallback for older fixtures and
+          // projections, but never silently replace a known task list with an
+          // empty array when the projection reader cannot resolve it.
+          const tasks = projectedState?.tasks ?? change.tasks;
           const incompleteTasks = tasks.filter(
             (t) => t.status !== "done" && t.status !== "cancelled",
           );
@@ -1362,6 +1451,7 @@ export const gateTools = {
           // All tasks done/cancelled (or empty list) — fall through
         }
 
+        let releaseEvidence: string | undefined;
         if (gateId === "release") {
           try {
             const reconciled = await reconcileOpsFollowupLinks({
@@ -1383,12 +1473,13 @@ export const gateTools = {
               });
             }
           }
-          const blocker = getReleaseFinalizationBlocker({
+          const releaseCheck = getReleaseFinalizationBlocker({
             store: activeStore,
             change,
             changeId,
           });
-          if (blocker) return blocker;
+          if (releaseCheck.blocker) return releaseCheck.blocker;
+          releaseEvidence = releaseCheck.evidence;
         }
 
         // Reconcile any recovered acceptance-affecting dispositions in the
@@ -1421,7 +1512,10 @@ export const gateTools = {
             gateId === "acceptance"
               ? [notes, priorApprovalEvidence].filter(Boolean).join("; ") ||
                 undefined
-              : notes,
+              : gateId === "release"
+                ? [notes, releaseEvidence].filter(Boolean).join("; ") ||
+                  undefined
+                : notes,
         };
         const postSignalGate = await commitGateCompletion(
           activeStore,

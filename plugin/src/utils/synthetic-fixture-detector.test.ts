@@ -94,22 +94,22 @@ describe("isSyntheticValidationDraftPattern", () => {
       ).toBe(true);
     });
 
-    test("bracket-prefix [parity:temporal]", () => {
+    test("bracket-prefix [parity:validation]", () => {
       expect(
         isSyntheticValidationDraftPattern(
-          "[parity:temporal] gate parity check",
+          "[parity:validation] gate parity check",
         ),
       ).toBe(true);
     });
 
-    test("camelCase parityLegacy / parityTemporal", () => {
+    test("camelCase validation markers", () => {
       expect(isSyntheticValidationDraftPattern("parityLegacy")).toBe(true);
-      expect(isSyntheticValidationDraftPattern("parityTemporal")).toBe(true);
+      expect(isSyntheticValidationDraftPattern("parityValidation")).toBe(true);
       expect(
-        isSyntheticValidationDraftPattern("parityTemporalGateParity"),
+        isSyntheticValidationDraftPattern("parityValidationGateParity"),
       ).toBe(true);
       expect(
-        isSyntheticValidationDraftPattern("parityTemporalChangeRoundtrip"),
+        isSyntheticValidationDraftPattern("parityValidationChangeRoundtrip"),
       ).toBe(true);
     });
   });

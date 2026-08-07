@@ -96,15 +96,21 @@ export interface WritePluginBundleManifestOptions {
   now?: () => Date;
 }
 
-// Injected by the production build (`scripts/build-plugin.ts`). In dev/test
-// source execution it is undefined, so the loaded generation is null.
+// Injected by the production build (`scripts/build-plugin.ts`). Keep this
+// capture at module evaluation: it is the identity of the code that was
+// loaded, not a later read of the deploy directory. In dev/test source
+// execution it is undefined, so the loaded generation is null.
 declare const __ADV_PLUGIN_BUNDLE_GENERATION__: string | undefined;
 
-const capturedPluginBundleGeneration: string | null =
-  typeof __ADV_PLUGIN_BUNDLE_GENERATION__ !== "undefined" &&
-  __ADV_PLUGIN_BUNDLE_GENERATION__
+function captureLoadedPluginBundleGeneration(): string | null {
+  if (typeof __ADV_PLUGIN_BUNDLE_GENERATION__ !== "string") return null;
+  return /^[0-9a-f]{64}$/.test(__ADV_PLUGIN_BUNDLE_GENERATION__)
     ? __ADV_PLUGIN_BUNDLE_GENERATION__
     : null;
+}
+
+export const LOADED_PLUGIN_BUNDLE_GENERATION =
+  captureLoadedPluginBundleGeneration();
 
 /**
  * Return the generation embedded into the loaded plugin bundle at build time.
@@ -112,7 +118,7 @@ const capturedPluginBundleGeneration: string | null =
  * source runs or pre-feature builds).
  */
 export function getLoadedPluginBundleGeneration(): string | null {
-  return capturedPluginBundleGeneration;
+  return LOADED_PLUGIN_BUNDLE_GENERATION;
 }
 
 /**

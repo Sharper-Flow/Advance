@@ -7,12 +7,14 @@
  * transport, worker, queue, or remote index.
  */
 import { existsSync } from "fs";
-import { basename, join } from "path";
+import { basename, dirname, join } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
 import { getWorktreeCensus } from "../utils/worktree-census";
 import { scanSnapshotHealth } from "./snapshot-scan";
+import { findProjectionDivergences } from "../storage/projection-health";
+import { reclaimDeadWorkerLock } from "../storage/worker-lock";
 
 export type DoctorFindingClass =
   | "healthy"
@@ -22,7 +24,7 @@ export type DoctorFindingClass =
 
 export interface DoctorFixApplied {
   class: DoctorFindingClass;
-  action: "clear_session_pointer";
+  action: "clear_session_pointer" | "remove_dead_worker_lock";
   outcome: "applied" | "no_op" | "failed";
   before?: unknown;
   after?: unknown;
@@ -50,6 +52,8 @@ interface DoctorVerification {
   snapshot_integrity: boolean;
   session_pointer_sane: boolean;
   worktree_census_reachable: boolean;
+  canonical_projection_consistent: boolean;
+  worker_lock_sane: boolean;
   rechecked_at: string;
 }
 
@@ -94,6 +98,10 @@ interface DiskProbe {
   projectionReadable: boolean;
   snapshotIntegrity: boolean;
   worktreeCensusReachable: boolean;
+  canonicalProjectionConsistent: boolean;
+  projectionDivergences: Awaited<ReturnType<typeof findProjectionDivergences>>;
+  workerLockSane: boolean;
+  workerLockReclaimed: { pid: number } | null;
   errors: string[];
 }
 
@@ -147,10 +155,45 @@ async function probeDiskState(
     );
   }
 
+  const projectionDivergences = await findProjectionDivergences({
+    changesDir: store.paths.changes,
+    summariesDir:
+      store.paths.summariesDir ??
+      join(dirname(store.paths.changes), "summaries"),
+  });
+  if (projectionDivergences.length > 0) {
+    errors.push(
+      projectionDivergences
+        .map(
+          (divergence) =>
+            `${divergence.change_id}: ${divergence.reasons.join(", ")}`,
+        )
+        .join("; "),
+    );
+  }
+
+  const workerLock = await reclaimDeadWorkerLock(
+    join(store.paths.external ?? dirname(store.paths.changes), "worker.lock"),
+  );
+  const workerLockSane =
+    workerLock.status === "absent" || workerLock.status === "removed";
+  if (!workerLockSane) {
+    errors.push(
+      workerLock.status === "live"
+        ? `worker.lock is held by live PID ${workerLock.pid}`
+        : workerLock.reason,
+    );
+  }
+
   return {
     projectionReadable,
     snapshotIntegrity,
     worktreeCensusReachable,
+    canonicalProjectionConsistent: projectionDivergences.length === 0,
+    projectionDivergences,
+    workerLockSane,
+    workerLockReclaimed:
+      workerLock.status === "removed" ? { pid: workerLock.pid } : null,
     errors,
   };
 }
@@ -248,10 +291,33 @@ export const doctorTools = {
         snapshotIntegrity: initialDisk.snapshotIntegrity,
         sessionPointerSane: initialPointer.sane,
         worktreeCensusReachable: initialDisk.worktreeCensusReachable,
+        canonicalProjectionConsistent:
+          initialDisk.canonicalProjectionConsistent,
+        workerLockSane: initialDisk.workerLockSane,
       };
+
+      if (initialDisk.workerLockReclaimed) {
+        fixesApplied.push({
+          class: "informational",
+          action: "remove_dead_worker_lock",
+          outcome: "applied",
+          evidence: `Removed retired worker.lock for dead PID ${initialDisk.workerLockReclaimed.pid}.`,
+        });
+      }
 
       for (const [name, passed] of Object.entries(initialChecks)) {
         if (!passed) {
+          if (name === "canonicalProjectionConsistent") {
+            for (const divergence of initialDisk.projectionDivergences) {
+              addNonHealthyFinding(findings, {
+                class: "unhealthy",
+                finding: "canonical_projection_divergence",
+                detail: `${divergence.change_id}: ${divergence.reasons.join("; ")}`,
+                severity: "error",
+              });
+            }
+            continue;
+          }
           addNonHealthyFinding(findings, {
             class: "unhealthy",
             finding: name,
@@ -320,11 +386,16 @@ export const doctorTools = {
           recheckDisk.projectionReadable &&
           recheckDisk.snapshotIntegrity &&
           recheckPointer.sane &&
-          recheckDisk.worktreeCensusReachable,
+          recheckDisk.worktreeCensusReachable &&
+          recheckDisk.canonicalProjectionConsistent &&
+          recheckDisk.workerLockSane,
         projection_readable: recheckDisk.projectionReadable,
         snapshot_integrity: recheckDisk.snapshotIntegrity,
         session_pointer_sane: recheckPointer.sane,
         worktree_census_reachable: recheckDisk.worktreeCensusReachable,
+        canonical_projection_consistent:
+          recheckDisk.canonicalProjectionConsistent,
+        worker_lock_sane: recheckDisk.workerLockSane,
         rechecked_at: new Date().toISOString(),
       };
 

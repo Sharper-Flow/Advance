@@ -9,6 +9,7 @@
 import type { Store } from "../storage/store-types";
 import { buildLauncherProjection } from "../storage/launcher-projection";
 import { writeLauncherProjection } from "../storage/launcher-projection-writer";
+import { rebuildSummaryIndex } from "../storage/change-summary-shard";
 import { formatToolOutput } from "../utils/tool-output";
 import { createLogger } from "../utils/debug-log";
 
@@ -30,6 +31,23 @@ export const launcherProjectionTools = {
         : `${store.paths.root}/.adv/active-launcher-state.json`;
 
       try {
+        // Summary pointers are downstream caches. Regenerate them from
+        // canonical change.json before the aggregate reader is allowed to
+        // inspect them; stale flat envelopes are never consulted here.
+        const summaryRebuild = await rebuildSummaryIndex({
+          changesDir: store.paths.changes,
+          summariesDir: store.paths.summariesDir,
+        });
+        if (summaryRebuild.kind === "error") {
+          throw new Error(summaryRebuild.error);
+        }
+        if (summaryRebuild.errors.length > 0) {
+          logger.warn("summary-index-rebuild-partial", {
+            root: store.paths.root,
+            errors: summaryRebuild.errors,
+          });
+        }
+
         const projection = await buildLauncherProjection({
           changesDir: store.paths.changes,
           summariesDir: store.paths.summariesDir,

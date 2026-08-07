@@ -1,13 +1,9 @@
 /**
  * inventory tests — local project/workflow/process/session inventory (AC9/DDC5, OOS2).
  *
- * The validator turns collected inventory into typed blockers. Unknown or
- * stale identity and incomplete inventory MUST block activation: an
- * unreadable project dir, an unavailable workflow probe, an unreadable
- * process table, a stale deployed worker, a foreign worker with an
- * unverifiable or mismatching build, a session-registry mismatch, or an
- * unregistered live OpenCode session each produce a typed blocker. Only a
- * fully proven inventory is complete.
+ * The validator turns collected disk inventory into typed blockers. Unknown or
+ * stale identity, unreadable project state, malformed session records, and
+ * mismatched loaded-build records MUST block activation.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -51,16 +47,8 @@ function makeDeployment(root: string): {
 } {
   const deployRoot = join(root, "Advance");
   const pluginRoot = join(deployRoot, "plugin");
-  mkdirSync(join(pluginRoot, "dist", "temporal"), { recursive: true });
+  mkdirSync(join(pluginRoot, "dist"), { recursive: true });
   writeFileSync(join(pluginRoot, "dist", "index.js"), "export {};\n");
-  writeFileSync(
-    join(pluginRoot, "dist", "temporal", "worker.js"),
-    "export {};\n",
-  );
-  writeFileSync(
-    join(pluginRoot, "dist", "temporal", "workflows.js"),
-    "export {};\n",
-  );
   const identity = writeBuildIdentityFile(pluginRoot);
   return { deployRoot, pluginRoot, digest: identity.digest };
 }
@@ -86,26 +74,6 @@ async function makePassingSetup(prefix: string) {
     pid: PID_A,
     startTicks: "500",
   });
-  const procRoot = join(root, "proc");
-  mkdirSync(procRoot, { recursive: true });
-  const addProc = (
-    pid: number,
-    comm: string,
-    argv: string[],
-    ticks: string,
-  ) => {
-    const dir = join(procRoot, String(pid));
-    mkdirSync(dir, { recursive: true });
-    const f = Array.from({ length: 19 }, (_, i) => String(100 + i));
-    writeFileSync(
-      join(dir, "stat"),
-      `${pid} (${comm}) ${[...f, ticks, "0", "0"].join(" ")}`,
-    );
-    writeFileSync(join(dir, "cmdline"), argv.join("\0") + "\0");
-  };
-  // Registered session process (matches registry pid + ticks).
-  addProc(PID_A, "opencode", ["opencode"], "500");
-  writeFileSync(join(procRoot, "stat"), "cpu 1\nbtime 1700000000\n");
   return {
     root,
     deployRoot,
@@ -113,7 +81,6 @@ async function makePassingSetup(prefix: string) {
     digest,
     homeDir,
     migrationRoot,
-    procRoot,
   };
 }
 
@@ -122,12 +89,9 @@ async function collectPassing(
 ) {
   return collectMachineInventory({
     pluginRoot: setup.pluginRoot,
-    deployRoot: setup.deployRoot,
     migrationRoot: setup.migrationRoot,
     homeDir: setup.homeDir,
-    procRoot: setup.procRoot,
     isAlive: () => true,
-    listRunningWorkflows: async () => 0,
   });
 }
 
@@ -183,124 +147,6 @@ describe("validateMigrationReadiness", () => {
     );
   });
 
-  test("blocks when the workflow probe is unavailable", async () => {
-    const setup = await makePassingSetup("adv-inv-wf-unavail-");
-    const inv = await collectMachineInventory({
-      pluginRoot: setup.pluginRoot,
-      deployRoot: setup.deployRoot,
-      migrationRoot: setup.migrationRoot,
-      homeDir: setup.homeDir,
-      procRoot: setup.procRoot,
-      isAlive: () => true,
-      // no listRunningWorkflows probe
-    });
-    const readiness = validateMigrationReadiness(inv);
-    expect(readiness.blockers.map((b) => b.code)).toContain(
-      "workflow_inventory_unavailable",
-    );
-  });
-
-  test("blocks on an unreadable process table", async () => {
-    const setup = await makePassingSetup("adv-inv-proc-unreadable-");
-    const inv = await collectMachineInventory({
-      pluginRoot: setup.pluginRoot,
-      deployRoot: setup.deployRoot,
-      migrationRoot: setup.migrationRoot,
-      homeDir: setup.homeDir,
-      procRoot: join(setup.root, "no-proc"),
-      isAlive: () => true,
-      listRunningWorkflows: async () => 0,
-    });
-    const readiness = validateMigrationReadiness(inv);
-    expect(readiness.blockers.map((b) => b.code)).toContain(
-      "process_scan_incomplete",
-    );
-  });
-
-  test("blocks on a stale deployed worker process", async () => {
-    const setup = await makePassingSetup("adv-inv-stale-worker-");
-    // Worker started at boot+1s, identity installed later (ctime is now).
-    const dir = join(setup.procRoot, "4999");
-    mkdirSync(dir, { recursive: true });
-    const f = Array.from({ length: 19 }, (_, i) => String(100 + i));
-    writeFileSync(
-      join(dir, "stat"),
-      `4999 (node) ${[...f, "100", "0", "0"].join(" ")}`,
-    );
-    writeFileSync(
-      join(dir, "cmdline"),
-      ["node", join(setup.pluginRoot, "dist", "temporal", "worker.js")].join(
-        "\0",
-      ) + "\0",
-    );
-    const inv = await collectPassing(setup);
-    const readiness = validateMigrationReadiness(inv);
-    expect(readiness.blockers.map((b) => b.code)).toContain("worker_stale");
-  });
-
-  test("blocks on a foreign worker whose build identity is unverifiable", async () => {
-    const setup = await makePassingSetup("adv-inv-foreign-");
-    const dir = join(setup.procRoot, "4998");
-    mkdirSync(dir, { recursive: true });
-    const f = Array.from({ length: 19 }, (_, i) => String(100 + i));
-    writeFileSync(
-      join(dir, "stat"),
-      `4998 (node) ${[...f, "100", "0", "0"].join(" ")}`,
-    );
-    writeFileSync(
-      join(dir, "cmdline"),
-      [
-        "node",
-        join(
-          setup.root,
-          "dev-checkout",
-          "plugin",
-          "dist",
-          "temporal",
-          "worker.js",
-        ),
-      ].join("\0") + "\0",
-    );
-    const inv = await collectPassing(setup);
-    const readiness = validateMigrationReadiness(inv);
-    expect(readiness.blockers.map((b) => b.code)).toContain(
-      "worker_foreign_unknown",
-    );
-  });
-
-  test("accepts a foreign worker whose recorded digest matches the deployed build", async () => {
-    const setup = await makePassingSetup("adv-inv-foreign-match-");
-    // Foreign checkout with identical dist content → same digest.
-    const foreignPlugin = join(setup.root, "dev-checkout", "plugin");
-    mkdirSync(join(foreignPlugin, "dist", "temporal"), { recursive: true });
-    writeFileSync(join(foreignPlugin, "dist", "index.js"), "export {};\n");
-    writeFileSync(
-      join(foreignPlugin, "dist", "temporal", "worker.js"),
-      "export {};\n",
-    );
-    writeFileSync(
-      join(foreignPlugin, "dist", "temporal", "workflows.js"),
-      "export {};\n",
-    );
-    writeBuildIdentityFile(foreignPlugin);
-    const dir = join(setup.procRoot, "4998");
-    mkdirSync(dir, { recursive: true });
-    const f = Array.from({ length: 19 }, (_, i) => String(100 + i));
-    writeFileSync(
-      join(dir, "stat"),
-      `4998 (node) ${[...f, "100", "0", "0"].join(" ")}`,
-    );
-    writeFileSync(
-      join(dir, "cmdline"),
-      ["node", join(foreignPlugin, "dist", "temporal", "worker.js")].join(
-        "\0",
-      ) + "\0",
-    );
-    const inv = await collectPassing(setup);
-    const readiness = validateMigrationReadiness(inv);
-    expect(readiness.complete).toBe(true);
-  });
-
   test("blocks on a live session whose loaded digest differs", async () => {
     const setup = await makePassingSetup("adv-inv-sess-mismatch-");
     registerLoadedBuildSession({
@@ -315,23 +161,6 @@ describe("validateMigrationReadiness", () => {
     const readiness = validateMigrationReadiness(inv);
     expect(readiness.blockers.map((b) => b.code)).toContain(
       "session_digest_mismatch",
-    );
-  });
-
-  test("blocks on a live opencode session missing from the registry", async () => {
-    const setup = await makePassingSetup("adv-inv-sess-unknown-");
-    const dir = join(setup.procRoot, "4777");
-    mkdirSync(dir, { recursive: true });
-    const f = Array.from({ length: 19 }, (_, i) => String(100 + i));
-    writeFileSync(
-      join(dir, "stat"),
-      `4777 (opencode) ${[...f, "700", "0", "0"].join(" ")}`,
-    );
-    writeFileSync(join(dir, "cmdline"), "opencode --agent adv\0");
-    const inv = await collectPassing(setup);
-    const readiness = validateMigrationReadiness(inv);
-    expect(readiness.blockers.map((b) => b.code)).toContain(
-      "session_process_unknown",
     );
   });
 
@@ -351,9 +180,7 @@ describe("validateMigrationReadiness", () => {
     const inv: MachineInventory = await collectPassing(setup);
     expect(inv.summary).toEqual({
       projects: 1,
-      runningWorkflows: 0,
       liveSessions: 1,
-      workers: 0,
     });
   });
 });

@@ -1,7 +1,8 @@
 /** Session compatibility and filesystem-owned worktree state tests. */
 
-import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { execSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -22,6 +23,27 @@ const access: WorktreeStateAccess = {
   projectId: "0e000d0000000000000000000000000000000000",
 };
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+function createGitProject(): string {
+  const projectRoot = mkdtempSync(join(tmpdir(), "adv-state-project-"));
+  execSync("git init", { cwd: projectRoot, stdio: "ignore" });
+  execSync("git config user.email test@example.com", {
+    cwd: projectRoot,
+    stdio: "ignore",
+  });
+  execSync("git config user.name Test", {
+    cwd: projectRoot,
+    stdio: "ignore",
+  });
+  writeFileSync(join(projectRoot, "README.md"), "# isolated test project\n");
+  execSync("git add README.md", { cwd: projectRoot, stdio: "ignore" });
+  execSync("git commit -m initial", { cwd: projectRoot, stdio: "ignore" });
+  return projectRoot;
+}
+
 describe("session compatibility helpers", () => {
   it("returns an empty compatibility record after session registry removal", async () => {
     await expect(getSessionRecord(access, "sess_AAAA1111")).resolves.toBeNull();
@@ -30,9 +52,9 @@ describe("session compatibility helpers", () => {
 
 describe("pending delete lifecycle", () => {
   it("persists, increments, and clears pending deletes under isolated state", async () => {
-    const originalXdg = process.env.XDG_DATA_HOME;
     const xdg = mkdtempSync(join(tmpdir(), "adv-pending-delete-"));
-    process.env.XDG_DATA_HOME = xdg;
+    vi.stubEnv("XDG_DATA_HOME", xdg);
+    vi.stubEnv("ADV_TEST_DATA_HOME", "0");
 
     try {
       const worktreePath = `${xdg}/opencode/worktree/test-id/change/pending-cleanup`;
@@ -58,8 +80,6 @@ describe("pending delete lifecycle", () => {
       await clearPendingDelete(access, "change/pending-cleanup");
       await expect(getPendingDeletes(access)).resolves.toEqual([]);
     } finally {
-      if (originalXdg === undefined) delete process.env.XDG_DATA_HOME;
-      else process.env.XDG_DATA_HOME = originalXdg;
       rmSync(xdg, { recursive: true, force: true });
     }
   });
@@ -73,15 +93,17 @@ describe("worktree path helpers", () => {
   });
 
   it("uses XDG_DATA_HOME via the centralized project-id helper", async () => {
-    const originalXdg = process.env.XDG_DATA_HOME;
-    process.env.XDG_DATA_HOME = "/custom/data";
+    const projectRoot = createGitProject();
+    const xdg = mkdtempSync(join(tmpdir(), "adv-state-xdg-"));
+    vi.stubEnv("XDG_DATA_HOME", xdg);
+    vi.stubEnv("ADV_TEST_DATA_HOME", "0");
     try {
-      await expect(getWorktreePath(process.cwd(), "change/test")).resolves.toBe(
-        `/custom/data/opencode/worktree/${synthesizeTestProjectId(process.cwd())}/change/test`,
+      await expect(getWorktreePath(projectRoot, "change/test")).resolves.toBe(
+        `${xdg}/opencode/worktree/${synthesizeTestProjectId(projectRoot)}/change/test`,
       );
     } finally {
-      if (originalXdg === undefined) delete process.env.XDG_DATA_HOME;
-      else process.env.XDG_DATA_HOME = originalXdg;
+      rmSync(projectRoot, { recursive: true, force: true });
+      rmSync(xdg, { recursive: true, force: true });
     }
   });
 });

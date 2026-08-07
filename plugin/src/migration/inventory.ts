@@ -1,5 +1,5 @@
 /**
- * inventory — local project/workflow/process/session inventory (AC9/DDC5, OOS2).
+ * inventory — disk-backed project/build/session inventory (AC9/DDC5, OOS2).
  *
  * Structural full-machine migration proof. `collectMachineInventory` gathers:
  *
@@ -7,10 +7,6 @@
  *     deployed content (unknown or stale identity blocks activation);
  *   - projects: every local ADV project state dir, canonical and oc-shard
  *     layouts (synthetic test ids and non-project leftovers excluded);
- *   - workflows: running change workflows per project via an injectable
- *     probe (an unavailable probe is incomplete inventory);
- *   - processes: deployed/foreign workers and live OpenCode
- *     sessions from the process table;
  *   - sessions: loaded-build registry entries (digest attribution).
  *
  * `validateMigrationReadiness` converts the inventory into typed blockers.
@@ -22,16 +18,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import {
-  buildIdentityInstalledAtMs,
-  BUILD_IDENTITY_FILENAME,
-  readBuildIdentityFile,
-  verifyDeployedBuildIdentity,
-} from "./build-identity";
-import {
-  collectProcessInventory,
-  type ProcessInventory,
-} from "./process-inventory";
+import { verifyDeployedBuildIdentity } from "./build-identity";
 import { SYNTHETIC_TEST_PROJECT_ID_PREFIX } from "../utils/project-id";
 import {
   listLiveBuildSessions,
@@ -120,15 +107,8 @@ export interface MachineInventory {
   build: {
     status: "match" | "stale" | "missing" | "malformed";
     digest: string | null;
-    installedAtMs: number | null;
   };
   projects: ProjectInventoryEntry[];
-  workflows: {
-    status: "available" | "unavailable";
-    runningByProject: Record<string, number>;
-    problems: string[];
-  };
-  processes: ProcessInventory;
   sessions: {
     live: LoadedBuildSession[];
     reaped: number;
@@ -136,26 +116,16 @@ export interface MachineInventory {
   };
   summary: {
     projects: number;
-    runningWorkflows: number;
     liveSessions: number;
-    workers: number;
   };
 }
 
 export interface CollectMachineInventoryInput {
   pluginRoot: string;
-  deployRoot: string;
   migrationRoot: string;
   homeDir: string;
-  procRoot?: string;
   extraProjectRoots?: string[];
   isAlive?: (pid: number, startTicks: string | null) => boolean;
-  /**
-   * Probe for running change workflows for a project. When absent the
-   * workflow inventory is unavailable — incomplete inventory blocks
-   * activation (fail-safe).
-   */
-  listRunningWorkflows?: (projectId: string) => Promise<number>;
 }
 
 export async function collectMachineInventory(
@@ -172,37 +142,9 @@ export async function collectMachineInventory(
     extraRoots: input.extraProjectRoots,
   });
 
-  const workflows: MachineInventory["workflows"] = {
-    status: "available",
-    runningByProject: {},
-    problems: [],
-  };
-  if (!input.listRunningWorkflows) {
-    workflows.status = "unavailable";
-    workflows.problems.push("no workflow probe provided");
-  } else {
-    for (const project of projects) {
-      try {
-        workflows.runningByProject[project.projectId] =
-          await input.listRunningWorkflows(project.projectId);
-      } catch (error) {
-        workflows.status = "unavailable";
-        workflows.problems.push(
-          `workflow probe failed for ${project.projectId}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
-  }
-
-  const processes = collectProcessInventory({
-    deployedWorkerScript: join(input.deployRoot, "plugin", "dist", "worker.js"),
-    procRoot: input.procRoot,
-  });
-
   const sessions = listLiveBuildSessions({
     migrationRoot: input.migrationRoot,
     isAlive: input.isAlive,
-    procRoot: input.procRoot,
   });
 
   return {
@@ -210,20 +152,12 @@ export async function collectMachineInventory(
     build: {
       status: verification.status,
       digest,
-      installedAtMs: buildIdentityInstalledAtMs(input.pluginRoot),
     },
     projects,
-    workflows,
-    processes,
     sessions,
     summary: {
       projects: projects.length,
-      runningWorkflows: Object.values(workflows.runningByProject).reduce(
-        (sum, count) => sum + count,
-        0,
-      ),
       liveSessions: sessions.live.length,
-      workers: processes.workers.length,
     },
   };
 }
@@ -237,14 +171,8 @@ export type MigrationBlockerCode =
   | "build_identity_malformed"
   | "build_identity_stale"
   | "project_unreadable"
-  | "workflow_inventory_unavailable"
-  | "process_scan_incomplete"
-  | "worker_stale"
-  | "worker_foreign_unknown"
-  | "worker_foreign_mismatch"
   | "session_record_malformed"
-  | "session_digest_mismatch"
-  | "session_process_unknown";
+  | "session_digest_mismatch";
 
 export interface MigrationBlocker {
   code: MigrationBlockerCode;
@@ -259,9 +187,7 @@ export interface MigrationReadiness {
 /**
  * Validate a collected inventory. Readiness is complete only when every
  * component is known and current: immutable identity verified, all projects
- * readable, workflow inventory available, process table fully scanned, no
- * stale or unverifiable workers, no malformed/mismatched session records,
- * and every live OpenCode session registered with the current digest.
+ * readable, and no malformed or mismatched disk session records.
  */
 export function validateMigrationReadiness(
   inv: MachineInventory,
@@ -296,64 +222,6 @@ export function validateMigrationReadiness(
     }
   }
 
-  if (inv.workflows.status !== "available") {
-    blockers.push({
-      code: "workflow_inventory_unavailable",
-      detail: inv.workflows.problems.join("; ") || "workflow probe unavailable",
-    });
-  }
-
-  if (!inv.processes.scanComplete) {
-    blockers.push({
-      code: "process_scan_incomplete",
-      detail: inv.processes.problems.join("; ") || "process table unreadable",
-    });
-  }
-
-  for (const worker of inv.processes.workers) {
-    if (worker.root === "deployed") {
-      const installedAt = inv.build.installedAtMs;
-      if (
-        installedAt === null ||
-        worker.startTimeMs === null ||
-        worker.startTimeMs < installedAt
-      ) {
-        blockers.push({
-          code: "worker_stale",
-          detail: `deployed worker pid ${worker.pid} predates the current build install (or its start time is unknown); bounce it before activation`,
-        });
-      }
-      continue;
-    }
-    // Foreign worker: only a recorded identity with an equal digest proves
-    // it executes the same build as the deployment.
-    const foreignIdentity = readBuildIdentityFile(
-      join(
-        worker.workerScriptPath.slice(
-          0,
-          worker.workerScriptPath.length -
-            worker.workerScriptPath.split("/").slice(-2).join("/").length,
-        ),
-        "dist",
-        BUILD_IDENTITY_FILENAME,
-      ),
-    );
-    if (!foreignIdentity) {
-      blockers.push({
-        code: "worker_foreign_unknown",
-        detail: `foreign worker pid ${worker.pid} (${worker.workerScriptPath}) has no verifiable build identity`,
-      });
-    } else if (
-      expectedDigest !== null &&
-      foreignIdentity.digest !== expectedDigest
-    ) {
-      blockers.push({
-        code: "worker_foreign_mismatch",
-        detail: `foreign worker pid ${worker.pid} runs build ${foreignIdentity.digest.slice(0, 20)}… != deployed ${expectedDigest.slice(0, 20)}…`,
-      });
-    }
-  }
-
   for (const malformed of inv.sessions.malformed) {
     blockers.push({
       code: "session_record_malformed",
@@ -368,22 +236,6 @@ export function validateMigrationReadiness(
           detail: `session pid ${session.pid} (project ${session.projectId}) loaded ${session.buildDigest.slice(0, 20)}… != deployed ${expectedDigest.slice(0, 20)}…; restart the session`,
         });
       }
-    }
-  }
-
-  // Every live OpenCode session process must appear in the loaded-build
-  // registry (the bridge build registers at init). An unregistered live
-  // session is a pre-bridge or otherwise unknown session → block.
-  const registered = new Map(
-    inv.sessions.live.map((s) => [`${s.pid}:${s.processStartTicks ?? ""}`, s]),
-  );
-  for (const sessionProc of inv.processes.sessions) {
-    const key = `${sessionProc.pid}:${sessionProc.startTicks ?? ""}`;
-    if (!registered.has(key)) {
-      blockers.push({
-        code: "session_process_unknown",
-        detail: `live opencode session pid ${sessionProc.pid} is not in the loaded-build registry; restart it onto the current build`,
-      });
     }
   }
 

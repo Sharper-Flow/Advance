@@ -666,17 +666,11 @@ async function forkWithContext(
 // MODULE-LEVEL STATE
 // =============================================================================
 
-/** Database instance - initialized once per plugin lifecycle */
-let db: Database | null = null;
-
 /**
- * Project root path - stored on first initialization.
+ * Project root path for the current plugin initialization.
  *
- * In post-warp double-init scenarios, the second plugin's projectRoot value is
- * ignored because the DB handle is cached against the first init's path. This
- * is correct: external state is project-id-keyed (same root commit SHA), so
- * both plugin instances target the same DB file. The cosmetic stale value is
- * benign.
+ * WorktreePlugin can be initialized more than once in a host process. Keep
+ * this value current so local Git queries never inherit a prior plugin's CWD.
  */
 let projectRoot: string | null = null;
 
@@ -715,8 +709,6 @@ function registerCleanupHandlers(_database: Database): void {
  * @throws {Error} if initialization fails after all retries
  */
 async function getDb(log: Logger): Promise<Database> {
-  if (db) return db;
-
   if (!projectRoot) {
     throw new Error(
       "Database not initialized: projectRoot not set. Call initDb() first.",
@@ -727,9 +719,9 @@ async function getDb(log: Logger): Promise<Database> {
 
   for (let attempt = 1; attempt <= DB_MAX_RETRIES; attempt++) {
     try {
-      db = await initStateDb(projectRoot);
-      registerCleanupHandlers(db);
-      return db;
+      const database = await initStateDb(projectRoot);
+      registerCleanupHandlers(database);
+      return database;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       log.warn(
