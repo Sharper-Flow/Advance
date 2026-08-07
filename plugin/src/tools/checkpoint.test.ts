@@ -1,6 +1,7 @@
 /** Checkpoint behavior that remains after the Temporal transport removal. */
 
 import { describe, expect, test } from "vitest";
+import { createTempGitWorktree } from "../__tests__/setup";
 import { buildCommitMessage, detectRepoState } from "./checkpoint";
 
 describe("checkpoint helpers", () => {
@@ -20,7 +21,12 @@ describe("checkpoint helpers", () => {
   });
 
   test("detects a clean repository state", async () => {
-    const result = await detectRepoState(process.cwd());
-    expect(result).toBe("ok");
+    const fixture = await createTempGitWorktree("checkpoint-state-");
+    try {
+      const result = await detectRepoState(fixture.worktreePath);
+      expect(result).toBe("ok");
+    } finally {
+      await fixture.cleanup();
+    }
   });
 });
