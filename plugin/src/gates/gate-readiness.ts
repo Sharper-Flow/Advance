@@ -270,8 +270,8 @@ export function stateBackedArtifactEvidence(
  * The contentHash is NOT recomputed here — recomputation would require a
  * non-deterministic hashing primitive inside the workflow bundle. The metadata
  * contentHash and state.documents.executiveSummary are consistent by
- * construction: `updateArtifacts` fires the content signal and the
- * metadata signal (hash computed from the same content) sequentially. The
+ * construction: the content signal fires before the metadata signal (hash
+ * computed from the same content) sequentially. The
  * disk-inspecting hash re-verification is reserved for the poisoned-history
  * recovery path in gate.ts (C2/C4), which writes the disk file at recovery
  * time before inspecting it.

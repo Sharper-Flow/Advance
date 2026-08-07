@@ -208,21 +208,6 @@ export interface ChangeCreateStorageResult extends ChangeCreateResult {
   path: string;
 }
 
-export interface UpdateArtifactsResult {
-  success: boolean;
-  error?: string;
-}
-
-/** Storage-only artifact write result; not exposed by adv_change_update. */
-export interface UpdateArtifactsStorageResult extends UpdateArtifactsResult {
-  proposalPath?: string;
-  problemStatementPath?: string;
-  agreementPath?: string;
-  designPath?: string;
-  executiveSummaryPath?: string;
-  acceptancePath?: string;
-}
-
 // Inlined from former ./sqlite module (deleted in P2.7).
 export interface WisdomSearchResult {
   id: string;
@@ -382,10 +367,6 @@ export interface CommandStore extends StoreBase {
       options?: ChangeCreateOptionsBag,
     ) => Promise<ChangeCreateStorageResult>;
     save: (change: Change) => Promise<void>;
-    updateArtifacts: (
-      changeId: string,
-      artifacts: ArtifactPayload,
-    ) => Promise<UpdateArtifactsStorageResult>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
     closeBatch: (
       changeIds: string[],
@@ -716,22 +697,6 @@ export interface Store extends ReadStore, CommandStore {
       options?: ChangeCreateOptionsBag,
     ) => Promise<ChangeCreateStorageResult>;
     save: (change: Change) => Promise<void>;
-    /**
-     * Update narrative artifact files for an existing change. Options-object
-     * API — single typed call shape:
-     *
-     *   store.changes.updateArtifacts(id, {
-     *     proposal: "…",
-     *     design: "…",
-     *     ...
-     *   })
-     *
-     * Only defined fields are written; undefined fields are no-ops.
-     */
-    updateArtifacts: (
-      changeId: string,
-      artifacts: ArtifactPayload,
-    ) => Promise<UpdateArtifactsStorageResult>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
     closeBatch: (
       changeIds: string[],

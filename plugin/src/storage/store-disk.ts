@@ -10,8 +10,7 @@
  *   - **Paths**: ProjectPaths is the canonical computation that maps repo
  *     root + config to changes/specs/wisdom directories.
  *   - **Disk projection writes**: changes.create and changes.save persist
- *     change.json; changes.updateArtifacts remains the legacy disk-artifact
- *     materialization path until its projection-only follow-up lands.
+ *     change.json and its projection documents.
  *   - **Cross-repo target init**: when adv_change_create is called with
  *     `target_path`, the cross-project flow needs to scaffold a change in
  *     the target repo's filesystem before any other state exists.
@@ -66,7 +65,6 @@ import {
   saveChange,
   saveProjectConfig,
   saveSpec,
-  updateChangeArtifacts,
   type LoadResult,
 } from "./json";
 import {
@@ -596,39 +594,6 @@ export async function createDiskStore(
 
       save: async (change: Change) => {
         await persistChangeProjection(paths, change);
-      },
-
-      updateArtifacts: async (changeId, artifacts) => {
-        const { id, candidates } = await resolveChangeId(
-          paths.changes,
-          changeId,
-        );
-        if (!id) {
-          const hint =
-            candidates.length > 0
-              ? ` Did you mean: ${candidates.join(", ")}?`
-              : "";
-          return {
-            success: false,
-            error: `Change not found: "${changeId}".${hint}`,
-          };
-        }
-        const result = await updateChangeArtifacts(
-          paths.changes,
-          id,
-          artifacts,
-        );
-        if (result.error) {
-          return { success: false, error: result.error };
-        }
-        return {
-          success: true,
-          proposalPath: result.proposalPath,
-          problemStatementPath: result.problemStatementPath,
-          agreementPath: result.agreementPath,
-          designPath: result.designPath,
-          executiveSummaryPath: result.executiveSummaryPath,
-        };
       },
 
       close: async (changeId, closure: ChangeClosure) => {

@@ -211,13 +211,12 @@ async function writeArchiveBundleFiles(
     );
   }
 
-  // KD1 (AC8 sole production point): write the six narrative artifacts from
-  // the projection (change.documents). This is the single place artifact
-  // content is written to the bundle; the sourceChangeDir copies in the
-  // callers only fill kinds absent from the projection (legacy pre-cutover
-  // changes). Makes the archive reproducible from the projection and prevents
-  // stale active-dir .md overwriting current content for transitional changes
-  // (#403).
+  // KD1 (AC8): writeArchiveBundleFiles is the sole projection-sourced
+  // production point for the six narrative artifacts from change.documents.
+  // The sourceChangeDir copies in callers only fill kinds absent from the
+  // projection (legacy pre-cutover changes). This makes the archive
+  // reproducible from the projection and prevents stale active-dir .md from
+  // overwriting current content for transitional changes (#403).
   for (const kind of ArtifactKindSchema.options) {
     const content = change.documents?.[kind];
     if (typeof content === "string" && content.length > 0) {

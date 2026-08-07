@@ -61,9 +61,9 @@ export const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
 };
 
 // =============================================================================
-// ArtifactPayload — typed shape carried by Store.changes.create() and
-// Store.changes.updateArtifacts(). Replaces the positional 7-arg content
-// parameter API. Every defined field is persisted; undefined fields are no-ops.
+// ArtifactPayload — typed shape carried by Store.changes.create(). Replaces
+// the positional 7-arg content parameter API. Every defined field is
+// persisted; undefined fields are no-ops.
 // =============================================================================
 
 export const ArtifactPayloadSchema = z.object({

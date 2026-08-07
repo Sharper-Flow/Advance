@@ -56,7 +56,6 @@ function createMockStore(
       list: vi.fn(),
       create: vi.fn(),
       save: vi.fn(),
-      updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
       refresh: vi.fn(),

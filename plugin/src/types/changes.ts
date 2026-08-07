@@ -1270,7 +1270,7 @@ export const ChangeSchema = z
      * artifacts (proposal, problemStatement, agreement, design,
      * executiveSummary, acceptance). Populated by content signals into
      * `state.documents`. Used by `readArtifact` for disk reads and by
-     * `materializeBundleArtifacts` for archive bundle writes.
+     * `writeArchiveBundleFiles` for archive bundle writes.
      *
      * Additive optional fields retained for persisted-state compatibility.
      */

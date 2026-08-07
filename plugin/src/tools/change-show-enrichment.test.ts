@@ -105,7 +105,6 @@ function createMockStore(changeOverride: Partial<Change> = {}): Store {
       get: vi.fn(async () => ({ success: true, data: change })),
       create: vi.fn(),
       save: vi.fn(),
-      updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
       refresh: vi.fn(async () => undefined),
@@ -141,7 +140,6 @@ function assertNoWorkflowCalls(store: Store) {
   expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   expect(mocks.fireSignal).not.toHaveBeenCalled();
   expect(store.changes.save).not.toHaveBeenCalled();
-  expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
 }
 
 describe("adv_change_show enrichment best-effort integration", () => {
