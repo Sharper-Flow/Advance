@@ -221,7 +221,10 @@ async function writeArchiveBundleFiles(
   for (const kind of ArtifactKindSchema.options) {
     const content = change.documents?.[kind];
     if (typeof content === "string" && content.length > 0) {
-      await atomicWriteFile(join(archivePath, ARTIFACT_FILENAME[kind]), content);
+      await atomicWriteFile(
+        join(archivePath, ARTIFACT_FILENAME[kind]),
+        content,
+      );
     }
   }
 
@@ -1334,18 +1337,18 @@ export async function createInRepoArchive(
     projectionManifest,
   );
 
-    // Copy sibling files from source change directory
-    if (sourceChangeDir) {
-      const projectionArtifactFiles = projectionArtifactFilenames(change);
-      try {
-        const entries = await readdir(sourceChangeDir, { withFileTypes: true });
-        for (const entry of entries) {
-          if (
-            GENERATED_BUNDLE_FILES.has(entry.name) ||
-            !entry.isFile() ||
-            projectionArtifactFiles.has(entry.name)
-          )
-            continue;
+  // Copy sibling files from source change directory
+  if (sourceChangeDir) {
+    const projectionArtifactFiles = projectionArtifactFilenames(change);
+    try {
+      const entries = await readdir(sourceChangeDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (
+          GENERATED_BUNDLE_FILES.has(entry.name) ||
+          !entry.isFile() ||
+          projectionArtifactFiles.has(entry.name)
+        )
+          continue;
         try {
           const bounded = await readBoundedProjectionDocument(
             join(sourceChangeDir, entry.name),

@@ -562,7 +562,10 @@ describe("contract archive traceability", () => {
         sourceChangeDir,
       );
 
-      const bundled = await readFile(join(archivePath, "agreement.md"), "utf-8");
+      const bundled = await readFile(
+        join(archivePath, "agreement.md"),
+        "utf-8",
+      );
       expect(bundled).toContain("CURRENT projection content.");
       expect(bundled).not.toContain("STALE disk content.");
     });
@@ -577,7 +580,10 @@ describe("contract archive traceability", () => {
         "# Agreement\n\nLegacy on-disk only.",
       );
       // No documents in projection (pre-cutover legacy change).
-      const change = changeWithContract({ id: "legacy-disk", status: "active" });
+      const change = changeWithContract({
+        id: "legacy-disk",
+        status: "active",
+      });
 
       const archivePath = await createInRepoArchive(
         change,

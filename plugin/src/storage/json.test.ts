@@ -18,7 +18,6 @@ import { readFile, writeFile, rm } from "fs/promises";
 import {
   loadProjectConfig,
   loadProjectConfigWithDiagnostics,
-  loadProposalWithFallback,
   saveProjectConfig,
   loadSpec,
   saveSpec,
@@ -1111,54 +1110,9 @@ describe("hasArchiveBundle", () => {
   });
 });
 
-describe("loadProposalWithFallback", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await createTempDir();
-  });
-
-  afterEach(async () => {
-    await cleanupTempDir(tempDir);
-  });
-
-  test("returns content when proposal.md exists", async () => {
-    const proposalPath = join(tempDir, "proposal.md");
-    await writeFile(proposalPath, "# My Proposal\n\nSome content.");
-
-    const result = await loadProposalWithFallback(tempDir, "My Change");
-    expect(result.content).toContain("My Proposal");
-    expect(result.warning).toBeUndefined();
-  });
-
-  test("returns scaffold and warning when proposal.md is missing", async () => {
-    const result = await loadProposalWithFallback(tempDir, "My Change");
-    expect(result.content).toContain("My Change");
-    expect(result.warning).toBeDefined();
-    expect(result.warning).toContain("proposal.md");
-  });
-
-  test("returns scaffold and warning when proposal.md is empty", async () => {
-    const proposalPath = join(tempDir, "proposal.md");
-    await writeFile(proposalPath, "   \n  ");
-
-    const result = await loadProposalWithFallback(tempDir, "My Change");
-    expect(result.content).toContain("My Change");
-    expect(result.warning).toBeDefined();
-  });
-
-  test("scaffold content includes change title", async () => {
-    const result = await loadProposalWithFallback(tempDir, "Fix Login Bug");
-    expect(result.content).toContain("Fix Login Bug");
-  });
-
-  test("never throws — always returns a result", async () => {
-    // Even with a completely invalid path, should not throw
-    const result = await loadProposalWithFallback("/nonexistent/path", "Test");
-    expect(result.content).toBeDefined();
-    expect(result.warning).toBeDefined();
-  });
-});
+// Proposal-read coverage moved to storage/proposal-read.test.ts (KD5):
+// `loadProposalWithFallback` was retired in favour of the projection-first
+// storage helper `loadProposalForSnapshot`.
 
 // =============================================================================
 // Agreement.md and Design.md artifact support
