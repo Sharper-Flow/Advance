@@ -183,7 +183,6 @@ describe("resolveBlockableSet", () => {
     // Representative Tier 2/3 tools MUST be blockable.
     expect(blockable.has("adv_run_test")).toBe(true);
     expect(blockable.has("adv_change_create")).toBe(true);
-    expect(blockable.has("adv_change_workflow_terminate")).toBe(true);
     expect(blockable.has("adv_archive_purge")).toBe(true);
     expect(usedFallback).toBe(false);
   });
@@ -200,7 +199,6 @@ describe("resolveBlockableSet", () => {
     expect(blockable.has("adv_change_show")).toBe(false);
     expect(blockable.has("adv_task_list")).toBe(false);
     expect(blockable.has("adv_run_test")).toBe(true);
-    expect(blockable.has("adv_change_workflow_terminate")).toBe(true);
   });
 
   it("fails closed to the union floor when blockable derivation yields empty", () => {
@@ -221,7 +219,6 @@ describe("resolveBlockableSet", () => {
     expect(usedFallback).toBe(true);
     expect(blockable.has("adv_change_show")).toBe(false);
     expect(blockable.has("adv_run_test")).toBe(true);
-    expect(blockable.has("adv_change_workflow_terminate")).toBe(true);
   });
 });
 
@@ -390,11 +387,11 @@ describe("Runtime role firewall in tool.execute.before", () => {
     return hooks["tool.execute.before"]!(input, { args } as any);
   };
 
-  it("blocks operator-only adv_change_workflow_terminate from a sub-agent session", async () => {
+  it("blocks operator-only adv_archive_purge from a sub-agent session", async () => {
     await createPlugin();
     await setMainSession("main");
     await expect(
-      callToolBefore("adv_change_workflow_terminate", "sub-agent"),
+      callToolBefore("adv_archive_purge", "sub-agent"),
     ).rejects.toThrow(RoleFirewallError);
   });
 

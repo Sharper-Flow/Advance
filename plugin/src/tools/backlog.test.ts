@@ -58,12 +58,9 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
         completedTasks: 0,
       },
     ];
-    store.changes.listSummary = vi.fn().mockResolvedValue({
+    vi.mocked(store.changes.list).mockResolvedValue({
       changes: summaryRows,
-    });
-    vi.mocked(store.changes.list).mockRejectedValue(
-      new Error("WIP must not hydrate changes through the full list"),
-    );
+    } as never);
 
     const result = await backlogTools.adv_wip_state.execute(
       {},
@@ -80,8 +77,7 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(store.changes.listSummary).toHaveBeenCalledWith({});
-    expect(store.changes.list).not.toHaveBeenCalled();
+    expect(store.changes.list).toHaveBeenCalledWith({});
     expect(parsed.active_changes).toEqual([
       expect.objectContaining({
         id: "open",
@@ -149,7 +145,6 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.worktrees[0].branch).toBe("change/changeA");
     expect(parsed.peer_sessions).toHaveLength(1);
     expect(parsed.peer_sessions[0].isSelf).toBe(true);
-    expect(parsed.poisoned_workflows).toEqual([]);
     expect(parsed.generated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(parsed.warnings).toEqual([]);
   });
@@ -319,11 +314,10 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.active_changes).toEqual([]);
     expect(parsed.worktrees).toEqual([]);
     expect(parsed.peer_sessions).toEqual([]);
-    expect(parsed.poisoned_workflows).toEqual([]);
     expect(parsed.warnings).toEqual([]);
   });
 
-  it("exposes automation-first poisoned workflow metadata while preserving warnings", async () => {
+  it("preserves ordinary worktree warnings without retired workflow metadata", async () => {
     const store = makeMockStore([
       {
         id: "healthy",
@@ -353,24 +347,11 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
           ],
           warnings: [
             {
-              source: "worktree_workflow",
-              changeId: "poisoned",
-              workflowId: "adv/change/test-id/poisoned",
-              recoveryReason: "poisoned_history",
-              evidenceSummary:
-                "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100]",
-              message: "Unable to query worktrees for change poisoned",
+              source: "worktree_inventory",
+              changeId: "unavailable-change",
+              evidenceSummary: "permission denied",
+              message: "Unable to inspect worktree for unavailable-change",
               errorClass: "Error",
-            },
-          ],
-          poisonedWorkflows: [
-            {
-              changeId: "poisoned",
-              workflowId: "adv/change/test-id/poisoned",
-              recoveryReason: "poisoned_history",
-              evidenceSummary:
-                "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100]",
-              message: "Unable to query worktrees for change poisoned",
             },
           ],
         }),
@@ -389,21 +370,11 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
         branch: "change/healthy",
       }),
     ]);
-    expect(parsed.poisoned_workflows).toEqual([
-      {
-        source: "worktrees",
-        changeId: "poisoned",
-        workflowId: "adv/change/test-id/poisoned",
-        recoveryReason: "poisoned_history",
-        evidenceSummary:
-          "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100]",
-        message: "Unable to query worktrees for change poisoned",
-      },
-    ]);
+    expect(parsed.poisoned_workflows).toBeUndefined();
     expect(parsed.warnings).toEqual([
       expect.objectContaining({
         source: "worktrees",
-        reason: expect.stringContaining("poisoned"),
+        reason: expect.stringContaining("unavailable-change"),
       }),
     ]);
   });
@@ -1098,53 +1069,6 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
       expect(parsed.claim_inventory.can_conclude_clean).toBe(false);
       expect(parsed.claim_inventory.warnings).toContainEqual(
         "Worktree inventory unavailable; claim inventory cannot be verified as complete.",
-      );
-    });
-
-    it("marks inventory degraded and blocks clean conclusion when poisoned workflows exist", async () => {
-      const store = makeMockStore([
-        {
-          id: "changeA",
-          title: "Change A",
-          status: "active",
-          created_at: "2026-05-11T00:00:00.000Z",
-          lastActivityAt: "2026-05-11T01:00:00.000Z",
-          taskCount: 1,
-          completedTasks: 0,
-          coordination_claim: validClaim,
-        },
-      ]);
-
-      const result = await backlogTools.adv_wip_state.execute(
-        {},
-        store,
-        undefined,
-        {
-          worktreesProvider: async () => ({
-            worktrees: [],
-            poisonedWorkflows: [
-              {
-                changeId: "changeA",
-                workflowId: "changeA-wf",
-                recoveryReason: "poisoned_history",
-                evidenceSummary: "describe failed",
-                message: "Poisoned workflow detected",
-              },
-            ],
-          }),
-          sessionsProvider: async () => ({
-            sessions: [],
-            total: 0,
-            deadFiltered: 0,
-          }),
-        },
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.claim_inventory.completeness).toBe("degraded");
-      expect(parsed.claim_inventory.can_conclude_clean).toBe(false);
-      expect(parsed.claim_inventory.warnings).toContainEqual(
-        "Worktree inventory includes 1 poisoned workflow(s); claim completeness is uncertain.",
       );
     });
 

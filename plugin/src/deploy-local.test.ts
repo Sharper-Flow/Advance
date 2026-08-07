@@ -651,7 +651,7 @@ describe("deploy-local.sh", () => {
       expect(advAgent).toContain("### Worktree Isolation Routing");
     });
 
-    test("advance-meta spec captures worker heartbeat and run-loop health requirements", () => {
+    test("advance-meta spec culls worker lifecycle requirements and retains disk timeout proof", () => {
       const parsed = SpecSchema.parse(spec);
       const timeoutOverride = parsed.requirements.find(
         (rq) => rq.id === "rq-toolTimeoutOverride01",
@@ -673,90 +673,16 @@ describe("deploy-local.sh", () => {
         (s) => s.id === "rq-toolTimeoutOverride01.2",
       );
       expect(restartScenario?.then.join("\n")).toContain(
-        "returns success:true only when serviceability is proven",
+        "returns success:true only when the post-fix disk condition is proven",
       );
       expect(restartScenario?.then.join("\n")).toContain(
         "explicit safety-net timeout override",
       );
 
-      expect(workerSingleton?.body).toContain("heartbeat");
-      expect(workerSingleton?.body).toContain("v1 fallback");
-      expect(workerSingleton?.body).toContain("serviceable queue");
-      // Re-entry: body extended for fresh-v2 unserviceable suspect classification
-      // and self-expiry guidance (rq-workerSingleton01.7/.8).
-      expect(workerSingleton?.body).toContain("unserviceable");
-      expect(workerSingleton?.body).toContain("stop renewing");
-      expect(workerSingleton?.scenarios).toHaveLength(9);
-      expect(scenarioIds).toContain("rq-workerSingleton01.5");
-      expect(scenarioIds).toContain("rq-workerSingleton01.6");
-      expect(scenarioIds).toContain("rq-workerSingleton01.7");
-      expect(scenarioIds).toContain("rq-workerSingleton01.8");
-      expect(scenarioIds).toContain("rq-workerSingleton01.9");
-      expect(
-        workerSingleton?.scenarios?.find(
-          (s) => s.id === "rq-workerSingleton01.2",
-        )?.given,
-      ).toContain(
-        "A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)",
-      );
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.6")
-          ?.then.join("\n"),
-      ).toContain("explicit user approval evidence");
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.7")
-          ?.then.join("\n"),
-      ).toContain("suspect_live_unserviceable_lock");
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.8")
-          ?.then.join("\n"),
-      ).toContain("stop renewing the heartbeat");
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.9")
-          ?.then.join("\n"),
-      ).toContain("worker_role");
-      expect(workerHealth?.scenarios).toHaveLength(4);
-      expect(scenarioIds).toContain("rq-workerHealth01.1");
-      expect(scenarioIds).toContain("rq-workerHealth01.2");
-      expect(scenarioIds).toContain("rq-workerHealth01.3");
-      expect(scenarioIds).toContain("rq-workerHealth01.4");
-      expect(
-        workerHealth?.scenarios
-          ?.find((s) => s.id === "rq-workerHealth01.3")
-          ?.then.join("\n"),
-      ).toContain("liveness evidence only");
-      expect(
-        workerHealth?.scenarios
-          ?.find((s) => s.id === "rq-workerHealth01.4")
-          ?.then.join("\n"),
-      ).toContain("STSL");
-      expect(deployWorkerBounce?.body).toContain("SIGTERM");
-      expect(deployWorkerBounce?.body).toContain("[ADV:ACTION_REQUIRED]");
-      expect(deployWorkerBounce?.body).toContain(
-        "ADV_TEMPORAL_WORKER_SELF_ROLL=1",
-      );
-      expect(deployWorkerBounce?.body).toContain("self-roll");
-      expect(deployWorkerBounce?.scenarios).toHaveLength(3);
-      expect(
-        deployWorkerBounce?.scenarios
-          ?.find((s) => s.id === "rq-deployWorkerBounce01.1")
-          ?.then.join("\n"),
-      ).toContain("ADV_TEMPORAL_WORKER_SELF_ROLL=1");
-      expect(
-        deployWorkerBounce?.scenarios?.find(
-          (s) => s.id === "rq-deployWorkerBounce01.2",
-        )?.title,
-      ).toContain("Self-roll");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce01.1");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce01.2");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce01.3");
-      expect(deployWorkerBounceReadOnly?.scenarios).toHaveLength(2);
-      expect(scenarioIds).toContain("rq-deployWorkerBounce02.1");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce02.2");
+      expect(workerSingleton).toBeUndefined();
+      expect(workerHealth).toBeUndefined();
+      expect(deployWorkerBounce).toBeUndefined();
+      expect(deployWorkerBounceReadOnly).toBeUndefined();
     });
 
     test("advance-meta spec captures stability feature-flag defaults and probe freshness", () => {
@@ -789,7 +715,7 @@ describe("deploy-local.sh", () => {
       expect(probeCache?.body).toContain("age_ms");
       expect(probeCache?.body).toContain("ttl_ms");
       expect(probeCache?.body).toContain("forceRefresh");
-      expect(probeCache?.body).toContain("AbortSignal");
+      expect(probeCache?.body).toContain("AbortMutation");
       expect(probeCache?.scenarios?.map((s) => s.id)).toEqual(
         expect.arrayContaining([
           "rq-statusProbeCache01.1",
@@ -810,7 +736,7 @@ describe("deploy-local.sh", () => {
       expect(latencyBench).toBeDefined();
       expect(latencyBench?.body).toContain("p95");
       expect(latencyBench?.body).toContain(
-        "MUST NOT fabricate a TemporalClientBundle",
+        "MUST NOT fabricate a DiskProjectionStoreBundle",
       );
       expect(latencyBench?.scenarios?.map((s) => s.id)).toContain(
         "rq-advLatencyBench01.3",

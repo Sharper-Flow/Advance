@@ -18,7 +18,6 @@ import {
   type Tier4ToolName,
   type CreateToolMapFn,
 } from "./tools/index.js";
-import { wrapTier4Tool } from "./degradation.js";
 import { createDiskStore } from "../storage/store-disk.js";
 
 vi.mock("../storage/store-disk.js", () => ({
@@ -124,21 +123,5 @@ describe("Runtime degradation behavior", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.error).toBeUndefined();
-  });
-
-  it("Temporal outage degrades status diagnostics", async () => {
-    const execute = vi.fn().mockResolvedValue(JSON.stringify({ ok: true }));
-    const wrapped = wrapTier4Tool(
-      "status",
-      TOOL_CLASSIFICATIONS.status,
-      execute,
-      { temporalReachable: () => Promise.resolve(false) },
-    );
-
-    const result = await wrapped({});
-    const parsed = JSON.parse(result);
-
-    expect(parsed.degraded).toBe(true);
-    expect(parsed.source).toBe("disk_projection");
   });
 });

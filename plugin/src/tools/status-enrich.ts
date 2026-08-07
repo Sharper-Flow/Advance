@@ -181,11 +181,13 @@ export async function enrichRecentChangeStatus(
   let changeData: Change;
   let proposalText: string;
   if (resolved?.change) {
-    // AC4: the request already hydrated this change — reuse the document
-    // and its disk proposal projection. No second store.changes.get
-    // and no readArtifact call for an already-resolved row.
+    // AC4: the request already hydrated this change record — reuse it to
+    // avoid a second store.changes.get. The proposal is a separate file
+    // (proposal.md), not an inline field on change.json, so it must still
+    // be read from disk regardless of which path loaded the Change record.
     changeData = resolved.change;
-    proposalText = resolved.change.documents?.proposal ?? "";
+    proposalText =
+      (await readArtifact(store, changeId, "proposal"))?.content ?? "";
   } else {
     const changeResult = await store.changes.get(changeId);
     if (!enrichmentWithinBudget(options)) {
@@ -625,7 +627,8 @@ export async function buildCandidateEnrichmentPatch(
 
     if (resolved?.change) {
       changeData = resolved.change;
-      proposalText = resolved.change.documents?.proposal ?? "";
+      proposalText =
+        (await readArtifact(store, changeId, "proposal"))?.content ?? "";
     } else {
       const changeResult = await store.changes.get(changeId);
       if (signal?.aborted || Date.now() >= cutoffAt) {

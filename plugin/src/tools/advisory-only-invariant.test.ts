@@ -17,14 +17,14 @@ import { describe, test, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const PLUGIN_SRC = join(__dirname, "..", "temporal");
+const PLUGIN_SRC = join(__dirname, "..");
 const ENRICHMENT_FIELDS = ["_relevantWisdom", "_episodeRecallHint"];
 
 /**
  * Files that own gate state transitions and must never read enrichment.
  * If a new gate handler is added, append it here.
  */
-const GATE_HANDLER_FILES = ["change-state.ts", "workflows.ts"];
+const GATE_HANDLER_FILES = ["tools/gate.ts"];
 
 describe("rq-wisdomAutoSurfacing01.11 — AC9 advisory-only invariant", () => {
   for (const file of GATE_HANDLER_FILES) {

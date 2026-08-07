@@ -60,6 +60,8 @@ describe("adv_change_create origin field", () => {
         origin_issue_number: 89,
       },
       store,
+      undefined,
+      { claimRaceCheckMs: 0 },
     );
     const parsed = parseToolOutput(output);
     expect(parsed.origin).toEqual({

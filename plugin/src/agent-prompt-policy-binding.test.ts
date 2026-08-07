@@ -259,8 +259,8 @@ describe("AC7 pre-rewrite evidence (pinned fixture)", () => {
 // ─── AC5: Prompt-body binding to AGENT_TOOL_POLICY ─────────────────────────
 
 describe("AC5 prompt-body policy binding", () => {
-  test("SPAWNABLE_SUBAGENT_ROSTER covers exactly 9 lanes", () => {
-    expect(SPAWNABLE_SUBAGENT_ROSTER).toHaveLength(9);
+  test("SPAWNABLE_SUBAGENT_ROSTER covers exactly 8 lanes", () => {
+    expect(SPAWNABLE_SUBAGENT_ROSTER).toHaveLength(8);
   });
 
   for (const agent of SPAWNABLE_SUBAGENT_ROSTER) {

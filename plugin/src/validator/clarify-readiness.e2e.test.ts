@@ -196,10 +196,6 @@ mechanisms introduced.
     expect(clarifyRecs).toHaveLength(0);
   });
 
-  // adv_gate_complete e2e check removed: gate completion now requires a
-  // Temporal-backed Store (signal-driven mutation), and createDiskStore
-  // is a disk-only adapter without a Temporal bundle. The clarify-readiness
-  // invariant on clean changes is covered by the change-create, change-show,
-  // and status tests above. Gate-complete clarify behavior is covered by
-  // gate.test.ts with a proper Temporal mock setup.
+  // Gate-complete e2e coverage lives in gate.test.ts. This suite keeps the
+  // clean-change invariant focused across create, show, and status surfaces.
 });

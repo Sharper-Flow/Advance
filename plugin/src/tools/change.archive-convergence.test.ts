@@ -292,9 +292,8 @@ describe("saveRecoveredArchiveConvergence", () => {
     expect(commitCall.expectedRevision).toBe(0);
     expect(commitCall.authority).toEqual({
       kind: "recovery",
-      reason: "missing_workflow",
-      evidence:
-        "archive_convergence_recovery; operator approved dead-workflow archive convergence",
+      reason: "archive_convergence_recovery",
+      evidence: "operator approved dead-workflow archive convergence",
     });
     expect(typeof commitCall.mutateLatest).toBe("function");
     expect(typeof commitCall.verify).toBe("function");

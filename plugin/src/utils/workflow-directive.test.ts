@@ -104,22 +104,6 @@ describe("deriveWorkflowDirective", () => {
     expect(d.action.gateId).toBe("planning");
   });
 
-  it("classifies poisoned-history evidence as recovery", () => {
-    const gates = gatesWith("execution", "stuck", {
-      stuck_reason: "TMPRL1100 nondeterminism while replaying history",
-    });
-    const ready = markDone(
-      gates,
-      "proposal",
-      "discovery",
-      "design",
-      "planning",
-    );
-    const d = deriveWorkflowDirective(makeState({ gates: ready }), EPOCH);
-    expect(d.recovery?.reason).toBe("poisoned_history");
-    expect(d.action.kind).toBe("recovery");
-  });
-
   it("classifies a terminated non-terminal workflow as missing_workflow", () => {
     const d = deriveWorkflowDirective(
       makeState({ terminated: true, status: "active" }),

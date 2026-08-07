@@ -80,7 +80,7 @@ describe("advWorktreeTools", () => {
             externalRoot: "/external/target-project",
             trusted: false,
             trustSource: "explicit",
-            stateMode: "temporal",
+            stateMode: "authoritative",
           },
           store: targetStore,
         }),
@@ -1313,14 +1313,8 @@ describe("advWorktreeTools", () => {
       },
       "/repo",
       database,
-      expect.objectContaining({
-        store,
-        signalTimeoutMs: expect.any(Number),
-      }),
+      expect.objectContaining({ log: expect.any(Object) }),
     );
-    const [, , , options] =
-      worktreeMock.advWorktreeDetachBatch.mock.calls.at(-1)!;
-    expect(options.signalTimeoutMs).toBeLessThan(WORKTREE_TOOL_SAFE_TIMEOUT_MS);
     expect(out).toContain('"ok":true');
     expect(out).toContain("change/x");
   });
@@ -1367,7 +1361,7 @@ describe("advWorktreeTools", () => {
       expect.any(Object),
       "/target",
       database,
-      expect.objectContaining({ store: targetStore }),
+      expect.objectContaining({ log: expect.any(Object) }),
     );
   });
 
