@@ -104,6 +104,13 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
     rationale: "Unit tests for the low-level saveChange JSON helper itself.",
   },
   {
+    file: "plugin/src/storage/reconcile-action-summary.test.ts",
+    context: null,
+    category: "test_raw_primitive",
+    rationale:
+      "Summary-reconcile action executor tests seed canonical change fixtures directly via raw saveChange, mirroring the change-summary-shard.test.ts precedent.",
+  },
+  {
     file: "plugin/src/storage/store-disk.test.ts",
     context: null,
     category: "test_raw_primitive",

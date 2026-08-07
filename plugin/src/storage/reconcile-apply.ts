@@ -3,8 +3,9 @@
  *
  * Exit-code mapping: 0 complete; 2 target/usage resolution; 3 corrupt input;
  * 4 live worker/reconcile lock; 5 partial record failure; 6 stale plan.
- * Concrete class executors are intentionally not implemented here. Later
- * tasks replace the registry entries while retaining this seam and its guards.
+ * Concrete class executors are wired into ACTION_EXECUTORS as they are
+ * delivered; undelivered entries fall back to notImplementedExecutor while
+ * retaining this seam and its guards.
  */
 
 import { createHash, randomUUID } from "node:crypto";
@@ -18,6 +19,18 @@ import {
 } from "../tools/change-mutation-coordinator";
 import { isProcessAlive } from "../utils/process-liveness";
 import { acquireFileLock } from "../utils/fs";
+import {
+  advanceLegacyToCanonicalExecutor,
+  reportOnlyExecutor,
+} from "./reconcile-action-legacy-envelope";
+import {
+  normalizeEnumMappingExecutor,
+  quarantineRecordExecutor,
+} from "./reconcile-action-schema-drift";
+import {
+  rebuildFromChangesExecutor,
+  rebuildSummaryShardExecutor,
+} from "./reconcile-action-summary";
 import {
   appendReconcileAudit,
   type ReconcileAuditEvent,
@@ -153,12 +166,22 @@ const ACTION_NAMES = [
   "rebuild_from_changes",
 ] as const;
 
+const STUB_ACTION_EXECUTORS = Object.fromEntries(
+  ACTION_NAMES.map((name) => [name, notImplementedExecutor]),
+) as Record<ReconcileAction["action"], ActionExecutor>;
+
 export const ACTION_EXECUTORS: Record<
   ReconcileAction["action"],
   ActionExecutor
-> = Object.fromEntries(
-  ACTION_NAMES.map((name) => [name, notImplementedExecutor]),
-) as Record<ReconcileAction["action"], ActionExecutor>;
+> = {
+  ...STUB_ACTION_EXECUTORS,
+  normalize_enum_mapping: normalizeEnumMappingExecutor,
+  quarantine_record: quarantineRecordExecutor,
+  rebuild_summary_shard: rebuildSummaryShardExecutor,
+  rebuild_from_changes: rebuildFromChangesExecutor,
+  advance_legacy_to_canonical: advanceLegacyToCanonicalExecutor,
+  report_only: reportOnlyExecutor,
+};
 
 export async function executeRecordAction(
   record: ReconcilePlanRecord,

@@ -98,3 +98,21 @@ export {
   type ReconcileErrorClass,
   type RunReconcileApplyOptions,
 } from "./reconcile-apply";
+export {
+  normalizeEnumMappingExecutor,
+  quarantineRecordExecutor,
+  type SchemaDriftActionOutcome,
+} from "./reconcile-action-schema-drift";
+export {
+  rebuildSummaryShardExecutor,
+  rebuildFromChangesExecutor,
+  rebuildSummaryBatchExecutor,
+  rebuildSummaryIndexBatch,
+  type SummaryActionOutcome,
+  type SummaryRebuildEvidence,
+  type SummaryActionName,
+} from "./reconcile-action-summary";
+export {
+  advanceLegacyToCanonicalExecutor,
+  reportOnlyExecutor,
+} from "./reconcile-action-legacy-envelope";
