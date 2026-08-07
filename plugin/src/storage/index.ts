@@ -138,3 +138,10 @@ export {
   remainQuarantinedReportedExecutor,
   quarantineToTrashExecutor,
 } from "./reconcile-action-quarantine";
+export {
+  ReconcileProofWhitelistEntrySchema,
+  ReconcileCompletionProofSchema,
+  runUnboundedProjectionDivergenceScan,
+  computeReconcileCompletionProof,
+  runReconcileCompletionProof,
+} from "./reconcile-proof";
