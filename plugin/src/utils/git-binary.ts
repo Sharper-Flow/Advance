@@ -262,22 +262,74 @@ export function _resetGitBinaryCacheForTesting(): void {
 // into the spawn env so callers don't have to think about PATH hygiene.
 // ---------------------------------------------------------------------------
 
-type GitSpawnOptions = SpawnOptions & { env?: NodeJS.ProcessEnv };
+type GitSpawnOptions = SpawnOptions & {
+  env?: NodeJS.ProcessEnv;
+  /** Optional request budget; the child must finish before this bound. */
+  remainingMs?: number;
+};
 type GitSpawnSyncOptions = SpawnSyncOptions & { env?: NodeJS.ProcessEnv };
-type GitExecFileOptions = ExecFileOptions & { env?: NodeJS.ProcessEnv };
+type GitExecFileOptions = ExecFileOptions & {
+  env?: NodeJS.ProcessEnv;
+  /** Optional request budget, combined with the existing timeout option. */
+  remainingMs?: number;
+};
+
+function normalizeGitExecOptions(options: GitExecFileOptions): ExecFileOptions {
+  const { remainingMs, ...rest } = options;
+  if (remainingMs === undefined) return rest;
+  const timeout = rest.timeout;
+  return {
+    ...rest,
+    timeout:
+      timeout === undefined
+        ? Math.max(1, remainingMs)
+        : Math.max(1, Math.min(timeout, remainingMs)),
+  };
+}
 
 const mergeGitEnv = (opts: { env?: NodeJS.ProcessEnv }): NodeJS.ProcessEnv =>
   getGitSpawnEnv({}, opts.env ?? process.env);
+
+function spawnWithRemainingTimeout(
+  bin: string,
+  args: readonly string[],
+  options: GitSpawnOptions,
+): ChildProcess {
+  const { remainingMs, signal, ...rest } = options;
+  if (remainingMs === undefined) {
+    return spawn(bin, [...args], {
+      ...rest,
+      signal,
+      env: mergeGitEnv(options),
+    });
+  }
+
+  const controller = new AbortController();
+  const abort = (): void => controller.abort();
+  const timeout = setTimeout(abort, Math.max(0, remainingMs));
+  timeout.unref?.();
+  if (signal?.aborted) abort();
+  else signal?.addEventListener("abort", abort, { once: true });
+  const child = spawn(bin, [...args], {
+    ...rest,
+    signal: controller.signal,
+    env: mergeGitEnv(options),
+  });
+  const cleanup = (): void => {
+    clearTimeout(timeout);
+    signal?.removeEventListener("abort", abort);
+  };
+  child.once("close", cleanup);
+  child.once("error", cleanup);
+  return child;
+}
 
 export function spawnGit(
   args: readonly string[],
   options: GitSpawnOptions = {},
 ): ChildProcess {
   const bin = resolveGitBinary();
-  return spawn(bin, [...args], {
-    ...options,
-    env: mergeGitEnv(options),
-  });
+  return spawnWithRemainingTimeout(bin, args, options);
 }
 
 export function spawnGitStreams(
@@ -312,7 +364,7 @@ export function execFileGitCb(
     bin,
     [...args],
     {
-      ...options,
+      ...normalizeGitExecOptions(options),
       env: mergeGitEnv(options),
     },
     (err, stdout, stderr) => {
@@ -331,7 +383,7 @@ export async function execFileGitAsync(
 ): Promise<{ stdout: string; stderr: string }> {
   const bin = resolveGitBinary();
   const result = await execFileAsync(bin, [...args], {
-    ...options,
+    ...normalizeGitExecOptions(options),
     env: mergeGitEnv(options),
   });
   return {

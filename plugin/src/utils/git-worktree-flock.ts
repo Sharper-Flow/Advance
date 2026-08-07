@@ -13,12 +13,19 @@
  * Citations: rq-multiSessionCoordination01, rq-worktreeRegistry01.
  */
 
-import { open, readFile, rm } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { isProcessAlive } from "./process-liveness";
 
 export type GitWorktreeLockResult =
-  | { owned: true; ownerPid: number; workerId: string; lockPath: string }
+  | {
+      owned: true;
+      ownerPid: number;
+      workerId: string;
+      ownerToken: string;
+      lockPath: string;
+    }
   | {
       owned: false;
       ownerPid: number;
@@ -49,32 +56,76 @@ export const GIT_WORKTREE_LOCK_FILENAME = "git-worktree.lock";
 export async function acquireGitWorktreeFlock(
   projectStateDir: string,
 ): Promise<GitWorktreeLockResult> {
+  await mkdir(projectStateDir, { recursive: true });
   const lockPath = join(projectStateDir, GIT_WORKTREE_LOCK_FILENAME);
   const ownerPid = process.pid;
   const workerId = randomUUID();
+  const ownerToken = randomUUID();
+  const record = {
+    pid: ownerPid,
+    worker_id: workerId,
+    owner_token: ownerToken,
+    acquired_at: new Date().toISOString(),
+  };
   try {
     const handle = await open(lockPath, "wx");
     try {
-      await handle.writeFile(
-        JSON.stringify({
-          pid: ownerPid,
-          worker_id: workerId,
-          acquired_at: new Date().toISOString(),
-        }),
-      );
+      await handle.writeFile(JSON.stringify(record));
     } finally {
       await handle.close();
     }
-    return { owned: true, ownerPid, workerId, lockPath };
+    return { owned: true, ownerPid, workerId, ownerToken, lockPath };
   } catch {
-    let existing: { pid?: number; worker_id?: string } | null = null;
+    let existing: {
+      pid?: number;
+      worker_id?: string;
+      owner_token?: string;
+    } | null = null;
     try {
       existing = JSON.parse(await readFile(lockPath, "utf8")) as {
         pid?: number;
         worker_id?: string;
+        owner_token?: string;
       };
     } catch {
       // The lock may have been released between the failed create and read.
+    }
+
+    if (existing?.pid !== undefined && !isProcessAlive(existing.pid)) {
+      // Rename is the compare-and-reclaim boundary: only the record just read
+      // is moved aside, then a fresh O_EXCL create installs a new owner token.
+      // If a peer wins the race, leave its lock untouched and report contention.
+      const reclaimPath = `${lockPath}.reclaim-${ownerToken}`;
+      try {
+        await rename(lockPath, reclaimPath);
+        const reclaimed = JSON.parse(await readFile(reclaimPath, "utf8")) as {
+          pid?: number;
+          owner_token?: string;
+        };
+        if (
+          reclaimed.pid === existing.pid &&
+          reclaimed.owner_token === existing.owner_token
+        ) {
+          await rm(reclaimPath, { force: true });
+          const handle = await open(lockPath, "wx");
+          try {
+            await handle.writeFile(JSON.stringify(record));
+          } finally {
+            await handle.close();
+          }
+          return { owned: true, ownerPid, workerId, ownerToken, lockPath };
+        }
+        await rename(reclaimPath, lockPath).catch(() => undefined);
+      } catch {
+        await rm(reclaimPath, { force: true }).catch(() => undefined);
+      }
+      try {
+        existing = JSON.parse(
+          await readFile(lockPath, "utf8"),
+        ) as typeof existing;
+      } catch {
+        existing = null;
+      }
     }
     return {
       owned: false,
@@ -93,6 +144,16 @@ export async function acquireGitWorktreeFlock(
  */
 export async function releaseGitWorktreeFlock(
   projectStateDir: string,
+  ownerToken: string,
 ): Promise<void> {
-  await rm(join(projectStateDir, GIT_WORKTREE_LOCK_FILENAME), { force: true });
+  const lockPath = join(projectStateDir, GIT_WORKTREE_LOCK_FILENAME);
+  try {
+    const existing = JSON.parse(await readFile(lockPath, "utf8")) as {
+      owner_token?: string;
+    };
+    if (existing.owner_token !== ownerToken) return;
+    await rm(lockPath, { force: true });
+  } catch {
+    // Idempotent when already released or concurrently reclaimed.
+  }
 }

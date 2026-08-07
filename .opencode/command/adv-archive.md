@@ -441,9 +441,11 @@ Auto-managed changes (`change.worktree_auto_managed: true`) may own: current rep
 3. `scope_worktrees[*]` in `Object.keys` insertion order.
 
 Per target, proceed only after Step 6 final release proof (`Shipped.` or verified local bare origin push):
-- `adv_worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`
+- First call `adv_worktree_delete branch: "change/{change-id}" dryRun: true` and retain the typed `planToken` for that exact target.
+- Apply with `adv_worktree_delete branch: "change/{change-id}" planToken: "{planToken}" approvalEvidence: "archive sign-off for change {change-id}"`.
+- A branch-only destructive call is migration-invalid: it returns `PLAN_REQUIRED` and performs no shell or write.
 - Target/scope repo: scope deletion to target repo root when tool supports it.
-- No scoped tool support → manual fallback: `git -C "<target-repo-root>" worktree remove <path>` then `git -C "<target-repo-root>" branch -D change/{change-id}`.
+- No scoped tool support → stop with a typed blocker; do not issue a manual `git worktree remove` or branch delete outside the shared planner/executor.
 
 Idempotency: already-cleaned entries skip via `adv_worktree_delete` record check.
 

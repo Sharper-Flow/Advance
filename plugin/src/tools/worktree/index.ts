@@ -72,13 +72,22 @@ import {
   findBranchOwnersAcrossChanges,
   inferChangeIdFromBranch,
   initStateDb,
-  listWorktrees,
   recordPendingDeleteFailure,
   setPendingDelete,
 } from "./state";
 import { openTerminal } from "./terminal";
 import { scanGitWorkspaceFacts } from "./census";
-import { runHooksWithSafety, HookFailedError } from "./hooks";
+import {
+  decodeWorktreeDeletionToken,
+  WorktreeDeletionPlanSchema,
+  type WorktreeDeletionPlan,
+} from "./deletion-contracts";
+import {
+  createWorktreeDeletionPlanner,
+  type WorktreeDeletionPlanResult,
+} from "./deletion-planner";
+import { executeWorktreeDeletion } from "./deletion-executor";
+import { runHooksWithSafety } from "./hooks";
 import { appendDebugLog } from "../../utils/debug-log";
 import { execGit, getDefaultBranch } from "../../utils/git";
 import {
@@ -106,6 +115,16 @@ import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 import { execGh } from "../../integrations/gh-cli";
 
 export { advWorktreeDetachBatch } from "./detach";
+export {
+  WorktreeDeletionPlanner,
+  createWorktreeDeletionPlanner,
+} from "./deletion-planner";
+export {
+  WorktreeDeletionExecutor,
+  executeWorktreeDeletion,
+  applyWorktreeDeletion,
+  executeDeletion,
+} from "./deletion-executor";
 
 /** Maximum retries for worktree state initialization */
 const DB_MAX_RETRIES = 3;
@@ -114,24 +133,6 @@ const DB_MAX_RETRIES = 3;
 const DB_RETRY_DELAY_MS = 100;
 
 const DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS = 1_500;
-const DEFAULT_DELETE_OPERATION_TIMEOUT_MS = 7_500;
-
-function getDeleteOperationTimeoutMs(deps: {
-  operationTimeoutMs?: number;
-}): number {
-  return Math.max(
-    1,
-    deps.operationTimeoutMs ?? DEFAULT_DELETE_OPERATION_TIMEOUT_MS,
-  );
-}
-
-function getRemainingDeleteOperationMs(
-  startedAt: number,
-  timeoutMs: number,
-): number {
-  return Math.max(0, timeoutMs - (Date.now() - startedAt));
-}
-
 const PENDING_DELETE_RETURN_RESERVE_MS = 100;
 
 async function readChangeStatusWithCleanupTimeout(
@@ -166,25 +167,6 @@ async function readChangeStatusWithCleanupTimeout(
       error,
     };
   }
-}
-
-/**
- * Build a durable terminal-status reader for branch integration.
- * Reads directly from the Store's disk-backed change projection, bypassing
- * any stale in-memory state after archive terminal convergence.
- */
-function makeDurableTerminalStatusReader(
-  deps: AdvWorktreeDeleteDeps,
-): (changeId: string) => Promise<string | undefined> {
-  return async (changeId: string) => {
-    if (!deps.store) return undefined;
-    const result = await readChangeStatusWithCleanupTimeout(
-      deps.store,
-      changeId,
-      deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
-    );
-    return result.ok ? result.status : undefined;
-  };
 }
 
 /** Automatic pending-delete retry cap; manual worktree_cleanup can retry after remediation. */
@@ -374,44 +356,6 @@ export async function detectUncommittedState(
         }
         const lines = stdout.trim().split("\n").filter(Boolean);
         resolve({ clean: lines.length === 0, files: lines });
-      },
-    );
-  });
-}
-
-/**
- * Default timeout for `git worktree remove` operations. Must be below
- * the tool safe budget (8s).
- *
- * rq-worktreeBoundedCleanup02 AC5.
- */
-const GIT_WORKTREE_REMOVE_TIMEOUT_MS = 5_000;
-
-async function gitWorktreeRemove(
-  repoRoot: string,
-  worktreePath: string,
-  force?: boolean,
-  timeoutMs: number = GIT_WORKTREE_REMOVE_TIMEOUT_MS,
-): Promise<Result<void, string>> {
-  return new Promise((resolve) => {
-    const args = ["worktree", "remove", worktreePath];
-    if (force) args.push("--force");
-    execFileGitCb(
-      args,
-      {
-        cwd: repoRoot,
-        timeout: Math.max(
-          1,
-          Math.min(timeoutMs, GIT_WORKTREE_REMOVE_TIMEOUT_MS),
-        ),
-        killSignal: "SIGKILL",
-      },
-      (error, _stdout, stderr) => {
-        if (error) {
-          resolve(Result.err(stderr.trim() || error.message));
-        } else {
-          resolve(Result.ok(undefined));
-        }
       },
     );
   });
@@ -923,7 +867,7 @@ export async function advWorktreeCreate(
     return {
       ok: false,
       error: "INVALID_BRANCH",
-      reason: branchValidation.message,
+      reason: "Invalid branch name",
     };
   }
   if (opts.base) {
@@ -941,7 +885,7 @@ export async function advWorktreeCreate(
   const ownerChangeIds = await findBranchOwnersAcrossChanges(
     deps.database,
     branch,
-    inferredChangeId,
+    inferredChangeId!,
   );
   if (ownerChangeIds.length > 0) {
     return {
@@ -1053,7 +997,10 @@ export async function advWorktreeCreate(
       const acquired = await acquireGitWorktreeFlock(dir);
       return {
         ...acquired,
-        release: async () => releaseGitWorktreeFlock(dir),
+        release: async () =>
+          acquired.owned
+            ? releaseGitWorktreeFlock(dir, acquired.ownerToken)
+            : Promise.resolve(),
       };
     });
   const contention = deps.contention ?? {};
@@ -1367,6 +1314,7 @@ export interface AdvWorktreeDeleteDeps {
   projectRoot: string;
   database: Database;
   log: Logger;
+  approvalEvidence?: string;
   /**
    * Optional Store for durable change-status reads during cleanup.
    */
@@ -1396,6 +1344,11 @@ export interface AdvWorktreeDeleteDeps {
   registry?: { branch: string; changeId?: string; path: string }[];
   warpDeps?: WarpDeps;
   isWorktreeInUse?: (worktreePath: string) => boolean;
+  census?: (
+    repository: string,
+    defaultBranch: string,
+    timeoutMs: number,
+  ) => Promise<import("./census").GitWorkspaceFacts>;
   mergedBranches?: (
     defaultBranch: string,
     repoRoot: string,
@@ -1404,6 +1357,11 @@ export interface AdvWorktreeDeleteDeps {
     branch: string,
     repoRoot: string,
   ) => Promise<PrMergedBranchIntegrationResult>;
+  /** Lightweight path resolver used by the shared planner's terminal proof. */
+  statePathResolver?: (changeId: string) => Promise<string | undefined>;
+  /** Test seam for the shared planner/executor adapters. */
+  deletionPlanner?: ReturnType<typeof createWorktreeDeletionPlanner>;
+  deletionExecutor?: typeof executeWorktreeDeletion;
 }
 
 export type AdvWorktreeDeleteResult =
@@ -1412,9 +1370,19 @@ export type AdvWorktreeDeleteResult =
       branch: string;
       path: string;
       dryRun?: boolean;
+      status?: "planned" | "deleted";
+      plan?: WorktreeDeletionPlan;
+      planToken?: string;
+      warnings?: string[];
       warning?: string;
     }
   | { ok: false; error: "INVALID_BRANCH"; reason: string }
+  | {
+      ok: false;
+      error: "PLAN_REQUIRED" | "APPROVAL_REQUIRED";
+      reason: string;
+      hint: string;
+    }
   | { ok: false; error: "WORKTREE_NOT_FOUND"; branch: string }
   | {
       ok: false;
@@ -1456,7 +1424,17 @@ export type AdvWorktreeDeleteResult =
       reason: string;
       hint: string;
     }
-  | { ok: false; error: "REMOVE_FAILED"; reason: string };
+  | { ok: false; error: "REMOVE_FAILED"; reason: string }
+  | {
+      ok: false;
+      error: "DELETION_BLOCKED" | "DEADLINE_EXCEEDED" | "ALREADY_ABSENT";
+      status: string;
+      reason: string;
+      stage?: string;
+      hint?: string;
+      branch?: string;
+      path?: string;
+    };
 
 /**
  * Result of the OpenCode workspace preflight that runs before git worktree
@@ -1524,44 +1502,6 @@ async function cleanupOpenCodeWorkspaceForWorktree(
   return { ok: true, warning: null };
 }
 
-async function getWorktreeRegistryEntry(
-  branch: string,
-  deps: AdvWorktreeDeleteDeps,
-): Promise<{ branch: string; changeId?: string; path: string } | undefined> {
-  if (deps.registry) {
-    return deps.registry.find((r) => r.branch === branch);
-  }
-  const registry = await listWorktrees(deps.database);
-  return registry.find((r) => r.branch === branch);
-}
-
-async function validateResolvedDeleteWorktreePath(
-  branch: string,
-  worktreePath: string,
-  deps: AdvWorktreeDeleteDeps,
-): Promise<string | null> {
-  const normalizedPath = path.resolve(worktreePath);
-  if (!(await pathExists(normalizedPath))) return normalizedPath;
-
-  const gitEntry = await findGitWorktreeByBranch(deps.projectRoot, branch);
-  if (!gitEntry) return null;
-
-  return path.resolve(gitEntry.path) === normalizedPath ? normalizedPath : null;
-}
-
-async function getMergedBranchesForDelete(
-  defaultBranch: string,
-  repoRoot: string,
-  deps: AdvWorktreeDeleteDeps,
-): Promise<string[]> {
-  if (deps.mergedBranches) {
-    return deps.mergedBranches(defaultBranch, repoRoot);
-  }
-  const result = await git(["branch", "--merged", defaultBranch], repoRoot);
-  if (!result.ok) throw new Error(result.error);
-  return result.value.split("\n").filter((line) => line.trim().length > 0);
-}
-
 type PrMergedBranchIntegrationResult =
   | {
       ok: true;
@@ -1572,14 +1512,7 @@ type PrMergedBranchIntegrationResult =
     }
   | {
       ok: false;
-      reason:
-        | "branch_not_change_branch"
-        | "local_branch_missing"
-        | "gh_failed"
-        | "gh_json_invalid"
-        | "no_pr_evidence"
-        | "pr_not_merged"
-        | "local_has_commits_after_pr_head";
+      reason: string;
       hint: string;
       details?: string[];
     };
@@ -1744,678 +1677,350 @@ async function verifyPrMergedChangeBranchIntegration(
   return { ok: false, reason: pr.reason, hint: pr.hint };
 }
 
-async function verifyNonAdvBranchIntegration(
+function plannerResultToDeleteResult(
   branch: string,
-  deps: AdvWorktreeDeleteDeps,
-): Promise<{ ok: true } | { ok: false; reason: string; hint: string }> {
-  let defaultBranch: string;
-  try {
-    defaultBranch = await getDefaultBranch(deps.projectRoot);
-  } catch (err) {
-    return {
-      ok: false,
-      reason: "default_branch_unresolvable",
-      hint: `Could not determine default branch: ${String(err)}`,
-    };
-  }
-
-  let merged: string[];
-  try {
-    merged = await getMergedBranchesForDelete(
-      defaultBranch,
-      deps.projectRoot,
-      deps,
-    );
-  } catch (err) {
-    return {
-      ok: false,
-      reason: "git_failed",
-      hint: `Failed to list merged branches: ${String(err)}`,
-    };
-  }
-
-  const normalizedMerged = merged.map((b) => b.replace(/^[*+]\s*/, "").trim());
-  if (!normalizedMerged.includes(branch)) {
-    const prIntegration = await verifyPrMergedChangeBranchIntegration(
-      branch,
-      deps,
-    );
-    if (prIntegration.ok) return prIntegration;
-    return {
-      ok: false,
-      reason: "branch_not_merged",
-      hint: `Merge the branch into ${defaultBranch} before deleting its worktree. Squash-merged change branches require merged GitHub PR evidence; PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
-    };
-  }
-
-  return { ok: true };
-}
-
-async function verifyMissingRegistryChangeBranchIntegration(
-  branch: string,
-  changeId: string,
-  deps: AdvWorktreeDeleteDeps,
-): Promise<{ ok: true } | { ok: false; reason: string; hint: string }> {
-  if (!deps.store) {
-    const prIntegration = await verifyPrMergedChangeBranchIntegration(
-      branch,
-      deps,
-    );
-    if (prIntegration.ok) return prIntegration;
-    return {
-      ok: false,
-      reason: "registry_drift_recovery_requires_store",
-      hint: `Missing-registry change branch cleanup requires either the durable ADV store to verify archived state or merged GitHub PR evidence. PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
-    };
-  }
-
-  const loadedStatus = await readChangeStatusWithCleanupTimeout(
-    deps.store,
-    changeId,
-    deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
-  );
-  if (!loadedStatus.ok) {
-    return {
-      ok: false,
-      reason: loadedStatus.reason,
-      hint: `Failed to verify terminal state for change ${changeId}: ${loadedStatus.reason}. Retaining worktree for retry.`,
-    };
-  }
-
-  try {
-    const status = loadedStatus.status;
-    if (status !== "archived" && status !== "closed") {
-      const prIntegration = await verifyPrMergedChangeBranchIntegration(
-        branch,
-        deps,
-      );
-      if (prIntegration.ok) return prIntegration;
-      return {
-        ok: false,
-        reason: "change_not_terminal",
-        hint: `Archive or close change ${changeId} before deleting its worktree, or provide merged GitHub PR evidence. PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
-      };
-    }
-  } catch (err) {
-    const prIntegration = await verifyPrMergedChangeBranchIntegration(
-      branch,
-      deps,
-    );
-    if (prIntegration.ok) return prIntegration;
-    return {
-      ok: false,
-      reason: "git_failed",
-      hint: `Failed to verify archived state for change ${changeId}: ${String(err)}. PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
-    };
-  }
-
-  return verifyNonAdvBranchIntegration(branch, deps);
-}
-
-// only for terminal changes; unsafe cases are retained with typed blockers.
-async function maybeRemoveMissingFromDiskRegistryEntry(
-  branch: string,
-  worktreePath: string,
-  deps: AdvWorktreeDeleteDeps,
-  registryEntry: { branch: string; changeId?: string; path: string },
-): Promise<AdvWorktreeDeleteResult | null> {
-  if (await pathExists(worktreePath)) return null;
-
-  const gitWorktree = await findGitWorktreeByBranch(deps.projectRoot, branch);
-  const branchStillExists = await branchExists(deps.projectRoot, branch);
-  if (gitWorktree || branchStillExists) return null;
-
-  const changeId = registryEntry.changeId ?? inferChangeIdFromBranch(branch);
-  if (!changeId) return null;
-
-  // Structural safety gate: only clear durable registry rows for terminal
-  // changes. Dirty/in-use/open/unreachable cases are retained.
-  let status: string | undefined;
-  if (deps.store) {
-    const loaded = await readChangeStatusWithCleanupTimeout(
-      deps.store,
-      changeId,
-      deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
-    );
-    if (loaded.ok) {
-      status = loaded.status;
-    }
-  }
-
-  if (status !== "archived" && status !== "closed") {
-    return {
-      ok: false,
-      error: "INTEGRATION_REQUIRED",
-      reason: "change_not_terminal",
-      hint: `Change ${changeId} is ${status ?? "unreachable"}; archive or close it before clearing the missing-from-disk registry entry.`,
-    };
-  }
-
-  // Git has no local registry row to mutate after the missing branch/path has
-  // passed the terminal and ancestry gates. Clear only the retry marker.
-  await clearPendingDelete(deps.database, branch);
-  appendDebugLog(
-    "worktree-delete",
-    `removed stale missing-from-disk registry entry for ${branch} at ${worktreePath}`,
-  );
-  return { ok: true, branch, path: worktreePath };
-}
-
-async function retainDeleteForTimeBudget(
-  branch: string,
-  worktreePath: string,
-  deps: AdvWorktreeDeleteDeps,
-  stage: string,
-): Promise<AdvWorktreeDeleteResult> {
-  await setPendingDelete(
-    deps.database,
-    branch,
-    worktreePath,
-    `delete time budget exhausted before ${stage}`,
-  );
-  return {
-    ok: false,
-    error: "TIME_BUDGET_EXHAUSTED",
-    branch,
-    path: worktreePath,
-    reason: "time_budget_exhausted",
-    hint: `Delete time budget exhausted before ${stage}; queued a pending delete. Retry with adv_worktree_cleanup after the blocking operation resolves.`,
-  };
-}
-
-async function withDeleteOperationBudget<T>(
-  branch: string,
-  worktreePath: string,
-  deps: AdvWorktreeDeleteDeps,
-  startedAt: number,
-  timeoutMs: number,
-  stage: string,
-  operation: () => Promise<T>,
-): Promise<
-  { ok: true; value: T } | { ok: false; result: AdvWorktreeDeleteResult }
-> {
-  const remainingMs = getRemainingDeleteOperationMs(startedAt, timeoutMs);
-  if (remainingMs <= 0) {
-    return {
-      ok: false,
-      result: await retainDeleteForTimeBudget(
-        branch,
-        worktreePath,
-        deps,
-        stage,
-      ),
-    };
-  }
-
-  try {
+  result: WorktreeDeletionPlanResult,
+): AdvWorktreeDeleteResult {
+  if (result.kind === "planned") {
     return {
       ok: true,
-      value: await withTimeout(operation(), remainingMs, `${stage} timed out`),
+      status: "planned",
+      dryRun: true,
+      branch,
+      path: result.plan.facts.worktree,
+      plan: result.plan,
+      planToken: result.plan.token,
+      warnings: [...result.warnings],
     };
-  } catch (err) {
-    if (err instanceof TimeoutError) {
-      return {
-        ok: false,
-        result: await retainDeleteForTimeBudget(
-          branch,
-          worktreePath,
-          deps,
-          stage,
-        ),
-      };
-    }
-    throw err;
   }
-}
-
-export async function advWorktreeDelete(
-  branch: string,
-  opts: { force?: boolean; dryRun?: boolean } = {},
-  deps: AdvWorktreeDeleteDeps,
-): Promise<AdvWorktreeDeleteResult> {
-  const deleteStartedAt = Date.now();
-  const deleteTimeoutMs = getDeleteOperationTimeoutMs(deps);
-  const branchValidation = validateBranchNameInput(branch);
-  if (!branchValidation.ok) {
+  if (result.kind === "deadline") {
     return {
       ok: false,
-      error: "INVALID_BRANCH",
-      reason: branchValidation.message,
+      error: "DEADLINE_EXCEEDED",
+      status: "deadline_exceeded",
+      reason: result.message,
+      stage: result.stage,
+      branch,
+      ...(result.target ? { path: result.target.cwd } : {}),
+      hint: "Retry with a fresh deletion plan after the target repository responds.",
     };
   }
-
-  // 1. Resolve registry entry and worktree path. Registry wins over path
-  // derivation so missing-from-disk cleanup can operate on stale records.
-  let registryEntry:
-    | { branch: string; changeId?: string; path: string }
-    | undefined;
-  try {
-    registryEntry = await getWorktreeRegistryEntry(branch, deps);
-  } catch (error) {
-    appendDebugLog(
-      "worktree-delete",
-      `registry lookup failed for ${branch}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    registryEntry = undefined;
-  }
-
-  let worktreePath: string;
-  if (deps.worktreePath) {
-    worktreePath = deps.worktreePath;
-  } else if (registryEntry?.path) {
-    worktreePath = registryEntry.path;
-  } else {
-    try {
-      worktreePath = await getWorktreePath(deps.projectRoot, branch);
-    } catch {
-      if (!registryEntry) {
-        return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
-      }
-      worktreePath = registryEntry.path;
-    }
-  }
-
-  // #36: stale registry cleanup must happen before ADV integration; the
-  // archived/merged/clean gate cannot inspect a worktree that no longer exists.
-  if (registryEntry) {
-    const missingFromDisk = await maybeRemoveMissingFromDiskRegistryEntry(
+  if (result.kind === "unsupported" || result.kind === "repair") {
+    return {
+      ok: false,
+      error: "DELETION_BLOCKED",
+      status: result.kind === "unsupported" ? "unsupported" : "repair_required",
+      reason: result.message,
       branch,
-      worktreePath,
-      deps,
-      registryEntry,
-    );
-    if (missingFromDisk) return missingFromDisk;
+      hint: "Resolve the reported repository blocker, then request a new plan.",
+    };
   }
-
-  const validatedWorktreePath = await validateResolvedDeleteWorktreePath(
-    branch,
-    worktreePath,
-    deps,
-  );
-  if (!validatedWorktreePath) {
+  if (
+    result.reason === "worktree_not_found" ||
+    result.reason === "branch_not_found"
+  )
     return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
-  }
-  worktreePath = validatedWorktreePath;
-  if (!registryEntry && !(await pathExists(worktreePath))) {
-    return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
-  }
-
-  // 2. Branch integration check. Four cases:
-  //
-  //    (a) ADV-owned branch (registry + changeId): terminal+merged+clean
-  //    (b) Non-ADV registered branch (registry, no changeId): merged-only
-  //    (c) change/* branch not in registry: terminal from store + merged-only
-  //    (d) Branch not in registry, opts.force=true: merged-only (rq-forceUnregisteredDelete01)
-  //    (e) Branch not in registry, no force: branch_not_in_registry (existing safety)
-  //
-  // The (c) recovery is intentionally before (d): change/* branches must
-  // prove terminal state (archived or closed) through the durable ADV store
-  // and must not fall back to weaker force-only non-ADV semantics.
-  //
-  // The (d) bypass is intentionally narrow: it requires the branch to be
-  // merged into the default branch. Force does NOT skip merged-to-default;
-  // this preserves P32 trunk-is-prod by refusing to delete unmerged work.
-  const inferredChangeId = inferChangeIdFromBranch(branch);
-  if (registryEntry && !registryEntry.changeId) {
-    const integrationResult = await withDeleteOperationBudget(
-      branch,
-      worktreePath,
-      deps,
-      deleteStartedAt,
-      deleteTimeoutMs,
-      "branch integration check",
-      () => verifyNonAdvBranchIntegration(branch, deps),
-    );
-    if (!integrationResult.ok) return integrationResult.result;
-    const integration = integrationResult.value;
-    if (!integration.ok) {
-      return {
-        ok: false,
-        error: "INTEGRATION_REQUIRED",
-        reason: integration.reason,
-        hint: integration.hint,
-      };
-    }
-  } else if (!registryEntry && inferredChangeId) {
-    // Registry drift recovery for ADV change branches. The registry is
-    // bookkeeping; archived state from Store is the structural gate.
-    const integrationResult = await withDeleteOperationBudget(
-      branch,
-      worktreePath,
-      deps,
-      deleteStartedAt,
-      deleteTimeoutMs,
-      "branch integration check",
-      () =>
-        verifyMissingRegistryChangeBranchIntegration(
-          branch,
-          inferredChangeId,
-          deps,
-        ),
-    );
-    if (!integrationResult.ok) return integrationResult.result;
-    const integration = integrationResult.value;
-    if (!integration.ok) {
-      return {
-        ok: false,
-        error: "INTEGRATION_REQUIRED",
-        reason: integration.reason,
-        hint: integration.hint,
-      };
-    }
-    appendDebugLog(
-      "worktree-delete",
-      `deleting missing-registry change branch ${branch} (terminal+merged verified)`,
-    );
-  } else if (!registryEntry && opts.force) {
-    // rq-forceUnregisteredDelete01: branches outside the registry can be
-    // deleted with `force: true` provided they are already merged into the
-    // default branch. This unblocks /adv-triage-style workflows that
-    // create+merge+delete worktree branches without registering them.
-    const integrationResult = await withDeleteOperationBudget(
-      branch,
-      worktreePath,
-      deps,
-      deleteStartedAt,
-      deleteTimeoutMs,
-      "branch integration check",
-      () => verifyNonAdvBranchIntegration(branch, deps),
-    );
-    if (!integrationResult.ok) return integrationResult.result;
-    const integration = integrationResult.value;
-    if (!integration.ok) {
-      return {
-        ok: false,
-        error: "INTEGRATION_REQUIRED",
-        reason: integration.reason,
-        hint: integration.hint,
-      };
-    }
-    appendDebugLog(
-      "worktree-delete",
-      `force-deleting non-registered branch ${branch} (merged-to-default verified)`,
-    );
-  } else {
-    const remainingMs = getRemainingDeleteOperationMs(
-      deleteStartedAt,
-      deleteTimeoutMs,
-    );
-    if (remainingMs <= 0) {
-      return retainDeleteForTimeBudget(
-        branch,
-        worktreePath,
-        deps,
-        "branch integration check",
-      );
-    }
-    let integration: Awaited<ReturnType<typeof verifyBranchIntegration>>;
-    try {
-      integration = await withTimeout(
-        deps.integrationCheck
-          ? deps.integrationCheck(branch, deps.projectRoot)
-          : verifyBranchIntegration(
-              branch,
-              deps.projectRoot,
-              {},
-              {
-                terminalStatusReader: makeDurableTerminalStatusReader(deps),
-                registry: registryEntry ? [registryEntry] : undefined,
-              },
-            ),
-        remainingMs,
-        "Worktree branch integration check timed out",
-      );
-    } catch (err) {
-      if (err instanceof TimeoutError) {
-        return retainDeleteForTimeBudget(
-          branch,
-          worktreePath,
-          deps,
-          "branch integration check",
-        );
-      }
-      throw err;
-    }
-    if (!integration.ok) {
-      if (integration.reason === "branch_not_merged") {
-        const prIntegrationResult = await withDeleteOperationBudget(
-          branch,
-          worktreePath,
-          deps,
-          deleteStartedAt,
-          deleteTimeoutMs,
-          "PR merge evidence check",
-          () => verifyPrMergedChangeBranchIntegration(branch, deps),
-        );
-        if (!prIntegrationResult.ok) return prIntegrationResult.result;
-        const prIntegration = prIntegrationResult.value;
-        if (prIntegration.ok) {
-          appendDebugLog(
-            "worktree-delete",
-            `deleting ${branch} with squash PR merge proof after ancestry integration check failed`,
-          );
-        } else {
-          return {
-            ok: false,
-            error: "INTEGRATION_REQUIRED",
-            reason: integration.reason,
-            hint: `Branch must be archived or closed, merged, and clean. Squash PR cleanup check returned ${prIntegration.reason}: ${prIntegration.hint}`,
-          };
-        }
-      } else {
-        return {
-          ok: false,
-          error: "INTEGRATION_REQUIRED",
-          reason: integration.reason,
-          hint: "Branch must be archived or closed, merged, and clean",
-        };
-      }
-    }
-  }
-
-  // 3. Pre-hook uncommitted check
-  let preHookStatus: { clean: boolean; files: string[] };
-  try {
-    preHookStatus = await detectUncommittedState(worktreePath);
-  } catch (err) {
-    return {
-      ok: false,
-      error: "UNCOMMITTED_WORK",
-      files: [String(err)],
-      hint: "Failed to check uncommitted state",
-    };
-  }
-  if (!preHookStatus.clean && !opts.force) {
-    return {
-      ok: false,
-      error: "UNCOMMITTED_WORK",
-      files: preHookStatus.files,
-      hint: "Commit or stash, or pass opts.force: true with explicit audit reason",
-    };
-  }
-
-  if (opts.dryRun) {
-    return { ok: true as const, branch, path: worktreePath, dryRun: true };
-  }
-
-  const worktreeInUseFn = deps.isWorktreeInUse ?? isWorktreeInUse;
-  if (worktreeInUseFn(worktreePath)) {
-    await setPendingDelete(
-      deps.database,
-      branch,
-      worktreePath,
-      "worktree is still in use by a running process",
-    );
+  if (result.reason === "worktree_in_use")
     return {
       ok: false,
       error: "WORKTREE_IN_USE",
       branch,
-      path: worktreePath,
-      hint: "Worktree is still in use; queued a pending delete. Retry with adv_worktree_cleanup after the process exits.",
+      path: result.facts?.worktree ?? "",
+      hint: result.message,
     };
-  }
+  if (result.reason === "dirty_worktree")
+    return {
+      ok: false,
+      error: "UNCOMMITTED_WORK",
+      files: [],
+      hint: result.message,
+    };
+  return {
+    ok: false,
+    error: "INTEGRATION_REQUIRED",
+    reason: result.reason,
+    hint: result.message,
+  };
+}
 
-  // 4. Run preDelete hooks
-  const hooks =
-    deps.hooks ?? (await loadWorktreeConfig(deps.projectRoot, deps.log)).hooks;
-  if (hooks.preDelete.length > 0) {
-    const remainingMs = getRemainingDeleteOperationMs(
-      deleteStartedAt,
-      deleteTimeoutMs,
+async function advWorktreeDeleteShared(
+  branch: string,
+  opts: {
+    force?: boolean;
+    dryRun?: boolean;
+    planToken?: string;
+    approvalEvidence?: string;
+  },
+  deps: AdvWorktreeDeleteDeps,
+): Promise<AdvWorktreeDeleteResult> {
+  const branchValidation = validateBranchNameInput(branch);
+  if (!branchValidation.ok)
+    return {
+      ok: false,
+      error: "INVALID_BRANCH",
+      reason: "Invalid branch name",
+    };
+
+  const changeId = inferChangeIdFromBranch(branch);
+  const terminalProof = async (
+    id: string,
+  ): Promise<
+    import("./deletion-contracts").WorktreeDeletionTerminalProof | undefined
+  > => {
+    if (!deps.store) return undefined;
+    const loaded = await readChangeStatusWithCleanupTimeout(
+      deps.store,
+      id,
+      deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
     );
-    if (remainingMs <= 0) {
-      return retainDeleteForTimeBudget(
-        branch,
-        worktreePath,
-        deps,
-        "preDelete hooks",
-      );
-    }
-    try {
-      await withTimeout(
-        runHooksWithSafety("preDelete", worktreePath, hooks.preDelete, {
-          timeoutMs: remainingMs,
-        }),
-        remainingMs,
-        "preDelete hooks timed out",
-      );
-    } catch (err) {
-      if (err instanceof TimeoutError) {
-        return retainDeleteForTimeBudget(
-          branch,
-          worktreePath,
-          deps,
-          "preDelete hooks",
-        );
-      }
-      if (err instanceof HookFailedError) {
-        return { ok: false, error: "HOOK_FAILED", details: err.results };
-      }
-      throw err;
-    }
-  }
+    if (
+      !loaded.ok ||
+      (loaded.status !== "archived" && loaded.status !== "closed")
+    )
+      return undefined;
+    return {
+      changeId: id,
+      status: loaded.status,
+      evidence: `durable terminal status: ${loaded.status}`,
+    };
+  };
+  const integrationProof =
+    deps.prMergeEvidence || deps.mergedBranches
+      ? async (
+          branchName: string,
+          head: string,
+          defaultBranch: string,
+          repository: string,
+        ) => {
+          if (deps.mergedBranches) {
+            const merged = await deps.mergedBranches(defaultBranch, repository);
+            if (
+              merged
+                .map((item) => item.replace(/^[*+ ]+/, "").trim())
+                .includes(branchName)
+            )
+              return {
+                kind: "merged_to_default" as const,
+                branch: branchName,
+                defaultBranch,
+                head,
+                evidence: `git branch --merged ${defaultBranch}`,
+              };
+          }
+          if (!deps.prMergeEvidence) return undefined;
+          const proof = await deps.prMergeEvidence(branchName, repository);
+          if (!proof.ok) return undefined;
+          appendDebugLog(
+            "worktree-delete",
+            `verified squash PR merge for ${branchName} via PR #${proof.prNumber} (${proof.proof})`,
+          );
+          return {
+            kind: "pr_merged" as const,
+            branch: branchName,
+            defaultBranch,
+            head,
+            evidence: `merged PR #${proof.prNumber}${proof.prUrl ? ` (${proof.prUrl})` : ""}`,
+          };
+        }
+      : undefined;
+  const planner =
+    deps.deletionPlanner ??
+    createWorktreeDeletionPlanner({
+      census: deps.census,
+      isWorktreeInUse: deps.isWorktreeInUse,
+      terminalProof,
+      integrationProof,
+      statePathResolver: deps.statePathResolver
+        ? (_repository, id) => deps.statePathResolver!(id)
+        : undefined,
+    });
 
-  // 5. Post-hook re-verification
-  let postHookStatus: { clean: boolean; files: string[] };
+  if (opts.dryRun) {
+    const planned = await planner.plan({
+      repository: deps.projectRoot,
+      branch,
+      changeId,
+      cwd: process.cwd(),
+      registry: deps.registry,
+      force: opts.force === true,
+      budgetMs: deps.operationTimeoutMs,
+    });
+    return plannerResultToDeleteResult(branch, planned);
+  }
+  if (!opts.planToken)
+    return {
+      ok: false,
+      error: "PLAN_REQUIRED",
+      reason:
+        "A destructive worktree deletion requires a planner-issued plan token.",
+      hint: "Call adv_worktree_delete with dryRun:true, then apply the returned planToken with approvalEvidence.",
+    };
+  if (!opts.approvalEvidence?.trim())
+    return {
+      ok: false,
+      error: "APPROVAL_REQUIRED",
+      reason:
+        "Nonblank approvalEvidence is required before destructive deletion.",
+      hint: "Re-apply the returned planToken with explicit user approval evidence.",
+    };
+
+  let payload: ReturnType<typeof decodeWorktreeDeletionToken>;
   try {
-    postHookStatus = await detectUncommittedState(worktreePath);
-  } catch (err) {
+    payload = decodeWorktreeDeletionToken(opts.planToken);
+  } catch {
     return {
       ok: false,
-      error: "HOOK_INTRODUCED_CHANGES",
-      files: [String(err)],
-      hint: "Failed to re-check uncommitted state after hooks",
+      error: "DELETION_BLOCKED",
+      status: "invalid_plan",
+      reason: "The supplied planToken is malformed.",
+      branch,
+      hint: "Request a new dry-run plan.",
     };
   }
-  if (!postHookStatus.clean && !opts.force) {
+  if (
+    payload.facts.branch !== branch ||
+    payload.facts.repository !== path.resolve(deps.projectRoot)
+  )
     return {
       ok: false,
-      error: "HOOK_INTRODUCED_CHANGES",
-      files: postHookStatus.files,
-      hint: "Hook introduced uncommitted changes; review and commit, or pass opts.force: true",
+      error: "DELETION_BLOCKED",
+      status: "drifted",
+      reason:
+        "The supplied planToken is bound to a different branch or repository.",
+      branch,
+      hint: "Request a fresh dry-run plan for this exact target.",
     };
-  }
-
-  // 6. Execute git worktree remove
-  if (opts.force) {
+  const plan = WorktreeDeletionPlanSchema.parse({
+    version: "wdp1",
+    repository: payload.facts.repository,
+    facts: payload.facts,
+    expiresAt: payload.expiresAt,
+    token: opts.planToken,
+    ...(payload.force !== undefined ? { force: payload.force } : {}),
+    ...(payload.integration ? { integration: payload.integration } : {}),
+    ...(payload.terminal ? { terminal: payload.terminal } : {}),
+  });
+  if (changeId && !deps.registry?.some((entry) => entry.branch === branch)) {
     appendDebugLog(
       "worktree-delete",
-      `force-removing ${branch} at ${worktreePath} (uncommitted=${!preHookStatus.clean})`,
+      `missing-registry change branch ${branch} approved through Git census and terminal proof`,
     );
   }
-  let remainingMs = getRemainingDeleteOperationMs(
-    deleteStartedAt,
-    deleteTimeoutMs,
-  );
-  if (remainingMs <= 0) {
-    return retainDeleteForTimeBudget(
-      branch,
-      worktreePath,
-      deps,
-      "worktree removal",
+  const hooks =
+    deps.hooks ?? (await loadWorktreeConfig(deps.projectRoot, deps.log)).hooks;
+  const executor = deps.deletionExecutor ?? executeWorktreeDeletion;
+  if (plan.force === true) {
+    appendDebugLog(
+      "worktree-delete",
+      `force-removing dirty worktree ${branch} after explicit approval evidence`,
     );
-  }
-  let workspaceCleanupWarning: string | null;
-  try {
-    // Ownership preflight precedes workspace/git removal. A remote lookup
-    // failure is advisory after the local CWD safety check; failed deletion of
-    // a found workspace remains a typed retained blocker
-    // (rq-terminalCleanupSafety01).
-    const workspaceCleanup = await withTimeout(
-      cleanupOpenCodeWorkspaceForWorktree(worktreePath, branch, deps),
-      remainingMs,
-      "OpenCode workspace cleanup timed out",
-    );
-    if (!workspaceCleanup.ok) {
-      await setPendingDelete(
-        deps.database,
-        branch,
-        worktreePath,
-        workspaceCleanup.reason,
-        undefined,
-        undefined,
-        workspaceCleanup.error.toLowerCase(),
-      );
-      return {
-        ok: false,
-        error: workspaceCleanup.error,
-        branch,
-        path: worktreePath,
-        reason: workspaceCleanup.reason,
-        hint: workspaceCleanup.hint,
-      };
-    }
-    workspaceCleanupWarning = workspaceCleanup.warning;
-  } catch (err) {
-    if (err instanceof TimeoutError) {
-      return retainDeleteForTimeBudget(
-        branch,
-        worktreePath,
-        deps,
-        "OpenCode workspace cleanup",
+    if (!deps.registry?.some((entry) => entry.branch === branch)) {
+      appendDebugLog(
+        "worktree-delete",
+        `force-deleting non-registered branch ${branch} after explicit approval evidence`,
       );
     }
-    throw err;
   }
-  remainingMs = getRemainingDeleteOperationMs(deleteStartedAt, deleteTimeoutMs);
-  if (remainingMs <= 0) {
-    return retainDeleteForTimeBudget(
-      branch,
-      worktreePath,
-      deps,
-      "worktree removal",
-    );
-  }
-  const removeResult = await gitWorktreeRemove(
-    deps.projectRoot,
-    worktreePath,
-    opts.force,
-    remainingMs,
+  const result = await executor(
+    {
+      plan,
+      repository: deps.projectRoot,
+      cwd: process.cwd(),
+      hooks: hooks.preDelete,
+      budgetMs: deps.operationTimeoutMs,
+    },
+    {
+      repository: deps.projectRoot,
+      repositoryLeaseDir: path.join(deps.projectRoot, ".adv"),
+      cwd: process.cwd(),
+      hooks: hooks.preDelete,
+      budgetMs: deps.operationTimeoutMs,
+      isWorktreeInUse: deps.isWorktreeInUse,
+      census: deps.census,
+      terminalProof,
+      integrationProof,
+      beforeRemove: async () => {
+        const workspace = await cleanupOpenCodeWorkspaceForWorktree(
+          plan.facts.worktree,
+          branch,
+          deps,
+        );
+        if (!workspace.ok)
+          return {
+            ok: false as const,
+            status: "repair_required" as const,
+            reason: workspace.reason,
+          };
+        return {
+          ok: true as const,
+          ...(workspace.warning ? { warning: workspace.warning } : {}),
+        };
+      },
+      reconcileAfterDeletion: async () => {
+        try {
+          await reapEmptyWorktreeParents(
+            plan.facts.worktree,
+            getWorktreeBase(deps.database.projectId),
+          );
+        } catch (error) {
+          deps.log.warn(
+            `Skipped empty-parent cleanup for ${plan.facts.worktree}: ${String(error)}`,
+          );
+        }
+        await clearPendingDelete(deps.database, branch);
+      },
+    },
   );
-  if (!removeResult.ok) {
-    return { ok: false, error: "REMOVE_FAILED", reason: removeResult.error };
-  }
-
-  // 7. Remove empty branch-prefix parents (e.g. `{base}/change`).
-  try {
-    await reapEmptyWorktreeParents(
-      worktreePath,
-      getWorktreeBase(deps.database.projectId),
-    );
-  } catch (err) {
-    deps.log.warn(
-      `[worktree] Skipped empty-parent cleanup for ${worktreePath}: ${String(err)}`,
-    );
-  }
-
-  // 8. Return success (deterministic warning composition)
-  const warning: string | undefined = workspaceCleanupWarning ?? undefined;
+  if (result.ok)
+    return {
+      ok: true,
+      status: "deleted",
+      branch,
+      path: plan.facts.worktree,
+      ...(result.warning ? { warning: result.warning } : {}),
+    };
+  if (result.status === "already_absent")
+    return {
+      ok: false,
+      error: "ALREADY_ABSENT",
+      status: result.status,
+      reason: result.reason,
+      branch,
+      path: plan.facts.worktree,
+    };
+  if (result.status === "deadline_exceeded")
+    return {
+      ok: false,
+      error: "DEADLINE_EXCEEDED",
+      status: result.status,
+      reason: result.reason,
+      stage: result.stage,
+      branch,
+      path: plan.facts.worktree,
+    };
   return {
-    ok: true as const,
+    ok: false,
+    error: "DELETION_BLOCKED",
+    status: result.status,
+    reason: result.reason,
+    stage: result.stage,
     branch,
-    path: worktreePath,
-    ...(warning ? { warning } : {}),
+    path: plan.facts.worktree,
+    hint: "Request a fresh plan after resolving the reported blocker.",
   };
+}
+
+export async function advWorktreeDelete(
+  branch: string,
+  opts: {
+    force?: boolean;
+    dryRun?: boolean;
+    planToken?: string;
+    approvalEvidence?: string;
+  } = {},
+  deps: AdvWorktreeDeleteDeps,
+): Promise<AdvWorktreeDeleteResult> {
+  return advWorktreeDeleteShared(branch, opts, deps);
 }
 
 // =============================================================================
@@ -2665,6 +2270,8 @@ export interface AdvWorktreeCleanupDeps {
   database: Database;
   log: Logger;
   dryRun?: boolean;
+  /** Approval evidence for an explicitly approved manual cleanup candidate. */
+  approvalEvidence?: string;
   store?: Store;
   warpDeps?: WarpDeps;
   /** Automatic triggers use false; manual cleanup defaults to true to bypass retry cap only. */
@@ -2737,6 +2344,7 @@ async function discoverTerminalCleanupCandidates(
 
   for (const worktree of facts.worktrees) {
     const branch = worktree.branch;
+    if (!branch) continue;
     const changeId = inferChangeIdFromBranch(branch);
     if (!changeId) continue;
 
@@ -2901,9 +2509,40 @@ export async function drainPendingDeletes(
       retained++;
       continue;
     }
-    const deletePromise = deleteFn(
+    if (options.deleteWorktree) {
+      const result = await withTimeout(
+        options.deleteWorktree(
+          branch,
+          { force: false },
+          {
+            ...deps,
+            worktreePath,
+            operationTimeoutMs: Math.max(
+              1,
+              deleteTimeoutMs - PENDING_DELETE_RETURN_RESERVE_MS,
+            ),
+          },
+        ),
+        deleteTimeoutMs,
+        `Pending delete for ${branch} timed out`,
+      );
+      if (result.ok) {
+        await clearPendingDelete(deps.database, branch);
+        removed++;
+      } else {
+        await recordPendingDeleteFailure(
+          deps.database,
+          branch,
+          result.error,
+          classifyDeleteResultForPendingDelete(result),
+        );
+        retained++;
+      }
+      continue;
+    }
+    const previewPromise = deleteFn(
       branch,
-      { force: false },
+      { force: false, dryRun: true },
       {
         ...deps,
         worktreePath,
@@ -2915,6 +2554,92 @@ export async function drainPendingDeletes(
     );
 
     try {
+      const preview = await withTimeout(
+        previewPromise,
+        deleteTimeoutMs,
+        `Pending delete plan for ${branch} timed out`,
+      );
+
+      if (!preview.ok || !preview.planToken) {
+        // Test and embedding seams may provide a legacy delete adapter. The
+        // production adapter always returns a planner token, so no public
+        // destructive path can use this compatibility branch.
+        if (!preview.ok || !options.deleteWorktree) {
+          deps.log.warn(
+            `[worktree] Could not plan pending delete for ${branch}: ${preview.ok ? "missing plan token" : preview.error}`,
+          );
+          await recordPendingDeleteFailure(
+            deps.database,
+            branch,
+            preview.ok ? "PLAN_REQUIRED" : preview.error,
+            classifyDeleteResultForPendingDelete(
+              preview.ok
+                ? ({
+                    ok: false,
+                    error: "DELETION_BLOCKED",
+                    status: "invalid_plan",
+                    reason: "missing plan token",
+                  } as Exclude<AdvWorktreeDeleteResult, { ok: true }>)
+                : preview,
+            ),
+          );
+          retained++;
+          continue;
+        }
+        const result = await withTimeout(
+          deleteFn(
+            branch,
+            { force: false },
+            {
+              ...deps,
+              worktreePath,
+              operationTimeoutMs: Math.max(
+                1,
+                deleteTimeoutMs - PENDING_DELETE_RETURN_RESERVE_MS,
+              ),
+            },
+          ),
+          deleteTimeoutMs,
+          `Pending delete for ${branch} timed out`,
+        );
+        if (result.ok) {
+          await clearPendingDelete(deps.database, branch);
+          removed++;
+        } else {
+          await recordPendingDeleteFailure(
+            deps.database,
+            branch,
+            result.error,
+            classifyDeleteResultForPendingDelete(result),
+          );
+          retained++;
+        }
+        continue;
+      }
+
+      if (options.dryRun) {
+        retained++;
+        continue;
+      }
+
+      const deletePromise = deleteFn(
+        branch,
+        {
+          force: false,
+          planToken: preview.planToken,
+          approvalEvidence:
+            deps.approvalEvidence ??
+            `approved pending candidate ${branch} during ${trigger}`,
+        },
+        {
+          ...deps,
+          worktreePath,
+          operationTimeoutMs: Math.max(
+            1,
+            deleteTimeoutMs - PENDING_DELETE_RETURN_RESERVE_MS,
+          ),
+        },
+      );
       const result = await withTimeout(
         deletePromise,
         deleteTimeoutMs,
@@ -2975,6 +2700,7 @@ export async function advWorktreeCleanup(
     database: deps.database,
     log: deps.log,
     store: deps.store,
+    approvalEvidence: deps.approvalEvidence,
     warpDeps: deps.warpDeps,
     isWorktreeInUse: deps.isWorktreeInUse,
     prMergeEvidence: deps.prMergeEvidence,
@@ -3284,6 +3010,20 @@ export const WorktreePlugin: Plugin = async (ctx) => {
             .describe(
               "Force removal even with uncommitted changes (requires explicit audit reason)",
             ),
+          dryRun: tool.schema
+            .boolean()
+            .optional()
+            .describe(
+              "Return a typed deletion plan without removing the worktree",
+            ),
+          planToken: tool.schema
+            .string()
+            .optional()
+            .describe("Plan token returned by the dry-run deletion request"),
+          approvalEvidence: tool.schema
+            .string()
+            .optional()
+            .describe("Explicit approval evidence for the exact plan token"),
         },
         async execute(args, _toolCtx) {
           const worktreeConfig = await loadWorktreeConfig(directory, log);
@@ -3300,7 +3040,12 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
           const result = await advWorktreeDelete(
             args.branch,
-            { force: args.force ?? false },
+            {
+              force: args.force ?? false,
+              dryRun: args.dryRun,
+              planToken: args.planToken,
+              approvalEvidence: args.approvalEvidence,
+            },
             {
               projectRoot: directory,
               database,

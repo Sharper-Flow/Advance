@@ -154,6 +154,8 @@ interface WorktreeDeleteArgs extends TargetWorktreeMutationArgs {
   branch: string;
   force?: boolean;
   dryRun?: boolean;
+  planToken?: string;
+  approvalEvidence?: string;
 }
 
 interface WorktreeResumeArgs extends TargetWorktreeMutationArgs {
@@ -166,6 +168,7 @@ interface WorktreeResumeArgs extends TargetWorktreeMutationArgs {
 interface WorktreeCleanupArgs extends TargetWorktreeMutationArgs {
   reason: string;
   dryRun?: boolean;
+  approvalEvidence?: string;
   skipDiscovery?: boolean;
   timeoutMs?: number;
   mode?: "worktrees" | "archived_branches";
@@ -258,7 +261,14 @@ async function executeWorktreeDelete(
   const { effectiveTimeoutMs } = clampToSafeBudget(undefined);
   const deletePromise = advWorktreeDelete(
     args.branch,
-    { force: args.force, dryRun: args.dryRun },
+    {
+      ...(args.force !== undefined ? { force: args.force } : {}),
+      ...(args.dryRun !== undefined ? { dryRun: args.dryRun } : {}),
+      ...(args.planToken !== undefined ? { planToken: args.planToken } : {}),
+      ...(args.approvalEvidence !== undefined
+        ? { approvalEvidence: args.approvalEvidence }
+        : {}),
+    },
     {
       projectRoot,
       database,
@@ -276,29 +286,23 @@ async function executeWorktreeDelete(
       effectiveTimeoutMs,
     );
   });
-
   const result = await Promise.race([deletePromise, timeoutRace]);
   if (timeoutHandle) clearTimeout(timeoutHandle);
-
   if ("_timedOut" in result && result._timedOut) {
     return formatMaybeTargetOutput(
       formatToolOutput({
         ok: false,
         timedOut: true,
-        // No poison claim: this branch resolves a setTimeout sentinel, not a
-        // rejection, so there is no error to classify. rq-worktreePoisonVisibility01
-        // requires error-class plus structured evidence before naming poisoned
-        // history — asserting it here would be a guess. rq-worktreeTimeoutTruthfulness01
-        // likewise forbids asserting an untested cause or an unreachable action.
-        error: `adv_worktree_delete timed out after ${effectiveTimeoutMs}ms. The inner promise was not cancelled; the delete may still resolve.`,
+        error: `DEADLINE_EXCEEDED: adv_worktree_delete timed out after ${effectiveTimeoutMs}ms`,
+        status: "deadline_exceeded",
+        stage: "handler",
         effectiveTimeoutMs,
         remediation:
-          "Re-run the deletion — a completed delete is idempotent, and a still-blocked one returns typed retained state. Run adv_worktree_triage to inspect the worktree's current state first.",
+          "Retry with a fresh dry-run plan; the shared executor owns cancellation and revalidation.",
       }),
       context,
     );
   }
-
   return formatMaybeTargetOutput(
     formatToolOutput(result as Awaited<ReturnType<typeof advWorktreeDelete>>),
     context,
@@ -328,6 +332,7 @@ async function executeWorktreeCleanup(
       store,
       changeId: args.changeId,
       dryRun: args.dryRun,
+      approvalEvidence: args.approvalEvidence?.trim() || args.reason.trim(),
       effectiveTimeoutMs,
     });
 
@@ -399,6 +404,7 @@ async function executeWorktreeCleanup(
     database,
     log,
     dryRun: args.dryRun,
+    approvalEvidence: args.approvalEvidence?.trim() || args.reason.trim(),
     store,
     warpDeps,
     ...(args.skipDiscovery !== undefined && {
@@ -858,6 +864,22 @@ export const advWorktreeTools = {
         .boolean()
         .optional()
         .describe("Preview deletion without running hooks or removing files"),
+      planToken: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe(
+          "Planner-issued token returned by dryRun:true; required for destructive apply",
+        ),
+      approvalEvidence: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe(
+          "Nonblank evidence of explicit approval for this exact deletion plan",
+        ),
       ...targetWorktreeMutationArgSchemas,
     },
     execute: async (
@@ -897,6 +919,14 @@ export const advWorktreeTools = {
         .optional()
         .describe(
           "Preview cleanup without deleting queued worktrees or merged branches",
+        ),
+      approvalEvidence: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .describe(
+          "Nonblank evidence naming the approved cleanup candidate set; required for destructive manual cleanup",
         ),
       skipDiscovery: z
         .boolean()

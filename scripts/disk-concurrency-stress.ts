@@ -30,12 +30,12 @@ import {
 import { writeProjectMetadataEntry } from "../plugin/src/storage/project-metadata";
 import {
   advWorktreeCreate,
-  advWorktreeDelete,
   drainPendingDeletes,
   type AdvWorktreeDeleteDeps,
 } from "../plugin/src/tools/worktree/index";
 import {
   getPendingDeletes,
+  setPendingDelete,
   type WorktreeStateAccess,
 } from "../plugin/src/tools/worktree/state";
 import { acquireFileLock } from "../plugin/src/utils/fs";
@@ -162,6 +162,16 @@ function worktreeDeps(
       changeId: "disk-stress",
       defaultBranch: "main",
     }),
+    store: {
+      changes: {
+        get: async () => ({
+          success: true as const,
+          data: { id: "disk-stress", status: "archived" },
+        }),
+        refresh: async () => undefined,
+      },
+    } as any,
+    approvalEvidence: "isolated stress harness approved pending deletion",
     isWorktreeInUse: () => inUse,
   };
 }
@@ -303,18 +313,11 @@ async function runActor(config: HarnessConfig, actor: number): Promise<ActorResu
 
 async function runDrain(config: HarnessConfig): Promise<unknown> {
   const deps = worktreeDeps(config);
-  const result = await drainPendingDeletes("startup", deps, {
-    forceAttempts: true,
-    deleteWorktree: async (branch, _options, deleteDeps) =>
-      advWorktreeDelete(branch, { force: false }, {
-        ...deleteDeps,
-        integrationCheck: deps.integrationCheck,
-        isWorktreeInUse: () => false,
-        registry: deleteDeps.worktreePath
-          ? [{ branch, changeId: "disk-stress", path: deleteDeps.worktreePath }]
-          : undefined,
-      }),
-  });
+  const result = await drainPendingDeletes(
+    "startup",
+    { ...deps, isWorktreeInUse: () => false },
+    { forceAttempts: true },
+  );
   return { ...result, after: await getPendingDeletes(deps.database) };
 }
 
@@ -470,13 +473,19 @@ export async function runDiskConcurrencyStress(): Promise<StressEvidence> {
     const firstCreated = actors.find(
       (actor) => (actor.create as { ok?: boolean }).ok,
     )!.create as { path: string };
-    const queued = await advWorktreeDelete(
+    const pendingAccess = {
+      projectDir: root,
+      projectId,
+    };
+    await setPendingDelete(
+      pendingAccess,
       WORKTREE_BRANCH,
-      {},
-      worktreeDeps(config, firstCreated.path, true),
+      firstCreated.path,
+      "stress harness retained in-use worktree",
     );
-    const queuedPending =
-      (queued as { error?: string }).error === "WORKTREE_IN_USE";
+    const queuedPending = (await getPendingDeletes(pendingAccess)).some(
+      (entry) => entry.branch === WORKTREE_BRANCH,
+    );
     const drainChild = await spawnJson("drain", configPath);
     if (drainChild.exitCode !== 0 || drainChild.value?.after?.length) {
       actorErrors.push(

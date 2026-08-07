@@ -1,6 +1,7 @@
 import type { SessionRecord, WorktreeRecord } from "../../types";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { inferChangeIdFromBranch } from "./state";
+import { parseWorktreeListPorcelain } from "./porcelain-parser";
 
 export interface GitBranchFact {
   branch: string;
@@ -9,10 +10,16 @@ export interface GitBranchFact {
 }
 
 export interface GitWorktreeFact {
-  branch: string;
+  branch?: string;
   path: string;
   headSha: string;
   dirty: boolean;
+  detached: boolean;
+  bare: boolean;
+  locked: boolean;
+  prunable: boolean;
+  /** Set by stricter census adapters when Git reports invalid worktree data. */
+  corrupt?: boolean;
 }
 
 export interface GitWorkspaceFacts {
@@ -39,34 +46,10 @@ function parseMergedBranches(stdout: string): Set<string> {
   return new Set(
     stdout
       .split("\n")
-      .map((line) => line.replace(/^\*?\s*/, "").trim())
+      // `+` marks a branch checked out in another linked worktree.
+      .map((line) => line.replace(/^[*+]\s*/, "").trim())
       .filter(Boolean),
   );
-}
-
-function parseWorktreePorcelain(stdout: string): Array<{
-  path: string;
-  branch?: string;
-  headSha?: string;
-}> {
-  const out: Array<{ path: string; branch?: string; headSha?: string }> = [];
-  let current: { path: string; branch?: string; headSha?: string } | null =
-    null;
-  for (const line of stdout.split("\n")) {
-    if (line.startsWith("worktree ")) {
-      if (current) out.push(current);
-      current = { path: line.slice("worktree ".length).trim() };
-    } else if (line.startsWith("HEAD ") && current) {
-      current.headSha = line.slice("HEAD ".length).trim();
-    } else if (line.startsWith("branch refs/heads/") && current) {
-      current.branch = line.slice("branch refs/heads/".length).trim();
-    } else if (line.trim() === "" && current) {
-      out.push(current);
-      current = null;
-    }
-  }
-  if (current) out.push(current);
-  return out;
 }
 
 /**
@@ -85,19 +68,17 @@ export async function scanGitWorkspaceFacts(
   const [branchLines, mergedText, worktreeText] = await Promise.all([
     git(
       repoRoot,
-      [
-        "for-each-ref",
-        "--format=%(refname:short) %(objectname)",
-        "refs/heads/change",
-      ],
+      ["for-each-ref", "--format=%(refname:short) %(objectname)", "refs/heads"],
       gitTimeoutMs,
     ).catch(() => ""),
     git(repoRoot, ["branch", "--merged", defaultBranch], gitTimeoutMs).catch(
       () => "",
     ),
-    git(repoRoot, ["worktree", "list", "--porcelain"], gitTimeoutMs).catch(
-      () => "",
-    ),
+    git(
+      repoRoot,
+      ["worktree", "list", "--porcelain", "-z"],
+      gitTimeoutMs,
+    ).catch(() => ""),
   ]);
 
   const mergedBranches = parseMergedBranches(mergedText);
@@ -111,8 +92,7 @@ export async function scanGitWorkspaceFacts(
     });
 
   const worktrees: GitWorktreeFact[] = [];
-  for (const wt of parseWorktreePorcelain(worktreeText)) {
-    if (!wt.branch || !inferChangeIdFromBranch(wt.branch)) continue;
+  for (const wt of parseWorktreeListPorcelain(worktreeText)) {
     const status = await git(
       wt.path,
       ["status", "--porcelain"],
@@ -123,6 +103,10 @@ export async function scanGitWorkspaceFacts(
       path: wt.path,
       headSha: wt.headSha ?? "",
       dirty: status.length > 0,
+      detached: wt.detached ?? false,
+      bare: wt.bare ?? false,
+      locked: wt.locked ?? false,
+      prunable: wt.prunable ?? false,
     });
   }
 

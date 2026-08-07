@@ -20,6 +20,7 @@ import type {
   MaterializedWorktreeRecord,
 } from "../../types";
 import { execFileGitAsync } from "../../utils/git-binary";
+import { parseWorktreeListPorcelain } from "./porcelain-parser";
 import { getDefaultBranch } from "../../utils/git";
 import { scanGitWorkspaceFacts, reconcileWorktreeRegistry } from "./census";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
@@ -424,13 +425,14 @@ export async function findBranchOwnersAcrossChanges(
   excludeChangeId?: string,
 ): Promise<string[]> {
   const { stdout } = await execFileGitAsync(
-    ["worktree", "list", "--porcelain"],
+    ["worktree", "list", "--porcelain", "-z"],
     { cwd: access.projectDir, timeout: 10_000 },
   );
   const owner = inferChangeIdFromBranch(branch);
   if (!owner || owner === excludeChangeId) return [];
-  const ref = `refs/heads/${branch}`;
-  return stdout.split(/\r?\n/).some((line) => line === `branch ${ref}`)
+  return parseWorktreeListPorcelain(stdout).some(
+    (entry) => entry.branch === branch,
+  )
     ? [owner]
     : [];
 }

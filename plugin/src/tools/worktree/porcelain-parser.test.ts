@@ -67,4 +67,40 @@ describe("parseWorktreeListPorcelain", () => {
   it("returns an empty array for empty stdout", () => {
     expect(parseWorktreeListPorcelain("")).toEqual([]);
   });
+
+  it("parses canonical NUL-delimited records and preserves arbitrary paths", () => {
+    const stdout = [
+      "worktree /repo/path with spaces\0",
+      "HEAD abc123\0",
+      "branch refs/heads/release/v1\0",
+      "locked maintenance window\0",
+      "\0",
+      "worktree /tmp/path\nwith-newline\0",
+      "HEAD def456\0",
+      "detached\0",
+      "prunable gitdir file points to missing location\0",
+      "\0",
+    ].join("");
+
+    expect(parseWorktreeListPorcelain(stdout)).toEqual([
+      {
+        path: "/repo/path with spaces",
+        headSha: "abc123",
+        branch: "release/v1",
+        detached: false,
+        bare: false,
+        locked: true,
+        prunable: false,
+      },
+      {
+        path: "/tmp/path\nwith-newline",
+        headSha: "def456",
+        branch: undefined,
+        detached: true,
+        bare: false,
+        locked: false,
+        prunable: true,
+      },
+    ]);
+  });
 });

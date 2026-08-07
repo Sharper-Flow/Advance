@@ -187,6 +187,7 @@ describe("getWorktreeCensus", () => {
       "worktree",
       "list",
       "--porcelain",
+      "-z",
     ]);
     expect(mockExecFile.mock.calls[0][2]).toMatchObject({
       timeout: 5000,

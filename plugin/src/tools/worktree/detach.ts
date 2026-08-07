@@ -22,6 +22,10 @@ import {
 } from "./state";
 import { isWorktreeInUse } from "./in-use";
 import { getProjectId, getExternalRoot } from "../../utils/project-id";
+import {
+  parseWorktreeListPorcelain,
+  type DiskWorktree,
+} from "./porcelain-parser";
 
 // =============================================================================
 // TYPES
@@ -92,40 +96,14 @@ function deriveRequestId(branches: string[], cutoffMs: number): string {
 // GIT HELPERS
 // =============================================================================
 
-interface GitWorktreeEntry {
-  path: string;
-  branch?: string;
-  headSha?: string;
-}
-
-function parseGitWorktreePorcelain(output: string): GitWorktreeEntry[] {
-  const entries: GitWorktreeEntry[] = [];
-  let current: GitWorktreeEntry | null = null;
-  for (const line of output.split(/\r?\n/)) {
-    if (line.startsWith("worktree ")) {
-      if (current) entries.push(current);
-      current = { path: line.slice("worktree ".length) };
-      continue;
-    }
-    if (!current) continue;
-    if (line.startsWith("branch ")) {
-      current.branch = line.slice("branch ".length);
-    } else if (line.startsWith("HEAD ")) {
-      current.headSha = line.slice("HEAD ".length);
-    }
-  }
-  if (current) entries.push(current);
-  return entries;
-}
-
 async function listGitWorktreeEntries(
   repoRoot: string,
-): Promise<GitWorktreeEntry[]> {
+): Promise<DiskWorktree[]> {
   const { stdout } = await execFileGitAsync(
-    ["worktree", "list", "--porcelain"],
+    ["worktree", "list", "--porcelain", "-z"],
     { cwd: repoRoot, timeout: 10_000 },
   );
-  return parseGitWorktreePorcelain(stdout);
+  return parseWorktreeListPorcelain(stdout);
 }
 
 async function getBranchActivityAt(
@@ -250,7 +228,7 @@ async function preflightBranch(
 
   // Branch-to-path ownership must be unambiguous.
   const gitEntries = (await listGitWorktreeEntries(ctx.repoRoot)).filter(
-    (e) => e.branch === `refs/heads/${branch}` || e.branch === branch,
+    (e) => e.branch === branch,
   );
   if (gitEntries.length !== 1) {
     return failure("ambiguous_branch_to_path_ownership", recordPath);
@@ -481,7 +459,7 @@ export async function advWorktreeDetachBatch(
     };
   } finally {
     try {
-      await releaseGitWorktreeFlock(projectStateDir);
+      await releaseGitWorktreeFlock(projectStateDir, lock.ownerToken);
     } catch (err) {
       log.warn(
         `Failed to release git-worktree flock: ${err instanceof Error ? err.message : String(err)}`,
