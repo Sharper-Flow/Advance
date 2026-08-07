@@ -586,8 +586,8 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **Release recovery revalidates release proof** (`rq-releaseFinalization01.10`)
 
 **Given:**
-- Release gate recovery or poisoned-history repair is requested
-- Prior workflow state cannot be trusted as proof by itself
+- Release gate recovery or unavailable-projection repair is requested
+- Prior projection state cannot be trusted as proof by itself
 
 **When:** The recovery path considers recording `gateId: "release"` as done
 
@@ -631,7 +631,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 
 **ID:** `rq-releaseFinalization02` | **Priority:** **[MUST]**
 
-When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queue” with auto-merge armed (i.e. the archive tool would otherwise return “phase9: ‘pending_merge’”), ADV orchestrates the remaining completion rather than handing back to the human. The orchestration spawns “adv-ci-waiter”, the bounded-poll exception to P37, and waits for it to report a terminal result. `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state. CI success alone is not sufficient for release completion. Release completion requires either (a) explicit PR merge-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit` returning `state == MERGED`) or (b) unchanged `origin/{default-branch}` reachability proof. On terminal `MERGED` (verified separately) it syncs the local default branch in place and re-runs “verifyReleaseEvidenceFromMain” (which already proves reachability through “pr_merged” proof and is branch-ref-independent via the persisted tip SHA delivered by parent change “fixPhase9SquashMergeRedetect”). The auto-drive applies only to “pr_auto_merge” and “merge_queue” routes; direct-push, no-remote, and “ff-only” paths remain unchanged. Auto-drive orchestration lives in “adv-archive.md”; the trunk-sync helper lives in “plugin/src/tools/archive-helpers/git-finalize.ts”; the worker-bundle boundary (“workflow-bundle-boundary.test.ts”) must remain green.
+When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queue” with auto-merge armed (i.e. the archive tool would otherwise return “phase9: ‘pending_merge’”), ADV orchestrates the remaining completion rather than handing back to the human. The orchestration spawns “adv-ci-waiter”, the bounded-poll exception to P37, and waits for it to report a terminal result. `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state. CI success alone is not sufficient for release completion. Release completion requires either (a) explicit PR merge-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit` returning `state == MERGED`) or (b) unchanged `origin/{default-branch}` reachability proof. On terminal `MERGED` (verified separately) it syncs the local default branch in place and re-runs “verifyReleaseEvidenceFromMain” (which already proves reachability through “pr_merged” proof and is branch-ref-independent via the persisted tip SHA delivered by parent change “fixPhase9SquashMergeRedetect”). The auto-drive applies only to “pr_auto_merge” and “merge_queue” routes; direct-push, no-remote, and “ff-only” paths remain unchanged. Auto-drive orchestration lives in “adv-archive.md”; the trunk-sync helper lives in “plugin/src/tools/archive-helpers/git-finalize.ts”.
 
 **Tags:** `workflow`, `archive`, `git`
 
@@ -673,18 +673,6 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 - The auto-drive does NOT trigger (no “pending_merge” is returned)
 - The route return and ordering match the pre-existing direct/local-bare-origin/ff-only behavior
 - The change continues to reach its existing terminal state synchronously
-
-**Layer-boundary: no CI-wait imports in worker-bundle-reachable modules** (`rq-releaseFinalization02.4`)
-
-**Given:**
-- The auto-drive orchestration is added
-
-**When:** “pnpm test -- src/temporal/workflow-bundle-boundary.test.ts” is run
-
-**Then:**
-- No new CI-wait or Task-spawn import appears in modules reachable from the Temporal worker bundle
-- “git-finalize.ts” imports nothing additional from “temporal/” (it keeps only the existing “CHANGE_BRANCH_PREFIX” import)
-- The worker-bundle boundary test stays green
 
 ---
 
@@ -880,9 +868,9 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 **ID:** `rq-archiveTerminalDurability01` | **Priority:** **[MUST]**
 
-Archive MUST NOT treat signal acceptance or projection state as proof that the terminal transition reached the change workflow. The archive flow MUST request the workflow transition on every non-dry-run route regardless of what any disk or active projection reports, MUST verify after the transition request that the workflow recorded terminal intent via a bounded describe-based proof (Visibility enumeration is never proof), and MUST fail closed with a typed error when that proof cannot be established. The change workflow MUST durably write its terminal projection before completing for both archived and closed terminal outcomes. A change whose archive bundle is reachable from the default branch, whose disk projection is archived, and whose workflow is absent MUST be repairable through the existing single mutation authority under a full proof gate; reconciliation MUST evaluate archive-bundle evidence before applying any stale-disk veto and MUST surface typed skip reasons for candidates it does not act on.
+Archive MUST prove the terminal transition through the authoritative disk projection before reporting success. The archive bundle, release-gate completion, and projection lifecycle state MUST agree; commitChangeProjection’s in-lock readback and revision/operation-identity proof MUST be used for recovery. Missing or contradictory proof MUST fail closed with a typed blocker, and reconciliation MUST surface typed skip reasons without writing status directly.
 
-**Tags:** `workflow`, `archive`, `terminal-state`, `durability`, `recovery`, `read-model`
+**Tags:** `change projection`, `archive`, `terminal-state`, `durability`, `recovery`, `read-model`
 
 #### Scenarios
 
@@ -890,7 +878,7 @@ Archive MUST NOT treat signal acceptance or projection state as proof that the t
 
 **Given:**
 - A change whose disk or active projection already reports status archived
-- The change workflow has not recorded the archive transition
+- The change change projection has not recorded the archive transition
 
 **When:** adv_change_archive runs on any non-dry-run route, including the existing-bundle reconciliation route
 
@@ -899,38 +887,38 @@ Archive MUST NOT treat signal acceptance or projection state as proof that the t
 - The existing bundle is reused and bundle re-writing is skipped on the reconciliation route
 - No projection read short-circuits the transition request
 
-**Post-save proof fails closed when the workflow cannot be verified** (`rq-archiveTerminalDurability01.2`)
+**Post-save proof fails closed when the change projection cannot be verified** (`rq-archiveTerminalDurability01.2`)
 
 **Given:**
 - The archive transition request has been accepted by the store
-- A bounded describe of the change workflow fails, reports an unrecognized state, or the workflow is not found
+- A bounded describe of the change change projection fails, reports an unrecognized state, or the change projection is not found
 
 **When:** The archive flow evaluates whether the transition is durably recorded
 
 **Then:**
 - Archive returns success false with typed code ARCHIVE_WORKFLOW_PROOF_FAILED or ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS citing this requirement
 - The not-found case is classified ambiguous because completed and retention-expired are indistinguishable
-- Visibility enumeration is never consulted as proof
+- projection lookup enumeration is never consulted as proof
 - The written bundle is preserved and no rollback or deletion is attempted
 
-**Terminal projection is durable before workflow completion** (`rq-archiveTerminalDurability01.3`)
+**Terminal projection is durable before change projection completion** (`rq-archiveTerminalDurability01.3`)
 
 **Given:**
-- A change workflow has received signals that produce an archived or closed terminal outcome
+- A change change projection has received mutations that produce an archived or closed terminal outcome
 
-**When:** The workflow reaches its terminal block
+**When:** The change projection reaches its terminal block
 
 **Then:**
-- The terminal projection Activity is awaited and completes before the workflow completes
+- The terminal projection Activity is awaited and completes before the change projection completes
 - Both archived and closed outcomes are covered
-- In-flight executions recorded before this behavior replay through the patch-guarded legacy branch without nondeterminism errors
+- In-flight executions recorded before this behavior readback through the patch-guarded legacy branch without nondeterminism errors
 
-**No-workflow archived population repairs under full proof** (`rq-archiveTerminalDurability01.4`)
+**No-change projection archived population repairs under full proof** (`rq-archiveTerminalDurability01.4`)
 
 **Given:**
 - An archive bundle for the change is reachable from the default branch
 - The disk projection reports status archived
-- The change workflow is absent, confirmed by an exact workflow-not-found describe failure
+- The change change projection is absent, confirmed by an exact change projection-not-found describe failure
 
 **When:** The repair path converges the change
 
@@ -965,101 +953,13 @@ Archive MUST NOT treat signal acceptance or projection state as proof that the t
 
 ---
 
-### Worker Bundle Release Requires Freshness and Replay-Determinism Provenance
-
-**ID:** `rq-workerBundleReleaseProvenance01` | **Priority:** **[MUST]**
-
-When a change is declared `worker_bundle_impact: required`, ADV MUST enforce worker-bundle freshness and replay-determinism provenance before release completion. The release gate MUST require a provenance receipt containing `source_sha`, `build_run_id`, and `replay_run_id`, and MUST verify that the referenced build:worker and replay-determinism runs passed. If the receipt is missing, incomplete, or references failing runs, release MUST be blocked and MUST NOT report shipped success. A change declared `worker_bundle_impact: not_applicable` with a typed rationale MAY skip this gate. The applicability authority is the typed declaration set or confirmed at planning; an absent declaration MUST NOT be bypassed by path heuristics or file inspection. Post-deployment or runtime freshness (loaded vs deployed generation) is out of scope for this archive-time gate; it enforces provenance evidence only.
-
-**Tags:** `workflow`, `archive`, `release`, `worker-bundle`, `provenance`, `replay-determinism`
-
-#### Scenarios
-
-**Required impact with missing or failing provenance blocks release** (`rq-workerBundleReleaseProvenance01.1`)
-
-**Given:**
-- A change is declared `worker_bundle_impact: required`
-- The provenance receipt is missing, lacks `source_sha`/`build_run_id`/`replay_run_id`, or references failing runs
-
-**When:** The release gate evaluates worker-bundle provenance
-
-**Then:**
-- Release is BLOCKED
-- The gate cites `rq-workerBundleReleaseProvenance01`
-- Archive does not report shipped success or run retirement side effects
-
-**Required impact with valid provenance passes release** (`rq-workerBundleReleaseProvenance01.2`)
-
-**Given:**
-- A change is declared `worker_bundle_impact: required`
-- The provenance receipt contains `source_sha`, `build_run_id`, and `replay_run_id`
-- Both referenced runs passed
-
-**When:** The release gate evaluates worker-bundle provenance
-
-**Then:**
-- Release PASSES
-- The provenance receipt is recorded in the release completion evidence
-- Archive may proceed to finalization
-
-**Not applicable impact skips the gate** (`rq-workerBundleReleaseProvenance01.3`)
-
-**Given:**
-- A change is declared `worker_bundle_impact: not_applicable` with a typed rationale
-
-**When:** The release gate evaluates worker-bundle provenance
-
-**Then:**
-- The gate is SKIPPED
-- The gate is not BLOCKED
-- The typed rationale is recorded
-
-**Applicability authority is the typed declaration, not a heuristic** (`rq-workerBundleReleaseProvenance01.4`)
-
-**Given:**
-- A change lacks a typed `worker_bundle_impact` declaration, or the declaration is unset
-
-**When:** Applicability is evaluated
-
-**Then:**
-- The gate either blocks release or routes through a deliberate migration to a typed declaration
-- Path heuristics, file inspection, or implicit defaults never bypass the requirement
-- The blocker cites `rq-workerBundleReleaseProvenance01`
-
-**Runtime freshness is out of scope for the archive-time gate** (`rq-workerBundleReleaseProvenance01.5`)
-
-**Given:**
-- A change has already archived with valid provenance
-- The deployed worker bundle generation differs from the currently loaded generation at runtime
-
-**When:** Post-deployment runtime freshness is evaluated
-
-**Then:**
-- The archive-time gate does not enforce loaded-vs-deployed freshness (out of scope for this requirement)
-- Runtime freshness is handled outside this requirement
-- The provenance evidence recorded at archive time remains the authoritative release artifact
-
-**Provenance check is a hard blocking release-readiness gate, not advisory** (`rq-workerBundleReleaseProvenance01.6`)
-
-**Given:**
-- The worker-bundle provenance check is evaluated
-
-**When:** Release readiness is computed
-
-**Then:**
-- The check is a BLOCKING release-readiness gate (lives in evaluateGateReadiness, emits a GateReadinessBlocker)
-- The check is NOT an advisory CRITERION_EVALUATORS criterion
-- CRITERION_EVALUATORS criteria cannot probe evidence and are non-blocking
-
----
-
 ### Archive Recovery Requires Structural Proof and Readback Consistency
 
 **ID:** `rq-archiveRecoveryConsistency01` | **Priority:** **[MUST]**
 
-Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. Status-repair success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery is consolidated through `adv_doctor`, which diagnoses the release-stuck projection and applies the safe repair path; batch terminal-projection repair over all release-stuck candidates and single-change targeted status flip are internalized behind `adv_doctor` and gated on structural branch-merge evidence or precise workflow evidence.
+Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. Status-repair success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery is consolidated through `adv_doctor`, which diagnoses the release-stuck projection and applies the safe repair path; batch terminal-projection repair over all release-stuck candidates and single-change targeted status flip are internalized behind `adv_doctor` and gated on structural branch-merge evidence or precise change projection evidence.
 
-**Tags:** `workflow`, `archive`, `repair`, `status`, `target-path`
+**Tags:** `change projection`, `archive`, `repair`, `status`, `target-path`
 
 #### Scenarios
 
@@ -1125,18 +1025,18 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 
 **ID:** `rq-releaseRepairRecovery01` | **Priority:** **[MUST]**
 
-Release-repair recovery for completed or poisoned change workflows MUST be explicit, typed, audited, and invariant-preserving. A recovery-capable release-repair tool MAY write the disk projection only when normal workflow signaling cannot record the missing release-repair state and the caller provides precise completed-workflow or poisoned-history evidence plus a non-empty recovery reason. Recovery MUST record only the missing typed state through an audited recovery writer, MUST return explicit recovery metadata or a reconciliation warning, and MUST preserve normal active-workflow signal/readiness behavior. Blank, imprecise, or generic signal failures MUST fail closed without projection mutation. No release-repair recovery path may weaken design-quality blockers, release finalization proof, archive status proof, target-project trust, or accepted disposition vocabularies.
+Release-repair recovery for completed or unavailable change projections MUST be explicit, typed, audited, and invariant-preserving. Recovery MAY write only missing typed release state through commitChangeProjection when structural release evidence and a non-empty recovery reason are present. Blank, imprecise, or unverifiable evidence MUST fail closed without mutation.
 
-**Tags:** `workflow`, `release`, `repair`, `recovery`, `audit`
+**Tags:** `change projection`, `release`, `repair`, `recovery`, `audit`
 
 #### Scenarios
 
-**Completed or poisoned workflow recovery records typed audited state** (`rq-releaseRepairRecovery01.1`)
+**Completed or unreadable change projection recovery records typed audited state** (`rq-releaseRepairRecovery01.1`)
 
 **Given:**
-- A release-repair tool must record missing typed state for a change workflow
-- Normal workflow signaling fails because the workflow is completed or poisoned
-- The caller provides precise completed-workflow or poisoned-history evidence and a non-empty recovery reason
+- A release-repair tool must record missing typed state for a change change projection
+- Normal change projection mutationing fails because the change projection is completed or unreadable
+- The caller provides precise completed-change projection or unavailable-projection evidence and a non-empty recovery reason
 
 **When:** The recovery-capable release-repair tool runs in explicit recovery mode
 
@@ -1144,19 +1044,19 @@ Release-repair recovery for completed or poisoned change workflows MUST be expli
 - The tool writes only the missing typed release-repair state through an audited recovery writer
 - The write records recovery reason, evidence, and recovery timestamp with the repaired state
 - The response includes explicit recovery metadata or a reconciliation warning
-- Normal active-workflow signal and readiness behavior remains unchanged
+- Normal active-change projection mutation and readiness behavior remains unchanged
 
 **Generic or imprecise recovery evidence fails closed** (`rq-releaseRepairRecovery01.2`)
 
 **Given:**
-- A release-repair tool receives a generic signal failure, blank recovery reason, blank recovery evidence, or imprecise recovery evidence
-- Completed-workflow or poisoned-history evidence has not been structurally established
+- A release-repair tool receives a generic mutation failure, blank recovery reason, blank recovery evidence, or imprecise recovery evidence
+- Completed-change projection or unavailable-projection evidence has not been structurally established
 
 **When:** The tool evaluates whether to run disk-projection recovery
 
 **Then:**
 - No disk projection mutation occurs
-- The tool returns an error or propagates the original signal failure
+- The tool returns an error or propagates the original mutation failure
 - The response does not report successful recovery
 
 **Release repair recovery preserves structural blockers** (`rq-releaseRepairRecovery01.3`)
@@ -1549,9 +1449,9 @@ ADV aggregate read surfaces that include archived or closed changes MUST use bou
 
 **ID:** `rq-terminalProjectionTruth01` | **Priority:** **[MUST]**
 
-When a durable terminal projection exists for a change, terminal-aware reads MUST prefer that terminal truth over stale non-terminal workflow, memo, disk, or visibility projections. Archive bundle state MUST dominate draft, pending, or active shadows for the same canonical change ID. Terminal-aware reads MUST dedupe archive directories by the canonical `change.json.id` rather than by archive directory name.
+When a durable terminal projection exists for a change, terminal-aware reads MUST prefer that terminal truth over stale non-terminal change projection, memo, disk, or visibility projections. Archive bundle state MUST dominate draft, pending, or active shadows for the same canonical change ID. Terminal-aware reads MUST dedupe archive directories by the canonical `change.json.id` rather than by archive directory name.
 
-**Tags:** `workflow`, `archive`, `terminal-state`, `read-model`, `recovery`
+**Tags:** `change projection`, `archive`, `terminal-state`, `read-model`, `recovery`
 
 #### Scenarios
 
@@ -1636,9 +1536,9 @@ Default active or in-flight change listing MUST preserve the summary/memo/cache 
 
 **ID:** `rq-boundedAuthoritativeRead01` | **Priority:** **[MUST]**
 
-Authoritative change-read surfaces (`adv_change_list`, `adv_status`) MUST resolve state inside a single request-scoped 8,000 ms aggregate deadline (`TEMPORAL_READ_DEADLINE_BUDGET_MS`). The deadline context is created per request (`createTemporalReadDeadline`) and threaded through source enumeration, archive pre-scan, candidate hydration, fallback classification, and Temporal retry/query admission; it is never shared across projects or calls. A result is complete only when every required source and candidate resolves before expiry; otherwise it is explicitly degraded and names the incomplete candidates or sources through typed metadata (`SOURCE_DEADLINE_EXCEEDED`, `hydrationStats.deadlineExceeded`, `omittedIds`), and MUST never claim completeness or let a caller infer completeness from row count or cache warmth. `safeExecute` remains outer containment (defense in depth), not the normal timeout-control mechanism; the existing `TemporalQueryTimeoutError`/retry machinery is extended with remaining-budget admission rather than replaced by a second timer abstraction. This requirement generalizes the terminal degradation semantics of `rq-terminalAggregateRead01` to the authoritative read path while preserving existing terminal warning codes (`TERMINAL_SOURCE_DEGRADED`, `TERMINAL_CANDIDATE_OMITTED`) and the active fast path (`rq-activeListFastPath01`) unchanged. No worker restart, poisoned-workflow mutation, or timeout-ceiling increase may be used as a read-path workaround. Deadline behavior MUST be proven with deterministic tests that use controlled timers/promises, not elapsed wall-clock timing.
+Authoritative change-read surfaces (`adv_change_list`, `adv_status`) MUST resolve state inside a single request-scoped 8,000 ms aggregate deadline (`disk_READ_DEADLINE_BUDGET_MS`). The deadline context is created per request (`creatediskReadDeadline`) and threaded through source enumeration, archive pre-scan, candidate hydration, fallback classification, and disk retry/query admission; it is never shared across projects or calls. A result is complete only when every required source and candidate resolves before expiry; otherwise it is explicitly degraded and names the incomplete candidates or sources through typed metadata (`SOURCE_DEADLINE_EXCEEDED`, `hydrationStats.deadlineExceeded`, `omittedIds`), and MUST never claim completeness or let a caller infer completeness from row count or cache warmth. `safeExecute` remains outer containment (defense in depth), not the normal timeout-control mechanism; the existing `diskQueryTimeoutError`/retry machinery is extended with remaining-budget admission rather than replaced by a second timer abstraction. This requirement generalizes the terminal degradation semantics of `rq-terminalAggregateRead01` to the authoritative read path while preserving existing terminal warning codes (`TERMINAL_SOURCE_DEGRADED`, `TERMINAL_CANDIDATE_OMITTED`) and the active fast path (`rq-activeListFastPath01`) unchanged. No worker restart, unreadable-change projection mutation, or timeout-ceiling increase may be used as a read-path workaround. Deadline behavior MUST be proven with deterministic tests that use controlled timers/promises, not elapsed wall-clock timing.
 
-**Tags:** `workflow`, `read-model`, `performance`, `degraded`, `deadline`
+**Tags:** `change projection`, `read-model`, `performance`, `degraded`, `deadline`
 
 #### Scenarios
 
@@ -1646,7 +1546,7 @@ Authoritative change-read surfaces (`adv_change_list`, `adv_status`) MUST resolv
 
 **Given:**
 - adv_change_list or adv_status is resolving authoritative change state
-- One or more candidate workflows or sources exceed the internal read budget
+- One or more candidate change projections or sources exceed the internal read budget
 
 **When:** The aggregate 8-second internal deadline is reached
 
@@ -1677,25 +1577,25 @@ Authoritative change-read surfaces (`adv_change_list`, `adv_status`) MUST resolv
 
 **Then:**
 - safeExecute remains outer containment, not the normal timeout-control path
-- No worker restart, poisoned-workflow mutation, or timeout-ceiling increase is used as a read-path workaround
+- No worker restart, unreadable-change projection mutation, or timeout-ceiling increase is used as a read-path workaround
 - Deadline tests use controlled timers/promises and assert typed results rather than elapsed wall-clock timing
 
 ---
 
-### Archive and Visibility Read Sources Are Bounded and Attributed
+### Archive and projection lookup Read Sources Are Bounded and Attributed
 
 **ID:** `rq-readSourceAttribution01` | **Priority:** **[MUST]**
 
-Archive and Visibility candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). Visibility enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory x candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory x candidate scan is allowed. Terminal-resolution source degradation MUST be emitted as typed provenance regardless of query kind: an active or in-flight enumeration whose terminal-resolution inspection degrades MUST still return its rows AND surface the degradation, rather than suppressing the warning because terminal statuses were not requested. Terminal-only candidate-omission warnings and terminal hydration statistics remain terminal-only.
+Archive and projection lookup candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). projection lookup enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory x candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory x candidate scan is allowed. Terminal-resolution source degradation MUST be emitted as typed provenance regardless of query kind: an active or in-flight enumeration whose terminal-resolution inspection degrades MUST still return its rows AND surface the degradation, rather than suppressing the warning because terminal statuses were not requested. Terminal-only candidate-omission warnings and terminal hydration statistics remain terminal-only.
 
-**Tags:** `workflow`, `read-model`, `archive`, `visibility`, `degraded`, `provenance`
+**Tags:** `change projection`, `read-model`, `archive`, `visibility`, `degraded`, `provenance`
 
 #### Scenarios
 
-**Slow or failed Visibility/Archive source is named in degraded evidence** (`rq-readSourceAttribution01.1`)
+**Slow or failed projection lookup/Archive source is named in degraded evidence** (`rq-readSourceAttribution01.1`)
 
 **Given:**
-- Archive inventory or Visibility pagination contributes candidates to an authoritative read
+- Archive inventory or projection lookup pagination contributes candidates to an authoritative read
 
 **When:** That source is slow, fails, or reaches the aggregate deadline
 
@@ -1735,7 +1635,7 @@ Archive and Visibility candidate sources MUST be included in the aggregate deadl
 
 **ID:** `rq-summaryReadBound01` | **Priority:** **[MUST]**
 
-`adv_status` with `view: "summary"` MUST apply the existing `STATUS_SUMMARY_RECENT_LIMIT` bound before non-required deep hydration, artifact reads, or recent-change enrichment, truncating the tail with typed bounded degradation (`SOURCE_BOUND_EXCEEDED`, `hydrationStats.boundedOmitted`, `omittedIds`) rather than paying full hydration cost. The bound is applied in the shared resolver (`listResolvedChanges` candidateLimit) with memo-recency ordering so the bounded recent set stays meaningful; complete summary counts/recency semantics are preserved when data resolves within the bound, and otherwise the result publishes explicit degradation instead of inaccurate totals. Changes already hydrated during the request MUST be reused for recent-change, proposal-derived, product-scope, and fast-follow context via a request-local resolved-document map that is transport-only and stripped before serialization; the request MUST NOT issue a duplicate per-change Temporal read or `readArtifact` call for an already-resolved row. This requirement governs change-resolution ordering and complements the provider-group planning of `rq-statusSummaryLazy01` (advance-meta); full views retain their explicit behavior but share the aggregate deadline.
+`adv_status` with `view: "summary"` MUST apply the existing `STATUS_SUMMARY_RECENT_LIMIT` bound before non-required deep hydration, artifact reads, or recent-change enrichment, truncating the tail with typed bounded degradation (`SOURCE_BOUND_EXCEEDED`, `hydrationStats.boundedOmitted`, `omittedIds`) rather than paying full hydration cost. The bound is applied in the shared resolver (`listResolvedChanges` candidateLimit) with memo-recency ordering so the bounded recent set stays meaningful; complete summary counts/recency semantics are preserved when data resolves within the bound, and otherwise the result publishes explicit degradation instead of inaccurate totals. Changes already hydrated during the request MUST be reused for recent-change, proposal-derived, product-scope, and fast-follow context via a request-local resolved-document map that is transport-only and stripped before serialization; the request MUST NOT issue a duplicate per-change disk read or `readArtifact` call for an already-resolved row. This requirement governs change-resolution ordering and complements the provider-group planning of `rq-statusSummaryLazy01` (advance-meta); full views retain their explicit behavior but share the aggregate deadline.
 
 **Tags:** `status`, `read-model`, `performance`, `degraded`
 
@@ -1762,7 +1662,7 @@ Archive and Visibility candidate sources MUST be included in the aggregate deadl
 
 **Then:**
 - The request reuses the hydrated document/projection from the request-local resolved map
-- No duplicate per-change Temporal read or readArtifact call is issued for the already-resolved row
+- No duplicate per-change disk read or readArtifact call is issued for the already-resolved row
 - A regression test verifies the call count
 
 **Complete summary semantics preserved within the bound** (`rq-summaryReadBound01.3`)
@@ -2618,9 +2518,9 @@ The ChangeSchema must support an optional `fast_follow_of` field that records sa
 
 **ID:** `rq-crossProjectCoordination01` | **Priority:** **[MUST]**
 
-ADV tools that support cross-project coordination must use explicit `target_path` routing, persist structured cross_project_links and advisory external_dependencies on changes, require explicit confirmation before mutating untrusted target projects, and present dependency status as summary by default with drilldown available on request. `adv_change_create` with `target_path` is a target mutation: it must route creation through the target project's Temporal-backed store, seed `cross_project_origin` before workflow start, avoid synchronous target workflow `getState` queries from the source process, and fail without leaving active disk-only target state when target workflow start fails. Active disk-only target records must be recoverable through the normal list/read reseed path; archived and closed records must not be recreated. External dependencies are advisory warnings only and must not block gates or archive by default.
+ADV tools that support cross-project coordination must use explicit `target_path` routing, persist structured cross_project_links and advisory external_dependencies on changes, require explicit confirmation before mutating untrusted target projects, and present dependency status as summary by default with drilldown available on request. `adv_change_create` with `target_path` is a target mutation: it must route creation through the target project's disk-backed store, seed `cross_project_origin` before change projection start, avoid synchronous target change projection `getState` queries from the source process, and fail without leaving active disk-only target state when target change projection start fails. Active disk-only target records must be recoverable through the normal list/read reseed path; archived and closed records must not be recreated. External dependencies are advisory warnings only and must not block gates or archive by default.
 
-**Tags:** `workflow`, `cross-project`, `target-path`, `advisory-dependencies`, `safety`
+**Tags:** `change projection`, `cross-project`, `target-path`, `advisory-dependencies`, `safety`
 
 #### Scenarios
 
@@ -2649,7 +2549,7 @@ ADV tools that support cross-project coordination must use explicit `target_path
 - The tool requires explicit target confirmation evidence before changing target state
 - Without confirmation, the tool fails before any target state mutation
 
-**Cross-project create starts target workflow state** (`rq-crossProjectCoordination01.5`)
+**Cross-project create starts target change projection state** (`rq-crossProjectCoordination01.5`)
 
 **Given:**
 - adv_change_create is called with target_path for another ADV project
@@ -2658,44 +2558,44 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **When:** The target change is created
 
 **Then:**
-- Creation is routed through the target project's Temporal-backed store or equivalent workflow-start path
-- cross_project_origin is seeded before target workflow start
-- The source process does not issue a target workflow getState query after creation
-- If target workflow start fails, the tool returns an error and does not leave a new active disk-only target change
+- Creation is routed through the target project's disk-backed store or equivalent change projection-start path
+- cross_project_origin is seeded before target change projection start
+- The source process does not issue a target change projection getState query after creation
+- If target change projection start fails, the tool returns an error and does not leave a new active disk-only target change
 
 **Active disk-only target changes reconcile through list/read** (`rq-crossProjectCoordination01.6`)
 
 **Given:**
-- A target project has non-terminal change.json records whose workflows are missing
+- A target project has non-terminal change.json records whose change projections are missing
 - The target project also has archived or closed disk records
 
-**When:** A Temporal-backed change read or list loads target project changes
+**When:** A disk-backed change read or list loads target project changes
 
 **Then:**
-- Each non-terminal disk-only change is reseeded into workflow state through the normal read/list path
-- Archived and closed disk records are returned only as terminal projections when requested and are not recreated as active workflows
+- Each non-terminal disk-only change is reseeded into change projection state through the normal read/list path
+- Archived and closed disk records are returned only as terminal projections when requested and are not recreated as active change projections
 - No startup scanner or one-off repair path is required
 
 **Target mutation readiness accepts fresh server pollers** (`rq-targetMutationReadiness01`)
 
 **Given:**
-- A temporal-required target_path mutation is evaluated
+- A authoritative target_path mutation is evaluated
 - The current process has no registered worker for the target project queue
-- Temporal task-queue inspection reports a fresh workflow poller for the target project queue
+- disk mutation-path inspection reports a fresh change projection poller for the target project queue
 
 **When:** The target mutation readiness check runs
 
 **Then:**
 - The readiness check treats the target queue as serviceable using the shared queue serviceability model
-- The mutation proceeds to the Temporal-backed target store path
+- The mutation proceeds to the disk-backed target store path
 - The mutation does not fail solely because the current process has no local worker object
 
 **Unproven target mutation readiness fails closed** (`rq-targetMutationReadiness02`)
 
 **Given:**
-- A temporal-required target_path mutation is evaluated
+- A authoritative target_path mutation is evaluated
 - The current process has no registered worker for the target project queue
-- Temporal task-queue inspection is stale, absent, unavailable, or otherwise not serviceable
+- disk mutation-path inspection is stale, absent, unavailable, or otherwise not serviceable
 
 **When:** The target mutation readiness check runs
 
@@ -2707,7 +2607,7 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Registered-but-failed local queue does not short-circuit readiness** (`rq-targetMutationReadiness04`)
 
 **Given:**
-- A temporal-required target_path mutation is evaluated
+- A authoritative target_path mutation is evaluated
 - Per-queue local worker diagnostics show the target queue registered but failed (not alive)
 
 **When:** The target mutation readiness check runs
@@ -2722,7 +2622,7 @@ ADV tools that support cross-project coordination must use explicit `target_path
 **Given:**
 - ADV status or diagnostics report a target project queue as serviceable from fresh server poller evidence
 
-**When:** A temporal-required target_path mutation checks the same queue with a fresh mutation-boundary probe
+**When:** A authoritative target_path mutation checks the same queue with a fresh mutation-boundary probe
 
 **Then:**
 - Mutation readiness uses the same structural queue serviceability semantics as status and diagnostics
@@ -2757,9 +2657,9 @@ ADV tools that support cross-project coordination must use explicit `target_path
 
 **ID:** `rq-targetReadAuthority01` | **Priority:** **[MUST]**
 
-ADV tools that read another project via target_path in snapshot-ok mode must treat the returned disk-snapshot data as non-authoritative and degraded. Snapshot-ok reads must not start, restart, register, reclaim, or signal target project workers, and must not write target project state. They may present target project context only. Any downstream mutation requiring authoritative target workflow state must route through a temporal-required target_path tool.
+ADV tools that read another project via target_path in snapshot-ok mode MUST treat returned disk-snapshot data as non-authoritative and degraded. Snapshot-ok reads MUST NOT mutate target state. Any downstream mutation requiring authoritative target state MUST route through the target project’s authoritative disk-projection mutation path; authoritative and snapshot modes MUST remain distinct.
 
-**Tags:** `workflow`, `cross-project`, `target-path`, `state-authority`, `snapshot-ok`
+**Tags:** `change projection`, `cross-project`, `target-path`, `state-authority`, `snapshot-ok`
 
 #### Scenarios
 
@@ -2772,9 +2672,9 @@ ADV tools that read another project via target_path in snapshot-ok mode must tre
 
 **Then:**
 - The response marks the target context as non-authoritative/degraded
-- The caller does not treat the snapshot as authoritative workflow state
+- The caller does not treat the snapshot as authoritative change projection state
 
-**Snapshot-ok reads do not mutate target worker lifecycle** (`rq-targetReadAuthority01.2`)
+**Snapshot-ok reads do not mutate target runtime state** (`rq-targetReadAuthority01.2`)
 
 **Given:**
 - A snapshot-ok target_path read is executed
@@ -2783,19 +2683,19 @@ ADV tools that read another project via target_path in snapshot-ok mode must tre
 
 **Then:**
 - The tool does not start, restart, register, or reclaim a target project worker
-- The tool does not signal target project workflows
+- The tool does not mutate target project change projections
 - The tool does not write target project ADV state
 
-**Authoritative target mutation requires temporal-required path** (`rq-targetReadAuthority01.3`)
+**Authoritative target mutation requires authoritative path** (`rq-targetReadAuthority01.3`)
 
 **Given:**
-- A caller has read a target project via a snapshot-ok tool and now wants to mutate target workflow state
+- A caller has read a target project via a snapshot-ok tool and now wants to mutate target change projection state
 
 **When:** The mutation is evaluated
 
 **Then:**
-- The mutation must use a temporal-required target_path tool
-- The mutation runs through the target project's Temporal-backed store
+- The mutation must use an authoritative target_path tool
+- The mutation runs through the target project's disk-backed store
 - The snapshot-ok read result is not used as the authoritative state for the mutation
 
 ---
@@ -2804,9 +2704,9 @@ ADV tools that read another project via target_path in snapshot-ok mode must tre
 
 **ID:** `rq-crossProjectTaskMutation01` | **Priority:** **[MUST]**
 
-Task mutation tools that support task creation, cancellation, status updates, or TDD reclassification must accept explicit `target_path` routing when operating on another ADV-enabled project. The target store must own every task lookup, gate check, relational validation, Temporal signal, cache refresh, and context snapshot for that call. Real mutations of untrusted target projects require explicit confirmation evidence; dry-run previews may read target state without mutation confirmation because they must not write target state.
+Task mutation tools that support task creation, cancellation, status updates, or TDD reclassification must accept explicit `target_path` routing when operating on another ADV-enabled project. The target store must own every task lookup, gate check, relational validation, disk mutation, cache refresh, and context snapshot for that call. Real mutations of untrusted target projects require explicit confirmation evidence; dry-run previews may read target state without mutation confirmation because they must not write target state.
 
-**Tags:** `workflow`, `cross-project`, `target-path`, `tasks`, `mutation-safety`
+**Tags:** `change projection`, `cross-project`, `target-path`, `tasks`, `mutation-safety`
 
 #### Scenarios
 
@@ -2820,7 +2720,7 @@ Task mutation tools that support task creation, cancellation, status updates, or
 **Then:**
 - Planning-gate checks use the target project state
 - blockedBy validation uses target project task ids
-- taskAddedSignal is sent to the target project change workflow
+- taskAddedMutation is sent to the target project change change projection
 - The returned context snapshot describes the target project change
 
 **Task cancel and TDD reclassify use target store end to end** (`rq-crossProjectTaskMutation01.2`)
@@ -2832,7 +2732,7 @@ Task mutation tools that support task creation, cancellation, status updates, or
 
 **Then:**
 - Task lookup and change lookup use the target project store
-- The Temporal signal is sent to the target project change workflow
+- The disk mutation is sent to the target project change change projection
 - Cache refresh invalidates the target project cache, not the source project cache
 
 **Target dry-run task mutation is read-only** (`rq-crossProjectTaskMutation01.3`)
@@ -2844,7 +2744,7 @@ Task mutation tools that support task creation, cancellation, status updates, or
 
 **Then:**
 - The tool may read target state to validate the preview
-- The tool must not fire task mutation signals or write target state
+- The tool must not fire task mutation mutations or write target state
 - Untrusted-target mutation confirmation is not required for the read-only preview
 
 ---
@@ -2904,9 +2804,9 @@ ADV tools that resolve another ADV-enabled project via `target_path` MUST derive
 
 **ID:** `rq-dryRunMutation01` | **Priority:** **[MUST]**
 
-ADV mutation tools that expose `dryRun` must execute schema and relational validation, return the normal success response shape with `dryRun: true`, and skip every side effect. Dry-run calls must not fire Temporal signals, save ADV state, delete worktrees, run worktree deletion hooks, write conformance audit entries, or write files. Validation failures must remain identical to real-run failures except for the absence of side effects.
+ADV mutation tools that expose `dryRun` must execute schema and relational validation, return the normal success response shape with `dryRun: true`, and skip every side effect. Dry-run calls must not fire disk mutations, save ADV state, delete worktrees, run worktree deletion hooks, write conformance audit entries, or write files. Validation failures must remain identical to real-run failures except for the absence of side effects.
 
-**Tags:** `workflow`, `dry-run`, `mutation-safety`, `preview`
+**Tags:** `change projection`, `dry-run`, `mutation-safety`, `preview`
 
 #### Scenarios
 
@@ -2931,7 +2831,7 @@ ADV mutation tools that expose `dryRun` must execute schema and relational valid
 **When:** The tool returns the preview
 
 **Then:**
-- No Temporal mutation signal is fired
+- No disk mutation mutation is fired
 - No ADV state or conformance audit file is saved
 - No worktree is deleted and no preDelete hook runs
 - No archive or cleanup filesystem write is performed
@@ -2953,9 +2853,9 @@ ADV mutation tools that expose `dryRun` must execute schema and relational valid
 
 **ID:** `rq-nonLlmToolExec01` | **Priority:** **[MUST]**
 
-ADV must not ship a direct non-LLM cross-project tool-execution CLI unless it can use a stable OpenCode tool execution API or an equivalent structural runtime path that preserves plugin initialization, Temporal service-layer access, target project resolution, validation, and audit semantics. When no stable path exists, the implementation outcome must be documented as blocked/deferred with evidence instead of duplicating the ADV runtime or bypassing trust gates.
+ADV must not ship a direct non-LLM cross-project tool-execution CLI unless it can use a stable OpenCode tool execution API or an equivalent structural runtime path that preserves plugin initialization, disk service-layer access, target project resolution, validation, and audit semantics. When no stable path exists, the implementation outcome must be documented as blocked/deferred with evidence instead of duplicating the ADV runtime or bypassing trust gates.
 
-**Tags:** `workflow`, `cli`, `cross-project`, `tool-execution`, `runtime-safety`
+**Tags:** `change projection`, `cli`, `cross-project`, `tool-execution`, `runtime-safety`
 
 #### Scenarios
 
@@ -2968,7 +2868,7 @@ ADV must not ship a direct non-LLM cross-project tool-execution CLI unless it ca
 
 **Then:**
 - The design identifies a stable OpenCode or equivalent structural tool execution path
-- The path preserves ADV plugin initialization, Temporal access, validation, and audit semantics
+- The path preserves ADV plugin initialization, disk access, validation, and audit semantics
 - If no such path exists, the CLI execution behavior is not shipped
 
 **Blocked non-LLM execution is documented, not bypassed** (`rq-nonLlmToolExec01.2`)
@@ -2980,7 +2880,7 @@ ADV must not ship a direct non-LLM cross-project tool-execution CLI unless it ca
 
 **Then:**
 - The blocker and evidence are documented in the investigation notes or linked issue
-- ADV does not duplicate STSL, Temporal workflow access, or store lifecycle in an ad-hoc CLI
+- ADV does not duplicate STSL, disk change projection access, or store lifecycle in an ad-hoc CLI
 - Existing LLM-mediated or session-mediated execution paths remain the supported fallback
 
 ---
@@ -3121,117 +3021,11 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 
 ---
 
-### Search-Attribute Registration Must Use Correct OperatorService Method
-
-**ID:** `rq-searchAttrHealth01` | **Priority:** **[MUST]**
-
-The Temporal OperatorService search-attribute health check MUST use `listSearchAttributes` (not `getSearchAttributes`). `getSearchAttributes` exists on WorkflowService, not OperatorService. Using the wrong method causes the check to silently fail, returning ok: false even when attributes are registered. All code paths that query search-attribute health — observability checks, diagnose tool, and register tool — must go through `checkAdvSearchAttributes` which uses the correct OperatorService method.
-
-#### Scenarios
-
-**OperatorService method name is listSearchAttributes** (`rq-searchAttrHealth01.1`)
-
-**Given:**
-- A Temporal connection with operatorService available
-- Search attributes AdvChangeId, AdvChangeStatus, AdvLifecycleState, AdvChangeTitle, AdvAffectedProjects, AdvCurrentGate, AdvCurrentBucket, AdvLastSignalAt, AdvCreatedAt, AdvWorktreeBranches, AdvWorktreePaths, AdvBacklogIssueNumber, and AdvEpicId are registered
-
-**When:** checkAdvSearchAttributes is called
-
-**Then:**
-- It calls operatorService.listSearchAttributes (not getSearchAttributes)
-- It returns { ok: true, present: [...], missing: [], wrongType: [] }
-
-**Workflow handlers conditionally skip upsertSearchAttributes** (`rq-searchAttrHealth01.2`)
-
-**Given:**
-- A ChangeWorkflowInput with searchAttributesEnabled: false
-
-**When:** gateCompletedSignal, archiveRequestedSignal, or changeCancelledSignal handlers execute
-
-**Then:**
-- wf.upsertSearchAttributes is NOT called
-- The handler completes normally without error
-
-**initStsl verifies search attributes after registration** (`rq-searchAttrHealth01.3`)
-
-**Given:**
-- initStsl is called on a Temporal namespace
-- OperatorService.listSearchAttributes and addSearchAttributes are available
-
-**When:** initStsl completes
-
-**Then:**
-- After registerAdvSearchAttributes, verifyAdvSearchAttributes is called
-- getStslStats().saVerification reflects the verification result
-- The verification polls checkAdvSearchAttributes until ok:true or maxAttempts exhausted
-
-**adv_doctor registers missing ADV search attributes and returns verification result** (`rq-searchAttrHealth01.4`)
-
-**Given:**
-- A Temporal namespace where ADV search attributes need registration
-- The operator has run `adv_doctor` and the safe-fix path is not blocked
-
-**When:** adv_doctor diagnoses missing or wrong-type ADV search attributes
-
-**Then:**
-- If the attributes are missing, registerMissingAdvSearchAttributes is called, followed by checkAdvSearchAttributes for verification
-- If the attributes are the wrong type, adv_doctor returns an approval-required proposal and does not mutate the server
-- The tool output includes a verification field with ok, present, missing, wrongType
-- The tool success field requires both registration ok AND verification ok for missing-attribute repair
-
----
-
-### Workflow replay and versioning guard command-producing changes
-
-**ID:** `rq-workflowVersioning01` | **Priority:** **[MUST]**
-
-Changes to Temporal workflow code under plugin/src/temporal/** or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
-
-**Tags:** `temporal`, `replay`, `versioning`, `determinism`
-
-#### Scenarios
-
-**Committed histories replay in CI** (`rq-workflowVersioning01.1`)
-
-**Given:**
-- A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/__tests__/replay/histories
-
-**When:** The replay determinism test runs
-
-**Then:**
-- Worker.runReplayHistory is invoked against the current workflow bundle
-- The test fails on DeterminismViolationError or ReplayError
-- The fixture metadata identifies the incident class or workflow behavior covered
-
-**Command-producing changes declare an evolution strategy** (`rq-workflowVersioning01.2`)
-
-**Given:**
-- A workflow-bundled change adds, removes, or reorders command-producing operations
-
-**When:** The change is prepared for archive
-
-**Then:**
-- The change includes wf.patched, Worker Versioning, or an explicit reset/recovery plan
-- Any patch marker includes a deprecation plan or documented non-deprecation rationale
-
-**Worker restart is not nondeterminism repair** (`rq-workflowVersioning01.3`)
-
-**Given:**
-- A workflow query or task fails with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence
-
-**When:** Recovery guidance is presented
-
-**Then:**
-- The guidance does not classify worker restart as sufficient repair
-- Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate
-
----
-
 ### Archive State Transition Must Be Resilient to Failed Disk Bundle Write
 
 **ID:** `rq-archiveOrdering01` | **Priority:** **[MUST]**
 
-adv_change_archive MUST be idempotent when retrying after a previous failure where the disk bundle was written but the Temporal status transition failed. On retry, if the archive bundle already exists on disk and the change status is not 'archived', the disk write MUST be skipped and the flow proceeds directly to the status transition. This prevents double-writing the bundle and allows recovery from transient Temporal failures.
+adv_change_archive MUST be idempotent when retrying after a previous failure where the disk bundle was written but the disk status transition failed. On retry, if the archive bundle already exists on disk and the change status is not 'archived', the disk write MUST be skipped and the flow proceeds directly to the status transition. This prevents double-writing the bundle and allows recovery from transient disk failures.
 
 #### Scenarios
 
@@ -3253,7 +3047,7 @@ adv_change_archive MUST be idempotent when retrying after a previous failure whe
 
 **Given:**
 - The archive disk write succeeded
-- store.changes.save(change) throws a Temporal WorkflowUpdateFailedError with a nested cause
+- store.changes.save(change) throws a disk Change projectionUpdateFailedError with a nested cause
 
 **When:** The error is caught
 
@@ -3346,18 +3140,18 @@ experimental.session.compacting must use buildChangeContextSnapshot to produce i
 
 **ID:** `rq-changeLifecycleState01` | **Priority:** **[MUST]**
 
-Change workflow state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. The stored ChangeStatus enum's lifecycle-reachable set is draft, archived, and closed; pending and active are NOT lifecycle-reachable for change workflows and are removed from the stored enum, surviving only as legacy disk values that MUST normalize to lifecycleState open on read/projection. Archived and closed normalize to their matching lifecycle states. AdvChangeStatus is compatibility/read-model metadata and MUST NOT be the open-claim authority; the sole open-claim authority is AdvLifecycleState = "open" AND ExecutionStatus = "Running". Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate search attributes.
+Change change projection state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. The stored ChangeStatus enum's lifecycle-reachable set is draft, archived, and closed; pending and active are NOT lifecycle-reachable for change change projections and are removed from the stored enum, surviving only as legacy disk values that MUST normalize to lifecycleState open on read/projection. Archived and closed normalize to their matching lifecycle states. AdvChangeStatus is compatibility/read-model metadata and MUST NOT be the open-claim authority; the sole open-claim authority is AdvLifecycleState = "open" AND ExecutionStatus = "Running". Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate projection fields.
 
-**Tags:** `workflow`, `lifecycle`, `visibility`
+**Tags:** `change projection`, `lifecycle`, `visibility`
 
 #### Scenarios
 
 **Legacy and stored open statuses normalize to open lifecycle** (`rq-changeLifecycleState01.1`)
 
 **Given:**
-- A change workflow or local projection has the stored open status draft or a legacy status pending or active (removed from the stored enum)
+- A change change projection or local projection has the stored open status draft or a legacy status pending or active (removed from the stored enum)
 
-**When:** The change is read or projected into search attributes
+**When:** The change is read or projected into projection fields
 
 **Then:**
 - lifecycleState is open
@@ -3367,21 +3161,21 @@ Change workflow state MUST persist lifecycleState as the canonical terminal/open
 **Terminal lifecycle excludes open reads** (`rq-changeLifecycleState01.2`)
 
 **Given:**
-- A change workflow has lifecycleState archived or closed
+- A change change projection has lifecycleState archived or closed
 
 **When:** Default open-change, claim, status, or worktree-owner reads run
 
 **Then:**
 - The change is excluded from open results
 - A stale AdvChangeStatus value cannot make the change appear open
-- ExecutionStatus = "Running" or an equivalent terminal guard protects Visibility reads from stale completed workflow attributes
+- ExecutionStatus = "Running" or an equivalent terminal guard protects projection lookup reads from stale completed change projection attributes
 
 **Stored ChangeStatus reachable set excludes pending and active** (`rq-changeLifecycleState01.3`)
 
 **Given:**
-- The ChangeStatusSchema stored enum for change workflows
+- The ChangeStatusSchema stored enum for change change projections
 
-**When:** A change workflow status is assigned, read, or validated
+**When:** A change change projection status is assigned, read, or validated
 
 **Then:**
 - The only lifecycle-reachable stored statuses are draft, archived, and closed
@@ -3394,21 +3188,21 @@ Change workflow state MUST persist lifecycleState as the canonical terminal/open
 
 **ID:** `rq-aw-backlog01` | **Priority:** **[MUST]**
 
-Backlog coordination state (claims, search attributes, snapshot freshness) is updated as a side effect of normal change workflow signals. The 7-gate lifecycle (proposal/discovery/design/planning/execution/acceptance/release) and its semantics are unaffected by backlog-coordination changes (rq-backlogCoord01..07). Gate transitions emit search attribute upserts via buildChangeSearchAttributes; AdvBacklogIssueNumber participates in those upserts when state.origin.issue_number is set, but no gate logic depends on it.
+Backlog coordination state (claims, projection fields, snapshot freshness) is updated as a side effect of normal change change projection mutations. The 7-gate lifecycle (proposal/discovery/design/planning/execution/acceptance/release) and its semantics are unaffected by backlog-coordination changes (rq-backlogCoord01..07). Gate transitions emit projection field upserts via buildChangeProjectionFields; AdvBacklogIssueNumber participates in those upserts when state.origin.issue_number is set, but no gate logic depends on it.
 
 **Tags:** `backlog-coordination`, `gates`
 
 #### Scenarios
 
-**Gate transitions emit search attribute upserts including AdvBacklogIssueNumber when origin set** (`rq-aw-backlog01.1`)
+**Gate transitions emit projection field upserts including AdvBacklogIssueNumber when origin set** (`rq-aw-backlog01.1`)
 
 **Given:**
-- A change workflow with state.origin = { kind: roadmap, issue_number: 42 } progressing through gates
+- A change change projection with state.origin = { kind: roadmap, issue_number: 42 } progressing through gates
 
 **When:** Any gate completes (proposal, discovery, design, planning, execution, acceptance, release)
 
 **Then:**
-- The workflow upserts search attributes via buildChangeSearchAttributes
+- The change projection upserts projection fields via buildChangeProjectionFields
 - AdvBacklogIssueNumber remains populated with [42]
 - AdvCurrentGate reflects the newly completed gate semantics
 - Gate completion semantics are unchanged from baseline (rq-gatemodel01)
@@ -3416,13 +3210,13 @@ Backlog coordination state (claims, search attributes, snapshot freshness) is up
 **Changes without origin.issue_number do not emit AdvBacklogIssueNumber** (`rq-aw-backlog01.2`)
 
 **Given:**
-- A change workflow with state.origin undefined OR state.origin.issue_number undefined
+- A change change projection with state.origin undefined OR state.origin.issue_number undefined
 
 **When:** Any gate completes
 
 **Then:**
-- AdvBacklogIssueNumber is NOT present in the search-attribute upsert payload
-- Other gate-related search attributes (AdvCurrentGate, AdvChangeStatus, etc.) populate normally
+- AdvBacklogIssueNumber is NOT present in the projection fields upsert payload
+- Other gate-related projection fields (AdvCurrentGate, AdvChangeStatus, etc.) populate normally
 
 ---
 
@@ -3883,25 +3677,25 @@ ADV mutation tools MUST normalize provided blank or whitespace-only strings to o
 
 ---
 
-### Workflow-Level Gate Artifact Enforcement
+### Change projection-Level Gate Artifact Enforcement
 
 **ID:** `rq-gateArtifactEnforcement01` | **Priority:** **[MUST]**
 
-The Temporal change workflow MUST enforce required artifact preconditions before marking artifact-backed gates done. Proposal, discovery, design, and acceptance gate completion MUST be blocked when the required evidence is missing, unreadable, blank, stale, not workflow-visible, or below deterministic minimum-content rules, unless an explicit compatibility rationale is recorded for replay or migration safety. Required gate evidence MUST be durable before gate completion and MUST NOT be satisfied by caller-provided metadata or post-approval late writes. Artifact checks MUST use activities or tool/storage boundaries, never direct filesystem I/O in workflow code.
+The disk change change projection MUST enforce required artifact preconditions before marking artifact-backed gates done. Proposal, discovery, design, and acceptance gate completion MUST be blocked when the required evidence is missing, unreadable, blank, stale, not change projection-visible, or below deterministic minimum-content rules, unless an explicit compatibility rationale is recorded for readback or migration safety. Required gate evidence MUST be durable before gate completion and MUST NOT be satisfied by caller-provided metadata or post-approval late writes. Artifact checks MUST use activities or tool/storage boundaries, never direct filesystem I/O in change projection code.
 
-**Tags:** `workflow`, `gates`, `artifacts`, `temporal`
+**Tags:** `change projection`, `gates`, `artifacts`, `disk`
 
 #### Scenarios
 
 **Missing artifact blocks artifact-backed gate** (`rq-gateArtifactEnforcement01.1`)
 
 **Given:**
-- An artifact-backed gate completion signal is handled by the change workflow
+- An artifact-backed gate completion mutation is handled by the change change projection
 
 **When:** The gate's required artifact is missing or unreadable
 
 **Then:**
-- The workflow does not mark the gate done
+- The change projection does not mark the gate done
 - The gate remains pending or records a structured blocker
 - The blocker identifies the gate and missing artifact kind
 
@@ -3913,7 +3707,7 @@ The Temporal change workflow MUST enforce required artifact preconditions before
 **When:** The artifact is blank, whitespace-only, or below deterministic minimum-content rules
 
 **Then:**
-- The workflow refuses gate completion
+- The change projection refuses gate completion
 - The refusal is deterministic and does not depend on LLM quality scoring
 
 **Valid required artifact permits completion** (`rq-gateArtifactEnforcement01.3`)
@@ -3922,16 +3716,16 @@ The Temporal change workflow MUST enforce required artifact preconditions before
 - All prior gates are done
 - The required artifact exists and passes deterministic checks
 
-**When:** gateCompletedSignal is handled for the artifact-backed gate
+**When:** gateCompletedMutation is handled for the artifact-backed gate
 
 **Then:**
-- The workflow may mark the gate done
+- The change projection may mark the gate done
 - Artifact evidence is available for audit when configured
 
 **Compatibility requires explicit rationale** (`rq-gateArtifactEnforcement01.4`)
 
 **Given:**
-- A replay or migration fixture cannot provide the required artifact evidence
+- A readback or migration fixture cannot provide the required artifact evidence
 
 **When:** Compatibility completion is allowed
 
@@ -3943,12 +3737,12 @@ The Temporal change workflow MUST enforce required artifact preconditions before
 
 **Given:**
 - A user has approved an artifact-backed gate checkpoint
-- A required proof artifact was not durably persisted and workflow-visible before the approval prompt
+- A required proof artifact was not durably persisted and change projection-visible before the approval prompt
 
 **When:** Gate completion is evaluated
 
 **Then:**
-- The workflow refuses completion or records a deterministic stuck blocker
+- The change projection refuses completion or records a deterministic stuck blocker
 - The approval text alone is not treated as artifact proof
 - The blocker names the missing or stale artifact evidence
 
@@ -4148,32 +3942,32 @@ Acceptance gate completion MUST use typed contract, review matrix state, generat
 
 **ID:** `rq-acceptanceRecovery01` | **Priority:** **[MUST]**
 
-Completed-workflow or poisoned-history acceptance recovery MUST be machine-classified and audited internally. Recovery MAY repair disk projection for contract.reviewMatrix, executive-summary metadata, and acceptance gate completion only when structured completed/poisoned evidence is obtained by ADV, prior user acceptance approval evidence exists, and deterministic readiness validation passes against typed contract state and required artifacts. Callers MUST NOT transcribe machine errors through recoveryMode, recoveryEvidence, or recoveryReason. Silent recovery, chat-history reconstruction, inferred human approval, caller-forged metadata, and manual ADV state-file edits are unsupported.
+Completed-change projection or unavailable-projection acceptance recovery MUST be machine-classified and audited internally. Recovery MAY repair disk projection for contract.reviewMatrix, executive-summary metadata, and acceptance gate completion only when structured completed/unreadable evidence is obtained by ADV, prior user acceptance approval evidence exists, and deterministic readiness validation passes against typed contract state and required artifacts. Callers MUST NOT transcribe machine errors through recoveryMode, recoveryEvidence, or recoveryReason. Silent recovery, chat-history reconstruction, inferred human approval, caller-forged metadata, and manual ADV state-file edits are unsupported.
 
-**Tags:** `workflow`, `acceptance`, `recovery`, `audit`
+**Tags:** `change projection`, `acceptance`, `recovery`, `audit`
 
 #### Scenarios
 
 **Machine-classified recovery repairs terminal acceptance evidence** (`rq-acceptanceRecovery01.1`)
 
 **Given:**
-- A change workflow is completed or poisoned
-- Acceptance proof was produced but could not be fully persisted through Temporal
+- A change change projection is completed or unreadable
+- Acceptance proof was produced but could not be fully persisted through disk
 - Prior user acceptance approval evidence is durable
 
-**When:** ADV obtains structured completed or poisoned evidence and deterministic readiness passes
+**When:** ADV obtains structured completed or unreadable evidence and deterministic readiness passes
 
 **Then:**
 - The disk projection may be converged with internal audit metadata
 - The caller does not supply recoveryMode, recoveryEvidence, or recoveryReason
-- The response records that workflow history was not rewritten
+- The response records that change projection history was not rewritten
 
 **Missing approval or machine evidence blocks recovery** (`rq-acceptanceRecovery01.2`)
 
 **Given:**
 - An acceptance recovery mutation is considered
 
-**When:** Structured completed/poisoned evidence, prior user approval evidence, or deterministic readiness proof is missing
+**When:** Structured completed/unreadable evidence, prior user approval evidence, or deterministic readiness proof is missing
 
 **Then:**
 - No disk projection repair occurs
@@ -4183,12 +3977,12 @@ Completed-workflow or poisoned-history acceptance recovery MUST be machine-class
 **Reachable disagreement is not overwritten** (`rq-acceptanceRecovery01.3`)
 
 **Given:**
-- The workflow is reachable and its acceptance state disagrees with disk
+- The change projection is reachable and its acceptance state disagrees with disk
 
 **When:** Automatic recovery evaluates the state
 
 **Then:**
-- Disk does not replace reachable workflow authority
+- Disk does not replace reachable change projection authority
 - A typed operator-required conflict is returned
 
 ---
@@ -4494,13 +4288,13 @@ Out-of-scope required obligations MUST NOT be silently dropped or auto-resolved.
 
 **ID:** `rq-artifactPathTruth01` | **Priority:** **[MUST]**
 
-ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal state.documents, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Artifact readback MUST consult the durable disk projection's `documents` map before concluding content is absent, using the precedence Temporal workflow Query, then projection `documents`, then legacy disk artifact, then archive bundle; the projection tier MUST NOT be consulted before the workflow Query. Every resolved artifact read MUST carry a machine-readable source tag identifying which tier served it, so a caller cannot infer workflow queryability from the presence of content. A local projection read MUST remain reachable even when the request-scoped Temporal aggregate read deadline is already exhausted. Legacy disk and archive-bundle fallback reads MUST remain supported.
+ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in disk state.documents, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Artifact readback MUST consult the durable disk projection's `documents` map before concluding content is absent, using the precedence disk change projection Query, then projection `documents`, then legacy disk artifact, then archive bundle; the projection tier MUST NOT be consulted before the change projection Query. Every resolved artifact read MUST carry a machine-readable source tag identifying which tier served it, so a caller cannot infer change projection queryability from the presence of content. A local projection read MUST remain reachable even when the request-scoped disk aggregate read deadline is already exhausted. Legacy disk and archive-bundle fallback reads MUST remain supported.
 
-**Tags:** `workflow`, `artifacts`, `temporal`, `read-surface`
+**Tags:** `change projection`, `artifacts`, `disk`, `read-surface`
 
 #### Scenarios
 
-**Temporal-only artifact content does not expose fake readable path** (`rq-artifactPathTruth01.1`)
+**disk-only artifact content does not expose fake readable path** (`rq-artifactPathTruth01.1`)
 
 **Given:**
 - An active change has state.documents.design populated
@@ -4511,7 +4305,7 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 **Then:**
 - The response includes the design content in _design
 - The response does not present artifacts.design.path as a readable existing file
-- Artifact metadata is machine-readable enough to distinguish Temporal content from a materialized file
+- Artifact metadata is machine-readable enough to distinguish disk content from a materialized file
 
 **Legacy and archive artifact fallbacks remain readable** (`rq-artifactPathTruth01.2`)
 
@@ -4535,12 +4329,12 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 - The real verified filesystem path may be included in evidence
 - The behavior does not reintroduce active artifact-content disk writes as the primary source of truth
 
-**Projection documents serve artifact reads when the workflow is unreachable** (`rq-artifactPathTruth01.4`)
+**Projection documents serve artifact reads when the change projection is unreachable** (`rq-artifactPathTruth01.4`)
 
 **Given:**
 - An active change has its artifact content persisted to the disk projection documents map
-- The change workflow is RUNNING on a task queue with no live poller because its originating session ended
-- The request-scoped Temporal aggregate read deadline is already exhausted
+- The change change projection is RUNNING on a mutation path with no live poller because its originating session ended
+- The request-scoped disk aggregate read deadline is already exhausted
 
 **When:** Artifact readback runs for that change
 
@@ -4548,7 +4342,7 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 - The artifact content is returned from the projection documents map
 - The response does not report the artifact as unreadable or absent
 - No filesystem path is exposed for the projection-sourced content
-- The exhausted Temporal deadline does not prevent the local projection tier from running
+- The exhausted disk deadline does not prevent the local projection tier from running
 
 **Artifact reads declare provenance** (`rq-artifactPathTruth01.5`)
 
@@ -4558,8 +4352,8 @@ ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths a
 **When:** The read surface emits the result
 
 **Then:**
-- The result carries a machine-readable source tag distinguishing authoritative live workflow reads from projection, legacy-disk, and archive-bundle fallbacks
-- A caller cannot infer workflow queryability from the presence of content alone
+- The result carries a machine-readable source tag distinguishing authoritative live change projection reads from projection, legacy-disk, and archive-bundle fallbacks
+- A caller cannot infer change projection queryability from the presence of content alone
 
 ---
 
@@ -5412,82 +5206,13 @@ adv_change_create MUST reject creation of a new active change whose generated ch
 
 ---
 
-### Audited Active/Open Origin Repair
-
-**ID:** `rq-activeOriginRepair01` | **Priority:** **[MUST]**
-
-adv_change_repair_origin MUST provide an audited, claim-safe path to repair the origin of an active or open ADV change. The tool MUST require approvedByUser, non-blank approvalEvidence, and non-blank reason; MUST enforce the origin linkage matrix (e.g., `roadmap` requires `origin_issue_number` and rejects it for `discovery`/`adhoc`); MUST reject archived and closed changes (OOS2); and MUST reject conflicting open issue claims with existing-change evidence. The same change holding the claim MUST be allowed idempotently. The repair MUST fire `originRepairedSignal` with the new origin, previous origin, audit evidence, and repair reason.
-
-**Tags:** `workflow`, `origin`, `repair`, `audit`, `claim-safety`
-
-#### Scenarios
-
-**Requires approval evidence and reason** (`rq-activeOriginRepair01.1`)
-
-**Given:**
-- An active change is missing an origin
-
-**When:** adv_change_repair_origin is called without approvalEvidence or without reason
-
-**Then:**
-- The call is rejected with a field-required error
-- No originRepairedSignal is fired
-
-**Rejects archived and closed changes** (`rq-activeOriginRepair01.2`)
-
-**Given:**
-- A change has status archived or closed
-
-**When:** adv_change_repair_origin is called
-
-**Then:**
-- The call is rejected with an active/open-only error
-- No originRepairedSignal is fired
-
-**Rejects conflicting open issue claims** (`rq-activeOriginRepair01.3`)
-
-**Given:**
-- Another open change already claims issue #99
-
-**When:** adv_change_repair_origin assigns issue #99 to a different active change
-
-**Then:**
-- The call is rejected with code ORIGIN_CLAIM_CONFLICT
-- The response includes existing_change_id and existing_change_status
-- No originRepairedSignal is fired
-
-**Idempotent when this change already holds the claim** (`rq-activeOriginRepair01.4`)
-
-**Given:**
-- The target change already claims issue #99
-
-**When:** adv_change_repair_origin retries the same issue assignment
-
-**Then:**
-- The call succeeds
-- originRepairedSignal is fired once
-
-**Fires audited origin repaired signal** (`rq-activeOriginRepair01.5`)
-
-**Given:**
-- A valid active-change origin repair request is provided
-
-**When:** adv_change_repair_origin executes
-
-**Then:**
-- originRepairedSignal fires with new origin
-- The payload includes previousOrigin when one existed
-- The payload includes approvalEvidence, reason, repairedBy, and repairedAt
-
----
-
 ### Target-Project Terminal Lifecycle Routing
 
 **ID:** `rq-archiveTargetPathRouting01` | **Priority:** **[MUST]**
 
-adv_change_archive and adv_task_checkpoint MUST support `target_path` to route terminal lifecycle and task checkpoint operations to a target project from a non-native session. Target mutation MUST require explicit `target_confirmed` and non-blank `confirmationEvidence` for untrusted targets, MUST use the target project's store and Temporal queue, MUST preserve same-project safety semantics (gate preflight, worktree validation, branch/HEAD guards, task-to-change resolution), and MUST fail closed with a same-project recovery packet when the target project is unreachable. For adv_task_checkpoint, `target_path` selects the target project's Temporal store and default git workdir; it MUST NOT override an explicit `workdir`. An explicitly blank `workdir` MUST be rejected as a caller error. When `target_path` and an explicit `workdir` coexist, the `workdir` MUST belong to the target repository, verified by comparing git common directories before target task-state resolution, signaling, staging, or committing; a mismatch (or an unverifiable common directory) MUST fail closed as an unrelated-repository reject.
+adv_change_archive and adv_task_checkpoint MUST support target_path routing to the target project’s disk store. Untrusted target mutation requires explicit confirmation evidence; same-project safety semantics, worktree validation, branch/HEAD guards, and task-to-change resolution remain required. An unreachable or mismatched target MUST fail closed without target mutation.
 
-**Tags:** `workflow`, `archive`, `checkpoint`, `target-path`, `cross-project`
+**Tags:** `change projection`, `archive`, `checkpoint`, `target-path`, `cross-project`
 
 #### Scenarios
 
@@ -5501,7 +5226,7 @@ adv_change_archive and adv_task_checkpoint MUST support `target_path` to route t
 **Then:**
 - The change is loaded from the target project's store
 - Gate, bundle, and finalization checks use target-project state
-- The mutation is routed through the target project's Temporal queue
+- The mutation is routed through the target project's disk queue
 
 **Checkpoint routes through target store when approved** (`rq-archiveTargetPathRouting01.2`)
 
@@ -5535,7 +5260,7 @@ adv_change_archive and adv_task_checkpoint MUST support `target_path` to route t
 **When:** The checkpoint resolves its execution context
 
 **Then:**
-- Target task state, signaling, and store access use the target project selected by target_path
+- Target task state, mutationing, and store access use the target project selected by target_path
 - Git operations run in the explicit workdir
 - target_path never overrides the explicit workdir as the git cwd
 
@@ -5548,7 +5273,7 @@ adv_change_archive and adv_task_checkpoint MUST support `target_path` to route t
 
 **Then:**
 - The call fails with a caller-error rejection naming the blank workdir
-- No git command runs, no task state is resolved, and no signal is fired
+- No git command runs, no task state is resolved, and no mutation is fired
 
 **Checkpoint refuses an explicit workdir outside the target repository** (`rq-archiveTargetPathRouting01.6`)
 
@@ -5561,7 +5286,7 @@ adv_change_archive and adv_task_checkpoint MUST support `target_path` to route t
 **Then:**
 - The call fails closed as an unrelated-repository reject
 - The failure names the workdir and the target repository
-- No staging, committing, task-state resolution, or signaling occurs
+- No staging, committing, task-state resolution, or mutationing occurs
 
 ---
 
@@ -5641,7 +5366,7 @@ ADV MUST generate briefing packets as read-only projections from existing struct
 
 **ID:** `rq-briefingPacketArchiveDigest01` | **Priority:** **[MUST]**
 
-At archive, ADV MUST generate a compact archive-lane briefing digest from final structured state and write it into the archive bundle as a deterministic generated artifact. The digest MUST contain change identity, terminal gate summary, durable fact outcomes, Epic terminal note inputs when present, unresolved actions or an explicit none, and unavailable-state warnings if evidence was incomplete. Transient prompt-only slices MUST stop being exposed. Repeated archive, finalization, or replay MUST overwrite the deterministic digest path instead of appending duplicate records or duplicating durable promotions.
+At archive, ADV MUST generate a compact archive-lane briefing digest from final structured state and write it into the archive bundle as a deterministic generated artifact. The digest MUST contain change identity, terminal gate summary, durable fact outcomes, Epic terminal note inputs when present, unresolved actions or an explicit none, and unavailable-state warnings if evidence was incomplete. Transient prompt-only slices MUST stop being exposed. Repeated archive or finalization retries MUST overwrite the deterministic digest path instead of appending duplicate records or duplicating durable promotions.
 
 **Tags:** `workflow`, `briefing_packets`, `archive`, `digest`, `idempotency`
 
@@ -5664,7 +5389,7 @@ At archive, ADV MUST generate a compact archive-lane briefing digest from final 
 **Given:**
 - An archive digest already exists in the bundle
 
-**When:** Archive is retried or replayed
+**When:** Archive is retried
 
 **Then:**
 - The existing digest path is overwritten deterministically
@@ -5874,7 +5599,7 @@ The existing 8-second authoritative list/status deadline remains mandatory for a
 
 **ID:** `rq-statusHealthCandidateOrientation01` | **Priority:** **[MUST]**
 
-Health status candidate orientation MUST establish deterministic source-backed global recency before selecting or hydrating candidates. Running workflow timestamps MUST come from registered Visibility activity/creation attributes; durable disk-only active candidates MAY use durable projection activity/creation metadata. Memo or cache warmth MUST NOT independently rank or introduce candidates. Health MUST hydrate only the first ten ranked canonical IDs and report exact omission count plus a bounded deterministic omitted-ID sample. All ranking, selection, and hydration MUST finish or degrade by the shared 7,500 ms non-composition cutoff.
+Health status candidate orientation MUST establish deterministic source-backed global recency before selecting or hydrating candidates. Running change projection timestamps MUST come from registered projection lookup activity/creation attributes; durable disk-only active candidates MAY use durable projection activity/creation metadata. Memo or cache warmth MUST NOT independently rank or introduce candidates. Health MUST hydrate only the first ten ranked canonical IDs and report exact omission count plus a bounded deterministic omitted-ID sample. All ranking, selection, and hydration MUST finish or degrade by the shared 7,500 ms non-composition cutoff.
 
 **Tags:** `status`, `health`, `recency`, `hydration`, `deadline`
 
@@ -5884,7 +5609,7 @@ Health status candidate orientation MUST establish deterministic source-backed g
 
 **Given:**
 - Fifty-seven candidates arrive in shuffled enumeration order
-- Visibility and durable projection timestamps identify global recency
+- projection lookup and durable projection timestamps identify global recency
 
 **When:** Health selects candidates
 
@@ -5921,13 +5646,13 @@ Health status candidate orientation MUST establish deterministic source-backed g
 
 ---
 
-### Readiness Writes Confirm Workflow Application
+### Readiness Writes Confirm Projection Application
 
 **ID:** `rq-readinessMutationReceipt01` | **Priority:** **[MUST]**
 
-A readiness-affecting write MUST NOT report success from Signal RPC acceptance or cache refresh alone. The workflow records a unique bounded mutation receipt only after successful state application, and the tool confirms that exact receipt before returning success. Unconfirmed application returns a typed non-success result.
+A readiness-affecting write MUST NOT report success from mutation submission or cache refresh alone. The disk projection records a unique bounded mutation receipt only after successful state application, and the tool confirms that exact receipt before returning success. Unconfirmed application returns a typed non-success result.
 
-**Tags:** `temporal`, `signals`, `readiness`, `receipts`
+**Tags:** `disk`, `mutations`, `readiness`, `receipts`
 
 #### Scenarios
 
@@ -5965,54 +5690,6 @@ A readiness-affecting write MUST NOT report success from Signal RPC acceptance o
 **Then:**
 - The tool returns MUTATION_APPLICATION_UNCONFIRMED or equivalent typed non-success
 - Stale blocker state is not presented as successful mutation evidence
-
----
-
-### Acceptance Patch Markers Are Consumed Before Branch Returns
-
-**ID:** `rq-acceptancePatchReplay01` | **Priority:** **[MUST]**
-
-Acceptance workflow version markers recorded in live history MUST be evaluated on every corresponding acceptance attempt before state-dependent readiness, artifact, or early-return branches can skip the matching change command. A marker remains stable and non-deprecated while matching histories exist. Replay fixtures MUST cover recorded-marker histories whose current state now takes a different artifact-evidence branch.
-
-**Tags:** `temporal`, `replay`, `patching`, `acceptance`
-
-#### Scenarios
-
-**Recorded marker is consumed despite changed current state** (`rq-acceptancePatchReplay01.1`)
-
-**Given:**
-- History contains state-backed-acceptance-proof-v1
-- Current state already contains acceptance artifact evidence
-
-**When:** The history replays under current workflow code
-
-**Then:**
-- The matching patched command is evaluated before branch-dependent returns
-- Replay completes without TMPRL1100
-- Current-state evidence does not skip marker consumption
-
-**Marker lifetime remains compatible** (`rq-acceptancePatchReplay01.2`)
-
-**Given:**
-- Running histories may contain state-backed-acceptance-proof-v1
-
-**When:** Workflow code evolves
-
-**Then:**
-- The marker ID is not renamed, deprecated, or removed
-- Legacy and state-backed replay fixtures remain passing
-
-**Repair does not bypass product gates** (`rq-acceptancePatchReplay01.3`)
-
-**Given:**
-- A target project has workflows poisoned by the marker mismatch
-
-**When:** The repaired worker is deployed and reachability is checked
-
-**Then:**
-- Queries resume without reset, termination, status repair, or archive recovery
-- Pending acceptance and release gates remain pending
-- Target product code is unchanged
 
 ---
 
@@ -6055,7 +5732,7 @@ Contract coverage MUST be projected by one cancellation-aware authority. Only im
 
 **ID:** `rq-AwB1gN3w01` | **Priority:** **[MUST]**
 
-This requirement supersedes legacy rq-aw-backlog01. Issue claim search attributes and portfolio-balance reads remain side effects/read models around normal change workflow signals. The seven gate semantics are unaffected. Gate transitions upsert AdvBacklogIssueNumber whenever state.origin.issue_number is set; no gate logic depends on issue linkage, portfolio ranking, retired roadmap snapshots, or removed roadmap surfaces.
+This requirement supersedes legacy rq-aw-backlog01. Issue claim projection fields and portfolio-balance reads remain side effects/read models around normal change change projection mutations. The seven gate semantics are unaffected. Gate transitions upsert AdvBacklogIssueNumber whenever state.origin.issue_number is set; no gate logic depends on issue linkage, portfolio ranking, retired roadmap snapshots, or removed roadmap surfaces.
 
 **Tags:** `backlog-coordination`, `gates`, `portfolio-balance`
 
@@ -6069,7 +5746,7 @@ This requirement supersedes legacy rq-aw-backlog01. Issue claim search attribute
 **When:** Any gate completes
 
 **Then:**
-- buildChangeSearchAttributes upserts AdvBacklogIssueNumber = ['42']
+- buildChangeProjectionFields upserts AdvBacklogIssueNumber = ['42']
 - AdvCurrentGate reflects gate progress
 - Gate semantics remain unchanged
 
@@ -6094,251 +5771,6 @@ This requirement supersedes legacy rq-aw-backlog01. Issue claim search attribute
 **Then:**
 - All seven gates operate normally
 - No snapshot or roadmap reader is consulted
-
----
-
-### Shipped-terminal workflow termination uses structural proof
-
-**ID:** `rq-shippedWorkflowTermination01` | **Priority:** **[MUST]**
-
-Operator-approved exact-run termination MAY recover a live RUNNING or PAUSED change workflow without poisoned-history describe evidence only when a typed shipped-terminal proof is complete: all seven gates are done on the durable disk projection, phase9_status is done, and a schema-valid archive bundle embeds the requested change ID. RUNNING status alone never authorizes termination. The operation MUST pin the described runId, preserve archive bundles, fail before projection mutation when termination fails, converge status and lifecycleState to archived, detect successor-run races, and verify terminal readback before reporting full success. Existing poisoned-history eligibility remains a separate valid path.
-
-**Tags:** `workflow`, `recovery`, `termination`, `archive`, `operator-only`
-
-#### Scenarios
-
-**Complete shipped-terminal proof authorizes exact-run termination** (`rq-shippedWorkflowTermination01.1`)
-
-**Given:**
-- An operator explicitly approved recovery
-- All seven gates are done on the durable disk projection
-- phase9_status is done
-- A schema-valid archive bundle embeds the requested change ID
-- Temporal describe reports a RUNNING or PAUSED run with a non-empty runId
-
-**When:** adv_change_workflow_terminate evaluates shipped-terminal recovery
-
-**Then:**
-- The run qualifies without requiring poisoned-history text in describe output
-- Termination targets only the described runId
-- The archive bundle is preserved
-
-**Incomplete or mismatched proof refuses without mutation** (`rq-shippedWorkflowTermination01.2`)
-
-**Given:**
-- A live workflow lacks at least one required shipped-terminal proof component
-
-**When:** adv_change_workflow_terminate evaluates the run
-
-**Then:**
-- The call returns a typed refusal naming the missing or mismatched proof
-- No termination, cache refresh, or projection mutation occurs
-- RUNNING or PAUSED status alone does not authorize recovery
-
-**Successful termination converges terminal authority** (`rq-shippedWorkflowTermination01.3`)
-
-**Given:**
-- An eligible exact pinned run terminates or is idempotently already gone
-
-**When:** Recovery finalization runs
-
-**Then:**
-- The durable projection records status archived and lifecycleState archived
-- Read-after-write shows archived, excludes the change from in-flight results, and includes it exactly once in archived results
-- A different live successor run produces a typed race result instead of full success
-
-**Terminate failure precedes projection mutation** (`rq-shippedWorkflowTermination01.4`)
-
-**Given:**
-- An eligible pinned run is selected
-- Temporal termination fails with a non-idempotent error
-
-**When:** adv_change_workflow_terminate handles the failure
-
-**Then:**
-- No projection or cache mutation occurs
-- The exact runId and termination error are returned
-- The call does not report successful recovery
-
----
-
-### Session-scoped task-queue routing for change workflows
-
-**ID:** `rq-isolSessionTaskQueue01` | **Priority:** **[MUST]**
-
-When multiple OpenCode sessions are active on the same ADV-enabled project, each session's change workflows MUST route to a per-session task queue (`advance-{projectId}-{sessionId}`) so that a peer session's wedged worker cannot block another session's workflow signal processing. Epic workflows remain on the project-scoped `advance-{projectId}` queue because epic entities are project-scoped, not session-scoped. Each session's worker registers its own session queue and the project queue (the latter for epic signal handling and migration of legacy in-flight change workflows).
-
-**Tags:** `worker`, `task-queue`, `session`, `isolation`, `multi-session`
-
-#### Scenarios
-
-**Change workflow routes to session queue** (`rq-isolSessionTaskQueue01.1`)
-
-**Given:**
-- Two ADV sessions S1, S2 are active on the same project P
-- Each session has generated its own sessionId via generateSessionId()
-
-**When:** S1 calls ensureChangeWorkflowStarted with sessionId sessA
-
-**Then:**
-- The workflow's task queue is `advance-{P}-{sessA}` (not `advance-{P}`)
-- S2's worker is NOT polling `advance-{P}-{sessA}` — only S1's worker polls it
-
-**Epic workflows stay on project queue** (`rq-isolSessionTaskQueue01.2`)
-
-**Given:**
-- Session S1 active on project P with sessionId sessA
-
-**When:** S1 calls ensureEpicWorkflowStarted
-
-**Then:**
-- The epic workflow's task queue is `advance-{P}` (project-scoped, not session-scoped)
-- Routing does not couple epic lifetime to session lifetime
-
-**Backward-compat without sessionId** (`rq-isolSessionTaskQueue01.3`)
-
-**Given:**
-- A caller invokes ensureChangeWorkflowStarted without sessionId (e.g. legacy tests, re-import paths)
-
-**When:** The workflow starts
-
-**Then:**
-- The task queue is `advance-{P}` (legacy project queue)
-- Existing single-session workflows continue working unchanged
-
----
-
-### Diagnostics distinguish session vs project queue with owning-session identification
-
-**ID:** `rq-isolSessionTaskQueue04` | **Priority:** **[MUST]**
-
-ADV diagnostics (`adv_doctor`, `adv_status view:health`, and the underlying `health-probe`) MUST distinguish session-queue serviceability from project-queue serviceability and identify the owning session for each session-queue. Under per-session routing, probing only the project queue would miss active session work and report false 'no fresh pollers' results. The health-probe accepts a list of `{queueName, queueType}` tuples and returns per-queue results; consumers render each queue with its type label and owning session.
-
-**Tags:** `diagnostics`, `health`, `task-queue`, `observability`, `multi-session`
-
-#### Scenarios
-
-**adv_doctor shows per-queue serviceability with type labels** (`rq-isolSessionTaskQueue04.1`)
-
-**Given:**
-- Per-session task-queue routing is active
-- Session S1 owns queue `advance-{P}-{sessA}`
-- Project queue `advance-{P}` is also active
-
-**When:** adv_doctor runs
-
-**Then:**
-- The output contains a `session` queue row for `advance-{P}-{sessA}`
-- The output contains a `project` queue row for `advance-{P}`
-- Each row shows serviceability indicator, poller count, last poller time
-- The session-queue row identifies S1 as the owning session
-
-**adv_status health view shows multi-queue** (`rq-isolSessionTaskQueue04.2`)
-
-**Given:**
-- Per-session routing is active
-
-**When:** adv_status view:health runs
-
-**Then:**
-- The health view shows the multi-queue breakdown
-- Legacy single-queue rendering is preserved for backward-compat
-
-**health-probe preserves backward-compat single-queue API** (`rq-isolSessionTaskQueue04.3`)
-
-**Given:**
-- A legacy caller invokes health-probe with a single projectId string
-
-**When:** Called with legacy signature
-
-**Then:**
-- The call wraps internally as `[{queueName: advance-{P}, queueType: 'project'}]`
-- Output shape remains compatible with existing readers
-
----
-
-### Worker.create tuning caps via shared module
-
-**ID:** `rq-isolSessionTaskQueue03` | **Priority:** **[MUST]**
-
-Each Worker Entity spawned by ADV MUST apply explicit tuning caps bounding its polling and task-execution footprint. A shared `getAdvWorkerTuningOptions()` helper is the single source of truth; every `Worker.create` call site in `plugin/src/temporal/` spreads the result. Caps bound each session's per-queue footprint to 1 workflow poller + 1 activity poller + 4 workflow slots + 4 activity slots + maxActivitiesPerSecond=10. This ensures that adding per-session queues does not increase total per-project polling load; instead total load decreases ~70% versus uncapped defaults under typical multi-session load.
-
-**Tags:** `worker`, `tuning`, `pollers`, `slots`, `rate-limiting`, `multi-session`
-
-#### Scenarios
-
-**All Worker.create sites apply the shared tuning caps** (`rq-isolSessionTaskQueue03.1`)
-
-**Given:**
-- An ADV worker is spawned via any Worker.create call site in plugin/src/temporal/
-
-**When:** Worker.create is invoked
-
-**Then:**
-- Worker.create is called with `workflowTaskPollerBehavior: { type: 'simple-maximum', maximum: 1 }`
-- Worker.create is called with `activityTaskPollerBehavior: { type: 'simple-maximum', maximum: 1 }`
-- Worker.create is called with `maxConcurrentWorkflowTaskExecutions: 4`
-- Worker.create is called with `maxConcurrentActivityTaskExecutions: 4`
-- Worker.create is called with `maxConcurrentLocalActivityExecutions: 4`
-- Worker.create is called with `maxActivitiesPerSecond: 10`
-
-**Static-check drift guard prevents regression** (`rq-isolSessionTaskQueue03.2`)
-
-**Given:**
-- A static-check drift guard scans production Worker.create call sites
-
-**When:** The guard runs in CI / local tests
-
-**Then:**
-- The guard asserts every production Worker.create spreads getAdvWorkerTuningOptions
-- The guard fails if any site drifts (forgets the spread)
-
-**Caps are env-overridable for ops tuning** (`rq-isolSessionTaskQueue03.3`)
-
-**Given:**
-- ADV_WORKER_POLLER_CAP or ADV_WORKER_SLOT_CAP or ADV_WORKER_ACTIVITY_RATE env vars are set
-
-**When:** getAdvWorkerTuningOptions reads process.env
-
-**Then:**
-- The corresponding cap uses the env-overridden value
-- Malformed or negative values fall back to defaults
-
----
-
-### Legacy queue co-existence for migration
-
-**ID:** `rq-isolSessionTaskQueue02` | **Priority:** **[MUST]**
-
-When per-session routing is enabled, in-flight workflows already started on the legacy `advance-{projectId}` queue MUST continue to receive signal processing. Each session's worker MUST co-poll the legacy `advance-{projectId}` queue (alongside its own session queue) so legacy workflows drain naturally as they complete/archive. The legacy queue remains permanent because epic workflows live there. No dynamic drain detection is required; migration is implicit through workflow archival.
-
-**Tags:** `worker`, `task-queue`, `migration`, `legacy`, `multi-session`
-
-#### Scenarios
-
-**Legacy workflow signals are processed** (`rq-isolSessionTaskQueue02.1`)
-
-**Given:**
-- An in-flight change workflow W exists on legacy `advance-{P}` queue at the moment routing changes
-- A new session S starts on project P with sessionId sessA
-
-**When:** Any session signals W
-
-**Then:**
-- At least one worker is polling `advance-{P}` so the signal is processed within bounded latency
-- S's worker is polling both `advance-{P}-{sessA}` AND `advance-{P}`
-
-**Project queue stays permanent for epics** (`rq-isolSessionTaskQueue02.2`)
-
-**Given:**
-- All legacy non-epic workflows have completed/archived
-- Active epic workflows remain on `advance-{P}`
-
-**When:** A new session starts
-
-**Then:**
-- The session's worker still polls `advance-{P}` (epics require it permanently)
-- No dynamic 'stop polling project queue' state exists
 
 ---
 
@@ -6423,7 +5855,7 @@ When an agent resumes a change whose `lastActivityAgeMinutes` exceeds the resume
 
 **Given:**
 - A Resume Freshness resolver exceeds its 8s wall-clock budget
-- OR evidence is unavailable (Temporal timeout, git ENOENT)
+- OR evidence is unavailable (disk projection timeout, git ENOENT)
 
 **When:** The advisory is emitted
 
@@ -6653,7 +6085,7 @@ ADV auto-surfaces relevant wisdom and creates typed WisdomDraft entries on SEMAN
 
 Mutation paths with a reproduced or structurally proven unknown-commit risk MUST use stable existing entity identity and a separate canonical request hash to resolve retry outcomes. The same identity and request hash MUST be idempotent; the same identity with a different request hash MUST fail before domain mutation. No global operation-ID argument, generic ledger, tombstone, or parallel persistence layer is required for unrelated mutations.
 
-**Tags:** `temporal`, `mutations`, `idempotency`, `timeouts`, `simplicity`
+**Tags:** `mutations`, `idempotency`, `timeouts`, `simplicity`
 
 #### Scenarios
 
@@ -6701,14 +6133,14 @@ Mutation paths with a reproduced or structurally proven unknown-commit risk MUST
 
 When ADV already holds structured machine evidence for an unambiguous monotonic convergence action, the normal operation MUST apply and verify that convergence without requiring callers to select a repair tool or transcribe machine errors into recovery arguments. Reachable authority disagreement, malformed durable state, non-monotonic mutation, destructive action, or missing human approval MUST fail closed with a typed operator-required result.
 
-**Tags:** `recovery`, `self-healing`, `temporal`, `audit`, `operator-boundary`
+**Tags:** `recovery`, `self-healing`, `disk`, `audit`, `operator-boundary`
 
 #### Scenarios
 
 **Machine evidence authorizes safe direct convergence** (`rq-directMonotonicRecovery01.1`)
 
 **Given:**
-- A normal operation detects completed, missing, poisoned, or stale derived state through structured system evidence
+- A normal operation detects completed, missing, unreadable, or stale derived state through structured system evidence
 - A mutation-specific validator proves one monotonic convergence result
 
 **When:** The operation handles the failure
@@ -6721,7 +6153,7 @@ When ADV already holds structured machine evidence for an unambiguous monotonic 
 **Authority conflict remains explicit** (`rq-directMonotonicRecovery01.2`)
 
 **Given:**
-- Reachable Temporal authority disagrees with disk or two durable authorities conflict
+- External evidence disagrees with the durable disk projection or two durable authorities conflict
 
 **When:** Automatic recovery classifies the incident
 
@@ -6758,7 +6190,7 @@ When ADV already holds structured machine evidence for an unambiguous monotonic 
 
 **ID:** `rq-stagedDeltaCrud01` | **Priority:** **[SHOULD]**
 
-The change-owned staged spec-delta record (change.deltas[capability][]) supports the complete write vocabulary through public tools: adv_delta_add (add), adv_delta_modify (first modify), adv_delta_amend (replace an already-staged delta, preserving its id), adv_delta_retract (remove a staged delta), adv_delta_remove (stage an operation:remove delta), and adv_delta_rename (stage an operation:rename delta). Amend is full-replace (deterministic — the caller supplies the complete corrected delta; no heuristic merge). Every write returns explicit failure rather than false success when the post-signal readback cannot confirm the intended change (mutation-safety readback proof). Archive remains the sole global-spec writer; these tools only mutate the change-owned staged record. New signal handlers are additive and replay-safe.
+The change-owned staged spec-delta record (change.deltas[capability][]) supports the complete write vocabulary through public tools: adv_delta_add (add), adv_delta_modify (first modify), adv_delta_amend (replace an already-staged delta, preserving its id), adv_delta_retract (remove a staged delta), adv_delta_remove (stage an operation:remove delta), and adv_delta_rename (stage an operation:rename delta). Amend is full-replace (deterministic — the caller supplies the complete corrected delta; no heuristic merge). Every write returns explicit failure rather than false success when the post-commit readback cannot confirm the intended change (mutation-safety readback proof). Archive remains the sole global-spec writer; these tools only mutate the change-owned staged record. New disk mutation reducers are additive and readback-safe.
 
 **Tags:** `spec-delta`, `tooling`, `workflow`
 
@@ -6825,171 +6257,13 @@ The change-owned staged spec-delta record (change.deltas[capability][]) supports
 
 ---
 
-### Live worker adopts orphan session task queues from previous processes
-
-**ID:** `rq-isolSessionTaskQueue05` | **Priority:** **[MUST]**
-
-A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal namespace, identify session task queues (advance-{projectId}-sess_*) that have at least one RUNNING workflow and are not currently polled, and register them via the existing registerQueue path. Adoption MUST be idempotent (re-scans do not duplicate registrations for already-polled queues), non-blocking on startup (adoption only runs post-startup via heartbeat), bounded to queues with at least one RUNNING workflow, and observe run-error IPC for retry handling with bounded cooldown. Adoption MUST NOT mutate any workflow's taskQueue field — it only adds pollers, never re-routes workflows. Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance; operators can manually terminate contaminated workflows if needed.
-
-**Tags:** `worker`, `task-queue`, `session`, `recovery`, `multi-session`, `orphan-adoption`
-
-#### Scenarios
-
-**Orphan session queue gets adopted on heartbeat** (`rq-isolSessionTaskQueue05.1`)
-
-**Given:**
-- A previous OpenCode process started workflow W on session task queue advance-{P}-{sessA}
-- The previous process then exited, leaving W stranded on an orphan session queue with no poller
-- A new OpenCode process worker is alive with the heartbeat cadence (10s) running
-
-**When:** The new process's worker heartbeat fires and the adoption scan runs
-
-**Then:**
-- W is enumerated as a RUNNING workflow on task queue advance-{P}-{sessA}
-- registerQueue("advance-{P}-{sessA}") is called via the existing IPC mechanism
-- Within bounded time (one heartbeat tick plus ACK round-trip), signals/queries against W succeed without 'Failed to query Workflow' errors
-
-**Queue with no RUNNING workflows is not adopted** (`rq-isolSessionTaskQueue05.2`)
-
-**Given:**
-- Session task queue advance-{P}-{sessB} exists
-- All workflows on advance-{P}-{sessB} have reached terminal states (COMPLETED, ARCHIVED, etc.)
-- A live worker's heartbeat is running
-
-**When:** The heartbeat adoption scan runs
-
-**Then:**
-- registerQueue is NOT called for advance-{P}-{sessB}
-- No poller is added for advance-{P}-{sessB}
-
-**Startup remains non-blocking on visibility API failure** (`rq-isolSessionTaskQueue05.3`)
-
-**Given:**
-- Temporal workflowClient.list() is slow, throws, or returns an unbounded result set
-- A worker is starting up
-
-**When:** The worker process initializes
-
-**Then:**
-- Worker startup completes without waiting for the adoption scan
-- A degradation warning is logged
-- Adoption is retried on the next heartbeat tick
-
-**Idempotent re-adoption across heartbeat re-scans** (`rq-isolSessionTaskQueue05.4`)
-
-**Given:**
-- Orphan session task queue advance-{P}-{sessA} was already adopted in a prior heartbeat
-- The queue is present in the worker's currently-polled set (worker.queues)
-- A subsequent heartbeat re-scan runs
-
-**When:** The adoption scan enumerates RUNNING workflows including the one on advance-{P}-{sessA}
-
-**Then:**
-- registerQueue is NOT called again for advance-{P}-{sessA}
-- The idempotency check at the worker-multi level short-circuits the duplicate registration
-
----
-
-### Session readiness barrier gates tool exposure and mutation execution
-
-**ID:** `rq-sessionReadinessBarrier01` | **Priority:** **[MUST]**
-
-Tool exposure and per-mutation execution in an ADV session MUST prove readiness before servicing a mutation, independent of non-blocking worker startup. A fail-closed `ADV_SESSION_NOT_READY` error is returned when readiness cannot be proven for the target queue or change workflow. Readiness proof is per-target-queue and per-session; an unrelated orphan queue does not block fresh own-queue mutations. When a target change workflow already exists, a bounded successful read-only Query against that workflow is required; a failed Query overrides fresh `DescribeTaskQueue` evidence. When no workflow exists yet, observed local-worker readiness for the session queue is required, with `DescribeTaskQueue` freshness advisory only. Mid-session worker death after initial readiness invalidates the proof until recovery, re-enforcing the barrier. `ADV_SESSION_READINESS_BYPASS=1` skips the barrier for tests and deterministic dev paths, default OFF. Worker startup MUST NOT await the readiness probe; the barrier is enforced in post-init tool exposure and per-mutation execution only, preserving `rq-isolSessionTaskQueue05` non-blocking startup semantics.
-
-**Tags:** `execution`, `readiness`, `session-queue`, `tool-exposure`, `fail-closed`
-
-#### Scenarios
-
-**Mutation against unproven/orphan prior-session queue fails closed without signal** (`rq-sessionReadinessBarrier01.1`)
-
-**Given:**
-- A mutation tool targets change workflow W on session task queue advance-{P}-{sessA}
-- No local worker currently polls advance-{P}-{sessA}
-- Readiness for advance-{P}-{sessA} has not been proven in this session
-
-**When:** The mutation tool executes
-
-**Then:**
-- The call returns `ADV_SESSION_NOT_READY`
-- No signal is sent to W
-- The error clearly distinguishes startup (worker init) from tool exposure / execution readiness
-
-**Fresh own-queue mutation is not blocked by unrelated orphaned queue** (`rq-sessionReadinessBarrier01.2`)
-
-**Given:**
-- Session S1 is active with sessionId sessA and its own task queue advance-{P}-{sessA}
-- Worker readiness for advance-{P}-{sessA} has been proven
-- An unrelated orphan session queue advance-{P}-{sessB} exists and is not polled
-
-**When:** S1 issues a mutation for its own change workflow
-
-**Then:**
-- The mutation proceeds against advance-{P}-{sessA}
-- The orphaned advance-{P}-{sessB} queue does not cause `ADV_SESSION_NOT_READY` for S1's own mutation
-
-**Proof truth table distinguishes existing workflow from new workflow** (`rq-sessionReadinessBarrier01.3`)
-
-**Given:**
-- Target change workflow W exists on advance-{P}-{sessA}
-- Session S1 has proven local-worker readiness for advance-{P}-{sessA}
-- `DescribeTaskQueue` reports the queue as healthy
-
-**When:** Readiness is evaluated for a mutation targeting W
-
-**Then:**
-- A bounded successful read-only Query against W is required
-- If the Query fails, the mutation returns `ADV_SESSION_NOT_READY` even when `DescribeTaskQueue` is fresh
-- If no workflow exists yet, observed local-worker readiness for advance-{P}-{sessA} is sufficient
-- `DescribeTaskQueue` evidence is advisory and never the sole admission authority
-
-**Mid-session worker death re-closes the readiness barrier until recovery** (`rq-sessionReadinessBarrier01.4`)
-
-**Given:**
-- Initial readiness for advance-{P}-{sessA} has been proven
-- The worker polling advance-{P}-{sessA} dies or loses connection mid-session
-- The readiness proof TTL expires and the worker-death hook fires
-
-**When:** A mutation is attempted before recovery re-proves readiness
-
-**Then:**
-- The mutation returns `ADV_SESSION_NOT_READY`
-- Readiness remains unproven until a fresh bounded Query or local-worker observation re-establishes it
-- The ambiguous window does not silently re-open
-
-**Readiness bypass env flag skips barrier for tests and dev determinism** (`rq-sessionReadinessBarrier01.5`)
-
-**Given:**
-- `ADV_SESSION_READINESS_BYPASS=1` is set in the environment
-
-**When:** A mutation is executed
-
-**Then:**
-- The readiness barrier is skipped
-- The mutation proceeds without proving readiness
-- Default behavior (flag unset or `0`) keeps the barrier enabled
-
-**Worker startup does not await readiness probe** (`rq-sessionReadinessBarrier01.6`)
-
-**Given:**
-- A worker process is initializing
-- Readiness proof for the session queue is not yet available
-
-**When:** Worker startup completes
-
-**Then:**
-- Startup finishes without blocking on the readiness probe
-- The readiness barrier is enforced later during tool exposure / per-mutation execution
-- This preserves `rq-isolSessionTaskQueue05` non-blocking startup semantics
-
----
-
 ### Launcher read-projection provenance truthfulness
 
 **ID:** `rq-launcherProjectionTruth01` | **Priority:** **[MUST]**
 
-ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times — `source:"disk_projection"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain Temporal-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (Temporal is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) — NOT by adding a new activity invocation to the workflow — so in-flight workflow histories replay identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the signal.
+ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times — `source:"disk_projection"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain disk-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (disk is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) — NOT by adding a new activity invocation to the change projection — so in-flight change projection histories readback identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the mutation.
 
-**Tags:** `workflow`, `read-model`, `projection`, `launcher`, `recovery`, `durable`, `truthful-provenance`
+**Tags:** `change projection`, `read-model`, `projection`, `launcher`, `recovery`, `durable`, `truthful-provenance`
 
 #### Scenarios
 
@@ -7007,30 +6281,30 @@ ADV maintains a durable, launcher-consumable active-state disk projection (`acti
 - it contains exactly the draft/non-terminal changes
 - the archived change is excluded even though a stale draft projection file may exist
 
-**Temporal-independent read** (`rq-launcherProjectionTruth01.2`)
+**disk-independent read** (`rq-launcherProjectionTruth01.2`)
 
 **Given:**
-- Temporal (temporal-dev) is stopped
+- disk (disk-dev) is stopped
 - the per-change projections and aggregate already exist on disk
 
 **When:** the launcher reads active-launcher-state.json
 
 **Then:**
 - the aggregate file is readable and reflects the active set
-- no Temporal round-trip is required to read it
+- no disk round-trip is required to read it
 
-**Replay-safe eager regeneration** (`rq-launcherProjectionTruth01.3`)
+**readback-safe eager regeneration** (`rq-launcherProjectionTruth01.3`)
 
 **Given:**
-- a change mutation fires a signal handled by the workflow
-- the workflow calls writeChangeProjection with unchanged args
+- a change mutation fires a mutation handled by the change projection
+- the change projection calls writeChangeProjection with unchanged args
 
 **When:** the activity body executes host-side
 
 **Then:**
 - both changes/{changeId}.json and active-launcher-state.json are written
-- the workflow's activity-invocation sequence is unchanged (the aggregate write occurs inside the activity body)
-- in-flight workflow histories replay identically with no wf.patch
+- the change projection's activity-invocation sequence is unchanged (the aggregate write occurs inside the activity body)
+- in-flight change projection histories readback identically with no wf.patch
 
 **Best-effort aggregate never fails the per-change write** (`rq-launcherProjectionTruth01.4`)
 
@@ -7042,68 +6316,20 @@ ADV maintains a durable, launcher-consumable active-state disk projection (`acti
 
 **Then:**
 - the activity still returns success for the per-change projection
-- the signal is not failed
+- the mutation is not failed
 - a structured warning is logged
 
 **Truthful provenance and epics_available** (`rq-launcherProjectionTruth01.5`)
 
 **Given:**
-- active epic data is Temporal-only and not present on disk
+- active epic data is disk-only and not present on disk
 
 **When:** the aggregate is generated
 
 **Then:**
 - epics_available is false (never fabricated as live)
-- source is always disk_projection (never temporal/live:true)
-- freshness is the max lastSignalAt across active summaries and degraded reflects the documented threshold
-
----
-
-### Workflow Worker Evolution Preserves Replay Compatibility
-
-**ID:** `rq-workerEvolutionSafety01` | **Priority:** **[MUST]**
-
-ADV MUST prevent ordinary plugin or worker deployment from replaying active workflow histories against incompatible workflow code. Until ADV operates managed simultaneous old/new workers with deployment-version routing and drain-aware retirement, workflow-reachable behavior changes MUST use Temporal patching and candidate worker bundles MUST pass replay-determinism evidence against representative committed histories before release. Temporal Worker Deployments MUST remain disabled until a typed readiness assessment proves all operational prerequisites.
-
-**Tags:** `workflow`, `temporal`, `worker`, `deployment`, `replay`, `versioning`
-
-#### Scenarios
-
-**Candidate worker bundle replays supported histories** (`rq-workerEvolutionSafety01.1`)
-
-**Given:**
-- A change modifies workflow-reachable code
-- Representative committed histories exist
-
-**When:** The candidate worker bundle is evaluated before release
-
-**Then:**
-- Replay-determinism tests pass for every supported history
-- A deliberately incompatible fixture fails with TMPRL1100-class evidence
-- Release remains blocked without passing replay provenance
-
-**Pinned deployment routing is prerequisite-gated** (`rq-workerEvolutionSafety01.2`)
-
-**Given:**
-- ADV currently replaces one worker process on bundle drift
-
-**When:** Worker Deployment enablement is evaluated
-
-**Then:**
-- Readiness remains false until server capability, stable deployment identity, immutable Build ID, simultaneous old/new pollers, ramp controls, drain retirement, legacy migration, and operator rollback are all proven
-- Pinned routing is not enabled while any prerequisite is absent
-
-**Compatible workflow changes retain patches** (`rq-workerEvolutionSafety01.3`)
-
-**Given:**
-- Historical executions may replay code that predates a workflow behavior change
-
-**When:** The behavior change is implemented
-
-**Then:**
-- A stable Temporal patch marker preserves old-history behavior
-- Patch deprecation occurs only after supported old histories and workers no longer require it
-- Replay fixtures verify both legacy and current paths
+- source is always disk_projection (never disk/live:true)
+- freshness is the max lastMutationAt across active summaries and degraded reflects the documented threshold
 
 ---
 
@@ -7111,16 +6337,16 @@ ADV MUST prevent ordinary plugin or worker deployment from replaying active work
 
 **ID:** `rq-recoveryProjectionTransaction01` | **Priority:** **[MUST]**
 
-ADV recovery mutations against a completed, missing, poisoned, or otherwise non-signalable change workflow MUST commit through one storage-owned conditional projection transaction. The transaction MUST serialize per change, read the latest projection inside the critical section, compare the expected projection revision, apply the field-level mutation to that latest state, increment revision, persist atomically, read back, and verify the mutation-specific postcondition before reporting success. All mutable active change-projection writers MUST route through this boundary or a mechanically validated terminal/bootstrap exception. Plain success is forbidden when readback cannot prove convergence.
+ADV recovery mutations against a completed, missing, unreadable, or otherwise non-mutationable change change projection MUST commit through one storage-owned conditional projection transaction. The transaction MUST serialize per change, read the latest projection inside the critical section, compare the expected projection revision, apply the field-level mutation to that latest state, increment revision, persist atomically, read back, and verify the mutation-specific postcondition before reporting success. All mutable active change-projection writers MUST route through this boundary or a mechanically validated terminal/bootstrap exception. Plain success is forbidden when readback cannot prove convergence.
 
-**Tags:** `workflow`, `recovery`, `projection`, `concurrency`, `cas`, `verification`
+**Tags:** `change projection`, `recovery`, `projection`, `concurrency`, `cas`, `verification`
 
 #### Scenarios
 
 **Concurrent disjoint recovery mutations both survive** (`rq-recoveryProjectionTransaction01.1`)
 
 **Given:**
-- A completed or poisoned change workflow requires disk-projection recovery
+- A completed or unreadable change change projection requires disk-projection recovery
 - Two disjoint recovery mutations start from the same projection revision
 
 **When:** The mutations execute concurrently
@@ -7161,9 +6387,9 @@ ADV recovery mutations against a completed, missing, poisoned, or otherwise non-
 
 **ID:** `rq-projectionCommandProof01` | **Priority:** **[MUST]**
 
-ADV state-changing commands must carry stable operation identity, be validated and applied by the authoritative Temporal workflow reducer, and return success only after the accepted monotonic state revision is committed to and verified in the durable projection. Routine read state must never authorize a mutation. Signal-based command confirmation may use a bounded workflow Query; routine reads may not.
+ADV state-changing commands MUST carry stable operation identity, be validated and applied by the authoritative disk-projection reducer, and return success only after an accepted monotonic revision is committed and read back with the mutation-specific postcondition. Routine read state MUST NOT authorize a mutation.
 
-**Tags:** `temporal`, `projection`, `command-receipt`, `idempotency`, `cqrs`
+**Tags:** `disk`, `projection`, `command-receipt`, `idempotency`, `cqrs`
 
 #### Scenarios
 
@@ -7171,7 +6397,7 @@ ADV state-changing commands must carry stable operation identity, be validated a
 
 **Given:**
 - A state-changing command has a stable operation id and payload hash
-- The workflow reducer accepts the command and records a new state revision
+- The change projection reducer accepts the command and records a new state revision
 
 **When:** The command adapter reports success
 
@@ -7183,7 +6409,7 @@ ADV state-changing commands must carry stable operation identity, be validated a
 **Projection failure prevents false success** (`rq-projectionCommandProof01.2`)
 
 **Given:**
-- The workflow reducer accepted a command
+- The change projection reducer accepted a command
 - The projection commit or verification fails
 
 **When:** The command adapter returns
@@ -7199,14 +6425,14 @@ ADV state-changing commands must carry stable operation identity, be validated a
 - Host preflight state is stale or advisory
 - A close or batch-close command targets an ineligible lifecycle state
 
-**When:** The workflow reducer handles the command
+**When:** The change projection reducer handles the command
 
 **Then:**
 - The command is rejected with a typed ledger outcome
 - Lifecycle state and state revision remain unchanged
 - No lifecycle disk projection is written before reducer acceptance
 
-**Stable operation replay is idempotent** (`rq-projectionCommandProof01.4`)
+**Stable operation readback is idempotent** (`rq-projectionCommandProof01.4`)
 
 **Given:**
 - An operation id and payload hash were previously accepted or rejected
@@ -7224,9 +6450,9 @@ ADV state-changing commands must carry stable operation identity, be validated a
 
 **ID:** `rq-releaseNotesCapture01` | **Priority:** **[MUST]**
 
-Advance SHALL support an optional, bounded, schema-validated release_notes content block on a change. Existing review and harden synthesis MAY set or refine the block through a dedicated typed full-replacement command using the canonical Temporal operation ledger. Fast-track release preparation SHALL synthesize a minimum evidence-backed block when absent without adding a user prompt. Absence remains valid and no inference heuristic may own audience, category, breaking status, or action-required correctness.
+Advance SHALL support an optional, bounded, schema-validated release_notes content block on a change. Existing review and harden synthesis MAY set or refine the block through a dedicated typed full-replacement command using the canonical disk operation ledger. Fast-track release preparation SHALL synthesize a minimum evidence-backed block when absent without adding a user prompt. Absence remains valid and no inference heuristic may own audience, category, breaking status, or action-required correctness.
 
-**Tags:** `release-notes`, `workflow`, `temporal`, `schema`
+**Tags:** `release-notes`, `change projection`, `disk`, `schema`
 
 #### Scenarios
 
@@ -7239,7 +6465,7 @@ Advance SHALL support an optional, bounded, schema-validated release_notes conte
 **When:** The agent persists or refines release-note data
 
 **Then:**
-- The workflow records the full replacement through the canonical operation ledger
+- The change projection records the full replacement through the canonical operation ledger
 - Readback returns the same typed block
 - No new prompt, gate, task, or release authority is introduced
 
@@ -7248,11 +6474,11 @@ Advance SHALL support an optional, bounded, schema-validated release_notes conte
 **Given:**
 - A legacy or current change has no release_notes block
 
-**When:** The change is read, validated, replayed, or prepared for release
+**When:** The change is read, validated, readbacked, or prepared for release
 
 **Then:**
 - The change remains schema-valid
-- Existing workflow behavior is unchanged
+- Existing change projection behavior is unchanged
 - Fast-track synthesis may populate the block using available evidence without prompting
 
 ---
