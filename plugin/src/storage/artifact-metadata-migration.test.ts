@@ -56,7 +56,8 @@ describe("artifact metadata migration", () => {
         changeFixture("active-legacy", "draft"),
       );
 
-      await createDiskStore(root);
+      const store = await createDiskStore(root);
+      await store.init();
 
       const migrated = JSON.parse(await readFile(activePath, "utf8"));
       expect(migrated.artifacts.proposal.source).toBe("disk");
@@ -77,7 +78,8 @@ describe("artifact metadata migration", () => {
         changeFixture("archived-legacy", "archived"),
       );
 
-      await createDiskStore(root);
+      const store = await createDiskStore(root);
+      await store.init();
 
       const migrated = JSON.parse(await readFile(archivePath, "utf8"));
       expect(migrated.artifacts.proposal.source).toBe("disk");
@@ -119,7 +121,8 @@ describe("artifact metadata migration", () => {
         change,
       );
 
-      await createDiskStore(root);
+      const store = await createDiskStore(root);
+      await store.init();
 
       const migrated = JSON.parse(await readFile(path, "utf8"));
       expect(migrated.artifacts).toMatchObject({
@@ -142,6 +145,7 @@ describe("artifact metadata migration", () => {
       );
 
       const store = await createDiskStore(root);
+      await store.init();
       const before = await readFile(
         join(store.paths.changes, "idempotent-legacy", "change.json"),
         "utf8",
@@ -196,7 +200,8 @@ describe("artifact metadata migration", () => {
         changeFixture("marker-skip", "draft"),
       );
 
-      await createDiskStore(root);
+      const store = await createDiskStore(root);
+      await store.init();
       await expect(readFile(markerPath(root), "utf8")).resolves.toContain(
         '"version":1',
       );
@@ -204,7 +209,8 @@ describe("artifact metadata migration", () => {
       migrated.artifacts.proposal.source = "temporal";
       await writeFile(path, JSON.stringify(migrated, null, 2));
 
-      await createDiskStore(root);
+      const secondStore = await createDiskStore(root);
+      await secondStore.init();
 
       const skipped = JSON.parse(await readFile(path, "utf8"));
       expect(skipped.artifacts.proposal.source).toBe("temporal");
@@ -223,7 +229,8 @@ describe("artifact metadata migration", () => {
       );
       await writeFile(path, "{ malformed json\n");
 
-      await createDiskStore(root);
+      const store = await createDiskStore(root);
+      await store.init();
       await expect(readFile(markerPath(root), "utf8")).rejects.toMatchObject({
         code: "ENOENT",
       });
@@ -232,7 +239,8 @@ describe("artifact metadata migration", () => {
         path,
         JSON.stringify(changeFixture("marker-retry", "draft"), null, 2),
       );
-      await createDiskStore(root);
+      const secondStore = await createDiskStore(root);
+      await secondStore.init();
 
       const migrated = JSON.parse(await readFile(path, "utf8"));
       expect(migrated.artifacts.proposal.source).toBe("disk");
