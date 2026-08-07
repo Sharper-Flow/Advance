@@ -3,12 +3,10 @@
  * MCP degradation.
  *
  * Desired contract:
- *   - Classifications are exactly: pure, needs-read-model,
- *     needs-temporal-diagnostics, or existing host-only classes
- *     (needs-host-git / needs-host-probe).
+ *   - Classifications are exactly: pure, needs-read-model, or existing
+ *     host-only classes (needs-host-git / needs-host-probe).
  *   - Read-model outage degrades only needs-read-model tools.
- *   - Temporal outage degrades only needs-temporal-diagnostics tools.
- *   - Pure tools are unaffected by either outage.
+ *   - Pure tools are unaffected by read-model outage.
  *   - There is no fallback / catch-all classification such as needs-context.
  */
 import { describe, expect, it, vi, afterEach } from "vitest";
@@ -42,7 +40,6 @@ function mockFactory(): CreateToolMapFn {
 const ALLOWED_CLASSIFICATIONS = new Set([
   "pure",
   "needs-read-model",
-  "needs-temporal-diagnostics",
   "needs-host-git",
   "needs-host-probe",
 ]);
@@ -63,23 +60,19 @@ describe("Tier-4 tool classification table", () => {
     expect(bad).toEqual([]);
   });
 
-  it("status is read-model-backed and temporal-diagnostics-backed", () => {
+  it("status is read-model-backed", () => {
     expect(TOOL_CLASSIFICATIONS.status).toContain("needs-read-model");
-    expect(TOOL_CLASSIFICATIONS.status).toContain("needs-temporal-diagnostics");
     expect(TOOL_CLASSIFICATIONS.status).not.toContain("needs-host-probe");
   });
 
-  it("read-model tools are not mixed with host-probe or legacy temporal classes", () => {
+  it("read-model tools are not mixed with host-probe classes", () => {
     const bad: { tool: Tier4ToolName; classes: string[] }[] = [];
     for (const [tool, classes] of Object.entries(TOOL_CLASSIFICATIONS) as [
       Tier4ToolName,
       string[],
     ][]) {
       if (!classes.includes("needs-read-model")) continue;
-      if (
-        classes.includes("needs-host-probe") ||
-        classes.includes("needs-temporal")
-      ) {
+      if (classes.includes("needs-host-probe")) {
         bad.push({ tool, classes });
       }
     }

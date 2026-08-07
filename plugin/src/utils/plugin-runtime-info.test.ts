@@ -243,9 +243,6 @@ describe("getPluginRuntimeInfo (integration)", () => {
     // existing fields
     expect(typeof info.loaded_module_path).toBe("string");
     expect(typeof info.process_started_at).toBe("string");
-    expect(typeof info.build_marker_path).toBe("string");
-    expect(typeof info.build_marker_found).toBe("boolean");
-    expect(typeof info.worker_script_path).toBe("string");
     expect(typeof info.reload_caveat).toBe("string");
     // new additive fields
     expect(typeof info.dist_index_path).toBe("string");

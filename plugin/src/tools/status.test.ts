@@ -855,8 +855,6 @@ Vague in-flight work.
           expect.objectContaining({
             loaded_module_path: expect.any(String),
             process_started_at: expect.any(String),
-            build_marker_path: expect.stringContaining("oca-build.json"),
-            worker_script_path: expect.stringContaining("worker.js"),
             reload_caveat: expect.stringContaining("Restart OpenCode"),
           }),
         );

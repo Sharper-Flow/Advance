@@ -15,22 +15,21 @@ overrides:
   flatted: '>=3.4.2'
   vite: '>=8.0.5'
   picomatch: '>=4.0.4'
-  brace-expansion: '>=5.0.7'
+  brace-expansion: '>=5.0.9'
   # Keep protobufjs on the maintained 7.x line. The prior '>=8.6.6' floor
   # force-resolved protobufjs 8.x and caused incompatible transitive runtime
   # behavior.
   protobufjs: ^7.6.5
   uuid: '>=14.0.0'
-  fast-uri: '>=3.1.3'
+  fast-uri: '>=4.1.2'
+  ip-address: '>=10.3.1'
+  hono: '>=4.12.34'
   esbuild: '>=0.28.1'
   zod: 4.4.3
   # Security floor: relocated from a direct devDependency pin. postcss is only
   # pulled transitively (tsup/vite/postcss-load-config); this override keeps the
-  # patched floor without a phantom direct dependency. Floor raised to 8.5.18 to
-  # patch the postcss path-traversal advisory (vulnerable <=8.5.17); the prior
-  # >=8.5.10 floor resolved 8.5.15 (vulnerable). See CHANGELOG postcss XSS +
-  # path-traversal-in-previous-source-map.
-  postcss: '>=8.5.18'
+  # patched floor without a phantom direct dependency.
+  postcss: '>=8.5.23'
   # Security floor: @hono/node-server is pulled transitively by
   # @modelcontextprotocol/sdk (HTTP server transport, which this plugin does
   # not use — only StdioServerTransport). Floor to the patched release for

@@ -621,9 +621,9 @@ describe("Change Operations", () => {
       );
     });
 
-    test("rejects parityTemporalGateParity ID", async () => {
+    test("rejects parityValidationGateParity ID", async () => {
       const changesDir = join(tempDir, ".adv/changes");
-      const change = { ...SAMPLE_CHANGE, id: "parityTemporalGateParity" };
+      const change = { ...SAMPLE_CHANGE, id: "parityValidationGateParity" };
       await expect(saveChange(changesDir, change)).rejects.toThrow(
         /synthetic.*validation.*draft/i,
       );

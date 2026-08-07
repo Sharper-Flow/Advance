@@ -206,7 +206,6 @@ describe("tool-formatters", () => {
         activeChanges: [],
         archivedCount: 105,
         recommendations: ["Run /adv-apply foo"],
-        temporalAlive: true,
       });
       expect(result.specsSection).toContain("9");
       expect(result.specsSection).toContain("67");
@@ -222,7 +221,6 @@ describe("tool-formatters", () => {
         activeChanges: [],
         archivedCount: 0,
         recommendations: ["legacy flat recommendation"],
-        temporalAlive: true,
         recommendationSummary: {
           total: 4,
           omitted: 1,
@@ -237,7 +235,7 @@ describe("tool-formatters", () => {
               omitted: 1,
               shown: [
                 {
-                  title: "Temporal search attributes not verified",
+                  title: "Plugin freshness not verified",
                   detail: "required attributes may be missing",
                   action: "run registration",
                 },
@@ -261,7 +259,7 @@ describe("tool-formatters", () => {
 
       expect(result.nextActionsSection).toContain("## Next Actions");
       expect(result.nextActionsSection).toContain("health: 2");
-      expect(result.nextActionsSection).toContain("Temporal search attributes");
+      expect(result.nextActionsSection).toContain("Plugin freshness");
       expect(result.nextActionsSection).toContain("+1 omitted");
       expect(result.nextActionsSection).toContain('adv_status view:"hygiene"');
     });
@@ -273,7 +271,6 @@ describe("tool-formatters", () => {
         activeChanges: [],
         archivedCount: 0,
         recommendations: [],
-        temporalAlive: true,
         opencodeSessionDebt: {
           available: true,
           orphanGhostCount: 2,
@@ -296,40 +293,9 @@ describe("tool-formatters", () => {
         activeChanges: [],
         archivedCount: 0,
         recommendations: [],
-        temporalAlive: false,
       });
       expect(result.specsSection).toContain("0");
       expect(result.recommendationsList).toHaveLength(0);
-    });
-
-    it("renders degraded (not alive) when temporalDegraded is set", () => {
-      const result = formatStatusOutput({
-        specCount: 0,
-        requirementCount: 0,
-        activeChanges: [],
-        archivedCount: 0,
-        recommendations: [],
-        temporalAlive: true,
-        temporalDegraded: true,
-      });
-      // A timed-out probe must NOT be reported as "server alive" — it surfaces
-      // a distinct degraded state so a real outage is not masked (health-guard-1).
-      expect(result.healthSection).toContain("server degraded");
-      expect(result.healthSection).toContain("liveness unconfirmed");
-      expect(result.healthSection).not.toContain("server alive ✓");
-    });
-
-    it("renders alive when not degraded", () => {
-      const result = formatStatusOutput({
-        specCount: 0,
-        requirementCount: 0,
-        activeChanges: [],
-        archivedCount: 0,
-        recommendations: [],
-        temporalAlive: true,
-      });
-      expect(result.healthSection).toContain("server alive ✓");
-      expect(result.healthSection).not.toContain("server degraded");
     });
 
     it("includes recency emojis in active section", () => {
@@ -346,31 +312,9 @@ describe("tool-formatters", () => {
         ],
         archivedCount: 0,
         recommendations: [],
-        temporalAlive: true,
       });
       expect(result.activeSection).toContain("🔥");
       expect(result.activeSection).toContain("testChange");
-    });
-
-    it("renders serviceable peer-owned Temporal queue as informational, not degraded", () => {
-      const result = formatStatusOutput({
-        specCount: 1,
-        requirementCount: 1,
-        activeChanges: [],
-        archivedCount: 0,
-        recommendations: [],
-        temporalAlive: true,
-        temporalQueueServiceability: {
-          status: "serviceable",
-          confidence: "server",
-          expectedQueue: "advance-project",
-          blockers: [],
-        },
-      });
-
-      expect(result.healthSection).toContain(
-        "Queue serviceability: serviceable (server) advance-project",
-      );
     });
 
     it("prepends ↳ to active changes with parent_change_id", () => {
@@ -388,7 +332,6 @@ describe("tool-formatters", () => {
         ],
         archivedCount: 0,
         recommendations: [],
-        temporalAlive: true,
       });
       expect(result.activeSection).toContain("↳ childChange");
     });
@@ -400,7 +343,6 @@ describe("tool-formatters", () => {
         activeChanges: [],
         archivedCount: 0,
         recommendations: [],
-        temporalAlive: true,
       };
 
       it("shows (unavailable) when no census data", () => {
@@ -479,7 +421,6 @@ describe("tool-formatters", () => {
         activeChanges: [],
         archivedCount: 0,
         recommendations: [],
-        temporalAlive: true,
       };
 
       it("does NOT add freshness lines when fresh", () => {
@@ -490,7 +431,7 @@ describe("tool-formatters", () => {
             process_started_at: "2026-05-08T12:00:00.000Z",
             build_marker_path: "/p/dist/oca-build.json",
             build_marker_found: false,
-            worker_script_path: "/p/dist/temporal/worker.js",
+            worker_script_path: "/p/dist/worker.js",
             reload_caveat: "Restart OpenCode after rebuilding Advance",
             dist_index_path: "/p/dist/index.js",
             dist_mtime_iso: "2026-05-08T11:00:00.000Z",
@@ -514,7 +455,7 @@ describe("tool-formatters", () => {
             process_started_at: "2026-05-08T12:00:00.000Z",
             build_marker_path: "/p/dist/oca-build.json",
             build_marker_found: false,
-            worker_script_path: "/p/dist/temporal/worker.js",
+            worker_script_path: "/p/dist/worker.js",
             reload_caveat: "Restart OpenCode after rebuilding Advance",
             dist_index_path: "/p/dist/index.js",
             dist_mtime_iso: "2026-05-08T11:00:00.000Z",
@@ -546,7 +487,7 @@ describe("tool-formatters", () => {
             process_started_at: "2026-05-08T11:00:00.000Z",
             build_marker_path: "/p/dist/oca-build.json",
             build_marker_found: false,
-            worker_script_path: "/p/dist/temporal/worker.js",
+            worker_script_path: "/p/dist/worker.js",
             reload_caveat: "Restart OpenCode after rebuilding Advance",
             dist_index_path: "/p/dist/index.js",
             dist_mtime_iso: "2026-05-08T13:00:00.000Z",

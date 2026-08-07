@@ -14,13 +14,26 @@ export function readChangeProjectionState(
   changesDir: string,
   changeId: string,
 ): ChangeState | null {
-  try {
-    const raw = JSON.parse(
-      readFileSync(join(changesDir, `${changeId}.json`), "utf8"),
-    ) as { state?: unknown } | null;
-    if (!raw || typeof raw !== "object") return null;
-    return (raw.state ?? raw) as ChangeState;
-  } catch {
-    return null;
+  // Current projections live at <changesDir>/<changeId>/change.json. Retain
+  // the former flat-file location solely for historical projections. Reading
+  // only the legacy path made a just-verified checkpoint appear unreadable,
+  // even though the transaction had committed the canonical projection.
+  const projectionPaths = [
+    join(changesDir, changeId, "change.json"),
+    join(changesDir, `${changeId}.json`),
+  ];
+  for (const projectionPath of projectionPaths) {
+    try {
+      const raw = JSON.parse(readFileSync(projectionPath, "utf8")) as {
+        state?: unknown;
+      } | null;
+      if (!raw || typeof raw !== "object") continue;
+      return (raw.state ?? raw) as ChangeState;
+    } catch {
+      // Try the legacy projection location only when the canonical path cannot
+      // be read. A caller receives null only after neither durable path yields
+      // a usable object.
+    }
   }
+  return null;
 }

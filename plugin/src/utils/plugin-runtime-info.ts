@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -61,9 +61,6 @@ export type PluginRuntimeInfo = {
   // === Existing fields (unchanged contract) ===
   loaded_module_path: string;
   process_started_at: string;
-  build_marker_path: string;
-  build_marker_found: boolean;
-  build_marker?: unknown;
   reload_caveat: string;
   // === Additive runtime-provenance fields (rq-runtimeProvenance01) ===
   dist_index_path: string;
@@ -233,21 +230,11 @@ export async function getPluginRuntimeInfo(
 ): Promise<PluginRuntimeInfo> {
   const distIndexPath = resolve(pluginRoot, "dist", "index.js");
   const sourceIndexPath = resolve(pluginRoot, "src", "index.ts");
-  const buildMarkerPath = resolve(pluginRoot, "dist", "oca-build.json");
   const pluginBundleManifestPath = resolve(
     pluginRoot,
     "dist",
     PLUGIN_BUNDLE_MANIFEST_FILENAME,
   );
-
-  let buildMarker: unknown;
-  let buildMarkerFound = false;
-  try {
-    buildMarker = JSON.parse(await readFile(buildMarkerPath, "utf8"));
-    buildMarkerFound = true;
-  } catch {
-    buildMarker = undefined;
-  }
 
   const [distMtimeIso, sourceMtimeIso, bundleFreshness] = await Promise.all([
     statMtimeIso(distIndexPath),
@@ -274,9 +261,6 @@ export async function getPluginRuntimeInfo(
   return {
     loaded_module_path: loadedModulePath,
     process_started_at: processStartedAt,
-    build_marker_path: buildMarkerPath,
-    build_marker_found: buildMarkerFound,
-    ...(buildMarkerFound ? { build_marker: buildMarker } : {}),
     reload_caveat:
       "Restart OpenCode after rebuilding Advance; host-loaded plugin tool code is not hot-reloaded.",
     dist_index_path: distIndexPath,

@@ -277,32 +277,6 @@ describe("concurrency-evidence-collector", () => {
     );
   });
 
-  test("failed workflow samples are counted", async () => {
-    const report = await collectConcurrencyEvidence({
-      readSessionRows: async () => [],
-      readGlobalSessionRows: async () => [],
-      readProcessSnapshot: async () => [],
-      listProjectShards: async () => [],
-      sampleWorkflows: async () => [
-        {
-          workflowId: "wf-ok",
-          status: "COMPLETED",
-          source: "temporal_visibility",
-          provenance: "mock",
-        },
-        {
-          workflowId: "wf-failed",
-          status: "FAILED",
-          source: "temporal_visibility",
-          provenance: "mock",
-        },
-      ],
-      nowMs,
-    });
-
-    expect(report.summary.failedWorkflowSamples).toBe(1);
-  });
-
   test("bounded limits are recorded when data sources are unavailable", async () => {
     const report = await collectConcurrencyEvidence({
       readSessionRows: async () => {
