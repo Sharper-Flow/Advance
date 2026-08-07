@@ -87,14 +87,17 @@ export async function normalizeArtifactMetadataForReadback(
       // Readback re-validates paths because persisted state can retain legacy
       // path metadata after active artifacts moved to content-only storage.
       const readable =
-        metadata.source !== "temporal" &&
         metadata.readable !== false &&
+        !metadata.rejection &&
         (await fileExists(metadata.path));
-      if (readable) {
+      if (readable && metadata.source === "temporal") {
+        metadata.source = "disk";
         metadata.readable = true;
       } else {
-        delete metadata.path;
-        metadata.readable = false;
+        if (!readable) {
+          delete metadata.path;
+          metadata.readable = false;
+        }
       }
     }
     normalized[kind as keyof NonNullable<Change["artifacts"]>] = metadata;

@@ -60,6 +60,9 @@ describe("getProjectPaths", () => {
     expect("agenda" in paths).toBe(false);
     expect(paths.reflections).toBe("/project/.adv/reflections.jsonl");
     expect(paths.projectMetadata).toBe("/project/.adv/project-metadata.json");
+    expect(paths.artifactMetadataMigrationMarker).toBe(
+      "/project/.adv/artifact-metadata-migration-complete.json",
+    );
     expect(paths.snapshotRepairAudit).toBe(
       "/project/.adv/snapshot-repair-audit.jsonl",
     );
@@ -96,6 +99,9 @@ describe("getProjectPaths", () => {
     expect(paths.reflections).toBe("/ext/data/abc123/reflections.jsonl");
     expect(paths.projectMetadata).toBe(
       "/ext/data/abc123/project-metadata.json",
+    );
+    expect(paths.artifactMetadataMigrationMarker).toBe(
+      "/ext/data/abc123/artifact-metadata-migration-complete.json",
     );
     expect(paths.snapshotRepairAudit).toBe(
       "/ext/data/abc123/snapshot-repair-audit.jsonl",

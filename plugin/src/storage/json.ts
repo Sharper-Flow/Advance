@@ -75,6 +75,8 @@ export interface ProjectPaths {
   wisdom: string;
   reflections: string;
   projectMetadata: string;
+  /** Storage-owned completion marker for the bounded artifact metadata migration. */
+  artifactMetadataMigrationMarker: string;
   /**
    * Append-only audit log for adv_snapshot_health repairs. Purpose-specific
    * (not Agenda) per retireAgendaWorkflow AC4: every successful snapshot
@@ -119,6 +121,10 @@ export function getProjectPaths(
       wisdom: join(ext, "wisdom.jsonl"),
       reflections: join(ext, "reflections.jsonl"),
       projectMetadata: join(ext, "project-metadata.json"),
+      artifactMetadataMigrationMarker: join(
+        ext,
+        "artifact-metadata-migration-complete.json",
+      ),
       snapshotRepairAudit: join(ext, "snapshot-repair-audit.jsonl"),
       external: ext,
     };
@@ -138,6 +144,10 @@ export function getProjectPaths(
     wisdom: join(root, ".adv/wisdom.jsonl"),
     reflections: join(root, ".adv/reflections.jsonl"),
     projectMetadata: join(root, ".adv/project-metadata.json"),
+    artifactMetadataMigrationMarker: join(
+      root,
+      ".adv/artifact-metadata-migration-complete.json",
+    ),
     snapshotRepairAudit: join(root, ".adv/snapshot-repair-audit.jsonl"),
     external: null,
   };
