@@ -76,11 +76,7 @@ async function readProjectionDocuments(
       ? state
       : parsed;
   const documents = (projection as { documents?: unknown }).documents;
-  if (
-    !documents ||
-    typeof documents !== "object" ||
-    Array.isArray(documents)
-  ) {
+  if (!documents || typeof documents !== "object" || Array.isArray(documents)) {
     return {};
   }
   return documents as Partial<Record<ArtifactKind, string>>;
