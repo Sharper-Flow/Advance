@@ -868,7 +868,7 @@ export const archiveChangeTools = {
       noCloseIssue: z.boolean().optional(),
       phase9: z.enum(["run", "skip"]).optional(),
       prTitleType: z.string().optional(),
-      target_path: targetPathSchema,
+      target_path: targetPathSchema.shape.target_path,
       target_confirmed: z.literal(true).optional(),
       confirmationEvidence: z.string().optional(),
     },
