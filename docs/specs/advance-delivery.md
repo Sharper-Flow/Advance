@@ -117,7 +117,7 @@ During active inline-TDD work, runtime enforcement MUST treat shell-authored tes
 
 **ID:** `rq-ADVEXEC04` | **Priority:** **[MUST]**
 
-ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof for the current agent run; durable workflow evidence is the final task verification claim recorded by taskCompletedSignal. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.
+ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof for the current agent run; durable task evidence is the final task verification claim recorded by the disk mutation path. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.
 
 **Tags:** `workflow`, `execution`, `tdd`, `evidence`, `value`
 
@@ -533,11 +533,11 @@ Checkpoint commits are local rollback/audit points only. Publication, merge, and
 
 ---
 
-### Checkpoint workflow recording blocks task completion when recording fails
+### Checkpoint change projection recording blocks task completion when recording fails
 
 **ID:** `rq-checkpointLedger01` | **Priority:** **[MUST]**
 
-adv_task_checkpoint MUST surface workflow completion recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but `taskCompletedSignal` is not durably reflected in workflow state. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint recording path, and only proceeds after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.
+adv_task_checkpoint MUST surface change projection completion recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but `taskCompletedMutation` is not durably reflected in change projection state. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint recording path, and only proceeds after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.
 
 **Tags:** `checkpoint`, `ledger`, `task-run`, `apply-flow`, `recovery`
 
@@ -547,13 +547,13 @@ adv_task_checkpoint MUST surface workflow completion recording failures via `che
 
 **Given:**
 - An /adv-apply task has dirty tree changes that pass branch and HEAD guards
-- The git commit phase succeeds but the taskCompletedSignal completion record is not durably reflected in workflow state
+- The git commit phase succeeds but the taskCompletedMutation completion record is not durably reflected in change projection state
 
 **When:** adv_task_checkpoint executes in mode complete or cancel
 
 **Then:**
 - The tool returns status `committed` with the new commit sha
-- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
+- The tool returns `checkpointRecorded: false` to indicate the change projection completion record was not durably reflected
 - The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
 - The result MUST NOT be silently treated as task completion
 
@@ -561,13 +561,13 @@ adv_task_checkpoint MUST surface workflow completion recording failures via `che
 
 **Given:**
 - An /adv-apply task has no dirty tree changes
-- The clean-tree path executes but the taskCompletedSignal completion record is not durably reflected in workflow state
+- The clean-tree path executes but the taskCompletedMutation completion record is not durably reflected in change projection state
 
 **When:** adv_task_checkpoint executes in mode complete
 
 **Then:**
 - The tool returns status `clean` with no new commit
-- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
+- The tool returns `checkpointRecorded: false` to indicate the change projection completion record was not durably reflected
 - The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
 
 **Apply guidance treats checkpointRecorded:false as blocking task completion** (`rq-checkpointLedger01.3`)
@@ -578,7 +578,7 @@ adv_task_checkpoint MUST surface workflow completion recording failures via `che
 **When:** The agent prepares to mark the task done
 
 **Then:**
-- The agent MUST run adv_task_show to inspect workflow task state
+- The agent MUST run adv_task_show to inspect change projection task state
 - The agent MUST retry the checkpoint recording path before treating the task as done
 - The agent MUST NOT call adv_task_update with status done in normal apply flow
 - Existing doom-loop and blocker semantics apply if recovery cannot be achieved within the retry budget
@@ -823,7 +823,7 @@ adv_change_show MUST expose an opt-in typed loop-ledger readback over existing A
 
 **ID:** `rq-advStatusView01` | **Priority:** **[MUST]**
 
-adv_status must accept an optional view argument of type 'summary' | 'health' | 'changes' | 'hygiene' (default: 'summary'). The summary view returns specs.count, simplified changes.recent (id+title+recency+minutesSinceActivity only), recommendations, temporal_health_ok (boolean), and worktree_count — explicitly omitting hygiene-archaeology fields like _healthSnapshot. The health view returns full temporal_health, search_attributes, opencode_session_debt, diagnostics, and the metrics counters. The changes view returns full status.changes detail. The hygiene view returns _healthSnapshot, opencode_session_debt detail, project_metadata, recommendations, and migration_status. The formatted block is preserved across all views.
+adv_status must accept an optional view argument of type 'summary' | 'health' | 'changes' | 'hygiene' (default: 'summary'). The summary view returns specs.count, simplified changes.recent (id+title+recency+minutesSinceActivity only), recommendations, projection-health status, and worktree_count — explicitly omitting hygiene-archaeology fields like _healthSnapshot. The health view returns full projection/runtime diagnostics and metrics counters. The changes view returns full status.changes detail. The hygiene view returns _healthSnapshot, opencode_session_debt detail, project_metadata, recommendations, and migration_status. The formatted block is preserved across all views.
 
 **Tags:** `delivery`, `tools`, `context-emission`
 
@@ -838,7 +838,7 @@ adv_status must accept an optional view argument of type 'summary' | 'health' | 
 
 **Then:**
 - The response includes view:'summary'
-- Hygiene archaeology fields (_healthSnapshot, search_attributes, opencode_session_debt, diagnostics) are absent
+- Hygiene archaeology fields (_healthSnapshot, opencode_session_debt, diagnostics) are absent
 
 **Health view exposes full diagnostics** (`rq-advStatusView01.2`)
 
@@ -848,8 +848,8 @@ adv_status must accept an optional view argument of type 'summary' | 'health' | 
 **When:** The tool runs
 
 **Then:**
-- The response includes temporal_health, search_attributes, opencode_session_debt, diagnostics
-- Summary-only fields (temporal_health_ok, worktree_count) are absent
+- The response includes projection/runtime health, opencode_session_debt, and diagnostics
+- Summary-only fields (projection-health summary, worktree_count) are absent
 
 ---
 
@@ -887,79 +887,20 @@ The plugin must maintain in-memory counters for the session: adv_tool_calls (tot
 
 ---
 
-### Tool-Layer Cache Refresh After Signal Fire
-
-**ID:** `rq-cacheRefresh01` | **Priority:** **[MUST]**
-
-Tool-layer code SHALL use fireSignalAndRefresh(handle, store, changeId, signal, ...args) for any Temporal signal targeting a change workflow. The helper fires the signal AND invalidates the in-memory changeCache so subsequent store.changes.get() calls return fresh state. Direct fireSignal use is permitted ONLY for signals not associated with a single change; any such call MUST be annotated with // rq-cacheRefresh01-exempt: <reason>. Cross-project: when mutating a change in another project via target_path, the helper invalidates the TARGET projects cache via the store argument; tools MUST resolve the target store via withTargetPathStore(...) upstream before calling the helper.
-
-**Tags:** `cache-discipline`, `execution`, `tool-layer`, `signal-driven`
-
-#### Scenarios
-
-**Tool fires signal targeting change workflow** (`rq-cacheRefresh01.1`)
-
-**Given:**
-- A tool-layer function fires a Temporal signal
-- The signal is associated with a changeId
-
-**When:** The tool issues the signal
-
-**Then:**
-- It MUST use fireSignalAndRefresh(handle, store, changeId, signal, ...)
-- Direct fireSignal(handle, signal, ...) is forbidden in this case
-
-**Code review identifies a non-exempt direct fireSignal call** (`rq-cacheRefresh01.2`)
-
-**Given:**
-- A tool-layer source file contains fireSignal(handle, ...)
-- The signal is associated with a changeId
-
-**When:** The grep gate runs (grep -rn "fireSignal(handle" plugin/src/tools/ | grep -v .test.ts | grep -v rq-cacheRefresh01-exempt)
-
-**Then:**
-- The gate MUST return zero non-exempt matches
-- CI MUST fail if matches are present
-
-**Cross-project mutation via target_path** (`rq-cacheRefresh01.3`)
-
-**Given:**
-- A tool mutates a change in project B from project As session
-- The mutation requires a Temporal signal
-
-**When:** The tool resolves the workflow handle and store
-
-**Then:**
-- The store argument to fireSignalAndRefresh MUST be the target projects store
-- The store MUST be obtained via withTargetPathStore(...) upstream
-
-**Documented exemption for change-less signals** (`rq-cacheRefresh01.4`)
-
-**Given:**
-- A tool-layer function fires a signal not associated with any changeId
-
-**When:** The function uses fireSignal directly
-
-**Then:**
-- The call site MUST include a // rq-cacheRefresh01-exempt: <reason> comment
-- The reason MUST explain why no changeId association exists
-
----
-
-### Poisoned Workflow History Read Fallback
+### Unavailable Projection Read Fallback
 
 **ID:** `rq-replayFallback01` | **Priority:** **[MUST]**
 
-When a change workflow read fails with a known poisoned-history replay error (TMPRL1100, nondeterminism, or no-command replay shape), ADV read surfaces SHALL attempt durable projection fallback before failing. If an active source snapshot or archive bundle exists, read tools SHALL return projection-backed change data with a recovery marker instead of requiring manual bundle assembly. Terminal projections (archived or closed) MUST NOT recreate change workflows during fallback.
+When a change projection read fails because the source bytes are missing, malformed, or quarantined, ADV read surfaces SHALL attempt a durable projection or archive-bundle fallback before failing. If an active source snapshot or archive bundle exists, read tools SHALL return projection-backed change data with a recovery marker instead of requiring manual bundle assembly. Terminal projections (archived or closed) MUST remain read-only and MUST NOT be recreated during fallback.
 
-**Tags:** `temporal`, `replay`, `recovery`, `read-tools`
+**Tags:** `projection`, `fallback`, `recovery`, `read-tools`
 
 #### Scenarios
 
-**Poisoned history has archive projection** (`rq-replayFallback01.1`)
+**Unavailable source has archive projection** (`rq-replayFallback01.1`)
 
 **Given:**
-- A change workflow query fails with a known poisoned-history replay error
+- The active change projection is unavailable or malformed
 - An archive bundle exists for the change
 
 **When:** A read tool loads the change
@@ -967,12 +908,12 @@ When a change workflow read fails with a known poisoned-history replay error (TM
 **Then:**
 - The tool returns archive-backed change data
 - The returned data includes a recovery/source marker
-- The workflow is not re-created for the archived change
+- The archived change is not recreated
 
-**Poisoned history has no projection** (`rq-replayFallback01.2`)
+**Unavailable source has no projection** (`rq-replayFallback01.2`)
 
 **Given:**
-- A change workflow query fails with a known poisoned-history replay error
+- The active change projection is unavailable or malformed
 - No active source snapshot or archive bundle exists
 
 **When:** A read tool loads the change
@@ -981,67 +922,20 @@ When a change workflow read fails with a known poisoned-history replay error (TM
 - The original error remains visible
 - No synthetic change state is invented
 
-**Poisoned history with non-terminal change and active source snapshot** (`rq-replayFallback01.3`)
+**Unavailable source with non-terminal change and active snapshot** (`rq-replayFallback01.3`)
 
 **Given:**
-- A change workflow query fails with a known poisoned-history replay error
+- The active change projection is unavailable or malformed
 - The change status is non-terminal (active, draft, pending)
 - An active source snapshot exists
-- Re-seeding the workflow itself fails
+- The archive fallback is unavailable
 
 **When:** A read tool loads the change
 
 **Then:**
 - The tool returns disk-backed change data
-- The returned data includes recovery markers (_source: 'disk', _recovery.reason: 'poisoned_history')
-- No new workflow run is started
-- No ChangeSummary signal is emitted
-
----
-
-### Change Workflow Signal-Only Mutation Surface
-
-**ID:** `rq-changeWorkflowSignalOnly01` | **Priority:** **[MUST]**
-
-Production change workflow code SHALL remain signal/query based and SHALL NOT reintroduce defineUpdate handlers unless a future spec explicitly defines migration handling for existing workflow histories. Regression tests MUST fail if workflow-reachable production code defines update handlers on the change workflow surface.
-
-**Tags:** `temporal`, `signal-driven`, `workflow-surface`, `regression`
-
-#### Scenarios
-
-**Workflow surface scan detects update handler drift** (`rq-changeWorkflowSignalOnly01.1`)
-
-**Given:**
-- Production code is reachable from plugin/src/temporal/workflows.ts
-
-**When:** The workflow boundary regression tests run
-
-**Then:**
-- The scan fails on wf.defineUpdate or defineUpdate usage
-- The scan does not fail merely because Temporal TypeScript patched Date or random APIs are used
-
----
-
-### Temporal TypeScript Determinism Guidance
-
-**ID:** `rq-temporalTsDeterminismDocs01` | **Priority:** **[SHOULD]**
-
-Agent-facing repository guidance SHALL state that Temporal TypeScript workflows patch Date.now(), new Date(), and Math.random() to deterministic sandbox values. Guidance SHALL direct workflow timers to Temporal workflow APIs such as sleep() or condition(), and SHALL distinguish official Temporal TypeScript determinism behavior from project-specific restrictions such as the signal-only change workflow surface.
-
-**Tags:** `temporal`, `documentation`, `agent-guidance`, `determinism`
-
-#### Scenarios
-
-**Agent docs avoid false Date/random ban** (`rq-temporalTsDeterminismDocs01.1`)
-
-**Given:**
-- An agent reads repository implementation guidance
-
-**When:** It inspects Temporal workflow determinism guidance
-
-**Then:**
-- The docs say Date.now(), new Date(), and Math.random() are deterministic in Temporal TypeScript workflow sandbox
-- The docs identify signal/query-only change workflows as the project-specific replay guardrail
+- The returned data includes recovery markers (_source: 'disk', _recovery.reason: 'projection_unavailable')
+- No synthetic change state is started or emitted
 
 ---
 
@@ -1106,123 +1000,38 @@ ADV SHALL expose plugin loaded-module provenance via the adv_status health view:
 
 ---
 
-### Orphan Identity Store Consolidation
-
-**ID:** `rq-storeConsolidation01` | **Priority:** **[MUST]**
-
-ADV must provide a consolidation tool (`adv_store_consolidate`) that merges an orphaned identity store — minted under a shallow-boundary or graft pseudo-root SHA — into the true-root store with zero silent data loss. The tool is dry-run-first: scan and dry-run are strictly read-only, and execution is approval-gated. Terminal items import as disk projections and live items are recreated under the true identity via new Temporal workflows carrying prior state (never history rewrites). Duplicate item IDs halt consolidation with a per-ID collision report; nothing is overwritten. An append-only ledger keyed on (sourceProjectId, targetProjectId, itemId) makes re-runs structurally idempotent no-ops. The orphan source store is never modified or deleted by consolidation.
-
-**Tags:** `identity`, `consolidation`, `recovery`, `audit`
-
-#### Scenarios
-
-**Scan enumerates orphan candidates without mutations** (`rq-storeConsolidation01.1`)
-
-**Given:**
-- A repository with one or more external state stores minted under shallow-boundary or unstable SHAs
-
-**When:** adv_store_consolidate runs with action `scan`
-
-**Then:**
-- Candidate orphan stores are enumerated across XDG shard layouts (`opencode-projects/<shard>/…` and legacy `opencode/plugins/advance/<id>/`)
-- Stores minted under unstable SHAs are flagged using structural git checks only
-- No files are created, modified, or deleted
-
-**Dry-run emits the full per-item plan with zero mutations** (`rq-storeConsolidation01.2`)
-
-**Given:**
-- A source orphan store and a resolved true-root target store
-
-**When:** adv_store_consolidate runs with action `dry_run`
-
-**Then:**
-- The plan partitions changes into live vs terminal, and lists archive bundles, Epics (including retired Epics), and wisdom/reflections row counts
-- Each item carries a plan action (`recreate`, `import_projection`, `append_dedupe`, `skip_collision`, or `skip_ledgered`)
-- A per-ID collision report is included
-- No mutations are applied to either store
-
-**Execute is approval-gated and refuses unsafe preconditions** (`rq-storeConsolidation01.3`)
-
-**Given:**
-- A valid dry-run plan for a source/target store pair
-
-**When:** adv_store_consolidate runs with action `execute`
-
-**Then:**
-- Without `approvedByUser: true` and non-blank approval evidence, execution refuses with `ConsolidationError` code `approval_required`
-- A live source worker lock refuses with code `worker_lock_live`
-- Any item-ID collision refuses with code `collisions_present` and a per-ID report; nothing is overwritten
-- Every refusal applies zero mutations
-
-**Execution imports terminal items first, then recreates live items** (`rq-storeConsolidation01.4`)
-
-**Given:**
-- An approved execution with no collisions and no live source worker lock
-
-**When:** The plan is applied
-
-**Then:**
-- Terminal (archived/closed) changes and Epics import as disk projections visible via `includeArchived: true`
-- Live changes and Epics are recreated under the true identity as new Temporal workflows carrying prior tasks, gates, artifacts, and Epic membership — never history rewrites
-- Wisdom and reflections rows append with content-hash dedupe
-
-**Re-running consolidation is an idempotent no-op** (`rq-storeConsolidation01.5`)
-
-**Given:**
-- A consolidation that already completed successfully, recorded in the target store's `consolidation-ledger.jsonl`
-
-**When:** adv_store_consolidate runs again for the same source/target pair
-
-**Then:**
-- Already-ledgered items plan as `skip_ledgered` and are not re-imported or recreated
-- The re-run is reported as a no-op
-
-**Orphan source store is retained untouched** (`rq-storeConsolidation01.6`)
-
-**Given:**
-- A completed consolidation
-
-**When:** The source orphan store is inspected
-
-**Then:**
-- No source files were modified or deleted by consolidation
-- Source store deletion requires a separate explicit approval outside the consolidation flow
-
----
-
-### Store Cleanup Safety, Consolidation Coupling, and Indefinite Retention
+### Store Cleanup Safety and Indefinite Retention
 
 **ID:** `rq-storeCleanupCoupling01` | **Priority:** **[MUST]**
 
-ADV retains `adv_store_cleanup` indefinitely as an operator-only maintenance tool for provably obsolete legacy agenda data; it is discoverable but must never become a routine autonomous agent action. Cleanup and store consolidation (`adv_store_consolidate`) are mutually serialized: both refuse to act on stores holding a live worker.lock, cleanup retains any store whose consolidation ledger contains agenda_row entries (preserving consolidation evidence), and consolidation never modifies or deletes source stores, including cleanup manifests. Cleanup execute is manifest-before-delete: a `prepared` manifest row is persisted before any deletion, deletion proceeds only when that write succeeds, and a terminal outcome row is appended after each attempt so re-runs are idempotent. Dry-run plans stay reviewable before execution: bounded summary counts plus paged store renders, with plan_hash always computed over the full plan content — including paginated-out stores — so an approval pinned to a plan hash authorizes exactly one full plan.
+ADV retains `adv_store_cleanup` indefinitely as an operator-only maintenance tool for provably obsolete legacy agenda data; it is discoverable but must never become a routine autonomous agent action. Cleanup execute is manifest-before-delete: a `prepared` manifest row is persisted before any deletion, deletion proceeds only when that write succeeds, and a terminal outcome row is appended after each attempt so re-runs are idempotent. Dry-run plans stay reviewable before execution: bounded summary counts plus paged store renders, with plan_hash always computed over the full plan content — including paginated-out stores — so an approval pinned to a plan hash authorizes exactly one full plan. Cleanup never removes current change projections or archive bundles.
 
 **Tags:** `cleanup`, `consolidation`, `maintenance`, `operator-only`, `audit`
 
 #### Scenarios
 
-**Live worker.lock refuses cleanup and consolidation** (`rq-storeCleanupCoupling01.1`)
+**Current state refuses cleanup** (`rq-storeCleanupCoupling01.1`)
 
 **Given:**
-- A store holding a live worker.lock
+- A store contains current change projections or archive bundles
 
-**When:** adv_store_cleanup or adv_store_consolidate evaluates the store
+**When:** adv_store_cleanup evaluates the store
 
 **Then:**
-- Cleanup classifies the store unsafe and plans retain
-- Consolidation refuses with code worker_lock_live
-- No files are created, modified, or deleted by either tool
+- The store is classified unsafe and planned as retain
+- No current projection or archive file is deleted
 
-**Cleanup preserves consolidation evidence** (`rq-storeCleanupCoupling01.2`)
+**Cleanup preserves non-obsolete evidence** (`rq-storeCleanupCoupling01.2`)
 
 **Given:**
-- A store whose consolidation-ledger.jsonl contains agenda_row entries
+- A store contains a file not proven to be obsolete legacy agenda data
 
 **When:** adv_store_cleanup plans the store
 
 **Then:**
 - The store is classified unsafe and planned as retain
-- Consolidation ledger data and imported agenda rows are never deleted by cleanup
-- Consolidation never modifies or deletes source stores, including cleanup manifests
+- The unproven file is preserved
+- The dry-run report names the retention reason
 
 **Execute is manifest-before-delete** (`rq-storeCleanupCoupling01.3`)
 

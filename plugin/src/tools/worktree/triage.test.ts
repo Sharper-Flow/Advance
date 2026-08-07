@@ -2,12 +2,11 @@
  * Tests for triage.ts (T18 — Q9, KD-5 #3+#4).
  *
  * Mocks state.ts + stale-head.ts to inject deterministic fixtures.
- * Covers the 5 task scenarios:
+ * Covers the current disk-authority scenarios:
  *   - clean state (no orphans)
  *   - stale_head detected
- *   - missing_from_temporal (disk has, registry doesn't)
- *   - missing_from_disk (registry has, disk doesn't)
- *   - archived_not_cleaned (registry has worktree backing archived change)
+ *   - dirty_uncommitted_work (disk worktree has uncommitted files)
+ *   - terminal_cleanup_retained (pending cleanup remains blocked)
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -31,6 +30,9 @@ vi.mock("./state", () => ({
   listWorktrees: vi.fn(async () => []),
   getChangeSummaries: vi.fn(async () => ({})),
   getPendingDeletes: vi.fn(async () => []),
+  inferChangeIdFromBranch: vi.fn((branch: string) =>
+    branch.startsWith("change/") ? branch.slice("change/".length) : null,
+  ),
 }));
 
 vi.mock("../../utils/stale-head", () => ({
@@ -126,178 +128,6 @@ describe("triageWorktrees (T18)", () => {
       reason: expect.stringContaining("merged into trunk"),
       recommendedFix: "git switch trunk && git branch -d feature/old",
     });
-  });
-
-  it("reports missing_from_temporal when disk has worktree but registry doesn't", async () => {
-    // Create an actual on-disk worktree on a change-named branch.
-    const wtPath = join(tempRoot, "wt-orphan");
-    execFileSync(
-      "git",
-      ["worktree", "add", "-b", "change/orphan", wtPath, "trunk"],
-      { cwd: repoRoot },
-    );
-
-    mockRegistrySnapshot([]); // empty registry
-
-    const result = await triageWorktrees(repoRoot);
-    const orphan = result.orphans.find(
-      (o) => o.class === "missing_from_temporal",
-    );
-    expect(orphan).toBeDefined();
-    expect(orphan?.branch).toBe("change/orphan");
-    expect(orphan?.recommendedFix).not.toContain("--adopt");
-    expect(orphan?.recommendedFix).toContain("adv_worktree_resume");
-  });
-
-  it("reports missing_from_temporal_unmerged for no-registry worktrees with unmerged commits", async () => {
-    const wtPath = join(tempRoot, "wt-unmerged");
-    execFileSync(
-      "git",
-      ["worktree", "add", "-b", "change/unmerged", wtPath, "trunk"],
-      { cwd: repoRoot },
-    );
-    execFileSync("git", ["config", "user.email", "t@e.com"], {
-      cwd: wtPath,
-    });
-    execFileSync("git", ["config", "user.name", "T"], { cwd: wtPath });
-    execFileSync("touch", [join(wtPath, "feature.ts")]);
-    execFileSync("git", ["add", "feature.ts"], { cwd: wtPath });
-    execFileSync("git", ["commit", "-m", "feature"], { cwd: wtPath });
-
-    mockRegistrySnapshot([]);
-
-    const result = await triageWorktrees(repoRoot);
-    const orphan = result.orphans.find(
-      (o) => o.class === "missing_from_temporal_unmerged",
-    );
-
-    expect(orphan).toBeDefined();
-    expect(orphan?.branch).toBe("change/unmerged");
-    expect(orphan?.reason).toContain("unmerged commits");
-    expect(orphan?.recommendedFix).toContain("adv_worktree_resume");
-    expect(orphan?.recommendedFix).not.toContain("adv_worktree_delete");
-  });
-
-  it("reports missing_from_disk when registry has worktree but disk doesn't", async () => {
-    mockRegistrySnapshot([
-      {
-        branch: "change/ghost",
-        path: "/nonexistent/path",
-        changeId: "ghostchange",
-        status: "active",
-        createdAt: "2026-05-01T00:00:00Z",
-        lastSeenAt: "2026-05-01T00:00:00Z",
-        baseRef: "trunk",
-        headSha: "deadbeef",
-        source: "tool",
-        sourceVersion: 1,
-      },
-    ]);
-
-    const result = await triageWorktrees(repoRoot);
-    const orphan = result.orphans.find((o) => o.class === "missing_from_disk");
-    expect(orphan).toBeDefined();
-    expect(orphan?.branch).toBe("change/ghost");
-    expect(orphan?.recommendedFix).toContain("disk_missing change/ghost");
-  });
-
-  it("includes target_path remediation when triaging a different project root", async () => {
-    mockRegistrySnapshot([
-      {
-        branch: "change/target-ghost",
-        path: "/nonexistent/target/path",
-        changeId: "targetghost",
-        status: "active",
-        createdAt: "2026-05-01T00:00:00Z",
-        lastSeenAt: "2026-05-01T00:00:00Z",
-        baseRef: "trunk",
-        headSha: "deadbeef",
-        source: "tool",
-        sourceVersion: 1,
-      },
-    ]);
-
-    const result = await triageWorktrees(repoRoot, undefined, {
-      currentProjectRoot: "/current-project",
-    });
-    const orphan = result.orphans.find((o) => o.class === "missing_from_disk");
-
-    expect(orphan?.recommendedFix).toContain(`target_path: "${repoRoot}"`);
-    expect(orphan?.recommendedFix).toContain("target_confirmed: true");
-    expect(orphan?.recommendedFix).toContain("confirmationEvidence");
-    expect(orphan?.recommendedFix).not.toBe(
-      "adv_worktree_delete --reason disk_missing change/target-ghost",
-    );
-  });
-
-  it("reports archived_not_cleaned when registry worktree backs archived change", async () => {
-    const wtPath = join(tempRoot, "wt-archived");
-    execFileSync(
-      "git",
-      ["worktree", "add", "-b", "change/archived", wtPath, "trunk"],
-      { cwd: repoRoot },
-    );
-
-    mockRegistrySnapshot(
-      [
-        {
-          branch: "change/archived",
-          path: wtPath,
-          changeId: "archivedchange",
-          status: "active",
-          createdAt: "2026-05-01T00:00:00Z",
-          lastSeenAt: "2026-05-01T00:00:00Z",
-          baseRef: "trunk",
-          headSha: "deadbeef",
-          source: "tool",
-          sourceVersion: 1,
-        },
-      ],
-      {
-        archivedchange: { status: "archived" },
-      },
-    );
-
-    const result = await triageWorktrees(repoRoot);
-    const orphan = result.orphans.find(
-      (o) => o.class === "archived_not_cleaned",
-    );
-    expect(orphan).toBeDefined();
-    expect(orphan?.branch).toBe("change/archived");
-    expect(orphan?.recommendedFix).toContain(
-      "adv_worktree_delete change/archived",
-    );
-  });
-
-  it("reports registry_missing_change_id for change worktrees without owner metadata", async () => {
-    const wtPath = join(tempRoot, "wt-missing-change-id");
-    execFileSync(
-      "git",
-      ["worktree", "add", "-b", "change/missing-id", wtPath, "trunk"],
-      { cwd: repoRoot },
-    );
-
-    mockRegistrySnapshot([
-      {
-        branch: "change/missing-id",
-        path: wtPath,
-        status: "active",
-        createdAt: "2026-05-01T00:00:00Z",
-        lastSeenAt: "2026-05-01T00:00:00Z",
-        baseRef: "trunk",
-        headSha: "deadbeef",
-        source: "tool",
-        sourceVersion: 1,
-      },
-    ]);
-
-    const result = await triageWorktrees(repoRoot);
-    const orphan = result.orphans.find(
-      (o) => o.class === "registry_missing_change_id",
-    );
-    expect(orphan).toBeDefined();
-    expect(orphan?.branch).toBe("change/missing-id");
-    expect(orphan?.recommendedFix).toContain("repair registry metadata");
   });
 
   // rq-worktreeDirtyDetection01: F1 / #120 — triage must surface
@@ -519,9 +349,9 @@ describe("triageWorktrees (T18)", () => {
       );
     });
 
-    it("preserves inspected orphans and omits remaining worktrees when budget stops mid-collection", async () => {
-      // Two unregistered change worktrees. The first is inspected; the second
-      // is omitted when the budget closes admission.
+    it("preserves inspected dirty work and omits remaining worktrees when budget stops mid-collection", async () => {
+      // Two change worktrees. The first is dirty and inspected; the second is
+      // omitted when the budget closes admission.
       execFileSync(
         "git",
         ["worktree", "add", "-b", "change/a", join(tempRoot, "wt-a"), "trunk"],
@@ -532,26 +362,27 @@ describe("triageWorktrees (T18)", () => {
         ["worktree", "add", "-b", "change/b", join(tempRoot, "wt-b"), "trunk"],
         { cwd: repoRoot },
       );
+      execFileSync("touch", [join(tempRoot, "wt-a", "unsaved.ts")]);
       mockRegistrySnapshot([]);
 
-      // Allow stale_head, init_state, disk_list, snapshot, and one
-      // missing_from_temporal inspection.
-      const budget = makeSequenceBudget(5);
+      // Allow stale_head, init_state, disk_list, and one dirty-worktree
+      // inspection.
+      const budget = makeSequenceBudget(4);
 
       const result = await triageWorktrees(repoRoot, undefined, { budget });
 
       expect(result.complete).toBe(false);
       expect(result.stopReason).toBe("internal_budget_exhausted");
-      // Exactly one inspected missing_from_temporal orphan.
+      // Exactly one inspected dirty-work orphan.
       const inspected = result.orphans.filter(
-        (o) => o.class === "missing_from_temporal",
+        (o) => o.class === "dirty_uncommitted_work",
       );
       expect(inspected).toHaveLength(1);
       // The remaining worktree is explicitly omitted, not classified as clean.
       expect(result.omitted).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            scope: "missing_from_temporal",
+            scope: "dirty_uncommitted_work",
             branch: "change/b",
           }),
         ]),

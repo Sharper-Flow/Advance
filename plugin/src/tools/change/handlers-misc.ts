@@ -4,11 +4,10 @@ import {
   GateIdSchema,
   ReleaseNotesContentSchema,
   type GateId,
-  type WorkerBundleImpact,
+  type Change,
   type ReleaseNotesContent,
 } from "../../types";
 import type { Store } from "../../storage/store";
-import { getProjectId } from "../../utils/project-id";
 import { invalidGitHubIssueUrls, applyIssueUpdates } from "./create-clarify";
 import { buildReentryResult } from "./recovery";
 import { formatToolOutput } from "../../utils/tool-output";
@@ -21,178 +20,9 @@ import {
   appendTargetProjectContextOutput,
 } from "../target-project";
 import { includeSnapshotSchema } from "../shared-args";
-import { getService } from "../../temporal/service";
-import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
-import {
-  gateReenteredSignal,
-  workerBundleProvenanceRecordedSignal,
-  workerBundleImpactSetSignal,
-} from "../../temporal/messages";
+import { coordinateChangeMutation } from "../change-mutation-coordinator";
+import { GATE_ORDER } from "../../types";
 
-export const advWorkerBundleProvenanceRecordHandler = async (
-  {
-    changeId,
-    source_sha,
-    build_run_id,
-    replay_run_id,
-    worker_manifest_generation,
-  }: {
-    changeId: string;
-    source_sha: string;
-    build_run_id: string;
-    replay_run_id: string;
-    worker_manifest_generation?: number;
-  },
-  store: Store,
-) => {
-  const existing = await store.changes.get(changeId);
-  if (!existing.success || !existing.data) {
-    return formatToolOutput({
-      success: false,
-      error: existing.success
-        ? `Change '${changeId}' not found.`
-        : existing.error,
-      hint: "Use adv_change_list to find valid change IDs.",
-    });
-  }
-
-  const projectId = await getProjectId(store.paths.root);
-  if (!projectId) {
-    return formatToolOutput({ error: "Could not resolve project ID" });
-  }
-  const bundle = getService();
-  if (!bundle) {
-    return formatToolOutput({ error: "Temporal service not available" });
-  }
-
-  const handle = getChangeHandle(bundle, projectId, changeId);
-  const recordedAt = new Date().toISOString();
-  await fireSignalAndRefresh(
-    handle,
-    store,
-    changeId,
-    workerBundleProvenanceRecordedSignal,
-    {
-      source_sha,
-      build_run_id,
-      replay_run_id,
-      ...(worker_manifest_generation !== undefined && {
-        worker_manifest_generation,
-      }),
-      recorded_at: recordedAt,
-    },
-  );
-
-  return formatToolOutput({
-    success: true,
-    changeId,
-    source_sha,
-    build_run_id,
-    replay_run_id,
-    ...(worker_manifest_generation !== undefined && {
-      worker_manifest_generation,
-    }),
-    recorded_at: recordedAt,
-  });
-};
-export const advChangeSetWorkerBundleImpactHandler = async (
-  {
-    changeId,
-    kind,
-    rationale,
-    target_path,
-    target_confirmed,
-    confirmationEvidence,
-  }: {
-    changeId: string;
-    kind: "required" | "not_applicable";
-    rationale: string;
-    target_path?: string;
-    target_confirmed?: true;
-    confirmationEvidence?: string;
-  },
-  store: Store,
-) => {
-  const runSetImpact = async (
-    activeStore: Store,
-    projectContext?: TargetProjectOutputContext,
-  ) => {
-    const existing = await activeStore.changes.get(changeId);
-    if (!existing.success || !existing.data) {
-      return formatToolOutput({
-        success: false,
-        error: existing.success
-          ? `Change '${changeId}' not found.`
-          : existing.error,
-        hint: "Use adv_change_list to find valid change IDs.",
-      });
-    }
-
-    const change = existing.data;
-    const confirmedAt = new Date().toISOString();
-    const worker_bundle_impact: WorkerBundleImpact = {
-      kind,
-      rationale,
-      confirmed_at: confirmedAt,
-    };
-    const updated = { ...change, worker_bundle_impact };
-    await activeStore.changes.save(updated);
-
-    const projectId =
-      projectContext?.projectId ?? (await getProjectId(activeStore.paths.root));
-    if (!projectId) {
-      return formatToolOutput({ error: "Could not resolve project ID" });
-    }
-    const bundle = getService();
-    if (!bundle) {
-      return formatToolOutput({ error: "Temporal service not available" });
-    }
-    const handle = getChangeHandle(bundle, projectId, changeId);
-    await fireSignalAndRefresh(
-      handle,
-      activeStore,
-      changeId,
-      workerBundleImpactSetSignal,
-      {
-        worker_bundle_impact,
-        set_at: confirmedAt,
-      },
-    );
-
-    return formatToolOutput({
-      success: true,
-      changeId,
-      worker_bundle_impact,
-      ...(projectContext ? { _projectContext: projectContext } : {}),
-    });
-  };
-
-  if (target_path) {
-    try {
-      return await withTargetPathStore(
-        {
-          currentProjectPath: store.paths.root,
-          target_path,
-          stateRequirement: "temporal-required",
-          mutation: true,
-          target_confirmed,
-          confirmationEvidence,
-        },
-        async ({ context, store: targetStore }) =>
-          runSetImpact(targetStore, formatTargetProjectContext(context)),
-      );
-    } catch (error) {
-      const errorText = error instanceof Error ? error.message : String(error);
-      return formatToolOutput({
-        success: false,
-        error: `Target project worker-bundle impact set unavailable: ${errorText}`,
-        changeId,
-        target_path,
-      });
-    }
-  }
-  return runSetImpact(store);
-};
 export const advChangeSetReleaseNotesHandler = async (
   {
     changeId,
@@ -282,7 +112,7 @@ export const advChangeSetReleaseNotesHandler = async (
         {
           currentProjectPath: store.paths.root,
           target_path,
-          stateRequirement: "temporal-required",
+          stateRequirement: "authoritative",
           mutation: true,
           target_confirmed,
           confirmationEvidence,
@@ -428,36 +258,56 @@ export const advChangeReenterHandler = async (
     }
 
     try {
-      const bundle = getService();
-      if (!bundle) {
-        return formatToolOutput({
-          error: "Temporal service not available",
-          changeId,
-        });
-      }
-      const projectId = await getProjectId(activeStore.paths.root);
-      if (!projectId) {
-        return formatToolOutput({
-          error: "Could not resolve project ID",
-          changeId,
-        });
-      }
-      const handle = getChangeHandle(bundle, projectId, changeId);
-      // rq-cacheRefresh01: refresh after reenter so buildReentryResult
-      // reads the reset-gates state from a fresh cache, not stale gates.
-      await fireSignalAndRefresh(
-        handle,
-        activeStore,
-        changeId,
-        gateReenteredSignal,
-        {
-          fromGateId: fromGate,
-          reason,
-          scopeDelta,
-          reenteredBy: "agent",
-          reenteredAt: new Date().toISOString(),
+      const reenteredAt = new Date().toISOString();
+      const fromIndex = GATE_ORDER.indexOf(fromGate);
+      const outcome = await coordinateChangeMutation<Change>({
+        authority: {
+          reason: `reenter change from ${fromGate}`,
+          evidence: _approvalEvidence ?? reason,
         },
-      );
+        changesDir: activeStore.paths.changes,
+        intent: {
+          changeId,
+          mutationKind: "gate_reentry",
+          mutateLatestProjection: (latest) => ({
+            ...latest,
+            gates: Object.fromEntries(
+              GATE_ORDER.map((gateId, index) => [
+                gateId,
+                index >= fromIndex
+                  ? { status: "pending" }
+                  : (latest.gates?.[gateId] ?? { status: "pending" }),
+              ]),
+            ) as Change["gates"],
+            reentry_history: [
+              ...(latest.reentry_history ?? []),
+              {
+                from_gate: fromGate,
+                reason,
+                scope_delta: scopeDelta,
+                reopened_by: "agent",
+                approval_evidence: _approvalEvidence,
+                reopened_at: reenteredAt,
+                gates_reset: GATE_ORDER.slice(fromIndex),
+              },
+            ],
+          }),
+          verifyProjection: (readback) =>
+            readback.gates?.[fromGate]?.status === "pending" &&
+            readback.reentry_history?.some(
+              (entry) => entry.reopened_at === reenteredAt,
+            ) === true,
+        },
+      });
+      if (outcome.kind !== "verified") {
+        return formatToolOutput({
+          error:
+            outcome.kind === "unverified"
+              ? outcome.reason
+              : "Gate re-entry mutation was not verified.",
+          changeId,
+        });
+      }
       const output = await buildReentryResult(
         activeStore,
         changeId,
@@ -482,7 +332,7 @@ export const advChangeReenterHandler = async (
           target_path,
           target_confirmed,
           confirmationEvidence,
-          stateRequirement: dryRun ? "snapshot-ok" : "temporal-required",
+          stateRequirement: dryRun ? "snapshot-ok" : "authoritative",
           mutation: dryRun ? false : undefined,
         },
         async ({ context, store: targetStore }) =>
@@ -499,64 +349,6 @@ export const advChangeReenterHandler = async (
 };
 
 export const miscChangeTools = {
-  adv_worker_bundle_provenance_record: {
-    description:
-      "Record durable worker-bundle release provenance for a change. Fires workerBundleProvenanceRecordedSignal with the source SHA, the build:worker run ID, and the replay-determinism run ID. Intended to be called after both runs have passed for the source SHA being released.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID to record provenance for."),
-      source_sha: z
-        .string()
-        .min(1)
-        .describe(
-          "Source commit SHA the worker bundle was built and replay-tested from.",
-        ),
-      build_run_id: z
-        .string()
-        .min(1)
-        .describe(
-          "Durable run ID of the passing build:worker adv_run_test invocation.",
-        ),
-      replay_run_id: z
-        .string()
-        .min(1)
-        .describe(
-          "Durable run ID of the passing replay-determinism adv_run_test invocation.",
-        ),
-      worker_manifest_generation: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe("Optional worker-bundle manifest generation at build time."),
-    },
-    execute: advWorkerBundleProvenanceRecordHandler,
-  },
-  adv_change_set_worker_bundle_impact: {
-    description:
-      "Set or confirm the worker-bundle impact classification for a change. Use at planning to declare whether this change requires worker-bundle build+replay provenance before release (kind='required') or does not (kind='not_applicable'). The declaration is typed, not a path heuristic, and is the authority for the release gate.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID to set worker-bundle impact on."),
-      kind: z
-        .enum(["required", "not_applicable"])
-        .describe(
-          "Whether worker-bundle provenance is required for release or not applicable.",
-        ),
-      rationale: z
-        .string()
-        .min(1)
-        .describe("Human-readable rationale for the classification."),
-      target_path: targetPathSchema.shape.target_path,
-      target_confirmed: targetPathSchema.shape.target_confirmed,
-      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
-    },
-    execute: advChangeSetWorkerBundleImpactHandler,
-  },
   adv_change_set_release_notes: {
     description:
       "Set or replace the typed release-note content block for a change. Full replacement only — omitted optional fields are removed. Validates the payload against the canonical ReleaseNotesContentSchema before signaling. Does not complete gates or authorize archive.",

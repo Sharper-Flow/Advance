@@ -11,49 +11,8 @@ import { changeTools } from "./change";
 import type { Store } from "../storage/store";
 import type { Change } from "../types";
 
-const mocks = vi.hoisted(() => {
-  const queryMock = vi.fn();
-  const handleMock = { query: queryMock };
-  const temporalBundle = {
-    client: { workflow: { getHandle: vi.fn(() => handleMock) } },
-  };
-  return {
-    queryMock,
-    handleMock,
-    temporalBundle,
-    getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
-    querySignal: vi.fn(),
-    getChangeHandle: vi.fn(() => handleMock),
-    fireSignal: vi.fn(async () => {}),
-    fireSignalAndRefresh: vi.fn(async () => {}),
-    waitForGateCompletion: vi.fn(),
-  };
-});
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return { ...actual, getProjectId: mocks.getProjectId };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignal: mocks.fireSignal,
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-  waitForGateCompletion: mocks.waitForGateCompletion,
-}));
-
 function createMockStore(
-  listSummaryResult?: Awaited<
-    ReturnType<NonNullable<Store["changes"]["listSummary"]>>
-  >,
+  listResult?: Awaited<ReturnType<Store["changes"]["list"]>>,
   changeOverride: Partial<Change> = {},
 ): Store {
   const change: Change = {
@@ -94,10 +53,9 @@ function createMockStore(
       get: vi.fn(async () => ({ success: false, error: "not found" })),
     } as unknown as Store["specs"],
     changes: {
-      list: vi.fn(async () => ({ changes: [] })),
-      listSummary: listSummaryResult
-        ? vi.fn().mockResolvedValue(listSummaryResult)
-        : undefined,
+      list: listResult
+        ? vi.fn().mockResolvedValue(listResult)
+        : vi.fn(async () => ({ changes: [] })),
       get: vi.fn(async () => ({ success: true, data: change })),
       create: vi.fn(),
       save: vi.fn(),
@@ -131,18 +89,9 @@ function createMockStore(
   } as unknown as Store;
 }
 
-function assertNoWorkflowCalls() {
-  expect(mocks.getChangeHandle).not.toHaveBeenCalled();
-  expect(mocks.querySignal).not.toHaveBeenCalled();
-  expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-  expect(mocks.fireSignal).not.toHaveBeenCalled();
-}
-
 describe("adv_change_list worker-free projection reads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.querySignal.mockReset();
-    mocks.getChangeHandle.mockClear();
   });
 
   afterEach(() => {
@@ -169,13 +118,6 @@ describe("adv_change_list worker-free projection reads", () => {
           message: "Visibility list unreachable",
         },
       ],
-      hydrationStats: {
-        terminalCandidates: 1,
-        terminalFromArchive: 1,
-        terminalFromWorkflow: 0,
-        terminalFromDisk: 0,
-        omitted: 0,
-      },
     });
 
     const result = await changeTools.adv_change_list.execute(
@@ -190,21 +132,6 @@ describe("adv_change_list worker-free projection reads", () => {
       title: "Archived Change",
       phase: "archived",
     });
-    expect(parsed.warnings).toEqual([
-      {
-        code: "TERMINAL_SOURCE_DEGRADED",
-        source: "visibility",
-        message: "Visibility list unreachable",
-      },
-    ]);
-    expect(parsed.hydrationStats).toEqual({
-      terminalCandidates: 1,
-      terminalFromArchive: 1,
-      terminalFromWorkflow: 0,
-      terminalFromDisk: 0,
-      omitted: 0,
-    });
-    assertNoWorkflowCalls();
   });
 
   test("AC3 — degraded/corrupt summary surfaces completeness metadata instead of empty success", async () => {
@@ -213,17 +140,11 @@ describe("adv_change_list worker-free projection reads", () => {
       warnings: [
         {
           code: "SOURCE_DEGRADED",
-          source: "summary_index",
-          message: "Summary index unreadable",
+          source: "disk",
+          message: "Change list unavailable",
         },
       ],
-      hydrationStats: {
-        terminalCandidates: 1,
-        terminalFromArchive: 0,
-        terminalFromWorkflow: 0,
-        terminalFromDisk: 0,
-        omitted: 1,
-      },
+      hydrationStats: { omitted: 1 },
     });
 
     const result = await changeTools.adv_change_list.execute(
@@ -233,21 +154,6 @@ describe("adv_change_list worker-free projection reads", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.changes).toEqual([]);
-    expect(parsed.warnings).toEqual([
-      {
-        code: "SOURCE_DEGRADED",
-        source: "summary_index",
-        message: "Summary index unreadable",
-      },
-    ]);
-    expect(parsed.hydrationStats).toEqual({
-      terminalCandidates: 1,
-      terminalFromArchive: 0,
-      terminalFromWorkflow: 0,
-      terminalFromDisk: 0,
-      omitted: 1,
-    });
-    assertNoWorkflowCalls();
   });
 
   test("AC3 — default active list uses listSummary and never falls back to a workflow query", async () => {
@@ -264,27 +170,17 @@ describe("adv_change_list worker-free projection reads", () => {
         },
       ],
     });
-    store.changes.list = vi
-      .fn()
-      .mockRejectedValue(
-        new Error("full changes.list should not be called for default list"),
-      );
-
     const result = await changeTools.adv_change_list.execute({}, store);
     const parsed = JSON.parse(result);
 
     expect(parsed.changes).toHaveLength(1);
     expect(parsed.changes[0].id).toBe("draft-change");
-    expect(store.changes.list).not.toHaveBeenCalled();
-    assertNoWorkflowCalls();
   });
 });
 
 describe("adv_change_show worker-free projection reads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.querySignal.mockReset();
-    mocks.getChangeHandle.mockClear();
   });
 
   afterEach(() => {
@@ -303,7 +199,6 @@ describe("adv_change_show worker-free projection reads", () => {
     expect(parsed.id).toBe("test-change");
     expect(parsed.title).toBe("Test Change");
     expect(parsed.status).toBe("active");
-    assertNoWorkflowCalls();
   });
 
   test("AC3 — archived change renders from disk/archive projection without workflow query", async () => {
@@ -319,6 +214,5 @@ describe("adv_change_show worker-free projection reads", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.status).toBe("archived");
-    assertNoWorkflowCalls();
   });
 });

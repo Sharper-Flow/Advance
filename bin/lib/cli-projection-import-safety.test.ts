@@ -2,8 +2,8 @@
  * Bun import-safety smoke test for the shared CLI projection module.
  *
  * Verifies that importing the shared module from the Bun CLI graph does not
- * drag in heavy plugin dependencies (Temporal, storage, zod, node:* beyond the
- * Bun stdlib surfaces already used by the CLI).
+ * drag in heavy plugin dependencies (storage, zod, node:* beyond the Bun
+ * stdlib surfaces already used by the CLI).
  *
  * Run with: bun test bin/lib/cli-projection-import-safety.test.ts
  */
@@ -17,8 +17,6 @@ const SHARED_SOURCE_URL = new URL(
 );
 
 const FORBIDDEN_IMPORT_PATTERNS = [
-  /from\s+["']@temporalio/,
-  /from\s+["']temporal\//,
   /from\s+["']zod["']/,
   /from\s+["']\.\.\/storage\//,
   /from\s+["']\.\.\/tools\//,

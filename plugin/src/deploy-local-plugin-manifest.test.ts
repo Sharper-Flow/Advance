@@ -1,6 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
 import {
-  mkdirSync,
   readFileSync,
   readdirSync,
   rmSync,
@@ -41,19 +40,7 @@ function sha256(input: string): string {
 
 const FAKE_INDEX = "// fake build\n";
 const FAKE_INDEX_SHA256 = sha256(FAKE_INDEX);
-const FAKE_WORKER = "// fake worker\n";
-const FAKE_WORKFLOWS = "// fake workflows\n";
-const FAKE_WORKER_MANIFEST = JSON.stringify({
-  schema_version: 1,
-  generation: "fake",
-  files: {
-    "worker.js": sha256(FAKE_WORKER),
-    "workflows.js": sha256(FAKE_WORKFLOWS),
-  },
-  built_at: "2026-01-01T00:00:00.000Z",
-});
 
-const FRESH_MTIME = new Date("2030-01-01T00:00:00Z");
 const INDEX_MTIME = new Date("2020-01-01T00:00:00Z");
 const MANIFEST_MTIME = new Date("2030-01-01T00:00:00Z");
 
@@ -153,7 +140,6 @@ describe("deploy-local plugin manifest publication", () => {
   test("excludes manifest from payload copy and publishes it last with mtime-preserved identity", () => {
     withDeployFixture((fixture) => {
       const distDir = join(fixture.tempWorktree, "plugin", "dist");
-      const temporalDir = join(distDir, "temporal");
       const indexPath = join(distDir, "index.js");
       const manifestPath = join(distDir, "plugin-bundle-manifest.json");
       const sourceManifest = {
@@ -164,27 +150,12 @@ describe("deploy-local plugin manifest publication", () => {
         built_at: "2026-01-01T00:00:00.000Z",
       };
 
-      mkdirSync(temporalDir, { recursive: true });
       writeFileSync(indexPath, FAKE_INDEX);
       writeFileSync(join(distDir, "mcp-server.js"), "// fake mcp server\n");
-      writeFileSync(join(temporalDir, "worker.js"), FAKE_WORKER);
-      writeFileSync(join(temporalDir, "workflows.js"), FAKE_WORKFLOWS);
-      writeFileSync(
-        join(temporalDir, "bundle-manifest.json"),
-        FAKE_WORKER_MANIFEST + "\n",
-      );
       writeFileSync(manifestPath, JSON.stringify(sourceManifest, null, 2));
       utimesSync(indexPath, INDEX_MTIME, INDEX_MTIME);
       utimesSync(join(distDir, "mcp-server.js"), INDEX_MTIME, INDEX_MTIME);
       utimesSync(manifestPath, MANIFEST_MTIME, MANIFEST_MTIME);
-      for (const f of [
-        join(temporalDir, "worker.js"),
-        join(temporalDir, "workflows.js"),
-        join(temporalDir, "bundle-manifest.json"),
-      ]) {
-        utimesSync(f, FRESH_MTIME, FRESH_MTIME);
-      }
-
       ageSourceInputs(fixture.tempWorktree);
 
       const result = fixture.runDeploy(["--fix"]);
@@ -227,80 +198,6 @@ describe("deploy-local plugin manifest publication", () => {
       const parsed = JSON.parse(readFileSync(deployedManifest, "utf8"));
       expect(parsed.generation).toBe(sourceManifest.generation);
       expect(parsed.files.index).toBe(FAKE_INDEX_SHA256);
-    });
-  });
-
-  test("publishes the validated Temporal bundle manifest after its worker payload", () => {
-    withDeployFixture((fixture) => {
-      const distDir = join(fixture.tempWorktree, "plugin", "dist");
-      const temporalDir = join(distDir, "temporal");
-      const temporalManifest = {
-        schema_version: 1,
-        generation:
-          "1111111122222222333333334444444455555555666666667777777788888888",
-        files: {
-          "worker.js": sha256(FAKE_WORKER),
-          "workflows.js": sha256(FAKE_WORKFLOWS),
-        },
-        built_at: "2026-01-01T00:00:00.000Z",
-      };
-
-      mkdirSync(temporalDir, { recursive: true });
-      writeFileSync(join(distDir, "index.js"), FAKE_INDEX);
-      writeFileSync(join(distDir, "mcp-server.js"), "// fake mcp server\n");
-      writeFileSync(join(temporalDir, "worker.js"), FAKE_WORKER);
-      writeFileSync(join(temporalDir, "workflows.js"), FAKE_WORKFLOWS);
-      writeFileSync(
-        join(temporalDir, "bundle-manifest.json"),
-        JSON.stringify(temporalManifest, null, 2),
-      );
-      writeFileSync(
-        join(distDir, "plugin-bundle-manifest.json"),
-        JSON.stringify({
-          schema_version: 1,
-          generation:
-            "aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000011111111",
-          files: { index: FAKE_INDEX_SHA256 },
-          built_at: "2026-01-01T00:00:00.000Z",
-        }),
-      );
-      for (const file of [
-        join(distDir, "index.js"),
-        join(distDir, "mcp-server.js"),
-        join(distDir, "plugin-bundle-manifest.json"),
-        join(temporalDir, "worker.js"),
-        join(temporalDir, "workflows.js"),
-        join(temporalDir, "bundle-manifest.json"),
-      ]) {
-        utimesSync(file, FRESH_MTIME, FRESH_MTIME);
-      }
-
-      ageSourceInputs(fixture.tempWorktree);
-
-      const result = fixture.runDeploy(["--fix"]);
-      const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
-
-      expect(result.status).toBe(0);
-      expect(output).toMatch(/published Temporal bundle manifest/i);
-      expect(readFileSync(fixture.rsyncLog, "utf8")).toContain(
-        "dist/temporal/bundle-manifest.json",
-      );
-      const runtimePlugin = join(
-        fixture.tempHome,
-        ".local/share/Advance/plugin",
-      );
-      const deployedManifest = join(
-        runtimePlugin,
-        "dist",
-        "temporal",
-        "bundle-manifest.json",
-      );
-      expect(JSON.parse(readFileSync(deployedManifest, "utf8"))).toEqual(
-        temporalManifest,
-      );
-      expect(statSync(deployedManifest).mtime.getTime()).toBeGreaterThan(
-        INDEX_MTIME.getTime(),
-      );
     });
   });
 });

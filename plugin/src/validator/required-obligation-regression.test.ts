@@ -12,14 +12,9 @@
  * - Backward compatibility: contracts without requiredCritical work as before
  */
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { createDefaultGates } from "../types";
-import type {
-  Change,
-  ChangeWorkflowState,
-  EngineerSubagentReport,
-} from "../types";
-import type { Store } from "../storage/store-types";
+import type { Change, ChangeState } from "../types";
 import {
   checkCriticalOpsCoverage,
   runPrepReadinessChecks,
@@ -28,46 +23,19 @@ import {
   checkRequiredObligationReleaseBlockers,
   checkRequiredObligationRouting,
   evaluateGateReadiness,
-} from "../temporal/gate-readiness";
-
-// =============================================================================
-// Mocks (mirrors subagent-report.test.ts pattern for tool-layer ingestion)
-// =============================================================================
-
-const mocks = vi.hoisted(() => {
-  const fireSignalAndRefresh = vi.fn(async () => undefined);
-  const workflowHandle = { signal: vi.fn(), query: vi.fn() };
-
-  return {
-    fireSignalAndRefresh,
-    workflowHandle,
-  };
-});
-
-vi.mock("../tools/_adapters", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../tools/_adapters")>()),
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  getChangeHandle: () => mocks.workflowHandle,
-}));
-
-vi.mock("../temporal/service", () => ({
-  getService: () => ({ client: { workflow: { getHandle: vi.fn() } } }),
-}));
+} from "../gates/gate-readiness";
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: async () => "project-1",
 }));
 
 // Import tool layer AFTER mocks are established
-import { subagentReportTools } from "../tools/subagent-report";
 
 // =============================================================================
 // Helpers
 // =============================================================================
 
-function makeChangeWorkflowState(
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+function makeChangeState(overrides: Partial<ChangeState> = {}): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",
@@ -98,7 +66,7 @@ function releaseReadyGates() {
 
 function makeContract(
   items: Array<
-    Partial<NonNullable<ChangeWorkflowState["contract"]>["items"][number]> & {
+    Partial<NonNullable<ChangeState["contract"]>["items"][number]> & {
       id: string;
     }
   >,
@@ -107,7 +75,7 @@ function makeContract(
     status: string;
     evidencePolicy?: string;
   }>,
-): NonNullable<ChangeWorkflowState["contract"]> {
+): NonNullable<ChangeState["contract"]> {
   return {
     version: 1,
     rigor: "standard",
@@ -192,56 +160,6 @@ function buildChangeWithContract(
   } as unknown as Change;
 }
 
-function engineerReport(
-  overrides: Partial<EngineerSubagentReport> = {},
-): EngineerSubagentReport {
-  return {
-    schema_version: "1.0",
-    change_id: "change-1",
-    task_id: "tk-1",
-    attempt: 1,
-    agent: "adv-engineer",
-    status: "complete",
-    scope: { kind: "task", task_id: "tk-1" },
-    workdir_used: "/repo",
-    files_touched: ["src/a.ts"],
-    verification: [{ command: "pnpm test", exit_code: 0, summary: "passed" }],
-    decisions: [{ what: "Used typed tool", why: "Durable state" }],
-    blockers: [],
-    scope_drift: null,
-    follow_ups: [],
-    required_main_agent_actions: [],
-    related_scan: "No same-pattern issues",
-    context_update_for_adv: {
-      what_ads_needs_to_know: "Report submitted",
-      suggested_next_action: "Continue",
-    },
-    ...overrides,
-  };
-}
-
-function storeFor(baseChange: Change): Store {
-  return {
-    paths: {
-      root: "/repo",
-      agenda: "/state/agenda.jsonl",
-    } as Store["paths"],
-    config: null,
-    init: vi.fn(),
-    sync: vi.fn(),
-    close: vi.fn(),
-    flush: vi.fn(),
-    changes: {
-      get: vi.fn(async () => ({ success: true, data: baseChange })),
-      refresh: vi.fn(async () => undefined),
-    },
-  } as unknown as Store;
-}
-
-function parse(output: string): Record<string, any> {
-  return JSON.parse(output) as Record<string, any>;
-}
-
 // =============================================================================
 // Full Pipeline Tests
 // =============================================================================
@@ -285,7 +203,7 @@ describe("required-obligation end-to-end pipeline", () => {
 
     test("release passes when requiredCritical item has passing review matrix", () => {
       const result = evaluateGateReadiness(
-        makeChangeWorkflowState({
+        makeChangeState({
           gates: releaseReadyGates(),
           contract: makeContract(
             [{ id: "RC-1", requiredCritical: true }],
@@ -317,7 +235,7 @@ describe("required-obligation end-to-end pipeline", () => {
 
     test("release blocks for silently deferred requiredCritical (no row, no coverage)", () => {
       const result = evaluateGateReadiness(
-        makeChangeWorkflowState({
+        makeChangeState({
           gates: releaseReadyGates(),
           contract: makeContract(
             [{ id: "RC-1", requiredCritical: true }],
@@ -340,7 +258,7 @@ describe("required-obligation end-to-end pipeline", () => {
 
     test("release also blocks for requiredCritical with failing review status", () => {
       const result = evaluateGateReadiness(
-        makeChangeWorkflowState({
+        makeChangeState({
           gates: releaseReadyGates(),
           contract: makeContract(
             [{ id: "RC-1", requiredCritical: true }],
@@ -403,7 +321,7 @@ describe("checkCriticalOpsCoverage", () => {
 
 describe("checkRequiredObligationReleaseBlockers", () => {
   test("blocks release for failing requiredCritical review row", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "fail" }],
@@ -416,7 +334,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
   });
 
   test("blocks release for 'unknown' review status", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "unknown" }],
@@ -429,7 +347,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
   });
 
   test("does not block for 'violated' non-requiredCritical items", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [
           { id: "RC-1", requiredCritical: false },
@@ -446,7 +364,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
   });
 
   test("no-op for non-release gates", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "fail" }],
@@ -469,7 +387,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
 
 describe("checkRequiredObligationRouting", () => {
   test("blocks release for requiredCritical with no row and no task coverage", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [], // no review matrix rows at all
@@ -482,7 +400,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("allows release when task coverage exists even without review row", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       tasks: [
         {
           id: "tk-cover",
@@ -500,7 +418,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("allows release when notRequiredReason is set", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [
           {
@@ -517,7 +435,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("allows release when review matrix row exists", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "pass" }],
@@ -528,7 +446,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("no-op for non-release gates", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract([{ id: "RC-1", requiredCritical: true }], []),
     });
     for (const gateId of [
@@ -541,128 +459,6 @@ describe("checkRequiredObligationRouting", () => {
     ] as const) {
       expect(checkRequiredObligationRouting(state, gateId)).toHaveLength(0);
     }
-  });
-});
-
-// =============================================================================
-// Report Ingestion Tests
-// =============================================================================
-
-// =============================================================================
-// required_follow_ups report ingestion — retireAgendaWorkflow revision
-//
-// retireAgendaWorkflow removed the agenda consumer write for required
-// follow_ups. The typed obligations still ride on the report payload (and on
-// the subagentReportSubmittedSignal) so the structural release-safety +
-// gate-readiness evaluators above continue to see them unchanged.
-// =============================================================================
-
-describe("required_follow_ups report ingestion", () => {
-  beforeEach(() => {
-    mocks.fireSignalAndRefresh.mockClear();
-  });
-
-  test("required_critical obligations ride on the signal payload unchanged", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: [],
-      required_follow_ups: [
-        {
-          text: "Fix security vulnerability",
-          obligation_class: "required_critical",
-          severity: "critical",
-          source_contract_id: "contract-sec-1",
-        },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    // retireAgendaWorkflow: no agenda write; the consumer result carries the
-    // preview count and an empty `created` list.
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
-    expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
-    // The typed obligations still ride on the signal so release-safety +
-    // gate-readiness evaluators see them.
-    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      report: EngineerSubagentReport;
-    };
-    expect(signalPayload.report.required_follow_ups).toEqual([
-      expect.objectContaining({
-        text: "Fix security vulnerability",
-        obligation_class: "required_critical",
-        severity: "critical",
-        source_contract_id: "contract-sec-1",
-      }),
-    ]);
-  });
-
-  test("severity ordering is preserved across multiple obligations", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: [],
-      required_follow_ups: [
-        {
-          text: "A",
-          obligation_class: "required_critical",
-          severity: "critical",
-        },
-        { text: "B", obligation_class: "required_standard", severity: "high" },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(2);
-    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      report: EngineerSubagentReport;
-    };
-    expect(
-      signalPayload.report.required_follow_ups?.map((r) => r.text),
-    ).toEqual(["A", "B"]);
-  });
-
-  test("report with both follow_ups and required_follow_ups surfaces both kinds", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: ["Advisory follow-up"],
-      required_follow_ups: [
-        {
-          text: "Required follow-up",
-          obligation_class: "required_critical",
-          severity: "critical",
-        },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output.consumerResults.followUps.previewCount).toBe(1);
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
   });
 });
 
@@ -740,7 +536,7 @@ describe("edge cases", () => {
     expect(issues).toHaveLength(0);
 
     const result = evaluateGateReadiness(
-      makeChangeWorkflowState({
+      makeChangeState({
         gates: releaseReadyGates(),
         contract: makeContract(
           [{ id: "AC-1" }, { id: "AC-2" }],
@@ -756,7 +552,7 @@ describe("edge cases", () => {
   });
 
   test("existing non-requiredCritical items are not affected by new release checks", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       gates: releaseReadyGates(),
       contract: makeContract(
         [{ id: "AC-1", requiredCritical: false }, { id: "AC-2" }],

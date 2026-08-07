@@ -1,18 +1,5 @@
-/**
- * adv CLI — live Temporal Epic list reader
- *
- * Reads Epic workflow IDs from Temporal Visibility only. Does not read ADV
- * external state files and does not query or hydrate Epic workflow state.
- */
+/** Disk-owned Epic list reader for the adv CLI. */
 
-import {
-  listEpicWorkflows,
-  type EpicWorkflowListEntry as TemporalEpicWorkflowListEntry,
-  withTemporalOperations,
-  type TemporalOperations,
-  TemporalListOutcomeError,
-} from "../../plugin/src/cli/temporal-boundary";
-import { QUERY_TIMEOUT_MS } from "./live-status";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveAdvStateSubdir } from "./adv-state-paths";
@@ -40,7 +27,7 @@ export interface EpicListPayload {
 }
 
 export function buildLiveEpicListPayload(
-  epics: TemporalEpicWorkflowListEntry[],
+  epics: EpicListEntry[],
   options: {
     projectId: string;
     now: Date;
@@ -52,10 +39,7 @@ export function buildLiveEpicListPayload(
     stale: false,
     generated_at: options.now.toISOString(),
     project_id: options.projectId,
-    epics: epics.map((epic) => ({
-      id: epic.id,
-      startTime: epic.startTime ? epic.startTime.toISOString() : null,
-    })),
+    epics,
   };
 }
 
@@ -74,58 +58,24 @@ export function buildLiveEpicListFailure(
     epics: [],
     error: message,
     remediation:
-      "Live ADV Epic list unavailable. Verify this command is running inside a git repository and Temporal is reachable.",
+      "ADV Epic list unavailable. Verify this command is running inside a git repository and the project state directory is readable.",
   };
-}
-
-export async function listEpicsFromVisibility(
-  owner: TemporalOperations,
-  options: { projectId: string; timeoutMs?: number; status?: "active" | "all" },
-): Promise<TemporalEpicWorkflowListEntry[]> {
-  const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
-  const outcome = await listEpicWorkflows(owner, {
-    projectId: options.projectId,
-    status: options.status ?? "active",
-    limit: 1000,
-  });
-  if (outcome.kind !== "complete") {
-    throw new TemporalListOutcomeError(outcome);
-  }
-  return outcome.value;
 }
 
 export async function loadLiveEpics(
   projectId: string,
-  timeoutMs = QUERY_TIMEOUT_MS,
-): Promise<TemporalEpicWorkflowListEntry[]> {
-  try {
-    return await withTemporalOperations(
-      projectId,
-      (owner) =>
-        listEpicsFromVisibility(owner, {
-          projectId,
-          timeoutMs,
-          status: "active",
-        }),
-      undefined,
-      { connectTimeoutMs: timeoutMs },
-    );
-  } catch {
-    // Temporal removed: read epic projections from disk.
-    return loadEpicsFromDisk(projectId);
-  }
+): Promise<EpicListEntry[]> {
+  return loadEpicsFromDisk(projectId);
 }
 
 /**
- * Disk-projection fallback for epic listing.
+ * Read active Epic projections from disk.
  * Layout: {externalRoot}/active-epics/{epicId}/active-projection.json
  */
-function loadEpicsFromDisk(
-  projectId: string,
-): TemporalEpicWorkflowListEntry[] {
+function loadEpicsFromDisk(projectId: string): EpicListEntry[] {
   try {
     const root = resolveAdvStateSubdir(projectId, "active-epics");
-    const entries: TemporalEpicWorkflowListEntry[] = [];
+    const entries: EpicListEntry[] = [];
     for (const epicId of readdirSync(root)) {
       try {
         const raw = JSON.parse(
@@ -133,10 +83,9 @@ function loadEpicsFromDisk(
         );
         const state = raw.state ?? raw;
         entries.push({
-          epicId: state.id ?? epicId,
-          title: state.title ?? epicId,
-          status: "active",
-        } as unknown as TemporalEpicWorkflowListEntry);
+          id: state.id ?? epicId,
+          startTime: typeof state.created_at === "string" ? state.created_at : null,
+        });
       } catch {
         // skip unreadable epic projections
       }

@@ -1,262 +1,77 @@
-/**
- * Tests for the revived getWorktreeRecord and the read-only
- * worktreeExistsForChange existence probe (Phase G, GFD-6).
- *
- * getWorktreeRecord reads the durable change-workflow `worktrees` map (the same
- * structural source as getWorktreeRegistrySnapshot) instead of returning a null
- * stub. worktreeExistsForChange applies the GFD-2 setup-ready predicate and is
- * the structural authority for the worktree-isolation guard ALLOW path
- * (rq-worktreeMutationGuard01.4).
- */
+import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { describe, expect, it, vi, beforeEach } from "vitest";
-
-import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
-
-const queryFn = vi.hoisted(() => vi.fn());
-const getHandleFn = vi.hoisted(() => vi.fn(() => ({ query: queryFn })));
-const getServiceFn = vi.hoisted(() =>
-  vi.fn(() =>
-    createMockOwnerFromClient({
-      client: { workflow: { getHandle: getHandleFn } },
-    }),
-  ),
-);
-
-vi.mock("../../temporal/service", () => ({
-  getService: getServiceFn,
-}));
-
+import { cleanupTempDir, createTempDir } from "../../__tests__/setup";
 import {
   getWorktreeRecord,
   worktreeExistsForChange,
   type WorktreeStateAccess,
 } from "./state";
 
-const access: WorktreeStateAccess = {
-  projectDir: "/repo",
-  projectId: "0000123000000000000000000000000000000000",
-};
+async function createGitFixture(): Promise<{
+  root: string;
+  access: WorktreeStateAccess;
+  worktree: string;
+}> {
+  const root = await createTempDir("worktree-record-");
+  execSync("git init -b trunk", { cwd: root, stdio: "ignore" });
+  execSync("git config user.email test@example.com", { cwd: root });
+  execSync("git config user.name test", { cwd: root });
+  writeFileSync(join(root, "README.md"), "fixture\n");
+  execSync("git add README.md && git commit -m initial", {
+    cwd: root,
+    stdio: "ignore",
+  });
 
-function stateWithWorktree(
-  changeId: string,
-  branch: string,
-  record: Record<string, unknown>,
-) {
+  const worktree = join(root, "worktree");
+  mkdirSync(worktree, { recursive: true });
+  execSync("git worktree add -b change/myChange " + worktree, {
+    cwd: root,
+    stdio: "ignore",
+  });
   return {
-    changeId,
-    worktrees: { [branch]: record },
+    root,
+    worktree,
+    access: {
+      projectDir: root,
+      projectId: "0000123000000000000000000000000000000000",
+    },
   };
 }
 
-beforeEach(() => {
-  queryFn.mockReset();
-  getHandleFn.mockClear();
-  getServiceFn.mockClear();
-});
-
-describe("getWorktreeRecord", () => {
-  it("returns the workflow worktrees record for a change branch (revived path)", async () => {
-    queryFn.mockResolvedValueOnce(
-      stateWithWorktree("myChange", "change/myChange", {
-        branch: "change/myChange",
-        path: "/wt/change/myChange",
-        status: "active",
-        setupReady: true,
-        materialized: true,
-        createdAt: "2026-01-01T00:00:00Z",
-        lastSeenAt: "2026-01-01T00:00:00Z",
-        baseRef: "trunk",
-        headSha: "abc123",
-        source: "adv",
-        sourceVersion: 1,
-      }),
-    );
-
-    const record = await getWorktreeRecord(access, "change/myChange");
-    expect(record).not.toBeNull();
-    expect(record?.path).toBe("/wt/change/myChange");
-    expect(record?.setupReady).toBe(true);
-    expect(record?.materialized).toBe(true);
-    expect(record?.changeId).toBe("myChange");
-    expect(getHandleFn).toHaveBeenCalledWith(
-      "adv/change/0000123000000000000000000000000000000000/myChange",
-      undefined,
-    );
+describe("disk-owned worktree record probes", () => {
+  it("returns the local census record for a change branch", async () => {
+    const fixture = await createGitFixture();
+    try {
+      const record = await getWorktreeRecord(fixture.access, "change/myChange");
+      expect(record).not.toBeNull();
+      expect(record?.path).toBe(fixture.worktree);
+      expect(record?.changeId).toBe("myChange");
+      expect(record?.setupReady).toBe(true);
+      expect(await worktreeExistsForChange(fixture.access, "myChange")).toBe(
+        true,
+      );
+    } finally {
+      await cleanupTempDir(fixture.root);
+    }
   });
 
-  it("calls getHandle bound to client.workflow (regression: unbound `this` throws in the real SDK)", async () => {
-    // The real Temporal SDK WorkflowClient.getHandle relies on `this`
-    // (it calls this.getOrMakeInterceptors()). Extracting it into a bare
-    // variable and calling it unbound throws `Cannot read properties of
-    // undefined (reading 'getOrMakeInterceptors')`, which getWorktreeRecord's
-    // try/catch swallows to null — making worktreeExistsForChange always false
-    // and blocking every main-checkout mutation. This fake reproduces that
-    // `this`-dependence so the test fails unless getHandle is called bound.
-    const workflow = {
-      _interceptors: [] as unknown[],
-      getOrMakeInterceptors(this: { _interceptors: unknown[] }) {
-        return this._interceptors;
-      },
-      getHandle(this: { getOrMakeInterceptors: () => unknown[] }, _id: string) {
-        // Throws when `this` is undefined (unbound extraction).
-        void this.getOrMakeInterceptors();
-        return {
-          query: async () =>
-            stateWithWorktree("myChange", "change/myChange", {
-              branch: "change/myChange",
-              path: "/wt/change/myChange",
-              status: "created",
-              setupReady: true,
-              createdAt: "2026-01-01T00:00:00Z",
-              baseRef: "trunk",
-              headSha: "abc123",
-            }),
-        };
-      },
-    };
-    getServiceFn.mockReturnValueOnce(
-      createMockOwnerFromClient({ client: { workflow } } as never),
-    );
-
-    const record = await getWorktreeRecord(access, "change/myChange");
-    expect(record).not.toBeNull();
-    expect(record?.path).toBe("/wt/change/myChange");
-    expect(record?.setupReady).toBe(true);
-  });
-
-  it("normalizes legacy created records with a path as setup-ready", async () => {
-    queryFn.mockResolvedValueOnce(
-      stateWithWorktree("myChange", "change/myChange", {
-        branch: "change/myChange",
-        path: "/wt/change/myChange",
-        status: "created",
-        createdAt: "2026-01-01T00:00:00Z",
-        baseRef: "trunk",
-        headSha: "abc123",
-      }),
-    );
-
-    const record = await getWorktreeRecord(access, "change/myChange");
-    expect(record?.setupReady).toBe(true);
-  });
-
-  it("returns null for a non-change branch", async () => {
-    const record = await getWorktreeRecord(access, "feature/foo");
-    expect(record).toBeNull();
-    expect(getServiceFn).not.toHaveBeenCalled();
-  });
-
-  it("returns null when the branch has no record in the worktrees map", async () => {
-    queryFn.mockResolvedValueOnce({ changeId: "myChange", worktrees: {} });
-    const record = await getWorktreeRecord(access, "change/myChange");
-    expect(record).toBeNull();
-  });
-
-  it("returns null when the workflow query throws (unknown existence)", async () => {
-    queryFn.mockRejectedValueOnce(new Error("workflow unreachable"));
-    const record = await getWorktreeRecord(access, "change/myChange");
-    expect(record).toBeNull();
-  });
-
-  it("returns a setup_failed record with setupFailureReason", async () => {
-    queryFn.mockResolvedValueOnce(
-      stateWithWorktree("failedChange", "change/failedChange", {
-        branch: "change/failedChange",
-        path: "/wt/change/failedChange",
-        status: "setup_failed",
-        setupReady: false,
-        materialized: true,
-        setupFailureReason: "postCreate hook failed",
-        createdAt: "2026-01-01T00:00:00Z",
-        lastSeenAt: "2026-01-01T00:00:00Z",
-        baseRef: "trunk",
-        headSha: "abc123",
-        source: "adv",
-        sourceVersion: 1,
-      }),
-    );
-
-    const record = await getWorktreeRecord(access, "change/failedChange");
-    expect(record).not.toBeNull();
-    expect(record?.status).toBe("setup_failed");
-    expect(record?.setupFailureReason).toBe("postCreate hook failed");
-  });
-
-  it("returns null when the Temporal service is unavailable", async () => {
-    getServiceFn.mockReturnValueOnce(undefined as never);
-    const record = await getWorktreeRecord(access, "change/myChange");
-    expect(record).toBeNull();
-  });
-});
-
-describe("worktreeExistsForChange (GFD-2 predicate)", () => {
-  function mockRecord(record: Record<string, unknown> | undefined) {
-    queryFn.mockResolvedValueOnce(
-      record
-        ? stateWithWorktree("c", "change/c", record)
-        : { changeId: "c", worktrees: {} },
-    );
-  }
-
-  const ready = {
-    branch: "change/c",
-    path: "/wt/change/c",
-    status: "active",
-    setupReady: true,
-    materialized: true,
-    createdAt: "2026-01-01T00:00:00Z",
-    lastSeenAt: "2026-01-01T00:00:00Z",
-    baseRef: "trunk",
-    headSha: "abc",
-    source: "adv",
-    sourceVersion: 1,
-  };
-
-  it("returns true for a materialized setup-ready worktree", async () => {
-    mockRecord(ready);
-    expect(await worktreeExistsForChange(access, "c")).toBe(true);
-  });
-
-  it("returns true for a legacy created record with path and missing setupReady", async () => {
-    mockRecord({
-      branch: "change/c",
-      path: "/wt/change/c",
-      status: "created",
-      createdAt: "2026-01-01T00:00:00Z",
-      baseRef: "trunk",
-      headSha: "abc",
-    });
-    expect(await worktreeExistsForChange(access, "c")).toBe(true);
-  });
-
-  it("returns false for a setup_failed record", async () => {
-    mockRecord({ ...ready, status: "setup_failed" });
-    expect(await worktreeExistsForChange(access, "c")).toBe(false);
-  });
-
-  it("returns false for a setupReady:false record", async () => {
-    mockRecord({ ...ready, setupReady: false });
-    expect(await worktreeExistsForChange(access, "c")).toBe(false);
-  });
-
-  it("returns false for a deleted record", async () => {
-    mockRecord({ ...ready, status: "deleted" });
-    expect(await worktreeExistsForChange(access, "c")).toBe(false);
-  });
-
-  it("returns false when path is missing", async () => {
-    mockRecord({ ...ready, path: undefined });
-    expect(await worktreeExistsForChange(access, "c")).toBe(false);
-  });
-
-  it("returns false when no record exists", async () => {
-    mockRecord(undefined);
-    expect(await worktreeExistsForChange(access, "c")).toBe(false);
-  });
-
-  it("returns false on Temporal-unavailable (never ALLOW on unknown existence)", async () => {
-    getServiceFn.mockReturnValueOnce(undefined as never);
-    expect(await worktreeExistsForChange(access, "c")).toBe(false);
+  it("returns null/false for non-change and unknown branches", async () => {
+    const fixture = await createGitFixture();
+    try {
+      await expect(
+        getWorktreeRecord(fixture.access, "feature/foo"),
+      ).resolves.toBeNull();
+      await expect(
+        getWorktreeRecord(fixture.access, "change/missing"),
+      ).resolves.toBeNull();
+      await expect(
+        worktreeExistsForChange(fixture.access, "missing"),
+      ).resolves.toBe(false);
+    } finally {
+      await cleanupTempDir(fixture.root);
+    }
   });
 });

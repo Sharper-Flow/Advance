@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import type { GateId, GateReadinessBlocker, Gates } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
 import { LightweightProfileOmissionPolicySchema } from "../types/lightweight-change-profile";
@@ -14,9 +14,7 @@ const EPOCH = Date.parse("2026-05-05T12:00:00.000Z");
 const STALE = "2026-05-04T00:00:00.000Z"; // >24h before EPOCH
 const FRESH = "2026-05-05T11:30:00.000Z"; // 30m before EPOCH
 
-function makeState(
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+function makeState(overrides: Partial<ChangeState> = {}): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",
@@ -104,22 +102,6 @@ describe("deriveWorkflowDirective", () => {
     expect(d.action.kind).toBe("approval");
     expect(d.approvalPending).toBe(true);
     expect(d.action.gateId).toBe("planning");
-  });
-
-  it("classifies poisoned-history evidence as recovery", () => {
-    const gates = gatesWith("execution", "stuck", {
-      stuck_reason: "TMPRL1100 nondeterminism while replaying history",
-    });
-    const ready = markDone(
-      gates,
-      "proposal",
-      "discovery",
-      "design",
-      "planning",
-    );
-    const d = deriveWorkflowDirective(makeState({ gates: ready }), EPOCH);
-    expect(d.recovery?.reason).toBe("poisoned_history");
-    expect(d.action.kind).toBe("recovery");
   });
 
   it("classifies a terminated non-terminal workflow as missing_workflow", () => {

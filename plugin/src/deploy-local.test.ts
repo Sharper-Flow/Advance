@@ -8,7 +8,6 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const POST_COMMIT_HOOK_PATH = join(REPO_ROOT, ".githooks/post-commit");
 const PRE_PUSH_HOOK_PATH = join(REPO_ROOT, ".githooks/pre-push");
-const SETUP_DOC_PATH = join(REPO_ROOT, "SETUP.md");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
 const PROVIDER_ASSEMBLY_DOC_PATH = join(
@@ -79,7 +78,6 @@ describe("deploy-local.sh", () => {
   const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
   const postCommitHook = readFileSync(POST_COMMIT_HOOK_PATH, "utf8");
   const prePushHook = readFileSync(PRE_PUSH_HOOK_PATH, "utf8");
-  const setupDoc = readFileSync(SETUP_DOC_PATH, "utf8");
 
   test("script exists and is non-empty", () => {
     expect(existsSync(DEPLOY_SCRIPT_PATH)).toBe(true);
@@ -248,41 +246,6 @@ describe("deploy-local.sh", () => {
       );
     });
 
-    test("refreshes deployed Temporal workers after runtime sync", () => {
-      expect(content).toContain("refresh_deployed_temporal_workers");
-      expect(content).toContain(
-        'worker_script="$runtime_plugin_path/dist/temporal/worker.js"',
-      );
-      expect(content).toContain(
-        'cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P',
-      );
-      expect(content).toContain('kill -TERM "$pid"');
-      expect(content).toContain("[ADV:ACTION_REQUIRED]");
-      expect(content).toContain("list_deployed_temporal_worker_matches");
-
-      const syncIndex = content.indexOf(
-        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
-      );
-      const refreshIndex = content.indexOf(
-        'refresh_deployed_temporal_workers "after-sync"',
-      );
-      expect(syncIndex).toBeGreaterThan(-1);
-      expect(refreshIndex).toBeGreaterThan(syncIndex);
-    });
-
-    test("deploy worker refresh is exact-path scoped and excludes self", () => {
-      expect(content).toContain('if [ "$arg" = "$worker_script" ]; then');
-      expect(content).toContain('[ "$pid" = "$$" ] && continue');
-      expect(content).toContain('[ "$pid" = "${BASHPID:-$$}" ] && continue');
-      expect(content).not.toContain("pgrep -f dist/temporal/worker.js");
-    });
-
-    test("read-only deploy modes report worker refresh without signaling", () => {
-      expect(content).toContain('refresh_deployed_temporal_workers "check"');
-      expect(content).toContain('refresh_deployed_temporal_workers "dry-run"');
-      expect(content).toContain("No worker processes were signaled.");
-    });
-
     test("deploy worker refresh failure evidence is not swallowed by hooks", () => {
       expect(postCommitHook).toContain(
         'deploy_output="$($DEPLOY_SCRIPT --fix 2>&1)"',
@@ -298,11 +261,6 @@ describe("deploy-local.sh", () => {
       expect(prePushHook).not.toContain(
         '"$DEPLOY_SCRIPT" --fix >/dev/null 2>&1',
       );
-    });
-
-    test("setup docs mention deployed Temporal worker bounce", () => {
-      expect(setupDoc).toContain("Bounce exact-path deployed Temporal workers");
-      expect(setupDoc).toContain("[ADV:ACTION_REQUIRED]");
     });
 
     test("removes legacy non-ADV commands", () => {
@@ -693,7 +651,7 @@ describe("deploy-local.sh", () => {
       expect(advAgent).toContain("### Worktree Isolation Routing");
     });
 
-    test("advance-meta spec captures worker heartbeat and run-loop health requirements", () => {
+    test("advance-meta spec culls worker lifecycle requirements and retains disk timeout proof", () => {
       const parsed = SpecSchema.parse(spec);
       const timeoutOverride = parsed.requirements.find(
         (rq) => rq.id === "rq-toolTimeoutOverride01",
@@ -715,90 +673,16 @@ describe("deploy-local.sh", () => {
         (s) => s.id === "rq-toolTimeoutOverride01.2",
       );
       expect(restartScenario?.then.join("\n")).toContain(
-        "returns success:true only when serviceability is proven",
+        "returns success:true only when the post-fix disk condition is proven",
       );
       expect(restartScenario?.then.join("\n")).toContain(
         "explicit safety-net timeout override",
       );
 
-      expect(workerSingleton?.body).toContain("heartbeat");
-      expect(workerSingleton?.body).toContain("v1 fallback");
-      expect(workerSingleton?.body).toContain("serviceable queue");
-      // Re-entry: body extended for fresh-v2 unserviceable suspect classification
-      // and self-expiry guidance (rq-workerSingleton01.7/.8).
-      expect(workerSingleton?.body).toContain("unserviceable");
-      expect(workerSingleton?.body).toContain("stop renewing");
-      expect(workerSingleton?.scenarios).toHaveLength(9);
-      expect(scenarioIds).toContain("rq-workerSingleton01.5");
-      expect(scenarioIds).toContain("rq-workerSingleton01.6");
-      expect(scenarioIds).toContain("rq-workerSingleton01.7");
-      expect(scenarioIds).toContain("rq-workerSingleton01.8");
-      expect(scenarioIds).toContain("rq-workerSingleton01.9");
-      expect(
-        workerSingleton?.scenarios?.find(
-          (s) => s.id === "rq-workerSingleton01.2",
-        )?.given,
-      ).toContain(
-        "A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)",
-      );
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.6")
-          ?.then.join("\n"),
-      ).toContain("explicit user approval evidence");
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.7")
-          ?.then.join("\n"),
-      ).toContain("suspect_live_unserviceable_lock");
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.8")
-          ?.then.join("\n"),
-      ).toContain("stop renewing the heartbeat");
-      expect(
-        workerSingleton?.scenarios
-          ?.find((s) => s.id === "rq-workerSingleton01.9")
-          ?.then.join("\n"),
-      ).toContain("worker_role");
-      expect(workerHealth?.scenarios).toHaveLength(4);
-      expect(scenarioIds).toContain("rq-workerHealth01.1");
-      expect(scenarioIds).toContain("rq-workerHealth01.2");
-      expect(scenarioIds).toContain("rq-workerHealth01.3");
-      expect(scenarioIds).toContain("rq-workerHealth01.4");
-      expect(
-        workerHealth?.scenarios
-          ?.find((s) => s.id === "rq-workerHealth01.3")
-          ?.then.join("\n"),
-      ).toContain("liveness evidence only");
-      expect(
-        workerHealth?.scenarios
-          ?.find((s) => s.id === "rq-workerHealth01.4")
-          ?.then.join("\n"),
-      ).toContain("STSL");
-      expect(deployWorkerBounce?.body).toContain("SIGTERM");
-      expect(deployWorkerBounce?.body).toContain("[ADV:ACTION_REQUIRED]");
-      expect(deployWorkerBounce?.body).toContain(
-        "ADV_TEMPORAL_WORKER_SELF_ROLL=1",
-      );
-      expect(deployWorkerBounce?.body).toContain("self-roll");
-      expect(deployWorkerBounce?.scenarios).toHaveLength(3);
-      expect(
-        deployWorkerBounce?.scenarios
-          ?.find((s) => s.id === "rq-deployWorkerBounce01.1")
-          ?.then.join("\n"),
-      ).toContain("ADV_TEMPORAL_WORKER_SELF_ROLL=1");
-      expect(
-        deployWorkerBounce?.scenarios?.find(
-          (s) => s.id === "rq-deployWorkerBounce01.2",
-        )?.title,
-      ).toContain("Self-roll");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce01.1");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce01.2");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce01.3");
-      expect(deployWorkerBounceReadOnly?.scenarios).toHaveLength(2);
-      expect(scenarioIds).toContain("rq-deployWorkerBounce02.1");
-      expect(scenarioIds).toContain("rq-deployWorkerBounce02.2");
+      expect(workerSingleton).toBeUndefined();
+      expect(workerHealth).toBeUndefined();
+      expect(deployWorkerBounce).toBeUndefined();
+      expect(deployWorkerBounceReadOnly).toBeUndefined();
     });
 
     test("advance-meta spec captures stability feature-flag defaults and probe freshness", () => {
@@ -831,7 +715,7 @@ describe("deploy-local.sh", () => {
       expect(probeCache?.body).toContain("age_ms");
       expect(probeCache?.body).toContain("ttl_ms");
       expect(probeCache?.body).toContain("forceRefresh");
-      expect(probeCache?.body).toContain("AbortSignal");
+      expect(probeCache?.body).toContain("AbortMutation");
       expect(probeCache?.scenarios?.map((s) => s.id)).toEqual(
         expect.arrayContaining([
           "rq-statusProbeCache01.1",
@@ -852,7 +736,7 @@ describe("deploy-local.sh", () => {
       expect(latencyBench).toBeDefined();
       expect(latencyBench?.body).toContain("p95");
       expect(latencyBench?.body).toContain(
-        "MUST NOT fabricate a TemporalClientBundle",
+        "MUST NOT fabricate a DiskProjectionStoreBundle",
       );
       expect(latencyBench?.scenarios?.map((s) => s.id)).toContain(
         "rq-advLatencyBench01.3",
@@ -926,8 +810,6 @@ describe("deploy-local.sh", () => {
       // invariant guidance to the canonical ADV agent.
       // Ceiling raised from 368 → 371 after documenting the change-lifecycle
       // state invariant in the canonical ADV prompt.
-      // Ceiling raised from 365 → 368 after adding compact adv-temporal-repair
-      // routing markers and packet anchors.
       // Ceiling raised from 362 → 363 after adding the release-stage
       // adv-reviewer phase mapping needed for typed worker packets.
       // Ceiling raised from 361 → 362 after adding explicit typed worker
@@ -939,8 +821,8 @@ describe("deploy-local.sh", () => {
       // adv.md is identical to trunk, which already accepts 371).
       // Ceiling raised from 371 → 372 after addDesignQualityGates shipped
       // adv_design_concern_disposition and we added it to the allowlists.
-      // Ceiling raised from 400 → 411 after adding adv_change_repair_origin and
-      // adv_delta_modify to the canonical ADV agent allowlist.
+      // Ceiling raised from 400 → 411 after adding adv_delta_modify and
+      // related canonical ADV agent allowlist entries.
       // Ceiling raised from 411 → 412 after trunk added adv_tool_invoke,
       // adv_archive_purge, adv_contract_mint, and adv_snapshot_health to the
       // canonical ADV agent allowlist.
@@ -962,7 +844,6 @@ describe("deploy-local.sh", () => {
         "Cancellation",
         "Due diligence first",
         "acceptance reviews use `review`",
-        "adv-temporal-repair",
         "SYMPTOM",
         "RECENT_TOOL_ERROR",
       ]) {

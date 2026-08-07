@@ -12,7 +12,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { createLegacyStore, type Store } from "../storage/store";
+import { createDiskStore, type Store } from "../storage/store";
 import {
   cleanupTempDir,
   createTempDir,
@@ -28,7 +28,7 @@ describe("adv_change_create origin field", () => {
   beforeEach(async () => {
     dir = await createTempDir("adv-origin-");
     await createTestProject(dir);
-    store = await createLegacyStore(dir);
+    store = await createDiskStore(dir);
     await store.init();
   });
 
@@ -60,6 +60,8 @@ describe("adv_change_create origin field", () => {
         origin_issue_number: 89,
       },
       store,
+      undefined,
+      { claimRaceCheckMs: 0 },
     );
     const parsed = parseToolOutput(output);
     expect(parsed.origin).toEqual({

@@ -18,7 +18,7 @@ import {
   formatAdvToolTitle,
   hasExplicitAdvToolTitle,
 } from "./utils/tool-title";
-import { createLegacyStore } from "./storage/store";
+import { createDiskStore } from "./storage/store";
 import { getToolOperationContext } from "./utils/tool-operation-context";
 import {
   createTempDir,
@@ -70,7 +70,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     // Drift guard: if a new tool is added to createToolMap but ADV_TOOL_NAMES
     // is not updated, agents in degraded sessions will see "tool missing" for
     // that tool and lose the structured ADV_PLUGIN_INIT_FAILED diagnostic path.
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const realToolNames = Object.keys(
@@ -151,7 +151,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
   });
 
   test("registered tools return ToolResult objects with title and parseable output", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda);
@@ -181,7 +181,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
   });
 
   test("registered tools set running metadata when context supports it", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda);
@@ -205,7 +205,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
   });
 
   test("registered adv_spec forwards SDK worktree context", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const worktree = join(tempDir, "sdk-context-worktree");
@@ -428,12 +428,12 @@ describe("createDegradedToolMap parity with createToolMap", () => {
 
 describe("KD-8 worktree + session tool registrations", () => {
   let tempDir: string;
-  let store: Awaited<ReturnType<typeof createLegacyStore>>;
+  let store: Awaited<ReturnType<typeof createDiskStore>>;
 
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
     await store.init();
   });
 
@@ -546,12 +546,12 @@ describe("KD-8 worktree + session tool registrations", () => {
 
 describe("adv_snapshot_health registration", () => {
   let tempDir: string;
-  let store: Awaited<ReturnType<typeof createLegacyStore>>;
+  let store: Awaited<ReturnType<typeof createDiskStore>>;
 
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
     await store.init();
   });
 
@@ -707,7 +707,7 @@ describe("rq-zodParseValidation01 — runtime Zod schema validation at SDK bound
     // we even reach this assertion.
     const storeTempDir = await createTempDir();
     const mapTempDir = await createTempDir();
-    const store = await createLegacyStore(storeTempDir);
+    const store = await createDiskStore(storeTempDir);
     await store.init();
     try {
       const map = createToolMap(store, mapTempDir, store.paths.agenda);

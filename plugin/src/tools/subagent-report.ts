@@ -1,12 +1,6 @@
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
-import { getService } from "../temporal/service";
 import {
-  subagentReportSubmittedSignal,
-  taskUpdatedSignal,
-} from "../temporal/messages";
-import {
-  SUBAGENT_REPORT_MAX_RETRIES,
   formatApplyContextBindingHint,
   subagentReportImplementationCycleId,
   subagentReportKey,
@@ -18,22 +12,19 @@ import {
   ScopedSubagentReportSchema,
   DelegationRecoverySchema,
   type Change,
-  type ErrorRecovery,
   type ScopedSubagentReport,
   type Task,
   type RequiredFollowUp,
   type DelegationRecovery,
 } from "../types";
-import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import { saveRecoveredSubagentReport } from "./_recovery-writers";
 import { resolveTaskEvidence } from "../validator/task-classifier";
 import {
   resolveTypedVerificationWarnings,
   type DurableTestRunLike,
 } from "../utils/typed-verification-evidence";
-import { isWorkflowCompletedError } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -119,14 +110,85 @@ interface SubmitArgs {
   confirmationEvidence?: string;
 }
 
-async function getChangeHandleForChangeId(store: Store, changeId: string) {
-  const bundle = getService();
-  if (!bundle) throw new Error("Temporal service not available");
-  const projectId =
-    store.productContext?.productProjectId ??
-    (await getProjectId(store.paths.root));
-  if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle, projectId, changeId);
+async function persistReportProjection(input: {
+  store: Store;
+  change: Change;
+  report: ScopedSubagentReport;
+  taskId?: string;
+  delegationRecovery?: DelegationRecovery;
+}): Promise<void> {
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "persist sub-agent report",
+      evidence: subagentReportKey({
+        changeId: input.report.change_id,
+        taskId: input.taskId,
+        scope:
+          typeof input.report.scope === "string"
+            ? undefined
+            : input.report.scope,
+        agent: input.report.agent,
+        attempt: input.report.attempt,
+        implementationCycleId: subagentReportImplementationCycleId(
+          input.report,
+        ),
+      }),
+    },
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.report.change_id,
+      mutationKind: "subagent_report_submitted",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        subagent_reports: [...(latest.subagent_reports ?? []), input.report],
+        ...(input.taskId && input.delegationRecovery
+          ? {
+              tasks: latest.tasks.map((task) =>
+                task.id === input.taskId
+                  ? { ...task, delegation_recovery: input.delegationRecovery }
+                  : task,
+              ),
+            }
+          : {}),
+      }),
+      verifyProjection: (readback) =>
+        (readback.subagent_reports ?? []).some(
+          (candidate) =>
+            subagentReportKey({
+              changeId: candidate.change_id,
+              taskId: reportTaskId(candidate),
+              scope:
+                typeof candidate.scope === "string"
+                  ? undefined
+                  : candidate.scope,
+              agent: candidate.agent,
+              attempt: candidate.attempt,
+              implementationCycleId:
+                subagentReportImplementationCycleId(candidate),
+            }) ===
+            subagentReportKey({
+              changeId: input.report.change_id,
+              taskId: input.taskId,
+              scope:
+                typeof input.report.scope === "string"
+                  ? undefined
+                  : input.report.scope,
+              agent: input.report.agent,
+              attempt: input.report.attempt,
+              implementationCycleId: subagentReportImplementationCycleId(
+                input.report,
+              ),
+            }),
+        ),
+    },
+  });
+  if (outcome.kind !== "verified") {
+    throw new Error(
+      outcome.kind === "unverified" || outcome.kind === "operator_required"
+        ? outcome.reason
+        : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+    );
+  }
 }
 
 async function loadChange(store: Store, changeId: string): Promise<Change> {
@@ -345,10 +407,6 @@ async function recordMalformedDelegationRecovery(input: {
 
   const recordedAt = new Date().toISOString();
   try {
-    const handle = await getChangeHandleForChangeId(
-      input.store,
-      identity.changeId,
-    );
     const change = await loadChange(input.store, identity.changeId);
     const task = findTask(change, identity.taskId);
     if (!task) {
@@ -368,19 +426,38 @@ async function recordMalformedDelegationRecovery(input: {
       };
     }
 
-    await fireSignalAndRefresh(
-      handle,
-      input.store,
-      identity.changeId,
-      taskUpdatedSignal,
-      {
-        taskId: identity.taskId,
-        partial: {
-          delegation_recovery: DelegationRecoverySchema.parse(next),
-        },
-        updatedAt: recordedAt,
+    const outcome = await coordinateChangeMutation<Change>({
+      authority: {
+        reason: "record malformed report recovery",
+        evidence: input.code,
       },
-    );
+      changesDir: input.store.paths.changes,
+      intent: {
+        changeId: identity.changeId,
+        mutationKind: "delegation_recovery_updated",
+        mutateLatestProjection: (latest) => ({
+          ...latest,
+          tasks: latest.tasks.map((candidate) =>
+            candidate.id === identity.taskId
+              ? {
+                  ...candidate,
+                  delegation_recovery: DelegationRecoverySchema.parse(next),
+                }
+              : candidate,
+          ),
+        }),
+        verifyProjection: (readback) =>
+          readback.tasks.find((candidate) => candidate.id === identity.taskId)
+            ?.delegation_recovery?.last_updated_at === recordedAt,
+      },
+    });
+    if (outcome.kind !== "verified") {
+      throw new Error(
+        outcome.kind === "unverified" || outcome.kind === "operator_required"
+          ? outcome.reason
+          : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+      );
+    }
     return { recorded: true };
   } catch (error) {
     return {
@@ -405,82 +482,6 @@ function reportIdentity(rawReport: unknown): {
     agent: parsed.data.agent,
     attempt: parsed.data.attempt ?? 1,
   };
-}
-
-function submitFailureRecovery(input: {
-  code: string;
-  message: string;
-  identity: NonNullable<ReturnType<typeof reportIdentity>>;
-  recordedAt: string;
-}): ErrorRecovery {
-  const agent = input.identity.agent ?? "unknown-agent";
-  return {
-    last_error: input.message.slice(0, 200),
-    // Clamp for the same reason the reducer does: retry_count is bounded by
-    // max_retries on read. This site records a single attempt so it cannot
-    // breach the attempts-length ceiling, but an unclamped counter is still
-    // wrong and would trip the invariant if attempts were ever absent.
-    retry_count: Math.min(input.identity.attempt, SUBAGENT_REPORT_MAX_RETRIES),
-    max_retries: SUBAGENT_REPORT_MAX_RETRIES,
-    error_class: "SEMANTIC",
-    next_strategy:
-      "Fix sub-agent report payload or Temporal submission path and retry",
-    attempts: [
-      {
-        attempt_number: input.identity.attempt,
-        error: input.message,
-        diagnosis: input.code,
-        fix_tried: "adv_subagent_report_submit",
-        strategy_label: `${agent}-report-submit-failure`,
-        outcome: "failed",
-        attempted_at: input.recordedAt,
-      },
-    ],
-  };
-}
-
-async function recordSubmitFailure(input: {
-  store: Store;
-  rawReport: unknown;
-  code: string;
-  message: string;
-}): Promise<{ recorded: boolean; reason?: string }> {
-  const identity = reportIdentity(input.rawReport);
-  if (!identity || !identity.taskId) {
-    return { recorded: false, reason: "report identity unavailable" };
-  }
-
-  const recordedAt = new Date().toISOString();
-  try {
-    const handle = await getChangeHandleForChangeId(
-      input.store,
-      identity.changeId,
-    );
-    await fireSignalAndRefresh(
-      handle,
-      input.store,
-      identity.changeId,
-      taskUpdatedSignal,
-      {
-        taskId: identity.taskId,
-        partial: {
-          error_recovery: submitFailureRecovery({
-            code: input.code,
-            message: input.message,
-            identity,
-            recordedAt,
-          }),
-        },
-        updatedAt: recordedAt,
-      },
-    );
-    return { recorded: true };
-  } catch (error) {
-    return {
-      recorded: false,
-      reason: error instanceof Error ? error.message : String(error),
-    };
-  }
 }
 
 /**
@@ -1048,9 +1049,8 @@ async function executeSubmit(
     const isTerminal =
       change.status === "archived" || change.status === "closed";
     if (isTerminal) {
-      // rq-subagentReports12: terminal workflows cannot accept
-      // subagentReportSubmittedSignal. Route to the disk-projection fallback
-      // so post-archive/post-close review reports persist durably. No early
+      // Terminal changes use the disk-projection writer so post-archive/post-close
+      // review reports persist durably. No early
       // return — consumers run after (they are file-based, work post-archive).
       try {
         await saveRecoveredSubagentReport({
@@ -1081,124 +1081,41 @@ async function executeSubmit(
         );
       }
     } else {
-      const handle = await getChangeHandleForChangeId(store, report.change_id);
       const taskIdForSignal = reportTaskId(report);
       const now = new Date().toISOString();
-
-      // AC5: a valid task-scoped report following an empty/malformed incident
-      // resolves the recovery state to clean; inline diagnosis evidence must be
-      // recorded separately via a typed task update with SEMANTIC evidence.
-      if (taskIdForSignal && task) {
-        const updatedRecovery = nextDelegationRecoveryForValid(
-          task.delegation_recovery,
-          delegationRecoveryScope(taskIdForSignal, report.agent),
-          now,
-        );
-        if (updatedRecovery && updatedRecovery !== task.delegation_recovery) {
-          try {
-            await fireSignalAndRefresh(
-              handle,
-              store,
-              report.change_id,
-              taskUpdatedSignal,
-              {
-                taskId: taskIdForSignal,
-                partial: {
-                  delegation_recovery:
-                    DelegationRecoverySchema.parse(updatedRecovery),
-                },
-                updatedAt: now,
-              },
-            );
-          } catch (error) {
-            const message =
+      const updatedRecovery =
+        taskIdForSignal && task
+          ? nextDelegationRecoveryForValid(
+              task.delegation_recovery,
+              delegationRecoveryScope(taskIdForSignal, report.agent),
+              now,
+            )
+          : undefined;
+      try {
+        await persistReportProjection({
+          store,
+          change,
+          report,
+          taskId: taskIdForSignal,
+          delegationRecovery:
+            updatedRecovery &&
+            task &&
+            updatedRecovery !== task.delegation_recovery
+              ? DelegationRecoverySchema.parse(updatedRecovery)
+              : undefined,
+        });
+      } catch (error) {
+        return appendProjectContext(
+          formatToolOutput({
+            error:
               error instanceof Error
                 ? error.message
-                : "Failed to update delegation recovery state";
-            return appendProjectContext(
-              formatToolOutput({
-                error: message,
-                code: "SUBMIT_SIGNAL_FAILED",
-                reportId: id,
-              }),
-              projectContext,
-            );
-          }
-        }
-      }
-
-      try {
-        await fireSignalAndRefresh(
-          handle,
-          store,
-          report.change_id,
-          subagentReportSubmittedSignal,
-          {
-            ...(taskIdForSignal ? { taskId: taskIdForSignal } : {}),
-            report,
-            submittedAt: now,
-          },
-        );
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to persist sub-agent report";
-        // Tightened authorization for non-terminal WorkflowNotFound recovery
-        // (AC3/SC2): use the structural completed-workflow classifier instead
-        // of a regex on the message text. This catches err.name-only matches
-        // (e.g. WorkflowNotFoundError with a generic message) and rejects
-        // benign messages that merely contain a recognized substring.
-        const completedWorkflow = isWorkflowCompletedError(error);
-        if (completedWorkflow) {
-          // Derive precise audit evidence from the error so the recovery
-          // record cites the actual completed-workflow marker.
-          const errorName = error instanceof Error ? error.name : undefined;
-          const evidence =
-            errorName && errorName !== "Error"
-              ? `${errorName}: ${message}`
-              : message;
-          try {
-            await saveRecoveredSubagentReport({
-              store,
-              change,
-              report,
-              authorization: {
-                reason: "post_archive_report_persist_race_fallback",
-                evidence,
-              },
-            });
-          } catch (fallbackError) {
-            const fbMessage =
-              fallbackError instanceof Error
-                ? fallbackError.message
-                : "Disk-projection fallback also failed";
-            return appendProjectContext(
-              formatToolOutput({
-                error: fbMessage,
-                code: "SUBMIT_SIGNAL_FAILED",
-                reportId: id,
-              }),
-              projectContext,
-            );
-          }
-        } else {
-          const failureRecord = await recordSubmitFailure({
-            store,
-            rawReport: report,
+                : "Failed to persist sub-agent report",
             code: "SUBMIT_SIGNAL_FAILED",
-            message,
-          });
-          return appendProjectContext(
-            formatToolOutput({
-              error: message,
-              code: "SUBMIT_SIGNAL_FAILED",
-              reportId: id,
-              failureRecord,
-            }),
-            projectContext,
-          );
-        }
+            reportId: id,
+          }),
+          projectContext,
+        );
       }
     }
   }
@@ -1282,7 +1199,7 @@ export const subagentReportTools = {
               target_path: args.target_path,
               target_confirmed: args.target_confirmed,
               confirmationEvidence: args.confirmationEvidence,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
             },
             async ({ context, store: targetStore }) =>
               executeSubmit(

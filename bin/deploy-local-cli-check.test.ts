@@ -136,8 +136,8 @@ const HEALTHY_LIVE_PAYLOAD = JSON.stringify(
 
 /**
  * Fail-closed live error payload. rq-advCliLocalInstall01 accepts
- * "`source: \"temporal\"` on success or fail-closed live error metadata", so
- * this must PASS. Asserting `live: true` would wrongly reject it.
+ * accepts a disk source on success or fail-closed error metadata, so this must
+ * PASS. Asserting `live: true` would wrongly reject it.
  */
 const LIVE_ERROR_PAYLOAD = JSON.stringify(
   {
@@ -148,7 +148,7 @@ const LIVE_ERROR_PAYLOAD = JSON.stringify(
     project_id: "bdf259aa162ae192af5b18899ccdc653b085528d",
     counts: { active: 0, archived: 0, closed: 0 },
     changes: [],
-    error: "Temporal read timed out",
+    error: "Disk projection read failed",
     remediation: "Check the worker and retry",
   },
   null,
@@ -190,7 +190,7 @@ describe("verify_adv_cli_live_json", () => {
 
   test("rejects a payload whose source is not disk", () => {
     expect(
-      runCheck(JSON.stringify({ source: "temporal", live: false }, null, 2)),
+      runCheck(JSON.stringify({ source: "remote", live: false }, null, 2)),
     ).not.toBe(0);
   });
 
@@ -206,11 +206,11 @@ describe("verify_adv_cli_live_json", () => {
 
     test("reports the observed source when it is not disk", () => {
       const { exitCode, diagnostic } = runCheckDetailed(
-        JSON.stringify({ source: "temporal", live: false }),
+        JSON.stringify({ source: "remote", live: false }),
       );
       expect(exitCode).not.toBe(0);
       expect(diagnostic).toContain("source");
-      expect(diagnostic).toContain("temporal");
+       expect(diagnostic).toContain("remote");
     });
 
     test("reports the observed top-level schema_version on a disk-only payload", () => {

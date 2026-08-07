@@ -192,7 +192,7 @@ export type AcceptanceCriteriaProjection = z.infer<
 
 /**
  * Criterion definition — static metadata for a gate criterion.
- * Evaluators are separate functions that inspect ChangeWorkflowState.
+ * Evaluators are separate functions that inspect ChangeState.
  */
 export interface CriterionDef {
   /** Unique criterion identifier */

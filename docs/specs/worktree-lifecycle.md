@@ -9,13 +9,13 @@ Capability: Branch-aware worktree registry with strict setup readiness, git-firs
 
 ## Requirements
 
-### Branch-Aware Worktree Registry
+### Branch-Aware Disk Worktree Registry
 
 **ID:** `rq-wl-branchRegistry01` | **Priority:** **[MUST]**
 
-The worktree registry (per-change workflow state, with cross-change visibility via AdvWorktreeBranches/AdvWorktreePaths Temporal search attributes) must store per-entry: branch, path, materialized flag, changeId, status, setupReady, setupFailureReason, baseRef, headSha, source, cleanupEligible, cleanupBlockedBy. Legacy MaterializedWorktreeRecord consumers must continue to work through a materialized-only compatibility view.
+The worktree registry MUST persist per-change entries in durable disk projections and expose a compatibility view containing branch, path, materialized, changeId, status, setupReady, setupFailureReason, baseRef, headSha, source, cleanupEligible, and cleanupBlockedBy.
 
-**Tags:** `worktree`, `registry`, `temporal`
+**Tags:** `worktree`, `registry`, `disk`
 
 #### Scenarios
 
@@ -41,23 +41,23 @@ The worktree registry (per-change workflow state, with cross-change visibility v
 
 ---
 
-### Cross-change worktree reads isolate poisoned workflow queries
+### Cross-Change Worktree Reads Isolate Unreadable Projections
 
 **ID:** `rq-worktreePoisonVisibility01` | **Priority:** **[MUST]**
 
-Cross-change worktree visibility MUST query each owning change workflow independently. Worktree branch-owner and active-worktree discovery queries MUST filter owners by AdvLifecycleState = "open" plus ExecutionStatus = "Running" and MUST NOT use AdvChangeStatus as open-owner authority. A failed per-change getWorktreesQuery MUST NOT abort the whole listWorktreesAcrossChanges result. The result MUST include healthy records from other workflows plus structured warnings and poisonedWorkflows metadata when describe/error evidence identifies poisoned history. When the Temporal visibility source itself is unavailable, the result MUST be marked unavailable rather than throwing to the WIP aggregator.
+Cross-change worktree visibility MUST read each owning change projection independently. A failed per-change read MUST NOT abort the whole result; healthy records remain visible alongside structured unreadable-projection warnings. An unavailable projection source MUST be marked degraded rather than throwing to the WIP aggregator.
 
-**Tags:** `worktree`, `temporal`, `poisoned-history`, `visibility`
+**Tags:** `worktree`, `disk`, `unavailable-projection`, `visibility`
 
 #### Scenarios
 
 **Open worktree owners are selected by lifecycle state** (`rq-worktreePoisonVisibility01.0`)
 
 **Given:**
-- A branch is registered by an open change workflow
-- Another terminal workflow has stale AdvWorktreeBranches or AdvChangeStatus attributes
+- A branch is registered by an open change change projection
+- Another terminal change projection has stale AdvWorktreeBranches or AdvChangeStatus attributes
 
-**When:** Branch-in-use or active-worktree discovery queries Temporal Visibility
+**When:** Branch-in-use or active-worktree discovery queries disk projection lookup
 
 **Then:**
 - The query includes AdvLifecycleState = "open"
@@ -67,32 +67,32 @@ Cross-change worktree visibility MUST query each owning change workflow independ
 **Per-change query failure returns partial results** (`rq-worktreePoisonVisibility01.1`)
 
 **Given:**
-- Visibility lists two change workflows with active worktrees
+- projection lookup lists two change change projections with active worktrees
 - The first getWorktreesQuery succeeds
 - The second getWorktreesQuery fails
 
 **When:** listWorktreesAcrossChanges runs
 
 **Then:**
-- The first workflow's materialized worktree records are returned
-- A warning is returned for the failed workflow
-- The function does not throw for the per-workflow query failure
+- The first change projection's materialized worktree records are returned
+- A warning is returned for the failed change projection
+- The function does not throw for the per-change projection query failure
 
 **Poison evidence is structured** (`rq-worktreePoisonVisibility01.2`)
 
 **Given:**
-- The failed workflow describe output contains TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence
+- The failed change projection describe output contains TMPRL1100, NonDeterministic, Nondeterminism, Change projectionTaskFailedCauseNonDeterministicError, No command scheduled, or Change projectionExecutionUpdateAccepted evidence
 
 **When:** listWorktreesAcrossChanges classifies the failure
 
 **Then:**
-- poisonedWorkflows includes changeId, workflowId, recoveryReason="poisoned_history", evidenceSummary, and message
+- unreadableChange projections includes changeId, change projectionId, recoveryReason="unreadable_history", evidenceSummary, and message
 - No destructive recovery action is performed
 
-**Visibility-source outage is explicit** (`rq-worktreePoisonVisibility01.3`)
+**projection lookup-source outage is explicit** (`rq-worktreePoisonVisibility01.3`)
 
 **Given:**
-- Temporal service, workflow list, or getHandle is unavailable
+- disk service, change projection list, or getHandle is unavailable
 
 **When:** listWorktreesAcrossChanges runs
 
@@ -410,7 +410,7 @@ Terminal cleanup processing must route through one shared cleanup path instead o
 
 **ID:** `rq-worktreeMutationGuard01` | **Priority:** **[MUST]**
 
-ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. EXISTING-WORKTREE EXCEPTION: when a setup-ready ADV worktree already exists for the change, guarded gate/task state-transition mutations from the main checkout are ALLOWED (the signal proceeds, no BLOCK), regardless of the per-change `worktree_auto_managed` marker (true, false, or undefined). Existing-worktree detection is the structural authority — read from the durable change-workflow `worktrees` map, never from heuristic/string-matched filesystem paths — and the marker is a fast-path hint only. A worktree counts as setup-ready ONLY when its record satisfies all of: status is neither `deleted` nor `setup_failed`, `setupReady === true`, and `path` is present; a `setup_failed` or `setupReady:false` record does NOT qualify. The BLOCK applies only when NO setup-ready worktree exists. This exception is scoped strictly to durable Temporal state-transition mutations that do not depend on `process.cwd()`; file-write isolation (task checkpoint and file edits) is unchanged and still requires an explicit worktree workdir. On probe error or Temporal-unavailable, the guard MUST NOT ALLOW on unknown existence — it falls back to the marker-based behavior. For auto-managed changes with no existing setup-ready worktree, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.
+ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. EXISTING-WORKTREE EXCEPTION: when a setup-ready ADV worktree already exists for the change, guarded gate/task state-transition mutations from the main checkout are ALLOWED (the mutation proceeds, no BLOCK), regardless of the per-change `worktree_auto_managed` marker (true, false, or undefined). Existing-worktree detection is the structural authority — read from the durable change-change projection `worktrees` map, never from heuristic/string-matched filesystem paths — and the marker is a fast-path hint only. A worktree counts as setup-ready ONLY when its record satisfies all of: status is neither `deleted` nor `setup_failed`, `setupReady === true`, and `path` is present; a `setup_failed` or `setupReady:false` record does NOT qualify. The BLOCK applies only when NO setup-ready worktree exists. This exception is scoped strictly to durable disk state-transition mutations that do not depend on `process.cwd()`; file-write isolation (task checkpoint and file edits) is unchanged and still requires an explicit worktree workdir. On probe error or disk-unavailable, the guard MUST NOT ALLOW on unknown existence — it falls back to the marker-based behavior. For auto-managed changes with no existing setup-ready worktree, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.
 
 **Tags:** `worktree`, `safety`, `mutation-guard`
 
@@ -441,7 +441,7 @@ ADV mutating tools that advance working-tree-impacting gates or change task exec
 **Then:**
 - The tool returns WorktreeIsolationViolation before any state mutation
 - The response includes mainCheckoutPath and remediation
-- No gate completion signal is sent
+- No gate completion mutation is sent
 
 **Task execution mutations block from main checkout when no setup-ready worktree exists** (`rq-worktreeMutationGuard01.2`)
 
@@ -453,7 +453,7 @@ ADV mutating tools that advance working-tree-impacting gates or change task exec
 **When:** adv_task_add or adv_task_update with in_progress, done, or cancelled status is called
 
 **Then:**
-- The tool returns WorktreeIsolationViolation before any task signal mutation
+- The tool returns WorktreeIsolationViolation before any task mutation mutation
 - The response includes mainCheckoutPath and remediation
 - Worktree-origin task mutations remain allowed
 
@@ -480,11 +480,11 @@ ADV mutating tools that advance working-tree-impacting gates or change task exec
 **When:** adv_gate_complete for a worktree-mutation gate, or adv_task_update with a status transition, is called
 
 **Then:**
-- The tool returns decision ALLOW and the state-transition signal is sent
+- The tool returns decision ALLOW and the state-transition mutation is sent
 - The ALLOW holds regardless of the worktree_auto_managed marker value
 - A worktree record with status setup_failed or setupReady false does NOT qualify and still blocks
-- Existing-worktree detection reads the durable change-workflow worktrees map, not heuristic filesystem paths
-- On probe error or Temporal-unavailable the guard does not ALLOW and falls back to marker-based behavior
+- Existing-worktree detection reads the durable change-change projection worktrees map, not heuristic filesystem paths
+- On probe error or disk-unavailable the guard does not ALLOW and falls back to marker-based behavior
 
 ---
 
@@ -597,7 +597,7 @@ Worktree tool wrappers (adv_worktree_delete, adv_worktree_cleanup) must enforce 
 
 **ID:** `rq-worktreeTargetCleanup01` | **Priority:** **[MUST]**
 
-Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project's store and Temporal queue, require explicit confirmation for untrusted target mutation, and preserve existing delete/cleanup safety gates. Worktree triage recommendations for a target project MUST be actionable from the current session by including target-aware remediation instead of bare current-project cleanup commands.
+Worktree cleanup mutation tools that support target-project operation MUST route target_path calls through the target project’s disk store, require explicit confirmation for untrusted target mutation, and preserve existing deletion safety gates. Triage recommendations MUST include target-aware remediation.
 
 **Tags:** `worktree`, `cleanup`, `target-path`, `cross-project`
 
@@ -623,7 +623,7 @@ Worktree cleanup mutation tools that support target-project operation MUST route
 **When:** The cleanup operation evaluates a worktree or queued cleanup candidate
 
 **Then:**
-- The tool uses the target project's root, worktree registry, and Temporal queue
+- The tool uses the target project's root, worktree registry, and disk queue
 - Existing dirty, in-use, merged, terminal-state, timeout, and bounded-cleanup safety checks still apply
 
 **Target triage recommendations are actionable** (`rq-worktreeTargetCleanup01.3`)
@@ -778,7 +778,7 @@ adv_worktree_delete MUST safely clear worktree registry entries reported as `mis
 
 Worktree tool timeout responses must not assert a cause they did not test, and must not advise an action that cannot succeed.
 
-The timeout branches of adv_worktree_cleanup, adv_worktree_delete, and adv_worktree_detach resolve a setTimeout sentinel rather than a rejection, so no error object exists to classify. These responses must therefore not assert a poisoned workflow and must not carry an unconditional adv_doctor referral, unless poison evidence was actually collected on that call (see rq-worktreePoisonVisibility01).
+The timeout branches of adv_worktree_cleanup, adv_worktree_delete, and adv_worktree_detach resolve a setTimeout sentinel rather than a rejection, so no error object exists to classify. These responses must therefore not assert a unreadable projection and must not carry an unconditional adv_doctor referral, unless poison evidence was actually collected on that call (see rq-worktreePoisonprojection lookup01).
 
 Timeout remediation must name an action that can actually succeed. When the caller's timeoutMs was clamped to the safe budget, the response must not advise passing a larger timeoutMs, must state that the safe budget is a structural ceiling, and must not name an option the current mode ignores.
 
@@ -825,7 +825,7 @@ Git subprocesses on the cleanup discovery path must each be bounded strictly bel
 **When:** The typed timeout response is produced
 
 **Then:**
-- The error contains no assertion that a workflow is poisoned
+- The error contains no assertion that a change projection is unreadable
 - Neither error nor remediation carries an unconditional adv_doctor referral
 
 **Cleanup timeout reports the stage in flight** (`rq-worktreeTimeoutTruthfulness01.4`)

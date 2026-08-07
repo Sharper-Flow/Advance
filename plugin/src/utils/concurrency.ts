@@ -1,7 +1,7 @@
 /**
  * Bounded-concurrency async mapping.
  *
- * Used by filesystem-heavy maintenance scans (store-cleanup, store-consolidate)
+ * Used by filesystem-heavy maintenance scans such as store-cleanup.
  * that must probe hundreds of store directories within the fixed tool timeout.
  * A serial `for…of await` loop over N stores performs N × per-store I/O ops
  * sequentially and blows the budget; an unbounded `Promise.all` over N stores

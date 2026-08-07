@@ -38,45 +38,38 @@ describe("spec deltas cullDeadCodeFixArchive (R5)", () => {
     expect(req).toBeUndefined();
   });
 
-  it("advance-meta/rq-worktreeRegistry01 references change workflow worktree state and search attrs", async () => {
+  it("advance-meta/rq-worktreeRegistry01 references disk projection worktree state", async () => {
     const spec = await loadSpecJson("advance-meta");
     const req = getRequirement(spec, "rq-worktreeRegistry01");
     expect(req).toBeDefined();
     const body = JSON.stringify(req);
-    expect(body).toContain("change workflow worktree state");
+    expect(body).toContain("durable change projections");
+    expect(body).toContain("worktreeCreatedMutation");
     expect(body).toContain("AdvWorktreeBranches");
     expect(body).toContain("AdvWorktreePaths");
     expect(body).not.toContain("ProjectWorkflowState.worktree_registry");
   });
 
-  it("advance-meta/rq-multiSessionCoordination01 references signals not updates → project workflow", async () => {
+  it("advance-meta/rq-multiSessionCoordination01 references disk projection locks", async () => {
     const spec = await loadSpecJson("advance-meta");
     const req = getRequirement(spec, "rq-multiSessionCoordination01");
     expect(req).toBeDefined();
     const body = JSON.stringify(req);
-    expect(body).toContain("signal");
-    expect(body).not.toContain("Temporal workflow updates → project workflow");
+    expect(body).toContain("commitChangeProjection");
+    expect(body).toContain("per-change lock");
+    expect(body).toContain("stale_revision");
   });
 
-  it("advance-meta/rq-temporalConcurrentLoad01 references per-change workflows / project task queue / worker singleton", async () => {
+  it("advance-meta/rq-temporalConcurrentLoad01 is retired", async () => {
     const spec = await loadSpecJson("advance-meta");
     const req = getRequirement(spec, "rq-temporalConcurrentLoad01");
-    expect(req).toBeDefined();
-    const body = JSON.stringify(req);
-    expect(body).toContain("change workflow");
-    expect(body).toContain("project task queue");
-    expect(body).toContain("worker singleton");
+    expect(req).toBeUndefined();
   });
 
-  it("advance-workflow/rq-searchAttrHealth01.2 when clause references gateCompletedSignal", async () => {
+  it("advance-workflow/rq-searchAttrHealth01.2 is retired", async () => {
     const spec = await loadSpecJson("advance-workflow");
     const req = getRequirement(spec, "rq-searchAttrHealth01");
-    expect(req).toBeDefined();
-    const scenario = getScenario(req, "rq-searchAttrHealth01.2");
-    expect(scenario).toBeDefined();
-    const when = JSON.stringify(scenario.when);
-    expect(when).toContain("gateCompletedSignal");
-    expect(when).not.toContain("completeGateUpdate");
+    expect(req).toBeUndefined();
   });
 
   it("advance-meta/rq-worktreeReuse01.1 then clause does not reference project-workflow recovery", async () => {

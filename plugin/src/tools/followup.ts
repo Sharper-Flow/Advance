@@ -25,18 +25,13 @@ import type {
   ChangeCreateInitialMetadata,
   Store,
 } from "../storage/store-types";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import {
-  opsFollowupSeededSignal,
-  opsFollowupLinkAddedSignal,
-} from "../temporal/messages";
+import { getProjectId } from "../utils/project-id";
 import {
   subagentReportImplementationCycleId,
   subagentReportKey,
 } from "../types/subagent-reports";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   withTargetPathStore,
   formatTargetProjectContext,
@@ -163,19 +158,6 @@ function findRequiredFollowUp(
     return followUps.find((f) => f.text === summary);
   }
   return followUps[0];
-}
-
-async function getChangeHandleForChangeId(
-  store: Store,
-  changeId: string,
-): Promise<ReturnType<typeof getChangeHandle>> {
-  const bundle = getService();
-  if (!bundle) throw new Error("Temporal service not available");
-  const projectId =
-    store.productContext?.productProjectId ??
-    (await getProjectId(store.paths.root));
-  if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle, projectId, changeId);
 }
 
 async function loadSourceChange(
@@ -318,17 +300,31 @@ async function seedChildOpsFollowup(
   childChangeId: string,
   profile: OpsFollowupProfile,
 ): Promise<void> {
-  const handle = await getChangeHandleForChangeId(childStore, childChangeId);
-  await fireSignalAndRefresh(
-    handle,
-    childStore,
-    childChangeId,
-    opsFollowupSeededSignal,
-    {
-      profile,
-      seededAt: profile.created_at,
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "seed ops follow-up profile",
+      evidence: JSON.stringify(profile.source),
     },
-  );
+    changesDir: childStore.paths.changes,
+    intent: {
+      changeId: childChangeId,
+      mutationKind: "ops_followup_seeded",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        ops_followup: profile,
+      }),
+      verifyProjection: (readback) =>
+        readback.ops_followup?.source.source_change_id ===
+        profile.source.source_change_id,
+    },
+  });
+  if (outcome.kind !== "verified") {
+    throw new Error(
+      outcome.kind === "unverified" || outcome.kind === "operator_required"
+        ? outcome.reason
+        : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+    );
+  }
 }
 
 async function addParentOpsFollowupLink(
@@ -336,17 +332,32 @@ async function addParentOpsFollowupLink(
   sourceChangeId: string,
   link: OpsFollowupLink,
 ): Promise<void> {
-  const handle = await getChangeHandleForChangeId(sourceStore, sourceChangeId);
-  await fireSignalAndRefresh(
-    handle,
-    sourceStore,
-    sourceChangeId,
-    opsFollowupLinkAddedSignal,
-    {
-      link,
-      addedAt: link.linked_at,
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "add ops follow-up link",
+      evidence: JSON.stringify(link),
     },
-  );
+    changesDir: sourceStore.paths.changes,
+    intent: {
+      changeId: sourceChangeId,
+      mutationKind: "ops_followup_link_added",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        ops_followup_links: [...(latest.ops_followup_links ?? []), link],
+      }),
+      verifyProjection: (readback) =>
+        readback.ops_followup_links?.some(
+          (candidate) => candidate.id === link.id,
+        ) ?? false,
+    },
+  });
+  if (outcome.kind !== "verified") {
+    throw new Error(
+      outcome.kind === "unverified" || outcome.kind === "operator_required"
+        ? outcome.reason
+        : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+    );
+  }
 }
 
 function buildOpsFollowupProfile(
@@ -662,7 +673,7 @@ export const followupTools = {
           {
             currentProjectPath: sourcePath,
             target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed,
             confirmationEvidence,
           },

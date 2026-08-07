@@ -3,7 +3,7 @@
  *
  * Distinct from terminal cleanup: removes only the worktree directory, preserves
  * the local branch and ADV change record, and writes a durable dematerialize
- * receipt on the owning change workflow. Never invoked by reapers, triage,
+ * durable local worktree state. Never invoked by reapers, triage,
  * startup cleanup, or migration automation.
  */
 
@@ -11,13 +11,6 @@ import { createHash } from "node:crypto";
 import * as path from "node:path";
 
 import { execFileGitAsync, execFileGitCb } from "../../utils/git-binary";
-import { getService } from "../../temporal/service";
-import {
-  getStateQuery,
-  worktreeDematerializedSignal,
-} from "../../temporal/messages";
-import { getChangeHandle, fireSignalAndRefresh } from "../_adapters";
-import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 import {
   acquireGitWorktreeFlock,
   releaseGitWorktreeFlock,
@@ -29,11 +22,6 @@ import {
 } from "./state";
 import { isWorktreeInUse } from "./in-use";
 import { getProjectId, getExternalRoot } from "../../utils/project-id";
-import type { Store } from "../../storage/store";
-import type { ChangeWorkflowState } from "../../temporal/contracts";
-import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
-import type { WorktreeDematerializedSignalPayload } from "../../types";
-import type { WorkerLockResult } from "../../temporal/worker-lock";
 
 // =============================================================================
 // TYPES
@@ -85,7 +73,6 @@ export type AdvWorktreeDetachBatchResult =
 // CONSTANTS
 // =============================================================================
 
-const DEFAULT_DETACH_SIGNAL_TIMEOUT_MS = 5_000;
 const GIT_WORKTREE_REMOVE_TIMEOUT_MS = 5_000;
 
 // =============================================================================
@@ -203,117 +190,6 @@ function gitWorktreeRemove(
   });
 }
 
-function gitWorktreeAdd(
-  repoRoot: string,
-  worktreePath: string,
-  branch: string,
-  timeoutMs: number = GIT_WORKTREE_REMOVE_TIMEOUT_MS,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  return new Promise((resolve) => {
-    execFileGitCb(
-      ["worktree", "add", worktreePath, branch],
-      {
-        cwd: repoRoot,
-        timeout: Math.max(1, timeoutMs),
-        killSignal: "SIGKILL",
-      },
-      (error, _stdout, stderr) => {
-        if (error) {
-          resolve({
-            ok: false,
-            reason: stderr.trim() || error.message || "git worktree add failed",
-          });
-        } else {
-          resolve({ ok: true });
-        }
-      },
-    );
-  });
-}
-
-// =============================================================================
-// WORKFLOW STATE HELPERS
-// =============================================================================
-
-async function getChangeWorkflowState(
-  access: WorktreeStateAccess,
-  changeId: string,
-): Promise<ChangeWorkflowState | null> {
-  const owner = getService();
-  if (!owner) return null;
-
-  try {
-    const proxy = getChangeHandle(owner, access.projectId, changeId);
-    const state = await proxy.query<ChangeWorkflowState>(getStateQuery);
-    if (!state || typeof state !== "object") return null;
-    return state;
-  } catch {
-    return null;
-  }
-}
-
-function getAdvActivityAt(
-  state: ChangeWorkflowState | null,
-  lastSeenAt?: string,
-): string | undefined {
-  return state?.lastSignalAt ?? lastSeenAt;
-}
-
-// =============================================================================
-// SIGNAL
-// =============================================================================
-
-async function fireDetachSignal(
-  projectRoot: string,
-  store: Store | undefined,
-  changeId: string | undefined,
-  payload: WorktreeDematerializedSignalPayload,
-  signalTimeoutMs = DEFAULT_DETACH_SIGNAL_TIMEOUT_MS,
-): Promise<{ ok: true } | { ok: false; warning: string }> {
-  if (!changeId) return { ok: true };
-
-  const bundle = getService();
-  if (!bundle) {
-    return { ok: false, warning: "Temporal service unavailable" };
-  }
-
-  const projectId = await getProjectId(projectRoot);
-  if (!projectId) {
-    return {
-      ok: false,
-      warning: `Unable to resolve project id for ${projectRoot}`,
-    };
-  }
-
-  const handle = getChangeHandle(bundle, projectId, changeId);
-
-  try {
-    if (store) {
-      await withTimeout(
-        fireSignalAndRefresh(
-          handle,
-          store,
-          changeId,
-          worktreeDematerializedSignal,
-          payload,
-        ),
-        signalTimeoutMs,
-        "Worktree dematerialize signal timed out",
-      );
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (handle as any).signal(worktreeDematerializedSignal, payload);
-    }
-    return { ok: true };
-  } catch (err) {
-    const warning =
-      err instanceof TimeoutError
-        ? `Worktree dematerialize signal timed out after ${signalTimeoutMs}ms`
-        : `Worktree dematerialize signal failed: ${err instanceof Error ? err.message : String(err)}`;
-    return { ok: false, warning };
-  }
-}
-
 // =============================================================================
 // PREFLIGHT
 // =============================================================================
@@ -322,14 +198,11 @@ interface PreflightContext {
   repoRoot: string;
   cutoffAt: number;
   requestId: string;
-  log: Logger;
 }
 
 interface PreflightResult {
   disposition: WorktreeDetachDisposition;
-  changeId: string | undefined;
   recordPath: string | undefined;
-  state: ChangeWorkflowState | null;
 }
 
 async function preflightBranch(
@@ -338,9 +211,7 @@ async function preflightBranch(
   access: WorktreeStateAccess,
 ): Promise<PreflightResult> {
   const failure = (reason: string, path?: string): PreflightResult => ({
-    changeId: inferChangeIdFromBranch(branch),
     recordPath: path,
-    state: null,
     disposition: {
       branch,
       path,
@@ -349,31 +220,25 @@ async function preflightBranch(
     },
   });
 
-  if (
-    !branch.startsWith(CHANGE_BRANCH_PREFIX) ||
-    branch.length === CHANGE_BRANCH_PREFIX.length
-  ) {
+  if (!inferChangeIdFromBranch(branch)) {
     return failure("not_a_change_branch");
   }
 
   const record = await getWorktreeRecord(access, branch);
   if (!record) {
-    return failure("missing_or_poisoned_registry");
+    return failure("missing_worktree_record");
   }
 
-  const changeId = record.changeId ?? inferChangeIdFromBranch(branch);
   const recordPath = record.path;
 
-  // If already dematerialized, this request can only record a receipt.
+  // If already dematerialized, this request is idempotent.
   if (
     record.status === "unmaterialized" ||
     record.materialized === false ||
     !recordPath
   ) {
     return {
-      changeId,
       recordPath,
-      state: null,
       disposition: {
         branch,
         path: recordPath,
@@ -414,33 +279,16 @@ async function preflightBranch(
     return failure("dirty_worktree", recordPath);
   }
 
-  const [branchActivityAt, state] = await Promise.all([
-    getBranchActivityAt(ctx.repoRoot, branch),
-    getChangeWorkflowState(access, changeId ?? ""),
-  ]);
-
-  if (state === null) {
-    return failure("workflow_unavailable", recordPath);
-  }
-
-  const advActivityAt = getAdvActivityAt(state, record.lastSeenAt);
+  const branchActivityAt = await getBranchActivityAt(ctx.repoRoot, branch);
 
   const branchTooRecent =
     !branchActivityAt || new Date(branchActivityAt).getTime() > ctx.cutoffAt;
-  const advTooRecent =
-    !advActivityAt || new Date(advActivityAt).getTime() > ctx.cutoffAt;
-
   if (branchTooRecent) {
     return failure("branch_activity_too_recent", recordPath);
   }
-  if (advTooRecent) {
-    return failure("adv_activity_too_recent", recordPath);
-  }
 
   return {
-    changeId,
     recordPath,
-    state,
     disposition: {
       branch,
       path: recordPath,
@@ -458,9 +306,7 @@ export async function advWorktreeDetachBatch(
   projectRoot: string,
   database: WorktreeStateAccess,
   options: {
-    store?: Store;
     log?: Logger;
-    signalTimeoutMs?: number;
   } = {},
 ): Promise<AdvWorktreeDetachBatchResult> {
   const log = options.log ?? {
@@ -515,10 +361,9 @@ export async function advWorktreeDetachBatch(
     repoRoot: projectRoot,
     cutoffAt,
     requestId,
-    log,
   };
 
-  let lock: WorkerLockResult;
+  let lock: Awaited<ReturnType<typeof acquireGitWorktreeFlock>>;
   try {
     lock = await acquireGitWorktreeFlock(projectStateDir);
   } catch (err) {
@@ -548,24 +393,6 @@ export async function advWorktreeDetachBatch(
   }
 
   try {
-    // Fail closed when the mutation path cannot record durable receipts.
-    if (args.mode === "apply") {
-      const owner = getService();
-      if (!owner) {
-        return {
-          ok: false,
-          reason:
-            "Temporal service unavailable; cannot record detach receipts or proceed with Git removal",
-          requestId,
-          dispositions: normalizedBranches.map((branch) => ({
-            branch,
-            eligible: false,
-            refusalReason: "workflow_unavailable",
-          })),
-        };
-      }
-    }
-
     const preflightResults: PreflightResult[] = [];
     for (const branch of normalizedBranches) {
       preflightResults.push(await preflightBranch(branch, ctx, database));
@@ -592,8 +419,7 @@ export async function advWorktreeDetachBatch(
     }
 
     // Apply path
-    const approvalEvidence = args.approvalEvidence?.trim() ?? "";
-    const approvalMissing = approvalEvidence.length === 0;
+    const approvalMissing = (args.approvalEvidence?.trim() ?? "").length === 0;
 
     const batchRefusalReason = approvalMissing
       ? "approval_required"
@@ -609,19 +435,7 @@ export async function advWorktreeDetachBatch(
       }
     }
 
-    const hardFailures: string[] = [];
-    const now = new Date().toISOString();
-
     for (const result of preflightResults) {
-      const branch = result.disposition.branch;
-      const changeId = result.changeId;
-      const preflightFacts = preflightResults.map((r) => ({
-        branch: r.disposition.branch,
-        path: r.disposition.path,
-        eligible: r.disposition.eligible,
-        refusalReason: r.disposition.refusalReason,
-      }));
-
       if (
         result.disposition.outcome === "idempotent_already_detached" ||
         !result.disposition.eligible
@@ -630,33 +444,6 @@ export async function advWorktreeDetachBatch(
           .eligible
           ? "idempotent_already_detached"
           : "refused";
-
-        const payload: WorktreeDematerializedSignalPayload = {
-          branch,
-          requestId,
-          branches: normalizedBranches,
-          cutoffMs: args.cutoffMs,
-          preflightFacts,
-          outcome,
-          ...(outcome === "refused"
-            ? { reason: result.disposition.refusalReason }
-            : {}),
-          ...(approvalEvidence ? { approvalEvidence } : {}),
-          dematerializedAt: now,
-        };
-
-        const signalResult = await fireDetachSignal(
-          projectRoot,
-          options.store,
-          changeId,
-          payload,
-          options.signalTimeoutMs,
-        );
-        if (!signalResult.ok) {
-          hardFailures.push(
-            `${branch}: unable to record ${outcome} receipt: ${signalResult.warning}`,
-          );
-        }
 
         result.disposition.outcome = outcome;
         continue;
@@ -680,132 +467,10 @@ export async function advWorktreeDetachBatch(
         result.disposition.eligible = false;
         result.disposition.refusalReason = `remove_failed: ${removeResult.reason}`;
         result.disposition.outcome = "refused";
-        const payload: WorktreeDematerializedSignalPayload = {
-          branch,
-          requestId,
-          branches: normalizedBranches,
-          cutoffMs: args.cutoffMs,
-          preflightFacts,
-          outcome: "refused",
-          reason: result.disposition.refusalReason,
-          ...(approvalEvidence ? { approvalEvidence } : {}),
-          dematerializedAt: now,
-        };
-        const signalResult = await fireDetachSignal(
-          projectRoot,
-          options.store,
-          changeId,
-          payload,
-          options.signalTimeoutMs,
-        );
-        if (!signalResult.ok) {
-          hardFailures.push(
-            `${branch}: unable to record refused receipt: ${signalResult.warning}`,
-          );
-        }
         continue;
       }
 
-      const detachedPayload: WorktreeDematerializedSignalPayload = {
-        branch,
-        requestId,
-        branches: normalizedBranches,
-        cutoffMs: args.cutoffMs,
-        preflightFacts,
-        outcome: "detached",
-        ...(approvalEvidence ? { approvalEvidence } : {}),
-        dematerializedAt: now,
-      };
-      const signalResult = await fireDetachSignal(
-        projectRoot,
-        options.store,
-        changeId,
-        detachedPayload,
-        options.signalTimeoutMs,
-      );
-      if (signalResult.ok) {
-        result.disposition.outcome = "detached";
-        continue;
-      }
-
-      // Deterministic recovery: the directory is gone but the durable receipt
-      // was not recorded. Roll back the Git removal so disk and registry stay
-      // consistent, then record the refused outcome.
-      const addResult = await gitWorktreeAdd(
-        projectRoot,
-        worktreePath,
-        branch,
-        GIT_WORKTREE_REMOVE_TIMEOUT_MS,
-      );
-
-      if (addResult.ok) {
-        const refusedPayload: WorktreeDematerializedSignalPayload = {
-          branch,
-          requestId,
-          branches: normalizedBranches,
-          cutoffMs: args.cutoffMs,
-          preflightFacts,
-          outcome: "refused",
-          reason: "detach_signal_failed_compensated",
-          ...(approvalEvidence ? { approvalEvidence } : {}),
-          dematerializedAt: now,
-        };
-        const refusedSignalResult = await fireDetachSignal(
-          projectRoot,
-          options.store,
-          changeId,
-          refusedPayload,
-          options.signalTimeoutMs,
-        );
-        if (!refusedSignalResult.ok) {
-          hardFailures.push(
-            `${branch}: compensated rollback succeeded but refused receipt signal failed: ${refusedSignalResult.warning}`,
-          );
-        }
-        result.disposition.eligible = false;
-        result.disposition.refusalReason = "detach_signal_failed_compensated";
-        result.disposition.outcome = "refused";
-      } else {
-        const refusedPayload: WorktreeDematerializedSignalPayload = {
-          branch,
-          requestId,
-          branches: normalizedBranches,
-          cutoffMs: args.cutoffMs,
-          preflightFacts,
-          outcome: "refused",
-          reason: `detach_signal_compensation_failed: ${addResult.reason}`,
-          ...(approvalEvidence ? { approvalEvidence } : {}),
-          dematerializedAt: now,
-        };
-        const refusedSignalResult = await fireDetachSignal(
-          projectRoot,
-          options.store,
-          changeId,
-          refusedPayload,
-          options.signalTimeoutMs,
-        );
-        if (!refusedSignalResult.ok) {
-          hardFailures.push(
-            `${branch}: detach signal failed and compensation also failed: ${signalResult.warning}; rollback: ${addResult.reason}; refused receipt signal: ${refusedSignalResult.warning}`,
-          );
-        } else {
-          hardFailures.push(
-            `${branch}: detach signal failed and compensation failed: ${signalResult.warning}; rollback: ${addResult.reason}`,
-          );
-        }
-        result.disposition.eligible = false;
-        result.disposition.refusalReason = `detach_signal_compensation_failed: ${addResult.reason}`;
-        result.disposition.outcome = "refused";
-      }
-    }
-
-    if (hardFailures.length > 0) {
-      return {
-        ok: false,
-        reason: hardFailures.join("; "),
-        requestId,
-        dispositions: preflightResults.map((r) => r.disposition),
-      };
+      result.disposition.outcome = "detached";
     }
 
     return {

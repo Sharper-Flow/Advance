@@ -1,84 +1,67 @@
 /**
- * Wisdom Tools — rq-cacheRefresh01 contract test.
- *
- * Pins the centralizemutationcacherefresh migration contract:
- * `adv_wisdom_add` MUST use `fireSignalAndRefresh` (not raw `fireSignal`)
- * so the in-memory `changeCache` is invalidated after the wisdom signal
- * fires. Without this, subsequent reads in the same session return stale
- * state (the original silent-stale-cache bug class fixed by this change).
+ * Wisdom Tools — disk projection persistence and product-scope contracts.
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { wisdomTools } from "./wisdom";
-import { taskUpdatedSignal } from "../temporal/messages";
 import type { Store } from "../storage/store";
 
-const mocks = vi.hoisted(() => {
-  const signal = vi.fn(async () => {});
-  const query = vi.fn(async () => undefined);
-  const handle = { signal, query };
+vi.mock("./change-mutation-coordinator", async () => {
+  const { readFile, writeFile } = await import("node:fs/promises");
+  const { join } = await import("node:path");
   return {
-    signal,
-    query,
-    handle,
-    getService: vi.fn(() => ({
-      client: { workflow: { getHandle: vi.fn(() => handle) } },
-    })),
-    fireSignal: vi.fn(async () => {}),
-    fireSignalAndRefresh: vi.fn(async () => {}),
-    querySignal: vi.fn(),
-    getChangeHandle: vi.fn(() => handle),
+    coordinateChangeMutation: vi.fn(async (options: any) => {
+      const path = join(
+        options.changesDir,
+        options.intent.changeId,
+        "change.json",
+      );
+      const latest = JSON.parse(await readFile(path, "utf-8"));
+      const next = options.intent.mutateLatestProjection(latest);
+      await writeFile(path, JSON.stringify(next, null, 2));
+      return { kind: "verified", value: next };
+    }),
   };
 });
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return {
-    ...actual,
-    getProjectId: vi.fn(async () => "test-project-id"),
-  };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignal: mocks.fireSignal,
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-}));
 
 function createMockStore(): Store {
-  // Paths are mock-only — store I/O is fully mocked, these strings are never
-  // touched on disk. Built via tmpdir() instead of "/tmp/..." literals to
-  // avoid Sonar S5443 hardcoded-publicly-writable-directory false-positives.
-  const base = tmpdir();
+  const base = mkdtempSync(join(tmpdir(), "adv-wisdom-test-"));
+  const changes = join(base, "changes");
+  const change = (id: string) => ({
+    id,
+    title: "Test change",
+    status: "draft",
+    lifecycleState: "draft",
+    created_at: "2026-07-21T17:00:00.000Z",
+    tasks: [],
+    deltas: {},
+    wisdom: [],
+    gates: {},
+    subagent_reports: [],
+  });
+  for (const id of ["chg-test", "chg-1"]) {
+    const path = join(changes, id, "change.json");
+    const parent = join(changes, id);
+    mkdirSync(parent, { recursive: true });
+    writeFileSync(path, JSON.stringify(change(id), null, 2));
+  }
   return {
     paths: {
-      root: join(base, "fake-root"),
-      external: join(base, "fake-external"),
-      changes: join(base, "fake-changes"),
-      archive: join(base, "fake-archive"),
-      wisdom: join(base, "fake-wisdom.jsonl"),
-      agenda: join(base, "fake-agenda.jsonl"),
+      root: base,
+      external: join(base, "external"),
+      changes,
+      archive: join(base, "archive"),
+      wisdom: join(base, "wisdom.jsonl"),
+      agenda: join(base, "agenda.jsonl"),
     },
-    wisdom: {
-      // Used as a fallback when Temporal handle is unavailable; mocked here
-      // because the Temporal path is what we care about for this test.
-      add: vi.fn(async () => undefined),
-    },
+    wisdom: { add: vi.fn(async () => undefined) },
     tasks: {
       show: vi.fn(async () => null),
     },
-    changes: {
-      refresh: vi.fn(async () => undefined),
-    },
+    changes: { refresh: vi.fn(async () => undefined) },
   } as unknown as Store;
 }
 
@@ -87,10 +70,10 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
     vi.clearAllMocks();
   });
 
-  test("uses fireSignalAndRefresh (not raw fireSignal) so cache is invalidated after signal", async () => {
+  test("persists a wisdom entry through the disk projection", async () => {
     const store = createMockStore();
 
-    await wisdomTools.adv_wisdom_add.execute(
+    const output = await wisdomTools.adv_wisdom_add.execute(
       {
         changeId: "chg-test",
         type: "pattern",
@@ -99,28 +82,22 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
       store,
     );
 
-    // Contract: tool MUST use the centralized helper that pairs signal
-    // firing with cache refresh in one atomic call. Direct fireSignal
-    // bypasses the cache invalidation — that is the bug class this
-    // migration closes.
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
-      mocks.handle,
-      store,
-      "chg-test",
-      expect.objectContaining({ name: expect.any(String) }),
-      expect.objectContaining({
-        entry: expect.objectContaining({
+    const parsed = JSON.parse(output);
+    const persisted = JSON.parse(
+      readFileSync(
+        join(store.paths.changes, "chg-test", "change.json"),
+        "utf-8",
+      ),
+    );
+    expect(parsed.success).toBe(true);
+    expect(persisted.wisdom).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
           type: "pattern",
           content: "test wisdom entry",
         }),
-      }),
+      ]),
     );
-
-    // Negative assertion: the raw fireSignal helper MUST NOT be used
-    // for change-associated signals (rq-cacheRefresh01-exempt only
-    // applies to signals without a changeId — none currently exist).
-    expect(mocks.fireSignal).not.toHaveBeenCalled();
   });
 
   test("tags new linked-product wisdom with origin repo metadata", async () => {
@@ -154,19 +131,21 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
       store,
     );
 
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
-      mocks.handle,
-      store,
-      "chg-test",
-      expect.objectContaining({ name: expect.any(String) }),
-      expect.objectContaining({
-        entry: expect.objectContaining({
+    const persisted = JSON.parse(
+      readFileSync(
+        join(store.paths.changes, "chg-test", "change.json"),
+        "utf-8",
+      ),
+    );
+    expect(persisted.wisdom).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
           product_id: "example-product",
           origin_repo_id: "web",
           origin_repo_project_id: "w".repeat(40),
           origin_repo_path: "/repo/web",
         }),
-      }),
+      ]),
     );
   });
 });
@@ -376,7 +355,7 @@ describe("adv_wisdom_add — from_draft_id promotion (AC6 / DDC5)", () => {
     expect(parsed.code).toBe("DRAFT_DISMISSED");
   });
 
-  test("promotes suggested draft atomically: adds wisdom, then fires taskUpdatedSignal with promoted draft", async () => {
+  test("promotes suggested draft and persists the resulting wisdom entry", async () => {
     const store = createMockStore();
     (store.tasks.show as ReturnType<typeof vi.fn>).mockResolvedValue({
       task: {
@@ -412,23 +391,14 @@ describe("adv_wisdom_add — from_draft_id promotion (AC6 / DDC5)", () => {
     expect(parsed.entry.id).toMatch(/^ws-/);
     expect(parsed.entry.content).toBe("explicit override");
 
-    // Two signals: wisdomAddedSignal + taskUpdatedSignal (draft promotion)
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
-    // Second call: taskUpdatedSignal marking draft as promoted
-    const promotionCall = mocks.fireSignalAndRefresh.mock.calls[1];
-    expect(promotionCall[3]).toBe(taskUpdatedSignal);
-    expect(promotionCall[4]).toMatchObject({
-      taskId: "tk-1",
-      partial: {
-        wisdom_drafts: [
-          expect.objectContaining({
-            id: "dr-suggested1",
-            status: "promoted",
-            promoted_wisdom_id: parsed.entry.id,
-          }),
-        ],
-      },
-    });
+    const persisted = JSON.parse(
+      readFileSync(join(store.paths.changes, "chg-1", "change.json"), "utf-8"),
+    );
+    expect(persisted.wisdom).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: parsed.entry.id }),
+      ]),
+    );
   });
 
   test("without from_draft_id: behavior unchanged (backward-compat)", async () => {
@@ -441,16 +411,10 @@ describe("adv_wisdom_add — from_draft_id promotion (AC6 / DDC5)", () => {
       },
       store,
     );
-    // Only one signal: wisdomAddedSignal (no draft promotion)
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     expect(store.tasks.show).not.toHaveBeenCalled();
   });
 
-  test("Temporal unavailable with from_draft_id: wisdom durable, surfaces warning, draft stays suggested (tdd-gap-wisdom-temporal-fallback)", async () => {
-    // When Temporal handle is null (Temporal unavailable), wisdom add
-    // succeeds via disk fallback but draft promotion cannot fire
-    // taskUpdatedSignal. Surface the inconsistency as a _warning so the
-    // agent knows the draft remains in 'suggested' state.
+  test("disk persistence remains authoritative without a workflow provider", async () => {
     const store = createMockStore();
     (store.tasks.show as ReturnType<typeof vi.fn>).mockResolvedValue({
       task: {
@@ -470,9 +434,6 @@ describe("adv_wisdom_add — from_draft_id promotion (AC6 / DDC5)", () => {
       } as any,
       changeId: "chg-1",
     });
-    // Force the Temporal handle to null — disk fallback path engages
-    mocks.getChangeHandle.mockReturnValueOnce(null);
-
     const result = await wisdomTools.adv_wisdom_add.execute(
       {
         changeId: "chg-1",
@@ -487,19 +448,14 @@ describe("adv_wisdom_add — from_draft_id promotion (AC6 / DDC5)", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.entry.id).toMatch(/^ws-/);
-    // Wisdom durable via disk fallback (called regardless of origin shape)
-    expect(store.wisdom.add).toHaveBeenCalledTimes(1);
-    const addCall = (store.wisdom.add as ReturnType<typeof vi.fn>).mock
-      .calls[0];
-    expect(addCall[0]).toBe("chg-1");
-    expect(addCall[1]).toBe("failure");
-    expect(addCall[2]).toBe("promoted content");
-    expect(addCall[3]).toBe("tk-1");
-    // Draft promotion skipped — no taskUpdatedSignal fired
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    // Warning surfaces the inconsistency
-    expect(parsed._warning).toMatch(/Draft promotion skipped/i);
-    expect(parsed._warning).toMatch(/Temporal unavailable/i);
+    const persisted = JSON.parse(
+      readFileSync(join(store.paths.changes, "chg-1", "change.json"), "utf-8"),
+    );
+    expect(persisted.wisdom).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ content: "promoted content" }),
+      ]),
+    );
   });
 });
 

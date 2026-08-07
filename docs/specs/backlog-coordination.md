@@ -1,11 +1,11 @@
 # Backlog Coordination
 
-> **Version:** 1.5.1
-> **Updated:** 2026-07-20
+> **Version:** 1.6.0
+> **Updated:** 2026-08-04
 
 ## Purpose
 
-Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. Bug priority labels act as the source of truth for issue ordering; the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).
+Multi-agent backlog and WIP coordination via per-change disk projections and bounded claim indexes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. Bug priority labels act as the source of truth for issue ordering; the change projection itself acts as the durable claim record.
 
 ## Requirements
 
@@ -13,42 +13,42 @@ Multi-agent backlog and WIP coordination via per-change Temporal workflows + cro
 
 **ID:** `rq-backlogCoord01` | **Priority:** **[MUST]**
 
-When a change workflow is created with state.origin.issue_number set, regardless of readable origin-kind label, the workflow's AdvBacklogIssueNumber search attribute is populated from that issue number. Peer sessions detect existing claims through Temporal Visibility filtered on AdvAffectedProjects + AdvBacklogIssueNumber + AdvLifecycleState = "open" + ExecutionStatus = "Running". The change workflow remains the durable claim; roadmap rendering is not part of this contract.
+When a change change projection is created with state.origin.issue_number set, regardless of readable origin-kind label, the change projection's AdvBacklogIssueNumber projection field is populated from that issue number. Peer sessions detect existing claims through disk projection lookup filtered on AdvAffectedProjects + AdvBacklogIssueNumber + AdvLifecycleState = "open" + ExecutionStatus = "Running". The change change projection remains the durable claim; roadmap rendering is not part of this contract.
 
-**Tags:** `coordination`, `search-attributes`, `claims`
+**Tags:** `coordination`, `projection fields`, `claims`
 
 #### Scenarios
 
-**Search attribute populated when origin.issue_number set** (`rq-backlogCoord01.1`)
+**projection fields populated when origin.issue_number set** (`rq-backlogCoord01.1`)
 
 **Given:**
-- A change workflow created with seedState.origin = { kind: 'triage', issue_number: 42 }
+- A change change projection created with seedState.origin = { kind: 'triage', issue_number: 42 }
 
-**When:** buildChangeSearchAttributes runs on the workflow state
+**When:** buildChangeProjectionFields runs on the change projection state
 
 **Then:**
 - The result includes AdvBacklogIssueNumber: ['42']
 
-**Search attribute omitted when origin.issue_number absent** (`rq-backlogCoord01.2`)
+**projection fields omitted when origin.issue_number absent** (`rq-backlogCoord01.2`)
 
 **Given:**
-- A change workflow with state.origin undefined OR state.origin.issue_number undefined
+- A change change projection with state.origin undefined OR state.origin.issue_number undefined
 
-**When:** buildChangeSearchAttributes runs
+**When:** buildChangeProjectionFields runs
 
 **Then:**
 - The result does NOT include an AdvBacklogIssueNumber key
 
-**Peer session sees claim via Visibility query** (`rq-backlogCoord01.3`)
+**Peer session sees claim via projection lookup query** (`rq-backlogCoord01.3`)
 
 **Given:**
 - Session A creates an issue-linked change with origin.issue_number = 51 in project pid-abc
-- Search attribute propagation has completed
+- projection fields propagation has completed
 
-**When:** Session B queries open running workflows for AdvBacklogIssueNumber = "51"
+**When:** Session B queries open running change projections for AdvBacklogIssueNumber = "51"
 
 **Then:**
-- The response includes session A's change workflow ID
+- The response includes session A's change change projection ID
 
 ---
 
@@ -56,7 +56,7 @@ When a change workflow is created with state.origin.issue_number set, regardless
 
 **ID:** `rq-backlogCoord02` | **Priority:** **[MUST]**
 
-adv_change_create with a positive origin.issue_number performs a Temporal Visibility query before workflow start, independent of the readable origin-kind label. If an existing running open-lifecycle change in the same project holds the same AdvBacklogIssueNumber, the tool returns typed CLAIM_CONFLICT evidence. Successful issue-linked creation makes the change workflow the durable claim record.
+adv_change_create with a positive origin.issue_number performs a disk projection lookup query before change projection start, independent of the readable origin-kind label. If an existing running open-lifecycle change in the same project holds the same AdvBacklogIssueNumber, the tool returns typed CLAIM_CONFLICT evidence. Successful issue-linked creation makes the change change projection the durable claim record.
 
 **Tags:** `coordination`, `claims`, `atomicity`
 
@@ -65,23 +65,23 @@ adv_change_create with a positive origin.issue_number performs a Temporal Visibi
 **CLAIM_CONFLICT returned when active change exists for same issue** (`rq-backlogCoord02.1`)
 
 **Given:**
-- An open running change workflow holds origin.issue_number = 51 in project pid-abc
+- An open running change change projection holds origin.issue_number = 51 in project pid-abc
 
 **When:** adv_change_create is called with origin_kind: 'triage', origin_issue_number: 51
 
 **Then:**
 - The tool returns code CLAIM_CONFLICT with existing change evidence
-- No new workflow starts
+- No new change projection starts
 
 **Claim succeeds when no existing change holds the issue** (`rq-backlogCoord02.2`)
 
 **Given:**
-- No active workflow holds origin.issue_number = 99
+- No active change projection holds origin.issue_number = 99
 
 **When:** adv_change_create is called with origin_kind: 'triage', origin_issue_number: 99
 
 **Then:**
-- The workflow is created
+- The change projection is created
 - AdvBacklogIssueNumber is '99'
 
 **Claim check skipped when issue number absent** (`rq-backlogCoord02.3`)
@@ -92,7 +92,7 @@ adv_change_create with a positive origin.issue_number performs a Temporal Visibi
 **When:** adv_change_create validates the request
 
 **Then:**
-- No issue-claim Visibility query fires
+- No issue-claim projection lookup query fires
 - Creation proceeds independently
 
 ---
@@ -101,7 +101,7 @@ adv_change_create with a positive origin.issue_number performs a Temporal Visibi
 
 **ID:** `rq-backlogCoord03` | **Priority:** **[MUST]**
 
-Temporal Visibility is eventually consistent. Two simultaneous issue-linked adv_change_create calls may both pass the pre-create check. After workflow start, any create with a positive origin.issue_number re-runs the same Visibility query within the configured window, independent of origin kind. More than one workflow sharing the issue produces CLAIM_RACE_DETECTED advisory evidence; the new change is not rolled back.
+disk projection lookup is eventually consistent. Two simultaneous issue-linked adv_change_create calls may both pass the pre-create check. After change projection start, any create with a positive origin.issue_number re-runs the same projection lookup query within the configured window, independent of origin kind. More than one change projection sharing the issue produces CLAIM_RACE_DETECTED advisory evidence; the new change is not rolled back.
 
 **Tags:** `coordination`, `claims`, `eventual-consistency`
 
@@ -128,7 +128,7 @@ Temporal Visibility is eventually consistent. Two simultaneous issue-linked adv_
 **When:** The post-create check runs
 
 **Then:**
-- Exactly one workflow is returned
+- Exactly one change projection is returned
 - No CLAIM_RACE_DETECTED warning appears
 
 ---
@@ -137,7 +137,7 @@ Temporal Visibility is eventually consistent. Two simultaneous issue-linked adv_
 
 **ID:** `rq-backlogCoord04` | **Priority:** **[MUST]**
 
-adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) running open-lifecycle changes from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only — does not mutate state.
+adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) running open-lifecycle changes from disk projection lookup, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only — does not mutate state.
 
 **Tags:** `coordination`, `wip`, `aggregation`
 
@@ -171,33 +171,33 @@ adv_wip_state returns a single aggregated view of an ADV project's in-flight coo
 
 ---
 
-### WIP visibility exposes poisoned workflow metadata without hiding healthy state
+### WIP visibility exposes unreadable projection metadata without hiding healthy state
 
 **ID:** `rq-wipPoisonIsolation01` | **Priority:** **[MUST]**
 
-adv_wip_state MUST preserve healthy active-change, worktree, and peer-session results when one worktree-owning change workflow cannot be queried. Per-workflow poison or query failures from the worktree source MUST be surfaced as human-readable warnings and as structured poisoned_workflows metadata optimized for automation and agent triage. The metadata MUST include source, changeId, workflowId, recoveryReason, evidenceSummary, and message when poison evidence is available. The tool remains read-only and MUST NOT perform destructive recovery.
+adv_wip_state MUST preserve healthy active-change, worktree, and peer-session results when one worktree-owning change change projection cannot be queried. Per-change projection poison or query failures from the worktree source MUST be surfaced as human-readable warnings and as structured unreadable_projections metadata optimized for automation and agent triage. The metadata MUST include source, changeId, change projectionId, recoveryReason, evidenceSummary, and message when poison evidence is available. The tool remains read-only and MUST NOT perform destructive recovery.
 
-**Tags:** `coordination`, `wip`, `poisoned-history`, `automation`
+**Tags:** `coordination`, `wip`, `unavailable-projection`, `automation`
 
 #### Scenarios
 
-**Poisoned worktree workflow does not hide healthy WIP** (`rq-wipPoisonIsolation01.1`)
+**unreadable worktree change projection does not hide healthy WIP** (`rq-wipPoisonIsolation01.1`)
 
 **Given:**
-- One change workflow returns healthy worktree records
-- A second change workflow query fails with poisoned-history evidence
+- One change change projection returns healthy worktree records
+- A second change change projection query fails with unavailable-projection evidence
 
 **When:** adv_wip_state is called
 
 **Then:**
 - The healthy worktree remains in worktrees
 - The response includes a warnings entry for the worktree source
-- The response includes poisoned_workflows with source="worktrees", changeId, workflowId, recoveryReason, evidenceSummary, and message
+- The response includes unreadable_projections with source="worktrees", changeId, change projectionId, recoveryReason, evidenceSummary, and message
 
 **Poison metadata is read-only triage data** (`rq-wipPoisonIsolation01.2`)
 
 **Given:**
-- poisoned_workflows contains a workflow with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence
+- unreadable_projections contains a change projection with TMPRL1100, NonDeterministic, Nondeterminism, Change projectionTaskFailedCauseNonDeterministicError, No command scheduled, or Change projectionExecutionUpdateAccepted evidence
 
 **When:** adv_wip_state returns the response
 
@@ -207,11 +207,11 @@ adv_wip_state MUST preserve healthy active-change, worktree, and peer-session re
 
 ---
 
-### Portfolio-balance cross-reference uses bounded Visibility lookup
+### Portfolio-balance cross-reference uses bounded projection lookup lookup
 
 **ID:** `rq-backlogCoord05` | **Priority:** **[MUST]**
 
-/adv-triage portfolio-balance reporting MUST correlate open GitHub issue numbers with active changes through queryActiveChangesByIssueNumbers or an equivalent bounded Temporal Visibility lookup. It MUST NOT perform per-change state reads to annotate the issue pool. The retired adv_roadmap tool and its file/live reader modes MUST remain absent.
+/adv-triage portfolio-balance reporting MUST correlate open GitHub issue numbers with active changes through queryActiveChangesByIssueNumbers or an equivalent bounded disk projection lookup lookup. It MUST NOT perform per-change state reads to annotate the issue pool. The retired adv_roadmap tool and its file/live reader modes MUST remain absent.
 
 **Tags:** `coordination`, `performance`, `visibility`
 
@@ -225,7 +225,7 @@ adv_wip_state MUST preserve healthy active-change, worktree, and peer-session re
 **When:** It builds change-to-issue portfolio annotations
 
 **Then:**
-- A single bounded Visibility lookup covers the pool
+- A single bounded projection lookup lookup covers the pool
 - No per-change getState loop is used
 
 **Large issue pools remain bounded** (`rq-backlogCoord05.2`)
@@ -239,11 +239,11 @@ adv_wip_state MUST preserve healthy active-change, worktree, and peer-session re
 - Inputs are chunked at a bounded size
 - Results merge into one issue-number map
 
-**Visibility outage is explicit** (`rq-backlogCoord05.3`)
+**projection lookup outage is explicit** (`rq-backlogCoord05.3`)
 
 **Given:**
 - GitHub issue data is available
-- Temporal Visibility is unavailable
+- disk projection lookup is unavailable
 
 **When:** Portfolio balance renders
 
@@ -291,13 +291,13 @@ ROADMAP.md and .adv/roadmap-snapshot.json are retired projections. /adv-triage M
 
 ---
 
-### Change Origin Linkage Matrix, Legacy Roadmap Read Compatibility, and Seed State
+### Change Origin Linkage Matrix, Legacy Roadmap Read Compatibility, and Disk Seed State
 
 **ID:** `rq-backlogCoord08` | **Priority:** **[MUST]**
 
-adv_change_create and adv_change_repair_origin MUST validate origin linkage before workflow mutation. The roadmap origin kind is readable legacy provenance only and MUST be rejected for new create or repair writes with a typed retirement error pointing to triage. Triage accepts optional positive origin_issue_number and optional non-blank source artifact; discovery accepts source artifact but rejects issue number; adhoc and omitted kind reject linkage fields. Valid issue metadata seeds workflow state and AdvBacklogIssueNumber before workflow start.
+adv_change_create MUST validate origin linkage before writing a change projection. The roadmap origin kind is readable legacy provenance only and MUST be rejected for new writes with a typed retirement error pointing to triage. Triage accepts optional positive origin_issue_number and optional non-blank source artifact; discovery accepts source artifact but rejects issue number; adhoc and omitted kind reject linkage fields. Valid issue metadata seeds the disk projection and AdvBacklogIssueNumber claim data atomically with change creation.
 
-**Tags:** `coordination`, `origin`, `claims`, `search-attributes`
+**Tags:** `coordination`, `origin`, `claims`, `projection fields`
 
 #### Scenarios
 
@@ -323,7 +323,7 @@ adv_change_create and adv_change_repair_origin MUST validate origin linkage befo
 
 **Then:**
 - The linkage fields are accepted
-- Accepted values seed workflow state
+- Accepted values seed the change projection
 
 **Discovery rejects issue and accepts source artifact** (`rq-backlogCoord08.3`)
 
@@ -344,19 +344,19 @@ adv_change_create and adv_change_repair_origin MUST validate origin linkage befo
 **When:** Linkage fields are provided
 
 **Then:**
-- Validation fails before workflow start
+- Validation fails before projection creation
 - The disallowed field is named
 
-**Seeded issue metadata drives search attributes** (`rq-backlogCoord08.5`)
+**Seeded issue metadata drives projection fields** (`rq-backlogCoord08.5`)
 
 **Given:**
 - A valid triage origin includes origin.issue_number
 
-**When:** buildChangeSearchAttributes runs
+**When:** The change projection is created
 
 **Then:**
-- AdvBacklogIssueNumber is populated from workflow state
-- No late disk patch supplies the value
+- AdvBacklogIssueNumber is populated from the typed origin projection
+- No late unverified patch supplies the value
 
 ---
 
@@ -429,11 +429,68 @@ adv_change_create and adv_change_repair_origin MUST validate origin linkage befo
 
 ---
 
+### Triage Portfolio Balance Represents Unlinked Nonterminal Changes
+
+**ID:** `rq-backlogCoord10` | **Priority:** **[MUST]**
+
+`/adv-triage` portfolio-balance reporting MUST represent nonterminal ADV changes that carry no linked GitHub issue, so defect work tracked only as an ADV change remains visible. Membership in that set MUST be determined structurally from typed change state and MUST NOT be decided by title similarity, title prefix inference, or agent inference. A defect ranking hint MAY influence ordering within the set, MUST render its evidence source, and MUST NOT filter, suppress, close, deprioritize, or authorize any mutation. `origin.kind` is the primary hint source; title prefix is secondary and weak. Existing constraints remain in force: `priority:*` labels stay GitHub-issue-scoped and MUST NOT be written to an ADV change, and the bounded projection lookup lookup rules of rq-backlogCoord05 continue to apply.
+
+**Tags:** `triage`, `backlog`, `portfolio`, `p33`, `structural-membership`
+
+#### Scenarios
+
+**Unlinked changes are represented** (`rq-backlogCoord10.1`)
+
+**Given:**
+- Nonterminal ADV changes exist with no linked GitHub issue
+
+**When:** `/adv-triage` renders portfolio balance
+
+**Then:**
+- Those changes appear in the report
+- They are not excluded by the absence of an issue link
+
+**Membership is structural** (`rq-backlogCoord10.2`)
+
+**Given:**
+- The unlinked-change pool is assembled
+
+**When:** Membership is determined
+
+**Then:**
+- Eligibility derives from typed change state only
+- No title similarity, title prefix, or agent inference decides whether a change appears
+
+**Defect hint is advisory and sourced** (`rq-backlogCoord10.3`)
+
+**Given:**
+- A change carries a defect ranking hint
+
+**When:** The row renders
+
+**Then:**
+- The hint displays its evidence source
+- The hint affects ordering only
+- The hint does not filter, suppress, close, deprioritize, or authorize a mutation
+
+**Priority label scope unchanged** (`rq-backlogCoord10.4`)
+
+**Given:**
+- Unlinked changes appear in the portfolio report
+
+**When:** The bug priority loop runs
+
+**Then:**
+- priority:* labels are written only to GitHub bug issues
+- No priority:* label or parallel priority field is written to an ADV change
+
+---
+
 ### Planning and WIP Collision Detection for Linked Ops Work
 
 **ID:** `rq-opsFollowWip01` | **Priority:** **[MUST]**
 
-Planning, WIP, and collision checks MUST surface active linked ops/enabler work from structural workflow state or Visibility-backed discovery, not from agenda text search. adv_wip_state and related planning readbacks MUST include active ops_followup_links and their status when queried in the context of a source/parent change. Collision detection MUST treat an active blocking ops_followup_link as an in-flight dependency.
+Planning, WIP, and collision checks MUST surface active linked ops/enabler work from structural change projection state or projection lookup-backed discovery, not from agenda text search. adv_wip_state and related planning readbacks MUST include active ops_followup_links and their status when queried in the context of a source/parent change. Collision detection MUST treat an active blocking ops_followup_link as an in-flight dependency.
 
 **Tags:** `coordination`, `wip`, `ops-follow-up`, `collision`, `planning`, `visibility`
 

@@ -4,21 +4,14 @@
  * Read-only inventory + advisory recommendations. NO auto-fix (per Q9 LBP
  * decision: triage surfaces drift; user/operator chooses remediation).
  *
- * Detects orphan classes by comparing three sources of truth:
+ * Detects orphan classes from real local state:
  *   - Disk: `git worktree list --porcelain`
- *   - Temporal: `worktree_registry` from project workflow state
- *   - Temporal: `change_summaries[].status` for archived-not-cleaned check
  *   - Local git: `detectStaleBranchHead` for stale-HEAD detection
  *   - Index/working tree: `git status --porcelain` for dirty-work detection
  *
  * | Class                       | Detection                                              |
  * |-----------------------------|--------------------------------------------------------|
  * | `stale_head`                | `detectStaleBranchHead` returns stale                  |
- * | `missing_from_temporal`     | Disk has worktree, registry doesn't                    |
- * | `missing_from_temporal_unmerged` | Disk has unregistered worktree with unmerged commits |
- * | `missing_from_disk`         | Registry has, disk doesn't                             |
- * | `registry_missing_change_id`| Registry has change branch without owner metadata      |
- * | `archived_not_cleaned`      | Registry has worktree for archived change              |
  * | `dirty_uncommitted_work`    | Worktree has staged/modified/untracked files           |
  *
  * Citations: rq-worktreeRegistry01, rq-multiSessionFraming01,
@@ -27,15 +20,12 @@
 
 import {
   initStateDb,
-  getWorktreeRegistrySnapshot,
   getPendingDeletes,
   type WorktreeStateAccess,
-  type WorktreeCrossChangeWarning,
+  inferChangeIdFromBranch,
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
-import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
 import { execFileGitAsync } from "../../utils/git-binary";
-import { getDefaultBranch } from "../../utils/git";
 import { resolve } from "path";
 import {
   parseWorktreeListPorcelain,
@@ -53,11 +43,6 @@ import {
 
 export type OrphanClass =
   | "stale_head"
-  | "missing_from_temporal"
-  | "missing_from_temporal_unmerged"
-  | "missing_from_disk"
-  | "registry_missing_change_id"
-  | "archived_not_cleaned"
   | "dirty_uncommitted_work"
   | "terminal_cleanup_retained";
 
@@ -79,7 +64,6 @@ export interface OmittedScope {
 export interface TriageResult {
   orphans: OrphanRecord[];
   total: number;
-  warnings?: WorktreeCrossChangeWarning[];
   complete?: boolean;
   stopReason?: InventoryStopReason;
   stoppedStage?: string;
@@ -116,56 +100,8 @@ function targetArgsSuffix(repoRoot: string, targetProject: boolean): string {
     : "";
 }
 
-function deleteFix(
-  branch: string | undefined,
-  repoRoot: string,
-  targetProject: boolean,
-): string {
-  return `adv_worktree_delete ${branch ?? "<branch>"}${targetArgsSuffix(repoRoot, targetProject)}`;
-}
-
 function cleanupFix(repoRoot: string, targetProject: boolean): string {
   return `adv_worktree_cleanup${targetArgsSuffix(repoRoot, targetProject)}`;
-}
-
-interface BranchReachability {
-  unmerged: boolean;
-  defaultBranch?: string;
-  aheadCount?: number;
-}
-
-async function detectUnmergedBranch(
-  repoRoot: string,
-  branch: string,
-): Promise<BranchReachability> {
-  try {
-    const defaultBranch = await getDefaultBranch(repoRoot);
-
-    // Prove both refs exist before interpreting rev-list output. Unknown
-    // reachability must preserve the legacy `missing_from_temporal` class
-    // rather than over-classifying.
-    await execFileGitAsync(
-      ["rev-parse", "--verify", `${defaultBranch}^{commit}`],
-      {
-        cwd: repoRoot,
-      },
-    );
-    await execFileGitAsync(["rev-parse", "--verify", `${branch}^{commit}`], {
-      cwd: repoRoot,
-    });
-
-    const { stdout } = await execFileGitAsync(
-      ["rev-list", "--count", `${defaultBranch}..${branch}`],
-      { cwd: repoRoot },
-    );
-    const aheadCount = Number.parseInt(stdout.trim(), 10);
-    if (!Number.isFinite(aheadCount) || aheadCount <= 0) {
-      return { unmerged: false, defaultBranch, aheadCount: 0 };
-    }
-    return { unmerged: true, defaultBranch, aheadCount };
-  } catch {
-    return { unmerged: false };
-  }
 }
 
 /**
@@ -258,20 +194,13 @@ async function collectTriage(
     return ok;
   }
 
-  function buildResult({
-    orphans,
-    warnings,
-  }: {
-    orphans: OrphanRecord[];
-    warnings?: WorktreeCrossChangeWarning[];
-  }): TriageResult {
+  function buildResult({ orphans }: { orphans: OrphanRecord[] }): TriageResult {
     enterStage("complete");
     const snap = budget?.snapshot();
     const complete = snap?.complete ?? true;
     return {
       orphans,
       total: orphans.length,
-      warnings: warnings && warnings.length > 0 ? warnings : undefined,
       complete,
       stopReason: snap?.stopReason,
       stoppedStage: complete ? undefined : (stoppedStage ?? currentStage),
@@ -300,7 +229,8 @@ async function collectTriage(
     }
   }
 
-  // 2-4. Cross-reference disk + Temporal.
+  // 2. Enumerate local worktrees. Workflow/registry divergence repair was
+  // removed with the workflow-backed registry; Git is now the authority.
   let access: WorktreeStateAccess;
   if (!admit("init_state")) {
     omitted.push({
@@ -325,158 +255,7 @@ async function collectTriage(
     diskList = await listDiskWorktrees(repoRoot);
   }
 
-  if (!admit("snapshot")) {
-    omitted.push({
-      scope: "snapshot",
-      reason: "inventory budget exhausted",
-    });
-    return buildResult({ orphans });
-  }
-  const snapshot = await getWorktreeRegistrySnapshot(access, { budget });
-  const registry = snapshot.records;
-  const summaries = snapshot.changeSummaries;
-  const warnings: WorktreeCrossChangeWarning[] = snapshot.warnings
-    ? [...snapshot.warnings]
-    : [];
-  if (snapshot.omitted) {
-    omitted.push(
-      ...snapshot.omitted.map((o) => ({
-        ...o,
-        scope: `snapshot:${o.scope}`,
-      })),
-    );
-  }
-  candidateCount = diskList.length + registry.length;
-
-  const diskByBranch = new Map<string, DiskWorktree>();
-  for (const dw of diskList) {
-    if (dw.branch) diskByBranch.set(dw.branch, dw);
-  }
-
-  const registryByBranch = new Map<string, (typeof registry)[number]>();
-  for (const r of registry) {
-    if (r.branch) registryByBranch.set(r.branch, r);
-  }
-
-  // missing_from_temporal: disk has worktree, registry doesn't.
-  for (const dw of diskList) {
-    if (!dw.branch) continue;
-    if (!dw.branch.startsWith(CHANGE_BRANCH_PREFIX)) continue;
-    if (registryByBranch.has(dw.branch)) continue;
-    if (!admit("missing_from_temporal")) {
-      omitted.push({
-        scope: "missing_from_temporal",
-        branch: dw.branch,
-        path: dw.path,
-        reason: "inventory budget exhausted",
-      });
-      continue;
-    }
-
-    const reachability = await detectUnmergedBranch(repoRoot, dw.branch);
-    inspectedCount += 1;
-    if (reachability.unmerged) {
-      orphans.push({
-        class: "missing_from_temporal_unmerged",
-        branch: dw.branch,
-        path: dw.path,
-        reason:
-          `Disk worktree at ${dw.path} (branch ${dw.branch}) has no entry in worktree_registry ` +
-          `and has ${reachability.aheadCount ?? 1} unmerged commits ahead of ${reachability.defaultBranch ?? "the default branch"}`,
-        recommendedFix:
-          `Resume/materialize the owning ADV worktree with adv_worktree_resume for ${dw.branch}; ` +
-          `review and merge/archive the branch before cleanup`,
-      });
-      continue;
-    }
-    orphans.push({
-      class: "missing_from_temporal",
-      branch: dw.branch,
-      path: dw.path,
-      reason: `Disk worktree at ${dw.path} (branch ${dw.branch}) has no entry in worktree_registry`,
-      recommendedFix:
-        `If still active, resume/materialize the owning ADV worktree with adv_worktree_resume for ${dw.branch}; ` +
-        `otherwise inspect manually, then use ${deleteFix(dw.branch, repoRoot, targetProject)} and let the terminal/merged/clean gates decide`,
-    });
-  }
-
-  // missing_from_disk: registry has, disk doesn't.
-  for (const r of registry) {
-    if (!r.branch) continue;
-    if (diskByBranch.has(r.branch)) continue;
-    if (!admit("missing_from_disk")) {
-      omitted.push({
-        scope: "missing_from_disk",
-        branch: r.branch,
-        path: r.path,
-        reason: "inventory budget exhausted",
-      });
-      continue;
-    }
-    inspectedCount += 1;
-    orphans.push({
-      class: "missing_from_disk",
-      branch: r.branch,
-      path: r.path,
-      reason: `worktree_registry has ${r.branch} at ${r.path}, but no on-disk worktree exists`,
-      recommendedFix:
-        `${deleteFix(r.branch, repoRoot, targetProject)} ` +
-        `# reason: disk_missing ${r.branch}`,
-    });
-  }
-
-  // registry_missing_change_id: registry has a canonical change worktree but
-  // cannot prove ownership for delete integration checks.
-  for (const r of registry) {
-    if (!r.branch?.startsWith(CHANGE_BRANCH_PREFIX)) continue;
-    if (r.changeId) continue;
-    if (!admit("registry_missing_change_id")) {
-      omitted.push({
-        scope: "registry_missing_change_id",
-        branch: r.branch,
-        path: r.path,
-        reason: "inventory budget exhausted",
-      });
-      continue;
-    }
-    inspectedCount += 1;
-    orphans.push({
-      class: "registry_missing_change_id",
-      branch: r.branch,
-      path: r.path,
-      reason: `worktree_registry has ${r.branch} at ${r.path}, but the record has no owning changeId`,
-      recommendedFix:
-        `repair registry metadata for ${r.branch}, then use ${deleteFix(r.branch, repoRoot, targetProject)} ` +
-        `so terminal+merged+clean verification stays centralized`,
-    });
-  }
-
-  // archived_not_cleaned: registry entry whose change is archived.
-  for (const r of registry) {
-    const changeId = r.changeId;
-    if (!changeId) continue;
-    const summary = summaries[changeId];
-    if (!summary) continue;
-    if (summary.status !== "archived") continue;
-    if (!diskByBranch.has(r.branch ?? "")) continue; // already covered by missing_from_disk
-    if (!admit("archived_not_cleaned")) {
-      omitted.push({
-        scope: "archived_not_cleaned",
-        branch: r.branch,
-        path: r.path,
-        reason: "inventory budget exhausted",
-      });
-      continue;
-    }
-    inspectedCount += 1;
-    orphans.push({
-      class: "archived_not_cleaned",
-      branch: r.branch,
-      path: r.path,
-      reason: `Worktree ${r.branch} backs archived change ${changeId} (3-condition gate not yet exercised)`,
-      recommendedFix: `${deleteFix(r.branch, repoRoot, targetProject)}  # 3-condition gate enforces archived+merged+clean`,
-    });
-  }
+  candidateCount = diskList.length;
 
   // dirty_uncommitted_work (rq-worktreeDirtyDetection01 / #120): any disk
   // worktree (other than the main checkout) with staged, modified, or
@@ -489,7 +268,7 @@ async function collectTriage(
     if (!dw.branch) continue;
     // Skip the main checkout — only flag named-branch worktrees we manage.
     // (Convention: ADV-managed worktrees use `change/...` branches.)
-    if (!dw.branch.startsWith(CHANGE_BRANCH_PREFIX)) continue;
+    if (!dw.branch || !inferChangeIdFromBranch(dw.branch)) continue;
     if (!admit("dirty_uncommitted_work")) {
       omitted.push({
         scope: "dirty_uncommitted_work",
@@ -541,7 +320,7 @@ async function collectTriage(
     inspectedCount += pendingDeletes.length;
   }
 
-  return buildResult({ orphans, warnings });
+  return buildResult({ orphans });
 }
 
 // =============================================================================

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalCommandPayloadString, fnv1a32 } from "../temporal/digest";
+import { canonicalCommandPayloadString, fnv1a32 } from "./digest";
 import {
   computeHostCommandPayloadHash,
   sha256Hex,

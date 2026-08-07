@@ -16,9 +16,8 @@
   },
   "author": "Anomaly",
   "scripts": {
-    "build": "tsx scripts/build-plugin.ts && pnpm run build:worker && pnpm run build:identity",
+    "build": "tsx scripts/build-plugin.ts && pnpm run build:identity",
     "build:mcp-server": "tsup src/mcp-server/index.ts --format esm --out-dir dist --no-splitting",
-    "build:worker": "tsup src/temporal/worker.ts src/temporal/workflows.ts --format esm --out-dir dist/temporal && tsx scripts/write-worker-bundle-manifest.ts",
     "build:identity": "tsx scripts/write-build-identity.ts",
     "dev": "tsup src/index.ts --format esm --watch",
     "check": "pnpm run schemas:check && pnpm run typecheck && pnpm run generate:manifests:check && tsx scripts/check-frontmatter.ts && tsx scripts/check-test-isolation.ts && tsx scripts/check-lockfile-policy.ts && pnpm run lint && pnpm run format:check",
@@ -36,15 +35,11 @@
     "schemas:check": "tsx scripts/generate-json-schemas.ts --check",
     "generate:manifests": "tsx scripts/generate-agent-manifests.ts",
     "generate:manifests:check": "tsx scripts/generate-agent-manifests.ts --check",
-    "bench:latency": "bun --smol scripts/bench-adv-latency.ts",
-    "verify:worker-bundle": "tsx scripts/verify-candidate-worker-bundle.ts"
+    "bench:latency": "bun --smol scripts/bench-adv-latency.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@opencode-ai/plugin": "^1.18.4",
-    "@temporalio/client": "^1.16.0",
-    "@temporalio/worker": "^1.16.0",
-    "@temporalio/workflow": "^1.16.0",
     "jsonc-parser": "^3.3.1",
     "lru-cache": "^11.3.6",
     "nanoid": "^5.0.9",
@@ -54,7 +49,6 @@
   "devDependencies": {
     "@ast-grep/cli": "^0.44.1",
     "@eslint/js": "^10.0.1",
-    "@temporalio/testing": "^1.16.0",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",
     "bun-types": "^1.3.12",

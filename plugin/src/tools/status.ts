@@ -8,21 +8,7 @@
 import { basename } from "path";
 import type { Store } from "../storage/store";
 import type { StatusReadOptions } from "../storage/store-types";
-import {
-  createTemporalReadContext,
-  isTemporalReadExpired,
-  runTemporalRead,
-  type TemporalReadContext,
-} from "../storage/store-temporal/read-context";
-import { getTemporalWorkerRole } from "../plugin-init";
 import { STATUS_READ_DEADLINE_BUDGET_MS } from "../utils/tool-budgets";
-import {
-  classifyTemporalError,
-  extractGrpcStatus,
-  GRPC_NOT_FOUND,
-  getTemporalRetryTelemetry,
-} from "../temporal/retry-wrapper";
-import { isWorkerAffirmativelyAlive } from "../temporal/health-probe";
 import { formatToolOutput, resolveOutputMode } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
 import { listPeerSessions } from "./session/index";
@@ -56,23 +42,11 @@ import { buildStatusRecommendationGroups } from "./status-recommendations";
 import {
   computeHealthSnapshot,
   fetchStatusSnapshotHealth,
-  fetchStatusTemporalHealth,
-  fetchStatusQueueServiceability,
-  fetchStatusWorkerProcesses,
-  buildTemporalHealthFallback,
-  STATUS_PROBE_TTL_MS,
-  pushQueueServiceabilityRecommendations,
-  statusSearchAttributesProbeCache,
   statusWorktreeCensusProbeCache,
   _healthSnapshotCache,
   _statusProbeCaches,
-  MISSING_PROJECT_ID_CACHE_KEY,
   type HealthSnapshot,
-  type SearchAttributesSnapshot,
   type SnapshotHealthSnapshot,
-  type StatusQueueServiceabilitySnapshot,
-  type TemporalHealthSnapshot,
-  type WorkerProcessesSnapshot,
   type WorktreeCensusSnapshot,
 } from "./status-health";
 import {
@@ -134,169 +108,18 @@ async function loadMigrationStatus(_store: Store) {
   return null;
 }
 
-const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
-const STATUS_BOOTSTRAP_MAX_ATTEMPTS = 3;
-async function delay(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function buildDeadlineDegradedStatus(status?: ProjectStatus): ProjectStatus {
-  const warning = {
-    code: "SOURCE_DEADLINE_EXCEEDED" as const,
-    source: "workflow_query" as const,
-    message:
-      "Aggregate status read deadline exceeded; results are incomplete and must not be treated as complete.",
-  };
-  return {
-    specs: status?.specs ?? { count: 0, capabilities: [] },
-    changes: status?.changes ?? {
-      active: 0,
-      byStatus: { draft: 0, archived: 0, closed: 0 },
-      recent: [],
-    },
-    recommendations: status?.recommendations ?? [],
-    ...(status?.resolvedChanges
-      ? { resolvedChanges: status.resolvedChanges }
-      : {}),
-    warnings: [
-      ...(status?.warnings ?? []).filter(
-        (existing) => existing.code !== warning.code,
-      ),
-      warning,
-    ],
-    hydrationStats: {
-      ...(status?.hydrationStats ?? {}),
-      deadlineExceeded: true,
-      omitted: status?.hydrationStats?.omitted ?? 0,
-      omittedIds: status?.hydrationStats?.omittedIds ?? [],
-    },
-  };
-}
-
-function buildDurableAbsenceStatus(): ProjectStatus {
-  const warning = {
-    code: "SOURCE_WORKFLOW_DURABLY_ABSENT" as const,
-    source: "workflow_query" as const,
-    message:
-      "Temporal workflow is durably absent after a retained disk projection; status read stopped without retrying the unreachable workflow.",
-  };
-  return {
-    specs: { count: 0, capabilities: [] },
-    changes: {
-      active: 0,
-      byStatus: {
-        draft: 0,
-        archived: 0,
-        closed: 0,
-      },
-      recent: [],
-    },
-    recommendations: [],
-    warnings: [warning],
-    hydrationStats: { durableAbsence: true, omitted: 0 },
-  };
-}
-
 async function loadStatusWithBootstrapRetry(
   store: Store,
   options?: StatusReadOptions,
-  context: TemporalReadContext = createTemporalReadContext(),
 ): Promise<{
   status: ProjectStatus;
-  bootstrapDiagnostic?: {
-    recovered: boolean;
-    lastErrorClass: "bootstrap_in_progress";
-    error: string;
-  };
 }> {
-  let lastBootstrapError: unknown;
   const projectionState = { loaded: false };
   const readOptions: StatusReadOptions | undefined =
     typeof store.hasLoadedDiskProjection === "function"
       ? { ...(options ?? {}), projectionState }
       : options;
-
-  for (let attempt = 1; attempt <= STATUS_BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
-    if (isTemporalReadExpired(context)) {
-      return {
-        status: buildDeadlineDegradedStatus(),
-        bootstrapDiagnostic: {
-          recovered: false,
-          lastErrorClass: "bootstrap_in_progress",
-          error:
-            "Aggregate status read deadline exceeded before the next attempt.",
-        },
-      };
-    }
-    try {
-      const status = await store.status(readOptions);
-      return lastBootstrapError
-        ? {
-            status,
-            bootstrapDiagnostic: {
-              recovered: true,
-              lastErrorClass: "bootstrap_in_progress",
-              error:
-                lastBootstrapError instanceof Error
-                  ? lastBootstrapError.message
-                  : String(lastBootstrapError),
-            },
-          }
-        : { status };
-    } catch (error) {
-      if (classifyTemporalError(error) !== "fallback") throw error;
-      // A structurally identified gRPC NOT_FOUND is terminal once this store
-      // has already loaded a durable disk projection. Do not use error text:
-      // TMPRL1100 has no gRPC status and remains bootstrap-retry eligible.
-      if (
-        extractGrpcStatus(error) === GRPC_NOT_FOUND &&
-        store.hasLoadedDiskProjection?.(projectionState) === true
-      ) {
-        return { status: buildDurableAbsenceStatus() };
-      }
-      lastBootstrapError = error;
-      if (isTemporalReadExpired(context)) {
-        return {
-          status: buildDeadlineDegradedStatus(),
-          bootstrapDiagnostic: {
-            recovered: false,
-            lastErrorClass: "bootstrap_in_progress",
-            error: error instanceof Error ? error.message : String(error),
-          },
-        };
-      }
-      if (attempt < STATUS_BOOTSTRAP_MAX_ATTEMPTS) {
-        await delay(STATUS_BOOTSTRAP_RETRY_DELAY_MS);
-      }
-    }
-  }
-
-  const error =
-    lastBootstrapError instanceof Error
-      ? lastBootstrapError.message
-      : String(lastBootstrapError);
-  return {
-    status: {
-      specs: { count: 0, capabilities: [] },
-      changes: {
-        active: 0,
-        byStatus: {
-          draft: 0,
-          archived: 0,
-          closed: 0,
-        },
-        recent: [],
-      },
-      recommendations: [
-        "⚠️ Temporal bootstrap in progress — status read hit replay recovery errors repeatedly; retry shortly.",
-      ],
-    },
-    bootstrapDiagnostic: {
-      recovered: false,
-      lastErrorClass: "bootstrap_in_progress",
-      error,
-    },
-  };
+  return { status: await store.status(readOptions) };
 }
 
 // =============================================================================
@@ -368,7 +191,7 @@ export const statusTools = {
       "Show project overview: specs, active changes, and next-step recommendations. " +
       "Use the optional `view` selector to scope the response: " +
       "`summary` (default) returns lightweight orientation; " +
-      "`health` returns full Temporal/STSL/session-debt diagnostics + metrics; " +
+      "`health` returns disk, worktree, session-debt, and metrics diagnostics; " +
       "`changes` returns full active-change detail; " +
       "`hygiene` returns leak detection + recommendations + project metadata.",
     args: {
@@ -384,7 +207,7 @@ export const statusTools = {
         .default("summary")
         .describe(
           "Output view selector. `summary` (default) omits hygiene archaeology and full diagnostics; " +
-            "`health` surfaces Temporal/STSL/session-debt detail + metrics counters; " +
+            "`health` surfaces disk/worktree/session-debt detail + metrics counters; " +
             "`changes` returns the full recent-change list; " +
             "`hygiene` surfaces archived/closed leaks + recommendations + project metadata.",
         ),
@@ -430,20 +253,6 @@ export const statusTools = {
         async (activeStore, projectContext) => {
           const plan = buildStatusViewPlan(view);
           // One aggregate budget owns the entire authoritative status read.
-          // Disk-backed target stores ignore this option, while Temporal-backed
-          // stores use the absolute deadline for every source and hydration
-          // stage rather than minting a fresh budget per view/call.
-          // AC5: the status-local budget is derived from the host tool cap
-          // minus a measured serialization headroom (tool-budgets.ts), so
-          // changing either source constant cannot silently erase the margin.
-          const temporalReadContext = createTemporalReadContext(
-            STATUS_READ_DEADLINE_BUDGET_MS,
-          );
-          // Disk stores have no Temporal status path and intentionally retain
-          // their legacy call shape; the deadline is meaningful only when the
-          // Temporal backend exposes its summary projection reader.
-          const supportsTemporalStatusRead =
-            typeof activeStore.changes.listSummary === "function";
           const healthRequest =
             view === "health" ? createHealthRequestContext() : undefined;
           const summaryOmissions: StatusSummaryOmissions = {
@@ -462,32 +271,16 @@ export const statusTools = {
             view === "summary"
               ? {
                   recentLimit: STATUS_SUMMARY_RECENT_LIMIT,
-                  ...(supportsTemporalStatusRead
-                    ? { deadline: temporalReadContext.deadline }
-                    : {}),
                 }
               : view === "health"
-                ? buildHealthStatusReadOptions(
-                    healthRequest,
-                    supportsTemporalStatusRead
-                      ? temporalReadContext.deadline
-                      : undefined,
-                  )
-                : supportsTemporalStatusRead
-                  ? { deadline: temporalReadContext.deadline }
-                  : undefined;
-          const { status: loadedStatus, bootstrapDiagnostic } =
-            await withRecordedPhase("adv_status", "statusLoad", () =>
-              loadStatusWithBootstrapRetry(
-                activeStore,
-                statusReadOptions,
-                temporalReadContext,
-              ),
-            );
-          let status = loadedStatus;
-          if (isTemporalReadExpired(temporalReadContext)) {
-            status = buildDeadlineDegradedStatus(status);
-          }
+                ? buildHealthStatusReadOptions()
+                : undefined;
+          const { status: loadedStatus } = await withRecordedPhase(
+            "adv_status",
+            "statusLoad",
+            () => loadStatusWithBootstrapRetry(activeStore, statusReadOptions),
+          );
+          const status = loadedStatus;
           // Request-local resolved documents: extracted for
           // enrichment reuse and stripped before output serialization —
           // the map is transport-only, never response payload.
@@ -557,13 +350,8 @@ export const statusTools = {
               feature_flags: {},
               feature_flag_sources: {},
               auto_managed_changes: autoManagedCensus,
-              worker_role: getTemporalWorkerRole(),
               _freshness: {},
               _health_execution: {},
-              temporal_health: undefined,
-              orphan_queue_adoption: null,
-              search_attributes: undefined,
-              worker_processes: undefined,
               opencode_session_debt: undefined,
               migration_status: null,
               project_metadata: undefined,
@@ -586,25 +374,15 @@ export const statusTools = {
             });
           };
 
-          // The post-status cutoff is the REQUEST-SCOPED AGGREGATE deadline,
-          // never a view-specific sub-budget. `statusReadOptions.deadline` is
-          // not safe here: for the health view on a store without a Temporal
-          // summary reader, `buildHealthStatusDeadline` falls back to health's
-          // own 7.5s execution cutoff. Using that as the outer bound made the
-          // whole response degrade the moment health's INNER budget was spent,
-          // discarding the health payload that `runHealthStatus` had already
-          // legitimately degraded and returned. Inner sub-budgets are owned and
-          // enforced by their own executors.
-          const postStatusCutoffAt = temporalReadContext.deadline.deadlineAt;
+          const postStatusCutoffAt =
+            Date.now() + STATUS_READ_DEADLINE_BUDGET_MS;
           const postStatusBudgetExceeded = () =>
-            isTemporalReadExpired(temporalReadContext) ||
             Date.now() >= postStatusCutoffAt;
           const degradeForDeadline = () => {
-            status = buildDeadlineDegradedStatus(status);
             return buildDegradedResponse();
           };
           const runBoundedStatusPhase = async <T>(
-            opType: string,
+            _opType: string,
             operation: () => Promise<T>,
           ): Promise<
             | { kind: "complete"; data: T }
@@ -612,32 +390,27 @@ export const statusTools = {
             | { kind: "error"; error: unknown }
           > => {
             if (postStatusBudgetExceeded()) return { kind: "deadline" };
-            const phaseRead = await runTemporalRead(
-              undefined,
-              operation,
-              temporalReadContext,
-              { maxAttempts: 1, opType },
-            );
-            if (!phaseRead.complete) {
+            let data: T;
+            try {
+              data = await operation();
+            } catch (error) {
               return postStatusBudgetExceeded()
                 ? { kind: "deadline" }
-                : { kind: "error", error: phaseRead.error };
+                : { kind: "error", error };
             }
             if (postStatusBudgetExceeded()) return { kind: "deadline" };
-            return { kind: "complete", data: phaseRead.data as T };
+            return { kind: "complete", data };
           };
 
           if (view === "hygiene") {
-            const migrationRead = await runTemporalRead(
-              undefined,
+            const migrationRead = await runBoundedStatusPhase(
+              "status.migrationStatus",
               () =>
                 withRecordedPhase("adv_status", "migrationStatus", () =>
                   loadMigrationStatus(activeStore),
                 ),
-              temporalReadContext,
-              { maxAttempts: 1, opType: "status.migrationStatus" },
             );
-            if (!migrationRead.complete || postStatusBudgetExceeded()) {
+            if (migrationRead.kind !== "complete") {
               return degradeForDeadline();
             }
             migrationStatus = migrationRead.data;
@@ -648,7 +421,7 @@ export const statusTools = {
           // stages after expiry: those stages have independent best-effort
           // work and could outlive the host safety cap while the caller has
           // already been told the authoritative read is incomplete.
-          if (isTemporalReadExpired(temporalReadContext)) {
+          if (postStatusBudgetExceeded()) {
             return degradeForDeadline();
           }
 
@@ -690,9 +463,7 @@ export const statusTools = {
               async () => {
                 let primaryAssigned = false;
                 if (view === "health") {
-                  const cutoffAt =
-                    statusReadOptions?.deadline?.deadlineAt ??
-                    Date.now() + 7_500;
+                  const cutoffAt = postStatusCutoffAt;
                   const patches: CandidateEnrichmentPatch[] = [];
                   let rank = 0;
                   for (const rc of recentChanges) {
@@ -728,8 +499,8 @@ export const statusTools = {
                     }
                     const isPrimary = !primaryAssigned && rc.status === "draft";
                     if (isPrimary) primaryAssigned = true;
-                    const enrichmentRead = await runTemporalRead(
-                      undefined,
+                    const enrichmentRead = await runBoundedStatusPhase(
+                      "status.recentEnrichment",
                       () =>
                         enrichRecentChangeStatus(
                           rc,
@@ -743,11 +514,9 @@ export const statusTools = {
                           },
                           { cutoffAt: postStatusCutoffAt },
                         ),
-                      temporalReadContext,
-                      { maxAttempts: 1, opType: "status.recentEnrichment" },
                     );
                     if (
-                      !enrichmentRead.complete ||
+                      enrichmentRead.kind !== "complete" ||
                       postStatusBudgetExceeded()
                     ) {
                       break;
@@ -762,8 +531,8 @@ export const statusTools = {
           }
 
           if (plan.resumeProjection) {
-            const resumeRead = await runTemporalRead(
-              undefined,
+            const resumeRead = await runBoundedStatusPhase(
+              "status.resumeProjection",
               () =>
                 withRecordedPhase("adv_status", "resumeProjection", () =>
                   appendResumeProjectionRecommendations(activeStore, status, {
@@ -771,22 +540,13 @@ export const statusTools = {
                     limit: 3,
                   }),
                 ),
-              temporalReadContext,
-              { maxAttempts: 1, opType: "status.resumeProjection" },
             );
-            if (!resumeRead.complete || postStatusBudgetExceeded()) {
+            if (resumeRead.kind !== "complete") {
               return degradeForDeadline();
             }
           }
 
           let probeFreshness: Record<string, ProbeCacheFreshness> = {};
-          let temporalHealth: TemporalHealthSnapshot | undefined;
-          let queueServiceability:
-            | StatusQueueServiceabilitySnapshot
-            | null
-            | undefined;
-          let workerProcesses: WorkerProcessesSnapshot | undefined;
-          let searchAttributes: SearchAttributesSnapshot | undefined;
           let featureFlags: Record<string, unknown> = (() => {
             const policy = resolveProjectFeaturePolicy(undefined);
             return {
@@ -839,154 +599,6 @@ export const statusTools = {
           let futureWorkProjection: FutureWorkProjection | undefined;
 
           if (view !== "health") {
-            if (plan.temporalHealth) {
-              try {
-                const temporalProbeRead = await runBoundedStatusPhase(
-                  "status.temporalHealth",
-                  () =>
-                    fetchStatusTemporalHealth(projectId, {
-                      forceRefresh,
-                    }),
-                );
-                if (temporalProbeRead.kind === "deadline") {
-                  return degradeForDeadline();
-                }
-                if (temporalProbeRead.kind === "error") {
-                  throw temporalProbeRead.error;
-                }
-                const temporalProbe = temporalProbeRead.data;
-                temporalHealth = temporalProbe.value;
-                probeFreshness.temporal_health = temporalProbe.freshness;
-              } catch (err) {
-                temporalHealth = buildTemporalHealthFallback(err);
-                probeFreshness.temporal_health = {
-                  cached_at: new Date().toISOString(),
-                  // A degraded (timed-out) probe is NOT authoritative-fresh —
-                  // liveness is unconfirmed, so callers should re-fetch rather
-                  // than trust the optimistic fallback (no false "alive").
-                  stale: true,
-                  age_ms: 0,
-                  ttl_ms: STATUS_PROBE_TTL_MS,
-                  error: err instanceof Error ? err.message : String(err),
-                };
-              }
-            }
-
-            if (plan.queueServiceability && temporalHealth) {
-              const queueServiceabilityRead = await runBoundedStatusPhase(
-                "status.queueServiceability",
-                () =>
-                  fetchStatusQueueServiceability(
-                    {
-                      projectId,
-                      health: temporalHealth!,
-                    },
-                    { forceRefresh },
-                  ),
-              );
-              if (queueServiceabilityRead.kind === "deadline") {
-                return degradeForDeadline();
-              }
-              if (queueServiceabilityRead.kind === "error") {
-                throw queueServiceabilityRead.error;
-              }
-              const queueServiceabilityProbe = queueServiceabilityRead.data;
-              queueServiceability = queueServiceabilityProbe.value;
-              probeFreshness.queue_serviceability =
-                queueServiceabilityProbe.freshness;
-
-              pushQueueServiceabilityRecommendations({
-                status,
-                temporalHealth,
-                queueServiceability,
-              });
-            }
-
-            if (plan.workerProcesses) {
-              try {
-                const workerProcessesRead = await runBoundedStatusPhase(
-                  "status.workerProcesses",
-                  () => fetchStatusWorkerProcesses({ forceRefresh }),
-                );
-                if (workerProcessesRead.kind === "deadline") {
-                  return degradeForDeadline();
-                }
-                if (workerProcessesRead.kind === "error") {
-                  throw workerProcessesRead.error;
-                }
-                const workerProcessesProbe = workerProcessesRead.data;
-                workerProcesses = workerProcessesProbe.value;
-                probeFreshness.worker_processes =
-                  workerProcessesProbe.freshness;
-              } catch (err) {
-                workerProcesses = undefined;
-                probeFreshness.worker_processes = {
-                  cached_at: new Date().toISOString(),
-                  stale: true,
-                  age_ms: 0,
-                  ttl_ms: STATUS_PROBE_TTL_MS,
-                  error: err instanceof Error ? err.message : String(err),
-                };
-              }
-
-              if (workerProcesses && workerProcesses.orphanCount > 0) {
-                const orphanPids = workerProcesses.processes
-                  .filter((p) => p.orphan)
-                  .map((p) => p.pid)
-                  .slice(0, 5);
-                const message =
-                  `⚠️ ${workerProcesses.orphanCount} orphaned ADV Temporal worker process(es) detected ` +
-                  `(pid ${orphanPids.join(", ")}${workerProcesses.orphanCount > orphanPids.length ? ", …" : ""}) — ` +
-                  "parent plugin-host is gone; kill them to stop task-queue saturation.";
-                pushStatusRecommendation(status, {
-                  kind: "health",
-                  priority: "high",
-                  title: "Orphaned ADV worker process(es)",
-                  detail: `${workerProcesses.orphanCount} worker process(es) whose parent is dead`,
-                  action: `kill ${orphanPids.join(" ")} — or see docs/temporal-recovery.md`,
-                  source: "health",
-                  message,
-                });
-              }
-            }
-
-            if (plan.searchAttributes) {
-              const searchAttributesRead = await runBoundedStatusPhase(
-                "status.searchAttributes",
-                () =>
-                  statusSearchAttributesProbeCache.fetch(
-                    projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-                    { forceRefresh },
-                  ),
-              );
-              if (searchAttributesRead.kind === "deadline") {
-                return degradeForDeadline();
-              }
-              if (searchAttributesRead.kind === "error") {
-                throw searchAttributesRead.error;
-              }
-              const searchAttributesProbe = searchAttributesRead.data;
-              searchAttributes = searchAttributesProbe.value;
-              probeFreshness.search_attributes =
-                searchAttributesProbe.freshness;
-
-              if (!searchAttributes.ok) {
-                const message =
-                  "⚠️ Temporal search attributes not verified — " +
-                  "run `adv_doctor` to register missing search attributes.";
-                pushStatusRecommendation(status, {
-                  kind: "health",
-                  priority: "high",
-                  title: "Temporal search attributes not verified",
-                  detail: "required search attributes may be missing",
-                  action:
-                    "run `adv_doctor` to register missing search attributes",
-                  source: "health",
-                  message,
-                });
-              }
-            }
-
             if (plan.projectConfig) {
               const configRead = await runBoundedStatusPhase(
                 "status.projectConfig",
@@ -1207,22 +819,15 @@ export const statusTools = {
             }
 
             if (plan.snapshotHealth) {
-              const snapshotHealthRead = await runTemporalRead(
-                undefined,
+              const snapshotHealthRead = await runBoundedStatusPhase(
+                "status.snapshotHealth",
                 () =>
                   withRecordedPhase("adv_status", "snapshotHealth", () =>
                     fetchStatusSnapshotHealth(projectId, { forceRefresh }),
                   ),
-                temporalReadContext,
-                { maxAttempts: 1, opType: "status.snapshotHealth" },
               );
-              if (
-                !snapshotHealthRead.complete ||
-                !snapshotHealthRead.data ||
-                postStatusBudgetExceeded()
-              ) {
-                status = buildDeadlineDegradedStatus(status);
-                return buildDegradedResponse();
+              if (snapshotHealthRead.kind !== "complete") {
+                return degradeForDeadline();
               }
               const snapshotHealthProbe = snapshotHealthRead.data;
               snapshotHealth = snapshotHealthProbe.value;
@@ -1230,19 +835,12 @@ export const statusTools = {
             }
 
             if (plan.specRequirementCount) {
-              const specsRead = await runTemporalRead(
-                undefined,
+              const specsRead = await runBoundedStatusPhase(
+                "status.specs",
                 () => activeStore.specs.list(),
-                temporalReadContext,
-                { maxAttempts: 1, opType: "status.specs" },
               );
-              if (
-                !specsRead.complete ||
-                !specsRead.data ||
-                postStatusBudgetExceeded()
-              ) {
-                status = buildDeadlineDegradedStatus(status);
-                return buildDegradedResponse();
+              if (specsRead.kind !== "complete") {
+                return degradeForDeadline();
               }
               const specsList = specsRead.data;
               requirementCount = specsList.specs.reduce(
@@ -1307,17 +905,6 @@ export const statusTools = {
             if (healthRead.kind === "error") throw healthRead.error;
             const healthResult = healthRead.data;
 
-            temporalHealth = healthResult.temporal_health;
-            queueServiceability = healthResult.temporal_queue_serviceability
-              ? {
-                  expectedQueue: healthResult.expected_queue ?? "",
-                  serviceability: healthResult.temporal_queue_serviceability,
-                  workerDiagnostics: healthResult.worker_diagnostics ?? [],
-                  orphanQueueAdoption: healthResult.orphan_queue_adoption,
-                }
-              : undefined;
-            workerProcesses = healthResult.worker_processes;
-            searchAttributes = healthResult.search_attributes;
             featureFlags = healthResult.feature_flags;
             featureFlagSources = healthResult.feature_flag_sources;
             terminalCleanupRetained = healthResult.terminal_cleanup_retained;
@@ -1335,50 +922,6 @@ export const statusTools = {
               healthResult._health_execution,
             );
             toolLaneProjections = healthResult.tool_lane_projections;
-
-            if (queueServiceability && temporalHealth) {
-              pushQueueServiceabilityRecommendations({
-                status,
-                temporalHealth,
-                queueServiceability,
-              });
-            }
-
-            if (workerProcesses && workerProcesses.orphanCount > 0) {
-              const orphanPids = workerProcesses.processes
-                .filter((p) => p.orphan)
-                .map((p) => p.pid)
-                .slice(0, 5);
-              const message =
-                `⚠️ ${workerProcesses.orphanCount} orphaned ADV Temporal worker process(es) detected ` +
-                `(pid ${orphanPids.join(", ")}${workerProcesses.orphanCount > orphanPids.length ? ", …" : ""}) — ` +
-                "parent plugin-host is gone; kill them to stop task-queue saturation.";
-              pushStatusRecommendation(status, {
-                kind: "health",
-                priority: "high",
-                title: "Orphaned ADV worker process(es)",
-                detail: `${workerProcesses.orphanCount} worker process(es) whose parent is dead`,
-                action: `kill ${orphanPids.join(" ")} — or see docs/temporal-recovery.md`,
-                source: "health",
-                message,
-              });
-            }
-
-            if (searchAttributes && !searchAttributes.ok) {
-              const message =
-                "⚠️ Temporal search attributes not verified — " +
-                "run `adv_doctor` to register missing search attributes.";
-              pushStatusRecommendation(status, {
-                kind: "health",
-                priority: "high",
-                title: "Temporal search attributes not verified",
-                detail: "required search attributes may be missing",
-                action:
-                  "run `adv_doctor` to register missing search attributes",
-                source: "health",
-                message,
-              });
-            }
           }
 
           const recommendationSummary = buildStatusRecommendationGroups(
@@ -1423,19 +966,8 @@ export const statusTools = {
                 archivedCount: status.changes.byStatus.archived ?? 0,
                 recommendations: status.recommendations,
                 recommendationSummary,
-                temporalAlive: !!temporalHealth?.server_alive,
-                temporalDegraded: temporalHealth?.probe_degraded === true,
-                temporalHealth: temporalHealth
-                  ? {
-                      worker_alive: temporalHealth.worker_alive,
-                      worker_process_alive: temporalHealth.worker_process_alive,
-                      worker_lock: temporalHealth.worker_lock ?? null,
-                      last_worker_run_error:
-                        temporalHealth.last_worker_run_error ?? null,
-                    }
-                  : undefined,
-                temporalQueueServiceability:
-                  queueServiceability?.serviceability ?? null,
+                temporalAlive: false,
+                temporalDegraded: true,
                 pluginRuntime: pluginRuntimeInfo
                   ? {
                       source_dist_freshness:
@@ -1563,22 +1095,8 @@ export const statusTools = {
             feature_flags: featureFlags,
             feature_flag_sources: featureFlagSources,
             auto_managed_changes: autoManagedCensus,
-            worker_role: getTemporalWorkerRole(),
             _freshness: probeFreshness,
             _health_execution: healthExecution,
-            temporal_health: temporalHealth,
-            orphan_queue_adoption:
-              queueServiceability?.orphanQueueAdoption ?? null,
-            ...(queueServiceability
-              ? {
-                  expected_queue: queueServiceability.expectedQueue,
-                  temporal_queue_serviceability:
-                    queueServiceability.serviceability,
-                  worker_diagnostics: queueServiceability.workerDiagnostics,
-                }
-              : {}),
-            search_attributes: searchAttributes,
-            worker_processes: workerProcesses,
             opencode_session_debt: opencodeSessionDebt,
             migration_status:
               view === "health" ? healthMigrationStatus : migrationStatus,
@@ -1605,28 +1123,7 @@ export const statusTools = {
               ? { tool_context_telemetry: toolContextTelemetry }
               : {}),
             plugin_runtime: pluginRuntimeInfo,
-            diagnostics: {
-              temporalWorker:
-                temporalHealth?.worker_alive?.status === "unavailable"
-                  ? ("unknown" as const)
-                  : isWorkerAffirmativelyAlive(
-                        temporalHealth?.worker_alive ?? {
-                          status: "available",
-                          value: false,
-                        },
-                      )
-                    ? ("healthy" as const)
-                    : temporalHealth?.server_alive
-                      ? ("degraded" as const)
-                      : ("unknown" as const),
-              lastErrorClass:
-                bootstrapDiagnostic?.recovered === false
-                  ? bootstrapDiagnostic.lastErrorClass
-                  : (getTemporalRetryTelemetry().lastError ?? undefined),
-            },
-            ...(bootstrapDiagnostic
-              ? { bootstrap_retry: bootstrapDiagnostic }
-              : {}),
+            diagnostics: {},
             formatted,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };

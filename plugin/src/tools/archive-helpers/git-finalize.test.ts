@@ -4634,19 +4634,13 @@ function defaultRunGit(cwd: string, args: string[]) {
 // checks (no live remote, no Temporal) since the existing parent-change tests
 // already exercise direct/no-remote/ff-only runtime paths.
 describe("auto-drive regression guards (rq-releaseFinalization02 / DONT1 / DONT3)", () => {
-  it("git-finalize.ts adds no new temporal/* imports beyond the existing CHANGE_BRANCH_PREFIX (AC7 layer-boundary)", () => {
-    // Reading the file confirms my edit retained only the pre-existing
-    // CHANGE_BRANCH_PREFIX import from temporal/contracts and added no other
-    // symbol that would break the worker-bundle boundary test.
+  it("git-finalize.ts has no Temporal imports after the persistence cutover (AC7 layer-boundary)", () => {
+    // Git finalization is now independent of the removed Temporal contracts.
     const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
     const temporalImportLines = src
       .split("\n")
       .filter((line) => /^import.*from.*temporal/.test(line));
-    // Exactly one temporal/* import — and it must reference CHANGE_BRANCH_PREFIX
-    // (the pre-existing allowed symbol).
-    expect(temporalImportLines).toHaveLength(1);
-    expect(temporalImportLines[0]).toContain("CHANGE_BRANCH_PREFIX");
-    expect(temporalImportLines[0]).toContain("/temporal/contracts");
+    expect(temporalImportLines).toEqual([]);
   });
 
   it("helper does not add CI surface (AC7 + DONT4)", () => {

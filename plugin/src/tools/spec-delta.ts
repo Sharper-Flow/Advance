@@ -14,7 +14,7 @@
  * workarounds remain out of scope; archive applies recorded deltas.
  *
  * Target-path contract mirrors existing change-mutating tools
- * (adv_contract_mint, adv_change_repair_origin): target_path mutations
+ * (adv_contract_mint): target_path mutations
  * require explicit target_confirmed + confirmationEvidence.
  *
  * Unlike adv_contract_mint, this tool refuses the disk-projection
@@ -928,7 +928,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1029,7 +1029,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1136,7 +1136,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1227,7 +1227,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1328,7 +1328,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },
@@ -1429,7 +1429,7 @@ export const specDeltaTools = {
             {
               currentProjectPath: store.paths.root,
               target_path,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed,
               confirmationEvidence,
             },

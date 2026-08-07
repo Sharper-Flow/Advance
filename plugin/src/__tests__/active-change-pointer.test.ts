@@ -200,6 +200,18 @@ function makeFakeStore(
   } as unknown as Store;
 }
 
+async function seedDiskChange(
+  changesDir: string,
+  changeId: string,
+): Promise<void> {
+  const changeDir = join(changesDir, changeId);
+  await mkdir(changeDir, { recursive: true });
+  await writeFile(
+    join(changeDir, "change.json"),
+    JSON.stringify({ id: changeId, status: "active" }),
+  );
+}
+
 describe("active-change pointer hooks (T4/T5/T7)", () => {
   let tempDir: string;
   let hooks: any;
@@ -429,6 +441,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set(["realChange"]),
       });
+      await seedDiskChange(join(tempDir, ".adv/changes"), "realChange");
       await createPlugin();
       await hooks["tool.execute.before"]!(
         { tool: "adv_task_update", sessionID: "main" } as any,
@@ -442,6 +455,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set(["existingChange"]),
       });
+      await seedDiskChange(join(tempDir, ".adv/changes"), "existingChange");
       await createPlugin();
       await hooks["tool.execute.before"]!(
         { tool: "adv_task_update", sessionID: "main" } as any,
@@ -627,6 +641,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set([cid]),
       });
+      await seedDiskChange(join(tempDir, ".adv/changes"), cid);
       cwdSpy = vi
         .spyOn(process, "cwd")
         .mockReturnValue(`${worktreeBase}/change/${cid}/`);
@@ -640,6 +655,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set([cid]),
       });
+      await seedDiskChange(join(tempDir, ".adv/changes"), cid);
       cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/some-random-dir");
       await createPlugin();
       expect(getStatus().activeChangeId).toBeNull();
@@ -651,6 +667,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set([cid]),
       });
+      await seedDiskChange(join(tempDir, ".adv/changes"), cid);
       cwdSpy = vi
         .spyOn(process, "cwd")
         .mockReturnValue(`${worktreeBase}/change/${cid}/`);
@@ -663,6 +680,7 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         changesDir: join(tempDir, ".adv/changes"),
         reachable: new Set([cid]),
       });
+      await seedDiskChange(join(tempDir, ".adv/changes"), cid);
       cwdSpy = vi
         .spyOn(process, "cwd")
         .mockReturnValue(`${worktreeBase}/change/${cid}/src/foo/`);

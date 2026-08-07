@@ -145,7 +145,6 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_change_reenter",
   "adv_change_close",
   "adv_change_update_issues",
-  "adv_change_repair_origin",
   "adv_change_validate",
   // Tier 2/3 task mutations (Tier 1 adv_task_list/show/update/checkpoint ARE granted)
   "adv_task_add",

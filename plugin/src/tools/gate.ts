@@ -40,14 +40,6 @@ import {
 } from "./target-project";
 import { includeSnapshotSchema } from "./shared-args";
 import { reconcileRecoveredAcceptanceRemediation } from "./acceptance-reconciliation";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
-import {
-  fireSignalAndRefresh,
-  getChangeHandle,
-  waitForGateCompletion,
-} from "./_adapters";
-import { gateCompletedSignal } from "../temporal/messages";
 import { readChangeProjectionState } from "../storage/read-change-projection";
 import {
   type WorktreeIsolationDeps,
@@ -67,23 +59,14 @@ import {
   resolveReleaseReachability,
   verifyChangeBranchPushed,
 } from "./archive-helpers/git-finalize";
-import type { TemporalWorkflowHandleProxy } from "./change-mutation-coordinator";
-import {
-  evaluateGateReadiness,
-  renderAcceptanceProjection,
-} from "../temporal/gate-readiness";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
+import { renderAcceptanceProjection } from "../gates/gate-readiness";
 import {
   isRequiredOpsFollowupLink,
   reconcileOpsFollowupLinks,
 } from "./ops-followup-reconciliation";
-import {
-  inspectArtifactActivity,
-  writeArtifactActivity,
-} from "../temporal/activities";
-import {
-  changeToDirectiveState,
-  changeToWorkflowState,
-} from "../temporal/change-state";
+import { inspectArtifact, writeArtifact } from "../storage/disk-operations";
+import { changeToDirectiveState } from "../types/change-state-helpers";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
   degradedPhasePlan,
@@ -92,15 +75,8 @@ import {
 } from "../utils/phase-plan";
 import { checkPlanRoutingGuard } from "../migration/routing-guard";
 import { createLogger } from "../utils/debug-log";
-import type { ChangeWorkflowState } from "../temporal/contracts";
-import {
-  isPreciseWorkflowRecoveryEvidence,
-  RECOVERY_RECONCILIATION_WARNING,
-} from "../temporal/recovery-classification";
+import type { ChangeState } from "../types/change-state";
 import { hasGateRecoveryAudit } from "./recovery-audit";
-import { logRecoveryProbeDiagnostics } from "./recovery-probe";
-import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
-import { saveRecoveredGateCompletion } from "./_recovery-writers";
 import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
 import type { LightweightProfilePhase } from "../types";
 import {
@@ -113,7 +89,6 @@ import {
   type LightweightProfileEvaluation,
   type LightweightProfileResult,
 } from "../types/lightweight-change-profile";
-import { lightweightProfileEvaluatedSignal } from "../temporal/messages";
 
 const logger = createLogger("gate");
 
@@ -243,18 +218,6 @@ async function recordLightweightProfileBoundaryFailure(
     ? "downgraded"
     : "ineligible";
 
-  const bundle = getService();
-  const projectId = bundle ? await getProjectId(store.paths.root) : null;
-  if (!bundle || !projectId) {
-    return {
-      phase,
-      result,
-      downgradeReason: priorQualified
-        ? `Boundary evaluation failed after prior qualification: ${error}`
-        : error,
-    };
-  }
-
   const evaluationKey = `${profile.request.requestId}:${phase}:boundary_failure:${Date.now()}`;
   const evaluatedAt = new Date().toISOString();
   const criteria: LightweightProfileCriterionRecord[] = CRITERION_ORDER.map(
@@ -278,21 +241,36 @@ async function recordLightweightProfileBoundaryFailure(
       : undefined,
   };
 
-  const handle = getChangeHandle(bundle, projectId, changeId);
-  try {
-    await fireSignalAndRefresh(
-      handle,
-      store,
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "record lightweight profile boundary failure",
+      evidence: evaluationKey,
+    },
+    changesDir: store.paths.changes,
+    intent: {
       changeId,
-      lightweightProfileEvaluatedSignal,
-      {
-        evaluation,
-        evaluatedAt,
-      },
-    );
-  } catch (signalError) {
+      mutationKind: "lightweight_profile_boundary_failure",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        lightweight_profile: latest.lightweight_profile
+          ? {
+              ...latest.lightweight_profile,
+              evaluations: [
+                ...latest.lightweight_profile.evaluations,
+                evaluation,
+              ],
+            }
+          : undefined,
+      }),
+      verifyProjection: (readback) =>
+        readback.lightweight_profile?.evaluations.some(
+          (entry) => entry.evaluationKey === evaluationKey,
+        ) ?? false,
+    },
+  });
+  if (outcome.kind !== "verified") {
     logger.warn(
-      `Failed to record lightweight profile boundary failure signal for ${changeId} at ${phase}: ${signalError instanceof Error ? signalError.message : String(signalError)}`,
+      `Failed to record lightweight profile boundary failure for ${changeId}`,
     );
   }
 
@@ -372,11 +350,43 @@ export async function reconcileRecoveredGates(input: {
   return { gates: input.current, recovered: false };
 }
 
-async function waitForGateCompletionResult(
-  handle: TemporalWorkflowHandleProxy,
+async function commitGateCompletion(
+  store: Store,
+  changeId: string,
   gateId: GateId,
-): Promise<GateCompletion | undefined> {
-  return waitForGateCompletion(handle, gateId);
+  completion: GateCompletion,
+  evidence: string,
+): Promise<GateCompletion> {
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: { reason: "complete gate", evidence },
+    changesDir: store.paths.changes,
+    intent: {
+      changeId,
+      mutationKind: "gate_completion",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        gates: {
+          ...(latest.gates ?? createDefaultGates()),
+          [gateId]: completion,
+        },
+      }),
+      verifyProjection: (readback) => {
+        const gate = readback.gates?.[gateId];
+        return (
+          gate?.status === "done" &&
+          gate.completed_at === completion.completed_at
+        );
+      },
+    },
+  });
+  if (outcome.kind !== "verified") {
+    throw new Error(
+      outcome.kind === "unverified" || outcome.kind === "operator_required"
+        ? outcome.reason
+        : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+    );
+  }
+  return outcome.value.gates?.[gateId] ?? completion;
 }
 
 function workflowReadinessBlockedResponse(input: {
@@ -392,20 +402,6 @@ function workflowReadinessBlockedResponse(input: {
     stuckReason: input.gate.stuck_reason,
     readinessBlockers: input.gate.readiness_blockers ?? [],
     hint: "Fix the workflow readiness blockers listed above, then retry adv_gate_complete.",
-  });
-}
-
-function gateCompletionNotConfirmedResponse(input: {
-  changeId: string;
-  gateId: GateId;
-  gate?: GateCompletion;
-}): string {
-  return formatToolOutput({
-    error: `Cannot confirm ${input.gateId} gate completion from workflow state`,
-    changeId: input.changeId,
-    gateId: input.gateId,
-    workflowGateStatus: input.gate?.status,
-    hint: "Retry adv_gate_status to inspect workflow state before retrying adv_gate_complete.",
   });
 }
 
@@ -532,20 +528,6 @@ function getReleaseFinalizationBlocker(input: {
   });
 }
 
-function buildRecoveryReadinessState(input: {
-  change: Change;
-  gates: Gates;
-  projectionChangesDir: string;
-}) {
-  return changeToWorkflowState({
-    projectId: "recovery-disk-projection",
-    change: input.change,
-    initializedAt: input.change.created_at,
-    projectionChangesDir: input.projectionChangesDir,
-    gates: input.gates,
-  });
-}
-
 /**
  * Acceptance-specific recovery artifact-evidence resolution, extracted from
  * `completeGateViaRecovery` so the acceptance path is independently testable
@@ -559,7 +541,7 @@ function buildRecoveryReadinessState(input: {
 export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
   store: Store;
   changeId: string;
-  recoveryState: ChangeWorkflowState;
+  recoveryState: ChangeState;
   fallbackEvidence: GateArtifactEvidence | undefined;
 }): Promise<
   | { ok: true; artifactEvidence: GateArtifactEvidence | undefined }
@@ -568,7 +550,7 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
   if (!input.recoveryState.contract?.reviewMatrix) {
     return { ok: true, artifactEvidence: input.fallbackEvidence };
   }
-  const acceptanceWrite = await writeArtifactActivity({
+  const acceptanceWrite = await writeArtifact({
     changesDir: input.store.paths.changes,
     changeId: input.changeId,
     kind: "acceptance",
@@ -597,7 +579,7 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       }),
     };
   }
-  const executiveSummary = await inspectArtifactActivity({
+  const executiveSummary = await inspectArtifact({
     changesDir: input.store.paths.changes,
     changeId: input.changeId,
     kind: "executiveSummary",
@@ -641,7 +623,7 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       }),
     };
   }
-  const acceptanceArtifact = await inspectArtifactActivity({
+  const acceptanceArtifact = await inspectArtifact({
     changesDir: input.store.paths.changes,
     changeId: input.changeId,
     kind: "acceptance",
@@ -679,285 +661,6 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       },
     }),
   };
-}
-
-/**
- * rq-extend-poisoned-recovery AC4: generalized poisoned-history gate
- * recovery. Supports acceptance and release gates. Each requires
- * `compatibilityReason` and respects prior-gate sequencing + task
- * completeness.
- *
- * Replaces the prior `completeAcceptanceViaRecovery` helper — call sites
- * now use this entrypoint directly. The acceptance-specific artifact-evidence
- * resolution lives in `resolveAcceptanceRecoveryArtifactEvidence` (AC8).
- */
-async function completeGateViaRecovery(input: {
-  // rq-releaseRepairRecovery01: release-gate recovery writes the audited disk
-  // projection only when normal workflow signaling cannot record the missing
-  // state and machine evidence establishes a completed or poisoned workflow.
-  // Structural readiness blockers, finalization proof, and disposition
-  // vocabularies are preserved; generic signal failures fail closed.
-  store: Store;
-  change: Change;
-  changeId: string;
-  gateId: GateId;
-  gates: Gates;
-  completedBy: string;
-  notes?: string;
-  compatibilityReason?: string;
-  boundaryWarning?: string;
-  extraPayload?: Record<string, unknown>;
-  diskDirect?: boolean;
-  recoveryReason?: string;
-  recoveryEvidence?: string;
-  priorApprovalEvidence?: string;
-}): Promise<string> {
-  if (input.gateId !== "acceptance" && input.gateId !== "release") {
-    return formatToolOutput({
-      error:
-        "poisoned-history gate recovery is only supported for acceptance and release",
-      changeId: input.changeId,
-      gateId: input.gateId,
-      ...(input.extraPayload ?? {}),
-    });
-  }
-  if (!input.compatibilityReason?.trim()) {
-    return formatToolOutput({
-      error: `poisoned-history ${input.gateId} recovery requires compatibilityReason`,
-      changeId: input.changeId,
-      gateId: input.gateId,
-      ...(input.extraPayload ?? {}),
-    });
-  }
-  const missingAuditFields = [
-    !input.recoveryEvidence?.trim() ? "recoveryEvidence" : undefined,
-    !input.recoveryReason?.trim() ? "recoveryReason" : undefined,
-    input.gateId === "acceptance" && !input.priorApprovalEvidence?.trim()
-      ? "priorApprovalEvidence"
-      : undefined,
-  ].filter((field): field is string => Boolean(field));
-  if (missingAuditFields.length > 0) {
-    return formatToolOutput({
-      error: `poisoned-history ${input.gateId} recovery requires ${missingAuditFields.join(", ")}`,
-      changeId: input.changeId,
-      gateId: input.gateId,
-      missingAuditFields,
-      ...(input.extraPayload ?? {}),
-    });
-  }
-  const recoveryReason = input.recoveryReason?.trim() ?? "";
-  const recoveryEvidence = input.recoveryEvidence?.trim() ?? "";
-  const priorApprovalEvidence = input.priorApprovalEvidence?.trim();
-  if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
-    return formatToolOutput({
-      error: `poisoned-history ${input.gateId} recoveryEvidence must cite precise poisoned-history or completed-workflow evidence`,
-      changeId: input.changeId,
-      gateId: input.gateId,
-      ...(input.extraPayload ?? {}),
-    });
-  }
-  let recoveryChange = input.change;
-  let recoveryGates = input.gates;
-  if (input.diskDirect) {
-    const disk = await loadChange(input.store.paths.changes, input.changeId);
-    if (!disk.success || !disk.data) {
-      return formatToolOutput({
-        error: `Cannot complete ${input.gateId}: durable recovery projection unavailable`,
-        changeId: input.changeId,
-        gateId: input.gateId,
-        ...(input.extraPayload ?? {}),
-      });
-    }
-    // Read change, gates, tasks, and artifact metadata from one coherent
-    // snapshot after termination; stale workflow state must not leak back in.
-    recoveryChange = disk.data;
-    recoveryGates = recoveryChange.gates ?? createDefaultGates();
-  }
-  if (!canCompleteGate(recoveryGates, input.gateId)) {
-    const blockedBy = GATE_ORDER.slice(
-      0,
-      GATE_ORDER.indexOf(input.gateId),
-    ).filter((gate) => recoveryGates[gate].status !== "done");
-    return formatToolOutput({
-      error: `Cannot complete ${input.gateId}: prior gate(s) incomplete`,
-      blockedBy,
-      ...(input.extraPayload ?? {}),
-    });
-  }
-
-  // For acceptance: all tasks must be done/cancelled. Release runs after
-  // acceptance so this is implicitly true, but we keep the check for
-  // defense in depth.
-  const incompleteTasks = recoveryChange.tasks.filter(
-    (task) => task.status !== "done" && task.status !== "cancelled",
-  );
-  if (incompleteTasks.length > 0) {
-    return formatToolOutput({
-      error: `Cannot complete ${input.gateId}: ${incompleteTasks.length} task(s) not done or cancelled`,
-      incompleteTasks: incompleteTasks.map((task) => ({
-        id: task.id,
-        title: task.title,
-        status: task.status,
-      })),
-      ...(input.extraPayload ?? {}),
-    });
-  }
-
-  if (input.gateId === "release") {
-    if (!input.diskDirect) {
-      try {
-        const reconciled = await reconcileOpsFollowupLinks({
-          parent: recoveryChange,
-          store: input.store,
-        });
-        recoveryChange = reconciled.parent;
-      } catch (error) {
-        logger.warn(
-          `Recovery release gate ops follow-up reconciliation failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        if (
-          recoveryChange.ops_followup_links?.some(isRequiredOpsFollowupLink)
-        ) {
-          return formatToolOutput({
-            error:
-              "Cannot verify required ops follow-up obligations because reconciliation is unavailable",
-            code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
-            changeId: input.changeId,
-            gateId: input.gateId,
-          });
-        }
-      }
-    } else if (
-      recoveryChange.ops_followup_links?.some(isRequiredOpsFollowupLink)
-    ) {
-      return formatToolOutput({
-        error:
-          "Cannot verify required ops follow-up obligations from a recovery disk projection",
-        code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
-        changeId: input.changeId,
-        gateId: input.gateId,
-      });
-    }
-    const blocker = getReleaseFinalizationBlocker({
-      store: input.store,
-      change: recoveryChange,
-      changeId: input.changeId,
-    });
-    if (blocker) return blocker;
-  }
-
-  // AC3: readiness/blocker evaluation must read the durable disk projection
-  // when available AND verified. Under recovery the disk projection is
-  // authoritative only if it actually supports completing the target gate;
-  // an unverified/stale disk snapshot (e.g., a leaked default fixture) must
-  // not override the verified workflow-derived recovery state.
-  const diskReadinessLoad = await loadChange(
-    input.store.paths.changes,
-    input.changeId,
-  );
-  const diskReadinessData = diskReadinessLoad.success
-    ? diskReadinessLoad.data
-    : null;
-  const diskReadinessVerified =
-    diskReadinessData !== null &&
-    canCompleteGate(
-      diskReadinessData.gates ?? createDefaultGates(),
-      input.gateId,
-    );
-  const readinessChange = diskReadinessVerified
-    ? diskReadinessData
-    : recoveryChange;
-  const readinessGates = diskReadinessVerified
-    ? (diskReadinessData.gates ?? createDefaultGates())
-    : recoveryGates;
-  const recoveryState = buildRecoveryReadinessState({
-    change: readinessChange,
-    gates: readinessGates,
-    projectionChangesDir: input.store.paths.changes,
-  });
-  const readiness = evaluateGateReadiness(recoveryState, input.gateId, {
-    compatibilityReason: input.compatibilityReason,
-    enforceWorkerBundleProvenance: input.gateId === "release",
-  });
-  if (!readiness.ready) {
-    return workflowReadinessBlockedResponse({
-      changeId: input.changeId,
-      gateId: input.gateId,
-      gate: {
-        status: "stuck",
-        stuck_reason: readiness.blockers[0]?.code,
-        readiness_blockers: readiness.blockers,
-      },
-    });
-  }
-  let artifactEvidence = readiness.evidence;
-  if (input.gateId === "acceptance") {
-    const acceptance = await resolveAcceptanceRecoveryArtifactEvidence({
-      store: input.store,
-      changeId: input.changeId,
-      recoveryState,
-      fallbackEvidence: readiness.evidence,
-    });
-    if (!acceptance.ok) return acceptance.response;
-    artifactEvidence = acceptance.artifactEvidence;
-  }
-
-  const completedAt = new Date().toISOString();
-  const completion = {
-    status: "done",
-    completed_at: completedAt,
-    completed_by: input.completedBy,
-    approval_evidence:
-      input.gateId === "acceptance"
-        ? [input.notes, priorApprovalEvidence].filter(Boolean).join("; ") ||
-          undefined
-        : input.notes,
-    artifact_evidence: artifactEvidence,
-  } as Gates[GateId];
-
-  const recoveryEvidenceWithApproval =
-    input.gateId === "acceptance"
-      ? `${recoveryEvidence}\nPrior approval evidence: ${priorApprovalEvidence}`
-      : recoveryEvidence;
-
-  const payload = (mutationReceiptId: string) => ({
-    gateId: input.gateId,
-    completedAt,
-    completedBy: input.completedBy,
-    approvalEvidence: completion.approval_evidence,
-    ...(completion.artifact_evidence
-      ? { artifactEvidence: completion.artifact_evidence }
-      : {}),
-    ...(input.compatibilityReason
-      ? { compatibilityReason: input.compatibilityReason }
-      : {}),
-    mutationReceiptId,
-  });
-
-  await saveRecoveredGateCompletion({
-    store: input.store,
-    change: input.diskDirect ? recoveryChange : input.change,
-    authorization: {
-      reason: recoveryReason,
-      evidence: recoveryEvidenceWithApproval,
-    },
-    gateId: input.gateId,
-    completion,
-    payload,
-  });
-  return formatToolOutput({
-    success: true,
-    changeId: input.changeId,
-    gateId: input.gateId,
-    status: "done",
-    completed_at: completedAt,
-    completed_by: input.completedBy,
-    boundaryWarning: input.boundaryWarning,
-    _recoveryMutation: true,
-    recovered: true,
-    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-    ...(input.extraPayload ?? {}),
-  });
 }
 
 /**
@@ -1206,54 +909,20 @@ async function handlePlanningGateCompletion({
     }
   }
 
-  // Signal-driven mutation: fire gateCompletedSignal after all validations pass
-  const bundle = getService();
-  if (!bundle) {
-    return formatToolOutput({
-      error: "Temporal service not available",
-      changeId,
-      gateId,
-    });
-  }
-  const projectId = await getProjectId(store.paths.root);
-  if (!projectId) {
-    return formatToolOutput({
-      error: "Could not resolve project ID",
-      changeId,
-      gateId,
-    });
-  }
-  const handle = getChangeHandle(bundle, projectId, changeId);
-  // rq-cacheRefresh01: helper fires signal AND refreshes cache so the
-  // subsequent completeGateAndBuildResponse builds its response from
-  // fresh state (no parallel inline refresh in the helper anymore).
-  await fireSignalAndRefresh(handle, store, changeId, gateCompletedSignal, {
+  const completedAt = new Date().toISOString();
+  const completion: GateCompletion = {
+    status: "done",
+    completed_at: completedAt,
+    completed_by: completedBy,
+    approval_evidence: notes,
+  };
+  const postSignalGate = await commitGateCompletion(
+    store,
+    changeId,
     gateId,
-    completedBy,
-    completedAt: new Date().toISOString(),
-    approvalEvidence: notes,
-  });
-
-  const postSignalGate = await waitForGateCompletionResult(handle, gateId);
-  if (postSignalGate?.status === "stuck") {
-    return workflowReadinessBlockedResponse({
-      changeId,
-      gateId,
-      gate: postSignalGate,
-    });
-  }
-  if (postSignalGate?.status !== "done") {
-    return gateCompletionNotConfirmedResponse({
-      changeId,
-      gateId,
-      gate: postSignalGate,
-    });
-  }
-
-  // fireSignalAndRefresh (_adapters.ts) signals then refreshes, whose readback
-  // can re-poison changeCache with a stale pre-signal snapshot. Drop the entry
-  // after every confirmed completion so all subsequent gate reads are fresh.
-  await store.changes.invalidate(changeId);
+    completion,
+    notes ?? `gate ${gateId} completed by ${completedBy}`,
+  );
 
   const apiCompatibilityPolicy = await resolveApiCompatibilityPolicy(store);
   const profileEvaluations = await evaluateLightweightProfileAtPhases(
@@ -1598,81 +1267,6 @@ export const gateTools = {
           });
         }
 
-        const bundle = getService();
-        if (!bundle) {
-          return formatToolOutput({
-            error: "Temporal service not available",
-            changeId,
-            gateId,
-          });
-        }
-        const projectId = await getProjectId(activeStore.paths.root);
-        if (!projectId) {
-          return formatToolOutput({
-            error: "Could not resolve project ID",
-            changeId,
-            gateId,
-          });
-        }
-        const handle = getChangeHandle(bundle, projectId, changeId);
-
-        // D4 internal classification (rq-internalMonotonicRecovery01):
-        // acceptance/release gate recovery is classified from machine
-        // evidence via a probe-first describe() — no operator-supplied
-        // recoveryMode/evidence. The catch-gated fallback below re-classifies
-        // via the same unified classifier for the rare signal-RPC error.
-        // Removes evidence-copy ceremony from routine gate completion
-        // (AC5/SC3). Acceptance gate still requires priorApprovalEvidence
-        // (human checkpoint) per AC6 — destructive/competing-authority cases
-        // remain explicitly operator-controlled.
-        if (gateId === "acceptance" || gateId === "release") {
-          const internalDecision = await classifyMutationRecoveryDecision({
-            handle,
-          });
-          if (internalDecision.kind === "recover_via_disk") {
-            if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
-              return formatToolOutput({
-                error:
-                  "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
-                code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
-                changeId,
-                gateId,
-                hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
-              });
-            }
-            await logRecoveryProbeDiagnostics(handle, changeId);
-            const boundaryWarning = validateGateBoundary(gateId, completedBy);
-            return completeGateViaRecovery({
-              store: activeStore,
-              change,
-              changeId,
-              gateId,
-              gates,
-              completedBy,
-              notes,
-              compatibilityReason:
-                compatibilityReason ??
-                `D4 internal monotonic recovery (authority=${internalDecision.authority})`,
-              boundaryWarning,
-              diskDirect: internalDecision.authority === "workflow_completed",
-              recoveryReason: internalDecision.reason,
-              recoveryEvidence: internalDecision.evidence,
-              priorApprovalEvidence,
-              extraPayload: projectContext
-                ? { _projectContext: projectContext }
-                : {},
-            });
-          } else if (internalDecision.kind === "operator_required") {
-            return formatToolOutput({
-              error: `Cannot safely complete ${gateId} gate: ${internalDecision.detail}`,
-              code: "GATE_MUTATION_OPERATOR_REQUIRED",
-              cause: internalDecision.cause,
-              changeId,
-              gateId,
-            });
-          }
-        }
-
         const projectedState = readChangeProjectionState(
           activeStore.paths.changes,
           changeId,
@@ -1797,66 +1391,12 @@ export const gateTools = {
           if (blocker) return blocker;
         }
 
-        // D4 internal classification (rq-internalMonotonicRecovery01):
-        // probe describe() to auto-classify poison/missing workflow state.
-        // Acceptance still requires priorApprovalEvidence per AC6.
-        if (gateId === "acceptance" || gateId === "release") {
-          const internalDecision = await classifyMutationRecoveryDecision({
-            handle,
-          });
-          if (internalDecision.kind === "recover_via_disk") {
-            if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
-              return formatToolOutput({
-                error:
-                  "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
-                code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
-                changeId,
-                gateId,
-                hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
-              });
-            }
-            await logRecoveryProbeDiagnostics(handle, changeId);
-            return completeGateViaRecovery({
-              store: activeStore,
-              change,
-              changeId,
-              gateId,
-              gates,
-              completedBy,
-              notes,
-              compatibilityReason:
-                compatibilityReason ??
-                `D4 internal monotonic recovery (authority=${internalDecision.authority})`,
-              boundaryWarning,
-              diskDirect: internalDecision.authority === "workflow_completed",
-              recoveryReason: internalDecision.reason,
-              recoveryEvidence: internalDecision.evidence,
-              priorApprovalEvidence,
-              extraPayload: projectContext
-                ? { _projectContext: projectContext }
-                : {},
-            });
-          } else if (internalDecision.kind === "operator_required") {
-            return formatToolOutput({
-              error: `Cannot safely complete ${gateId} gate: ${internalDecision.detail}`,
-              code: "GATE_MUTATION_OPERATOR_REQUIRED",
-              cause: internalDecision.cause,
-              changeId,
-              gateId,
-            });
-          }
-        }
-
-        // AC1/AC2/AC4: before the normal acceptance gate signal is fired,
-        // reconcile any recovered (disk-only) design-concern or
-        // verification-evidence dispositions back into the reachable workflow.
-        // Confirmed re-deliveries clear their recovery markers; failures return
-        // one actionable reconciliation block rather than replaying stale blockers.
+        // Reconcile any recovered acceptance-affecting dispositions in the
+        // durable projection before completing acceptance.
         if (gateId === "acceptance") {
           const reconciliation = await reconcileRecoveredAcceptanceRemediation({
             store: activeStore,
             changeId,
-            handle,
           });
           if (reconciliation.kind === "blocked") {
             return formatToolOutput({
@@ -1872,100 +1412,24 @@ export const gateTools = {
           change = reconciliation.change;
         }
 
-        // Signal-driven mutation: fire gateCompletedSignal after
-        // sequence/task checks pass. rq-cacheRefresh01: helper invalidates
-        // the cache so completeGateAndBuildResponse + subsequent reads
-        // see the fresh gate-done state.
-        try {
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            changeId,
-            gateCompletedSignal,
-            {
-              gateId,
-              completedBy,
-              completedAt: new Date().toISOString(),
-              approvalEvidence: notes,
-              compatibilityReason,
-            },
-          );
-        } catch (error) {
-          // rq-internalMonotonicRecovery01 / AC5: signal-error recovery is
-          // classified internally via the unified classifier. Acceptance
-          // still requires priorApprovalEvidence (human checkpoint, AC6).
-          if (gateId === "acceptance" || gateId === "release") {
-            const decision = await classifyMutationRecoveryDecision({
-              signalError: error,
-              handle,
-            });
-            if (decision.kind === "recover_via_disk") {
-              if (gateId === "acceptance" && !priorApprovalEvidence?.trim()) {
-                return formatToolOutput({
-                  error:
-                    "Acceptance gate internal recovery requires priorApprovalEvidence (human approval) even when machine evidence is auto-classified.",
-                  code: "GATE_RECOVERY_OPERATOR_APPROVAL_REQUIRED",
-                  changeId,
-                  gateId,
-                  hint: "Re-run with priorApprovalEvidence citing the prior user acceptance approval.",
-                });
-              }
-              return completeGateViaRecovery({
-                store: activeStore,
-                change,
-                changeId,
-                gateId,
-                gates,
-                completedBy,
-                notes,
-                compatibilityReason:
-                  compatibilityReason ??
-                  `D4 internal monotonic recovery (authority=${decision.authority})`,
-                boundaryWarning,
-                diskDirect: decision.authority === "workflow_completed",
-                recoveryReason: decision.reason,
-                recoveryEvidence: decision.evidence,
-                priorApprovalEvidence,
-                extraPayload: projectContext
-                  ? { _projectContext: projectContext }
-                  : {},
-              });
-            } else if (decision.kind === "operator_required") {
-              return formatToolOutput({
-                error: `Cannot safely complete ${gateId} gate: ${decision.detail}`,
-                code: "GATE_MUTATION_OPERATOR_REQUIRED",
-                cause: decision.cause,
-                changeId,
-                gateId,
-              });
-            }
-          }
-          throw error;
-        }
-
-        const postSignalGate = await waitForGateCompletionResult(
-          handle,
+        const completedAt = new Date().toISOString();
+        const completion: GateCompletion = {
+          status: "done",
+          completed_at: completedAt,
+          completed_by: completedBy,
+          approval_evidence:
+            gateId === "acceptance"
+              ? [notes, priorApprovalEvidence].filter(Boolean).join("; ") ||
+                undefined
+              : notes,
+        };
+        const postSignalGate = await commitGateCompletion(
+          activeStore,
+          changeId,
           gateId,
+          completion,
+          priorApprovalEvidence ?? notes ?? `gate ${gateId} completion`,
         );
-        if (postSignalGate?.status === "stuck") {
-          return workflowReadinessBlockedResponse({
-            changeId,
-            gateId,
-            gate: postSignalGate,
-          });
-        }
-        if (postSignalGate?.status !== "done") {
-          return gateCompletionNotConfirmedResponse({
-            changeId,
-            gateId,
-            gate: postSignalGate,
-          });
-        }
-
-        // fireSignalAndRefresh can re-poison changeCache with the pre-signal
-        // projection. Drop the cached entry after every confirmed completion so
-        // subsequent change-show readbacks use the completed gate state.
-        await activeStore.changes.invalidate(changeId);
 
         const profileEvaluations =
           gateId === "execution"
@@ -2004,7 +1468,7 @@ export const gateTools = {
           {
             currentProjectPath: store.paths.root,
             target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed,
             confirmationEvidence,
           },

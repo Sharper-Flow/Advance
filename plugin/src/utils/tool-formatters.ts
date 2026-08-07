@@ -12,7 +12,6 @@
  * - Graceful degradation: missing data → placeholder, not errors
  */
 
-import type { WorkerLiveness } from "../temporal/health-probe";
 import { observedAttemptCount } from "../types/tasks";
 
 // =============================================================================
@@ -157,8 +156,9 @@ export interface StatusInput {
     reason?: string;
   };
   temporalHealth?: {
-    worker_alive?: WorkerLiveness;
-    worker_process_alive?: WorkerLiveness;
+    /** Legacy fields are accepted for read compatibility but never formatted. */
+    worker_alive?: unknown;
+    worker_process_alive?: unknown;
     worker_lock?: WorkerLockHealthInput | null;
     last_worker_run_error?: WorkerRunErrorInput | null;
   };
@@ -331,30 +331,6 @@ export function formatWorkerRunError(
   return `${error.queue}: ${error.message} @ ${error.at}`;
 }
 
-function formatWorkerProcessStatus(input: StatusInput): string {
-  const workerProcessAlive = input.temporalHealth?.worker_process_alive;
-  if (workerProcessAlive?.status === "unavailable") {
-    return "cannot observe";
-  }
-
-  if (workerProcessAlive?.status === "available" && workerProcessAlive.value) {
-    return "healthy";
-  }
-
-  const queueServiceability = input.temporalQueueServiceability;
-  const hasServiceabilityBlockers =
-    (queueServiceability?.blockers?.length ?? 0) > 0;
-
-  if (
-    queueServiceability?.status === "serviceable" &&
-    !hasServiceabilityBlockers
-  ) {
-    return "peer-owned, serviceable";
-  }
-
-  return "degraded";
-}
-
 // =============================================================================
 // Formatters
 // =============================================================================
@@ -490,7 +466,6 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   ];
   const queueServiceability = input.temporalQueueServiceability;
   if (queueServiceability) {
-    healthLines.push(`Worker process: ${formatWorkerProcessStatus(input)}`);
     healthLines.push(
       `Queue serviceability: ${queueServiceability.status} (${queueServiceability.confidence}) ${queueServiceability.expectedQueue}`,
     );

@@ -10,7 +10,6 @@ import {
 import { tmpdir } from "os";
 import { spawnSyncGit } from "../../utils/git-binary";
 import { parseWorktreeListPorcelain } from "../worktree/porcelain-parser";
-import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
 import type { PrTitlePolicy } from "../../types/project";
 
 export type ArchiveMode = "direct" | "pr";
@@ -2165,7 +2164,7 @@ function parseLocalChangeBranchRefs(output: string): Array<{
   return splitLines(output)
     .map((line) => {
       const [branch, localSha] = line.split(/\s+/, 2);
-      const prefix = CHANGE_BRANCH_PREFIX;
+      const prefix = "change/";
       if (!localSha || !branch?.startsWith(prefix)) return null;
       const changeId = branch.slice(prefix.length);
       if (!changeId) return null;
@@ -2325,7 +2324,7 @@ export function getCheckedOutChangeBranches(
   const branches = new Set<string>();
   const worktreePaths: Record<string, string> = {};
   for (const wt of worktrees) {
-    if (!wt.branch?.startsWith(CHANGE_BRANCH_PREFIX)) continue;
+    if (!wt.branch?.startsWith("change/")) continue;
     branches.add(wt.branch);
     worktreePaths[wt.branch] = wt.path;
   }

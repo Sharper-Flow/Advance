@@ -16,29 +16,6 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
 
-const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
-
-// Mock project-workflow-helper so state.ts resolveAccess returns workflow-backed.
-vi.mock("../project-workflow-helper", () => ({
-  getBoundedProjectWorkflowAccess: vi.fn(async () => ({
-    mode: "workflow-backed",
-    handle: {
-      query: vi.fn(async () => ({
-        session_registry: {},
-        worktree_registry: {},
-        pending_worktree_deletes: {},
-        change_summaries: {},
-      })),
-      executeUpdate: vi.fn(async () => undefined),
-    },
-  })),
-}));
-
-// Temporal notifications are retired; delete remains disk-authoritative.
-vi.mock("../../temporal/service", () => ({
-  getService: vi.fn(() => null),
-}));
-
 // Mock debug-log to capture audit trail.
 vi.mock("../../utils/debug-log", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../utils/debug-log")>();
@@ -567,7 +544,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).toContain(branch);
   });
 
-  it("clean delete succeeds — removes worktree and durable workflow record", async () => {
+  it("clean delete succeeds and removes the git worktree", async () => {
     const branch = "change/clean";
     const wtPath = addWorktree(repoRoot, branch);
 
@@ -579,26 +556,16 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       ok: true,
       branch,
       path: wtPath,
-      warning: "Worktree notification skipped: Temporal service unavailable",
     });
-
-    expect(workflowSignal).not.toHaveBeenCalled();
 
     // Worktree should be gone
     const list = execSync("git worktree list", { cwd: repoRoot }).toString();
     expect(list).not.toContain(branch);
   });
 
-  it("returns success with warning when post-delete signal times out", async () => {
+  it("returns success when the git worktree is removed", async () => {
     const branch = "change/signal-timeout";
     const wtPath = addWorktree(repoRoot, branch);
-
-    workflowSignal.mockImplementationOnce(
-      () =>
-        new Promise(() => {
-          /* intentionally never resolves */
-        }),
-    );
 
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, path: wtPath, changeId: "signal-timeout" }];
@@ -610,7 +577,6 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       ok: true,
       branch,
       path: wtPath,
-      warning: expect.stringMatching(/notification|signal|timeout/i),
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -694,7 +660,6 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       ok: true,
       branch,
       path: wtPath,
-      warning: "Worktree notification skipped: Temporal service unavailable",
     });
 
     // Audit log should have been written
@@ -703,66 +668,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       expect.stringContaining("force-removing"),
     );
 
-    expect(workflowSignal).not.toHaveBeenCalled();
-
     // Worktree should be gone
     const list = execSync("git worktree list", { cwd: repoRoot }).toString();
     expect(list).not.toContain(branch);
-  });
-
-  it("#36 removes missing-from-disk registry entry when path and branch are gone", async () => {
-    const branch = "change/missing-from-disk";
-    const wtPath = join(repoRoot, "worktrees", branch);
-    const deps = createMockDeps(repoRoot, wtPath);
-    deps.registry = [
-      {
-        branch,
-        path: wtPath,
-        changeId: "missing-from-disk",
-      },
-    ];
-    attachChangeStatus(deps, "archived");
-    deps.integrationCheck = async () => {
-      throw new Error("integration check must be skipped for missing disk");
-    };
-
-    const result = await advWorktreeDelete(branch, {}, deps);
-
-    expect(result).toEqual({
-      ok: false,
-      error: "REMOVE_FAILED",
-      reason: "temporal_unavailable",
-    });
-    expect(workflowSignal).not.toHaveBeenCalled();
-    expect(deps.store?.changes.refresh).not.toHaveBeenCalled();
-    expect(appendDebugLog).not.toHaveBeenCalledWith(
-      "worktree-delete",
-      expect.stringContaining("removed stale missing-from-disk registry entry"),
-    );
-  });
-
-  it("#174 dispatches worktreeDeletedSignal when clearing archived missing-from-disk registry entry", async () => {
-    const branch = "change/archived-missing";
-    const wtPath = join(repoRoot, "worktrees", branch);
-    const deps = createMockDeps(repoRoot, wtPath);
-    deps.registry = [
-      {
-        branch,
-        path: wtPath,
-        changeId: "archived-missing",
-      },
-    ];
-    attachChangeStatus(deps, "archived");
-
-    const result = await advWorktreeDelete(branch, {}, deps);
-
-    expect(result).toEqual({
-      ok: false,
-      error: "REMOVE_FAILED",
-      reason: "temporal_unavailable",
-    });
-    expect(workflowSignal).not.toHaveBeenCalled();
-    expect(deps.store?.changes.refresh).not.toHaveBeenCalled();
   });
 
   it("#174 retains missing-from-disk registry entry when change is not terminal", async () => {
@@ -785,7 +693,6 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       error: "INTEGRATION_REQUIRED",
       reason: "change_not_terminal",
     });
-    expect(workflowSignal).not.toHaveBeenCalled();
   });
 
   it("#38 deletes clean merged non-ADV worktree branch without archived change", async () => {
@@ -944,8 +851,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     deps.registry = [
       { branch, changeId: "ac5-durable-readback", path: wtPath },
     ];
-    // Exercise production verifyBranchIntegration; the project-workflow-helper
-    // mock returns an empty registry snapshot, simulating a stale/unavailable
+    // Exercise production verifyBranchIntegration with a stale/unavailable
     // ordinary projection immediately after archive terminal convergence.
     deps.integrationCheck = undefined;
     attachChangeStatus(deps, "archived");
@@ -1159,7 +1065,6 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       ok: true,
       branch,
       path: wtPath,
-      warning: expect.stringContaining("Temporal service unavailable"),
     });
     expect(appendDebugLog).toHaveBeenCalledWith(
       "worktree-delete",
@@ -1193,7 +1098,6 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       ok: true,
       branch,
       path: wtPath,
-      warning: expect.stringContaining("Temporal service unavailable"),
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -1285,7 +1189,6 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       ok: true,
       branch,
       path: wtPath,
-      warning: expect.stringContaining("Temporal service unavailable"),
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -1736,7 +1639,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     expect(result).toMatchObject({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "temporal_read_timeout",
+      reason: "store_read_timeout",
     });
   });
 
@@ -1751,32 +1654,6 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
       database: deps.database,
       log: deps.log,
       store: deps.store,
-    });
-
-    expect(result).toEqual({ removed: 1, retained: 0 });
-    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
-    expect(
-      execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).not.toContain(branch);
-  });
-
-  it("manual cleanup discovers squash-merged orphan worktrees using PR evidence", async () => {
-    const branch = "change/discovered-squash";
-    const wtPath = addWorktree(repoRoot, branch);
-    const deps = createDrainDeps(wtPath);
-    attachChangeStatus(deps, null);
-
-    const result = await advWorktreeCleanup("manual cleanup", {
-      projectRoot: repoRoot,
-      database: deps.database,
-      log: deps.log,
-      store: deps.store,
-      prMergeEvidence: async () => ({
-        ok: true,
-        proof: "pr-head-exact",
-        prNumber: 126,
-        headRefOid: "discovered-head",
-      }),
     });
 
     expect(result).toEqual({ removed: 1, retained: 0 });

@@ -16,12 +16,9 @@ overrides:
   vite: '>=8.0.5'
   picomatch: '>=4.0.4'
   brace-expansion: '>=5.0.7'
-  # Align protobufjs to the 7.x line the @temporalio/* SDK is built against
-  # (@temporalio/common depends on protobufjs ^7.x). The prior '>=8.6.6' floor
-  # force-resolved protobufjs 8.x — a major-version mismatch that fights the
-  # SDK's own range and breaks @temporalio/common's ProtobufJsonPayloadConverter
-  # on 1.18+ (extstore-helpers instanceof check). 7.6.5 is the maintained 7.x
-  # tip and pnpm audit is clean.
+  # Keep protobufjs on the maintained 7.x line. The prior '>=8.6.6' floor
+  # force-resolved protobufjs 8.x and caused incompatible transitive runtime
+  # behavior.
   protobufjs: ^7.6.5
   uuid: '>=14.0.0'
   fast-uri: '>=3.1.3'

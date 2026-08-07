@@ -1,7 +1,7 @@
 # Advance Epics
 
-> **Version:** 1.13.0
-> **Updated:** 2026-07-22
+> **Version:** 1.14.0
+> **Updated:** 2026-08-04
 
 ## Purpose
 
@@ -327,6 +327,65 @@ The `/adv-coordinate` command MUST inventory every participating project's in-fl
 
 ---
 
+### Epic Coordination Analyzes All Nonterminal Changes Regardless of Epic Membership
+
+**ID:** `rq-epicCoordinateChangeCoverage01` | **Priority:** **[MUST]**
+
+The `/adv-coordinate` command MUST analyze every nonterminal in-flight change from its project inventory regardless of Epic membership. Change-scoped analysis — including repository-overlap comparison, advisory sequencing, and refactor-coverage classification — MUST NOT be gated on the presence of active Epics. Epic-dependent phases MAY still short-circuit when no active Epics exist, but that short-circuit MUST NOT suppress change-scoped analysis. Inventory reads MUST follow `hasMore` and `resumeHint` until the in-flight population is exhausted; a single `adv_change_list` call MUST NOT be treated as complete. Existing coordination boundaries MUST be preserved: no task creation, no gate completion, no Epic auto-enrollment, advisory Epic order, approval-gated durable Epic actions, and change closure remaining routed to `/adv-cleanup`.
+
+**Tags:** `epics`, `command`, `coordination`, `change-coverage`, `p33`
+
+#### Scenarios
+
+**Change analysis runs without active Epics** (`rq-epicCoordinateChangeCoverage01.1`)
+
+**Given:**
+- A project has nonterminal in-flight changes
+- The project has zero active Epics
+
+**When:** `/adv-coordinate` runs
+
+**Then:**
+- The refactor coverage audit executes
+- Evidence-backed drift candidates are reported with their dry-run referral
+- The no-active-Epics message applies only to Epic-dependent findings
+
+**Unlinked changes receive the same scrutiny** (`rq-epicCoordinateChangeCoverage01.2`)
+
+**Given:**
+- A project contains both Epic-linked and Epic-unlinked nonterminal changes
+
+**When:** Repository-overlap and sequencing analysis run
+
+**Then:**
+- Epic-unlinked changes are compared against current repository evidence on the same terms as linked changes
+- Findings carry the same repo_backed_fact, adv_backed_fact, judgment_call, or freshness_limited labels
+
+**Existing boundaries preserved** (`rq-epicCoordinateChangeCoverage01.3`)
+
+**Given:**
+- Coordination analyzes Epic-unlinked changes
+
+**When:** The coordination report is produced
+
+**Then:**
+- No task is created and no gate is completed
+- No change is auto-enrolled into an Epic
+- Change closure remains routed to /adv-cleanup
+
+**Inventory pagination is honoured** (`rq-epicCoordinateChangeCoverage01.4`)
+
+**Given:**
+- The in-flight change population exceeds one page
+
+**When:** Coordination builds its project inventory
+
+**Then:**
+- hasMore and resumeHint are followed until the population is exhausted
+- A single adv_change_list call is not treated as complete
+
+---
+
 ### Shell Promotion Replaces the Shell Row with Exactly One Linked Change
 
 **ID:** `rq-epicPromotion01` | **Priority:** **[MUST]**
@@ -384,6 +443,41 @@ Epic entry order MUST affect display and next-work recommendations only. Startin
 - The start or resume succeeds
 - A warning about earlier incomplete work MAY be surfaced
 - No hard gate or task blockage is introduced solely due to order
+
+---
+
+### Advisory Rank Must Not Render Epic-Unlinked Changes Unreachable
+
+**ID:** `rq-epicAdvisoryRankReachability01` | **Priority:** **[MUST]**
+
+Advisory rank MUST NOT render an Epic-unlinked change unreachable as recommended next work. A change lacking Epic membership MUST NOT receive an unconditional maximum-rank penalty that places it behind every Epic-linked change irrespective of its own signals. Relative order among Epic-linked entries MUST be preserved. Rank remains advisory and MUST NOT block gates, tasks, promotion, or change progress. This requirement preserves optional Epic membership under rq-epicOptionalMembership01 by preventing membership absence from acquiring gating authority over visibility.
+
+**Tags:** `epics`, `next-work`, `advisory-order`, `projection`, `optional-membership`
+
+#### Scenarios
+
+**Unlinked change is reachable alongside linked work** (`rq-epicAdvisoryRankReachability01.1`)
+
+**Given:**
+- A project has at least one Epic-linked nonterminal change
+- The same project has at least one Epic-unlinked nonterminal change
+
+**When:** The resume projection is built
+
+**Then:**
+- The Epic-unlinked change can appear in ordered_next on its own signals
+- The Epic-unlinked change is not assigned an unconditional maximum-rank penalty
+
+**Epic order stays advisory** (`rq-epicAdvisoryRankReachability01.2`)
+
+**Given:**
+- Epic-linked entries carry an explicit order
+
+**When:** Advisory rank is computed
+
+**Then:**
+- Relative order among Epic-linked entries is preserved
+- No gate, task, promotion, or change progress is blocked by rank
 
 ---
 
@@ -658,53 +752,6 @@ Existing ADV changes MAY be linked into an Epic after creation, unlinked, moved 
 - The repair returns a typed membership mismatch
 - The parent Epic entry is not mutated
 - No second simultaneous Epic membership is created
-
----
-
-### Epic Search-Attribute Repair Backfills Legacy Visibility
-
-**ID:** `rq-epicSearchAttributeRepair01` | **Priority:** **[MUST]**
-
-Epic repair tooling MUST provide an audited `refresh_search_attributes` path for running legacy Epic workflows whose immutable start input disabled initial search-attribute upserts. The repair MUST derive `AdvEpicStatus` from structural Epic workflow progress state, MUST be able to force the upsert after the namespace search attribute is registered, and MUST NOT require operators to restart or recreate legacy Epic workflows. Repair reports MUST distinguish confirmed search-attribute refresh proof from skipped, unreachable, or unverified signal-delivery outcomes; successful signal dispatch alone MUST NOT be reported as a confirmed refresh. Synchronous confirmation MAY use workflow describe point-value evidence and MUST NOT rely solely on eventually consistent active-list visibility propagation.
-
-**Tags:** `epics`, `repair`, `search-attributes`, `visibility`, `legacy`
-
-#### Scenarios
-
-**Legacy Epic refresh forces status upsert** (`rq-epicSearchAttributeRepair01.1`)
-
-**Given:**
-- A running Epic workflow was started with search-attribute upserts disabled in immutable workflow input
-- The namespace has registered `AdvEpicStatus`
-
-**When:** An operator runs audited `refresh_search_attributes` repair
-
-**Then:**
-- The workflow upserts `AdvEpicStatus` from structural Epic progress state
-- The repair does not require restarting or recreating the Epic workflow
-
-**Repair report separates confirmed and unverified outcomes** (`rq-epicSearchAttributeRepair01.2`)
-
-**Given:**
-- A repair signal is delivered to a running Epic workflow
-
-**When:** The repair report is returned
-
-**Then:**
-- Confirmed refresh count includes only Epics with structural search-attribute proof
-- Missing proof is reported as unverified, skipped, or unreachable instead of confirmed refreshed
-- Successful signal dispatch alone is not counted as confirmed refresh
-
-**Describe proof is sufficient before visibility propagation** (`rq-epicSearchAttributeRepair01.3`)
-
-**Given:**
-- Temporal active-list visibility may be eventually consistent after an upsert
-
-**When:** Repair confirmation checks the workflow after signal delivery
-
-**Then:**
-- Workflow describe point-value evidence may confirm the search attribute synchronously
-- Eventually consistent list-query visibility is not the sole synchronous success proof
 
 ---
 
@@ -1115,7 +1162,7 @@ Operations referencing a missing Epic, a stale child change link, a duplicate pr
 
 **ID:** `rq-epicCliList01` | **Priority:** **[MUST]**
 
-The `adv epic list --json` CLI command MUST return live Temporal-backed Epic entries for the current project as stable JSON. Each Epic entry MUST include `id` and a present `startTime` field populated from the Temporal Visibility workflow row's `startTime` as an ISO-8601 UTC string when valid; if a row unexpectedly lacks a valid timestamp, the entry MUST remain present with `startTime: null`. The command MUST use Temporal Visibility enumeration of `epicWorkflow` executions and project-scoped workflow ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic workflow, MUST NOT require a worker polling the project task queue, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands. The `startTime` field represents the Temporal workflow start timestamp and MUST NOT be labeled as child-change activity or mutable recency.
+The `adv epic list --json` CLI command MUST return live disk-backed Epic entries for the current project as stable JSON. Each Epic entry MUST include `id` and a present `startTime` field populated from the disk projection lookup change projection row's `startTime` as an ISO-8601 UTC string when valid; if a row unexpectedly lacks a valid timestamp, the entry MUST remain present with `startTime: null`. The command MUST use disk projection lookup enumeration of `epicChange projection` executions and project-scoped change projection ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic change projection, MUST NOT require a worker polling the project mutation path, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands. The `startTime` field represents the disk change projection start timestamp and MUST NOT be labeled as child-change activity or mutable recency.
 
 **Tags:** `epics`, `cli`, `visibility`, `read-only`
 
@@ -1124,39 +1171,39 @@ The `adv epic list --json` CLI command MUST return live Temporal-backed Epic ent
 **Epic list returns live JSON entries with timestamps** (`rq-epicCliList01.1`)
 
 **Given:**
-- A git-backed project has Epic workflows visible to Temporal
+- A git-backed project has Epic change projections visible to disk
 
 **When:** `adv epic list --json` runs from the project
 
 **Then:**
 - The command exits 0
-- The JSON payload includes `source: "temporal"`, `live: true`, `stale: false`, `generated_at`, `project_id`, and `epics`
+- The JSON payload includes `source: "disk"`, `live: true`, `stale: false`, `generated_at`, `project_id`, and `epics`
 - Each Epic entry is an object containing `id` and a present `startTime` field
-- A valid Temporal Visibility row timestamp is emitted as an ISO-8601 UTC string
+- A valid disk projection lookup row timestamp is emitted as an ISO-8601 UTC string
 - An unexpectedly invalid or missing row timestamp is emitted as `startTime: null` without dropping the Epic row
 
 **Epic list filters by current project prefix** (`rq-epicCliList01.2`)
 
 **Given:**
-- Temporal Visibility returns Epic workflow IDs for multiple ADV projects
+- disk projection lookup returns Epic change projection IDs for multiple ADV projects
 
 **When:** The Epic list CLI builds its payload
 
 **Then:**
-- Only workflow IDs under `adv/epic/{projectId}/` appear in `epics`
-- Workflow IDs outside the current project prefix are excluded
+- Only change projection IDs under `adv/epic/{projectId}/` appear in `epics`
+- Change projection IDs outside the current project prefix are excluded
 - Empty Epic ID suffixes are ignored
 
 **Epic list fails closed on unavailable live state** (`rq-epicCliList01.3`)
 
 **Given:**
-- Temporal connection or Visibility listing fails, or the command is run outside a git project
+- disk connection or projection lookup listing fails, or the command is run outside a git project
 
 **When:** `adv epic list --json` handles the failure
 
 **Then:**
 - The command exits non-zero
-- The JSON payload includes `source: "temporal"`, `live: false`, `stale: false`, `epics: []`, `error`, and `remediation`
+- The JSON payload includes `source: "disk"`, `live: false`, `stale: false`, `epics: []`, `error`, and `remediation`
 - No disk-projected Epic rows are returned as a fallback
 
 **Epic CLI namespace remains read-only** (`rq-epicCliList01.4`)
@@ -1169,7 +1216,7 @@ The `adv epic list --json` CLI command MUST return live Temporal-backed Epic ent
 **Then:**
 - Only the read-only `list` operation is accepted
 - Mutation verbs such as `create`, `update`, `delete`, and `archive` are not dispatched
-- The list path does not query per-Epic workflow state
+- The list path does not query per-Epic change projection state
 
 ---
 
@@ -1217,7 +1264,7 @@ Completed Epics MUST be retired through a typed `adv_epic_retire` lifecycle path
 
 **Then:**
 - The response reports current version, progress status, eligibility, blockers, and projected retired summary
-- The Epic workflow and retired projection remain unchanged
+- The Epic projection and retired summary remain unchanged
 
 ---
 
@@ -1225,7 +1272,7 @@ Completed Epics MUST be retired through a typed `adv_epic_retire` lifecycle path
 
 **ID:** `rq-epicRetiredListing01` | **Priority:** **[MUST]**
 
-Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = "active"`, `ExecutionStatus = "Running"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Missing compatible AdvEpicStatus indexing on reachable legacy workflows is machine-resolvable state: ADV initialization or direct Epic access MUST upsert the current typed status and verify it without requiring a dedicated repair mode. Wrong-type search attributes or unreachable conflicting state MUST fail closed through the doctor/operator boundary. Default listing remains read-only and MUST NOT perform per-Epic mutation fan-out.
+Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate current disk-backed Epic projections scoped to the project and active status. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Missing or malformed status in a reachable legacy projection is machine-resolvable state: direct Epic access MUST normalize and verify the current typed status without requiring a dedicated repair mode. Conflicting or unreadable state MUST fail closed through the doctor/operator boundary. Default listing remains read-only and MUST NOT perform per-Epic mutation fan-out.
 
 **Tags:** `epics`, `listing`, `cli`, `visibility`, `retirement`
 
@@ -1234,26 +1281,24 @@ Default Epic listing surfaces MUST represent active Epics only and MUST exclude 
 **Default MCP list excludes retired Epics** (`rq-epicRetiredListing01.1`)
 
 **Given:**
-- Temporal Visibility contains running Epic workflows and retired completed Epic workflows
+- The disk projection contains active and retired Epic entries
 
 **When:** adv_epic_list runs with default arguments
 
 **Then:**
-- Only active/running Epic workflows are listed
-- Retired Epic workflows are excluded without consumer-side filtering
+- Only active Epic entries are listed
+- Retired Epic entries are excluded by typed projection status
 
-**CLI list remains live active-only JSON** (`rq-epicRetiredListing01.2`)
+**CLI list remains active-only JSON** (`rq-epicRetiredListing01.2`)
 
 **Given:**
 - A caller runs adv epic list --json
 
-**When:** The CLI builds its Temporal Visibility query
+**When:** The CLI reads the Epic projection
 
 **Then:**
-- The query includes WorkflowType = epicWorkflow
-- The query includes AdvEpicStatus = "active"
-- The query includes ExecutionStatus = "Running"
-- The payload remains live Temporal-backed and active-only by default
+- The read is scoped to the current project and active typed status
+- The payload is disk-backed and active-only by default
 
 **Existing completed Epics report as dry-run candidates** (`rq-epicRetiredListing01.3`)
 
@@ -1336,26 +1381,26 @@ Retirement MUST preserve typed history access to retired Epics. The retirement p
 
 ---
 
-### Epic Visibility Index Respects Temporal Search-Attribute Constraints
+### Epic Projection Lookup Respects Bounded Field Constraints
 
 **ID:** `rq-epicTemporalConstraints01` | **Priority:** **[MUST]**
 
-The child-change Visibility index for Epic lookup MUST use a single-value `Keyword` search attribute, following the pattern of `AdvBacklogIssueNumber`, and MUST NOT exceed the existing custom `KeywordList` cap. Epic ID on child changes MUST be derived from the `epic_membership` projection.
+The child-change projection lookup used for Epic lookup MUST use one bounded scalar Epic identifier derived from the `epic_membership` projection. It MUST NOT expand into an unbounded collection or infer Epic membership from titles or consumer-side heuristics.
 
-**Tags:** `epics`, `temporal`, `visibility`, `constraints`
+**Tags:** `epics`, `disk`, `visibility`, `constraints`
 
 #### Scenarios
 
-**Epic ID is indexed as single Keyword** (`rq-epicTemporalConstraints01.1`)
+**Epic ID is stored as one bounded scalar** (`rq-epicTemporalConstraints01.1`)
 
 **Given:**
 - A child change has epic_membership.epic_id
 
-**When:** Search attributes are built
+**When:** projection fields are built
 
 **Then:**
-- AdvEpicId is set as a single-value Keyword
-- No KeywordList attribute is used for Epic membership
+- AdvEpicId is set as one bounded scalar projection field
+- No unbounded collection field is used for Epic membership
 
 ---
 

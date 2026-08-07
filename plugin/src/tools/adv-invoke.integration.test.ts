@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { createToolMap } from "../tool-registry";
-import { createLegacyStore } from "../storage/store";
+import { createDiskStore } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -78,7 +78,7 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
   });
 
   test("AC1: facade dispatch of adv_change_list matches a direct call", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
@@ -126,7 +126,7 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
   });
 
   test("AC2: unknown name returns typed TOOL_NOT_FOUND before any handler runs", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
@@ -149,7 +149,7 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
   });
 
   test("AC2: args failing the target's canonical Zod schema are rejected before dispatch", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
@@ -175,7 +175,7 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
   });
 
   test("AC2: unknown target args are rejected instead of silently stripped", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
@@ -194,7 +194,7 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
   });
 
   test("AC3: recursion set rejected before lookup through the wrapped layer", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
@@ -217,7 +217,7 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
   });
 
   test("AC4: approval-required args still reach the wrapped handler (handler enforces approval)", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
@@ -262,7 +262,7 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
   });
 
   test("AC1: target_path on adv_change_show reaches the wrapped handler", async () => {
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda) as Record<

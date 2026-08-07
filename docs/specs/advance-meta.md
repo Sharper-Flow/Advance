@@ -90,7 +90,7 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 
 **ID:** `rq-statusCliBridge01` | **Priority:** **[MUST]**
 
-The default /adv-status slash command must remain a thin OpenCode shell-output bridge over `adv status --no-color`. The CLI status command is live Temporal-backed by default for active change rows: it must query live ADV state before rendering, must fail closed when live state is unavailable, and must not silently render stale disk projections as current active changes. The command file must not instruct the agent to call ADV MCP status/list/show/spec tools, synthesize cross-change health, read roadmap freshness, or add recommendations. Remediation for Temporal/server/worker failures belongs in CLI stdout/stderr or JSON output, not in the slash-command prompt.
+The default /adv-status slash command must remain a thin OpenCode shell-output bridge over `adv status --no-color`. The CLI status command is live disk-backed by default for active change rows: it must query live ADV state before rendering, must fail closed when live state is unavailable, and must not silently render stale disk projections as current active changes. The command file must not instruct the agent to call ADV MCP status/list/show/spec tools, synthesize cross-change health, read roadmap freshness, or add recommendations. Remediation for disk/server/worker failures belongs in CLI stdout/stderr or JSON output, not in the slash-command prompt.
 
 **Tags:** `status`, `command`, `cli`, `no-fanout`
 
@@ -106,7 +106,7 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 
 **Then:**
 - The command template injects shell output from `adv status --no-color`
-- The default output is the live Temporal-backed CLI status table plus active/archived/closed counts
+- The default output is the live disk-backed CLI status table plus active/archived/closed counts
 - ANSI color/control output is disabled for stable command-template rendering
 
 **Default slash command forbids agent fanout** (`rq-statusCliBridge01.2`)
@@ -125,7 +125,7 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 
 **Given:**
 - The /adv-status command template runs `adv status --no-color`
-- Temporal connection, Visibility listing, or workflow query is unavailable or times out
+- disk connection, projection lookup listing, or change projection query is unavailable or times out
 
 **When:** The default /adv-status path handles that result
 
@@ -142,7 +142,7 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 
 **ID:** `rq-advCliLocalInstall01` | **Priority:** **[MUST]**
 
-`scripts/deploy-local.sh` must own the local `adv` CLI install. It must deploy the whole CLI payload to `$HOME/.local/share/Advance/bin`, expose it via `$HOME/.local/bin/adv`, detect missing, stale, wrong-target, unsafe, or PATH-shadowed installs, and verify installed status JSON is live-status metadata (`source: "temporal"` on success or fail-closed live error metadata) rather than stale disk-only `schema_version: 1` output. The installer must not add CLI mutation authority or silently overwrite unrelated user files.
+`scripts/deploy-local.sh` must own the local `adv` CLI install. It must deploy the whole CLI payload to `$HOME/.local/share/Advance/bin`, expose it via `$HOME/.local/bin/adv`, detect missing, stale, wrong-target, unsafe, or PATH-shadowed installs, and verify installed status JSON is live-status metadata (`source: "disk"` on success or fail-closed live error metadata) rather than stale disk-only `schema_version: 1` output. The installer must not add CLI mutation authority or silently overwrite unrelated user files.
 
 **Tags:** `install`, `cli`, `deploy-local`, `status`
 
@@ -193,99 +193,9 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 **When:** The installed `adv status --json` command is verified
 
 **Then:**
-- The JSON contains live-status metadata such as `source: "temporal"` on success or fail-closed live error metadata
+- The JSON contains live-status metadata such as `source: "disk"` on success or fail-closed live error metadata
 - The JSON does not use stale disk-only `schema_version: 1` as readiness proof
 - The installed CLI exposes no mutation subcommands
-
----
-
-### Deploy-Local Refreshes Runtime Worker Processes
-
-**ID:** `rq-deployWorkerBounce01` | **Priority:** **[MUST]**
-
-After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable local deploy path, it MUST prevent stale `dist/temporal/worker.js` processes for that exact deployed worker script from silently continuing to run old worker/workflow code. Worker refresh is marker-gated: each exact-path matching process is classified by its process environment. Processes that advertise `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are self-roll capable; in mutating deploy modes they are reported as advisory only and MUST NOT be signaled, because the worker coordinates its own reload. All other exact-path matching processes are treated as legacy and are bounced with SIGTERM in mutating deploy modes. If any legacy target cannot be signaled or remains running after bounded handling, deploy MUST exit non-zero and print a multi-line `[ADV:ACTION_REQUIRED]` block with the worker script path, PID evidence when known, and restart/session instructions. The matcher MUST be scoped to the synced runtime worker script path and MUST NOT target unrelated Node/Bun processes.
-
-**Tags:** `install`, `deploy-local`, `temporal`, `worker`, `runtime-refresh`
-
-#### Scenarios
-
-**Mutating deploy classifies exact-path workers by self-roll marker** (`rq-deployWorkerBounce01.1`)
-
-**Given:**
-- `scripts/deploy-local.sh` has successfully synced the runtime plugin bundle
-- One or more running processes use the exact synced `$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js` script path
-
-**When:** The deploy runs in a mutating mode
-
-**Then:**
-- Each exact-path matching worker process is classified by its environment
-- Processes advertising `ADV_TEMPORAL_WORKER_SELF_ROLL=1` are reported as advisory and are not signaled
-- Legacy processes (missing or malformed marker) receive SIGTERM
-- Processes that do not use the exact synced worker script path are not signaled
-
-**Self-roll capable workers are advisory and not signaled** (`rq-deployWorkerBounce01.2`)
-
-**Given:**
-- A mutating deploy finds an exact-path running worker whose environment contains `ADV_TEMPORAL_WORKER_SELF_ROLL=1`
-
-**When:** The deploy classifies worker refresh candidates
-
-**Then:**
-- The worker is listed as self-roll capable advisory output
-- No signal is sent to the worker
-- The deploy does not fail because the worker remains running
-
-**Legacy bounce failure is loud and non-zero** (`rq-deployWorkerBounce01.3`)
-
-**Given:**
-- A mutating deploy finds exact-path matching legacy runtime worker processes
-
-**When:** Any legacy target cannot be signaled or remains running after bounded handling
-
-**Then:**
-- The deploy exits non-zero
-- The output contains a multi-line `[ADV:ACTION_REQUIRED]` block
-- The block includes the worker script path, PID evidence when known, and restart/session instructions
-- The deploy does not silently claim the new worker/workflow code is active
-
----
-
-### Deploy-Local Read-Only Modes Never Signal Workers
-
-**ID:** `rq-deployWorkerBounce02` | **Priority:** **[MUST]**
-
-`scripts/deploy-local.sh --check` and `scripts/deploy-local.sh --dry-run` MUST NOT signal worker processes. When matching runtime worker processes exist, read-only modes must classify each by the `ADV_TEMPORAL_WORKER_SELF_ROLL=1` marker: self-roll-capable workers may be reported as advisory, while legacy workers may be reported as requiring bounce or session restart. They must not mutate process state or imply that stale worker code has been refreshed.
-
-**Tags:** `install`, `deploy-local`, `temporal`, `worker`, `dry-run`
-
-#### Scenarios
-
-**Check mode is no-signal and classifies workers** (`rq-deployWorkerBounce02.1`)
-
-**Given:**
-- `scripts/deploy-local.sh --check` runs
-- Matching runtime worker processes exist
-
-**When:** The check reports deployment health
-
-**Then:**
-- No worker process receives a signal
-- Self-roll-capable workers (`ADV_TEMPORAL_WORKER_SELF_ROLL=1`) are reported as advisory
-- Legacy workers are reported as requiring bounce or session restart
-- The mode remains read-only
-
-**Dry-run previews marker-gated worker refresh without signaling** (`rq-deployWorkerBounce02.2`)
-
-**Given:**
-- `scripts/deploy-local.sh --dry-run` runs
-- Matching runtime worker processes exist
-
-**When:** The dry-run previews deploy actions
-
-**Then:**
-- No worker process receives a signal
-- Output describes self-roll-capable workers as advisory and legacy workers as would-bounce or restart-required
-- The mode does not mutate files or process state
 
 ---
 
@@ -293,9 +203,9 @@ After `scripts/deploy-local.sh` syncs the runtime plugin bundle to the stable lo
 
 **ID:** `rq-cliSourceBoundary01` | **Priority:** **[MUST]**
 
-Root `bin/adv` CLI source may import plugin source only through explicit CLI-safe boundary modules. The allowed plugin-source crossings are the pure CLI projection surface and a named live Temporal CLI boundary (or an equivalent explicitly documented CLI-safe adapter). Broad plugin internals such as storage, tools, tool registry, plugin init, plugin index, and unlisted `plugin/src` paths must be rejected by deterministic boundary tests. The boundary must preserve deployed sibling-module imports, live Temporal fail-closed status/Epic behavior, and must not introduce stale disk active-state fallback.
+Root `bin/adv` CLI source may import plugin source only through explicit CLI-safe boundary modules. The allowed plugin-source crossings are the pure CLI projection surface and a named live disk CLI boundary (or an equivalent explicitly documented CLI-safe adapter). Broad plugin internals such as storage, tools, tool registry, plugin init, plugin index, and unlisted `plugin/src` paths must be rejected by deterministic boundary tests. The boundary must preserve deployed sibling-module imports, live disk fail-closed status/Epic behavior, and must not introduce stale disk active-state fallback.
 
-**Tags:** `cli`, `source-boundary`, `import-boundary`, `temporal`
+**Tags:** `cli`, `source-boundary`, `import-boundary`, `disk`
 
 #### Scenarios
 
@@ -307,7 +217,7 @@ Root `bin/adv` CLI source may import plugin source only through explicit CLI-saf
 **When:** The CLI source-boundary tests run
 
 **Then:**
-- Imports are limited to the pure CLI projection surface and the named live Temporal CLI boundary or equivalent explicitly documented CLI-safe adapter
+- Imports are limited to the pure CLI projection surface and the named live disk CLI boundary or equivalent explicitly documented CLI-safe adapter
 - Any import into unlisted `plugin/src` paths fails the structural test
 - Same-tier root CLI imports remain allowed
 
@@ -322,16 +232,16 @@ Root `bin/adv` CLI source may import plugin source only through explicit CLI-saf
 - The test fails with the forbidden import path identified
 - The CLI boundary remains enforced by deterministic tests rather than prose-only guidance
 
-**Live Temporal CLI behavior is preserved** (`rq-cliSourceBoundary01.3`)
+**Live disk CLI behavior is preserved** (`rq-cliSourceBoundary01.3`)
 
 **Given:**
-- The root CLI reads active change rows or Epic IDs through the approved Temporal CLI boundary
+- The root CLI reads active change rows or Epic IDs through the approved disk CLI boundary
 
-**When:** Temporal is reachable or unavailable
+**When:** disk is reachable or unavailable
 
 **Then:**
-- Reachable Temporal reads keep live status/Epic behavior compatible with existing CLI contracts
-- Unavailable Temporal still fails closed with live error metadata
+- Reachable disk reads keep live status/Epic behavior compatible with existing CLI contracts
+- Unavailable disk still fails closed with live error metadata
 - Disk projections are not used as a substitute source for active rows
 
 **Local install preserves CLI-safe plugin-relative imports** (`rq-cliSourceBoundary01.4`)
@@ -348,89 +258,89 @@ Root `bin/adv` CLI source may import plugin source only through explicit CLI-saf
 
 ---
 
-### CLI Status Reads Visibility Search Attributes Worker-Free
+### CLI Status Reads Durable Change Projections
 
 **ID:** `rq-statusCliWorkerFree01` | **Priority:** **[MUST]**
 
-The `adv status` default table must build active-change rows from Temporal Visibility search attributes (`AdvChangeId`, `AdvChangeTitle`, `AdvChangeStatus`, `AdvLifecycleState`, `AdvCurrentGate`, `AdvLastSignalAt`, `AdvCreatedAt`) upserted by change workflows, not from a per-change `getState` workflow query. A workflow query requires a live worker polling the project task queue, so the query path fails for projects with no open session. Visibility search attributes are server-side data readable without a worker, so the CLI works for any project whose Temporal connection succeeds. The read must remain live-Temporal-backed and fail closed (no disk-projected active rows) when the Temporal connection or Visibility list fails. Lifecycle state, compatibility status/bucket, and current gate must remain distinguishable in JSON summaries. Gate progress is synthesized from `AdvCurrentGate` using the canonical gate order; terminal-complete or non-open lifecycle changes are excluded from active rows.
+The `adv status` default table MUST build active-change rows from durable change projections and bounded summary shards, not from per-change runtime hydration. The read MUST remain disk-backed and fail closed with explicit degraded metadata when projection reads fail. Lifecycle state, compatibility status/bucket, and current gate MUST remain distinguishable in JSON summaries; terminal-complete or non-open lifecycle changes are excluded from active rows.
 
-**Tags:** `status`, `cli`, `visibility`, `worker-free`
+**Tags:** `status`, `cli`, `projection`, `disk-backed`
 
 #### Scenarios
 
-**Inactive project returns live rows from Visibility** (`rq-statusCliWorkerFree01.1`)
+**Inactive project returns current rows from projections** (`rq-statusCliWorkerFree01.1`)
 
 **Given:**
-- A project has non-archived change workflows but no open ADV session (no worker polling its task queue)
-- Temporal Visibility is reachable
+- A project has non-archived change projections
+- The durable projection store is reachable
 
 **When:** `adv status --json` runs for that project
 
 **Then:**
-- The payload is `source: "temporal"`, `live: true`
-- Each running open-lifecycle change yields one row built from its Visibility search attributes
+- The payload identifies the disk projection source without claiming runtime authority
+- Each running open-lifecycle change yields one row built from its projection
 - Each row exposes lifecycleState separately from status and firstIncompleteGate
 - `gateProgressStr` and `firstIncompleteGate` are synthesized from `AdvCurrentGate`
-- No per-change `getState` workflow query is issued for the default table
+- No per-change runtime hydration is issued for the default table
 
-**Temporal unavailable still fails closed** (`rq-statusCliWorkerFree01.2`)
+**Projection unavailable still fails closed** (`rq-statusCliWorkerFree01.2`)
 
 **Given:**
-- The Temporal connection or Visibility list fails or times out
+- The durable projection read fails or times out
 
 **When:** `adv status --json` handles that result
 
 **Then:**
-- The payload is `live: false` with an error and remediation
+- The payload is degraded with an error and remediation
 - Zero active rows are returned
 - Disk projections are not used as a substitute source for active rows
 
 ---
 
-### Local Dashboard Routine Refresh Is Worker-Free and Read-Only
+### Local Dashboard Routine Refresh Is Disk-Backed and Read-Only
 
 **ID:** `rq-dashboardWorkerFree01` | **Priority:** **[MUST]**
 
-The local `adv dashboard` routine `/api/state` refresh must build ADV summary cards from Temporal Visibility/search-attribute read-model data, not from per-change `getState` workflow queries. Routine refresh must remain read-only, bounded, cached/coalesced, and usable when no local project worker is polling. Optional detail enrichment that needs workflow state may run only after explicit user navigation to a single-change detail route, must be one-change scoped and bounded, and must degrade independently from `/api/state`. Source-health degradation must be displayed as source status, not as an ADV change failure, and must avoid exposing secrets or raw state-file paths.
+The local `adv dashboard` routine `/api/state` refresh MUST build ADV summary cards from durable disk projections and summary shards, not from per-change runtime hydration. Routine refresh MUST remain read-only, bounded, cached/coalesced, and explicit about source degradation. Optional detail enrichment may run only after explicit user navigation to a single-change detail route, must be one-change scoped and bounded, and must degrade independently from `/api/state`.
 
-**Tags:** `dashboard`, `visibility`, `worker-free`, `read-only`, `no-fanout`
+**Tags:** `dashboard`, `projection`, `disk-backed`, `read-only`, `no-fanout`
 
 #### Scenarios
 
-**Routine dashboard state uses Visibility without per-change queries** (`rq-dashboardWorkerFree01.1`)
+**Routine dashboard state uses projection lookup without per-change queries** (`rq-dashboardWorkerFree01.1`)
 
 **Given:**
 - The local dashboard serves `/api/state`
-- Temporal Visibility is reachable for the configured ADV project
+- The durable projection store is reachable for the configured ADV project
 
 **When:** The dashboard builds ADV summary cards for routine refresh
 
 **Then:**
-- ADV summary cards are built from Visibility/search-attribute data
-- The routine refresh does not issue per-change `getState` workflow queries
-- The routine refresh remains read-only and does not signal, update, start, cancel, archive, merge, deploy, or rerun anything
+- ADV summary cards are built from projection data
+- The routine refresh does not issue per-change runtime hydration
+- The routine refresh remains read-only and does not mutate, update, start, cancel, archive, merge, deploy, or rerun anything
 
-**Worktree branch and path metadata comes from Visibility** (`rq-dashboardWorkerFree01.2`)
+**Worktree branch and path metadata comes from projection lookup** (`rq-dashboardWorkerFree01.2`)
 
 **Given:**
-- A change workflow has upserted `AdvWorktreeBranches` or `AdvWorktreePaths` search attributes
+- A change projection contains branch or path metadata
 
-**When:** The dashboard builds ADV summaries from Visibility
+**When:** The dashboard builds ADV summaries from projection lookup
 
 **Then:**
-- All non-blank branch values are decoded without collapsing the KeywordList to a single value
-- All non-blank path values are decoded without requiring workflow state queries
+- All non-blank branch values are decoded without collapsing the stored collection
+- All non-blank path values are decoded without requiring runtime hydration
 - Missing attributes yield empty metadata rather than fuzzy inference
 
 **Optional enrichment degrades without hiding base cards** (`rq-dashboardWorkerFree01.3`)
 
 **Given:**
-- Optional enrichment such as ops, head SHA, GitHub, or ADV detail data is unavailable, times out, or requires a worker query
+- Optional enrichment such as ops, head SHA, GitHub, or detail data is unavailable or times out
 
 **When:** The routine dashboard refresh renders `/api/state`
 
 **Then:**
-- Base ADV summary cards remain visible when Visibility data is available
+- Base ADV summary cards remain visible when projection lookup data is available
 - Unavailable optional data is omitted or represented as bounded degradation
 - The routine refresh does not fall back to per-change query fan-out
 
@@ -439,7 +349,7 @@ The local `adv dashboard` routine `/api/state` refresh must build ADV summary ca
 **Given:**
 - A user explicitly opens a local ADV change detail route from the dashboard
 
-**When:** The detail route needs richer state than Visibility provides
+**When:** The detail route needs richer state than projection lookup provides
 
 **Then:**
 - At most one change is read for that request
@@ -488,16 +398,16 @@ The /adv-roadmap command, adv roadmap CLI subcommand, adv_roadmap MCP tool, and 
 
 **ID:** `rq-statusProbeCache01` | **Priority:** **[MUST]**
 
-ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, snapshot health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, age_ms, ttl_ms, and optional error. Status-facing health diagnostics must expose an advisory forceRefresh path that bypasses fresh cached probe entries only for the selected health probes and never for gate, task, change, contract, archive, or release truth. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions.
+ADV health and recovery diagnostics that probe disk, mutation paths, worker diagnostics, projection fields health, snapshot health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, age_ms, ttl_ms, and optional error. Status-facing health diagnostics must expose an advisory forceRefresh path that bypasses fresh cached probe entries only for the selected health probes and never for gate, task, change, contract, archive, or release truth. Probe fetchers that receive an AbortMutation must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions.
 
-**Tags:** `diagnostics`, `temporal`, `cache`, `health`
+**Tags:** `diagnostics`, `disk`, `cache`, `health`
 
 #### Scenarios
 
 **Status health probes are coalesced and freshened** (`rq-statusProbeCache01.1`)
 
 **Given:**
-- Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, snapshot health, or worktree census within the probe TTL
+- Multiple adv_status view:health calls request disk health, queue serviceability, projection fields health, snapshot health, or worktree census within the probe TTL
 
 **When:** The probes execute
 
@@ -511,7 +421,7 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Stale probe data is diagnostic-only for recovery safety** (`rq-statusProbeCache01.2`)
 
 **Given:**
-- A cached Temporal or worker-serviceability probe is stale because refresh aborted, timed out, or failed
+- A cached disk or worker-serviceability probe is stale because refresh aborted, timed out, or failed
 
 **When:** A diagnostic or recovery tool builds recommendations
 
@@ -537,12 +447,12 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 **Probe timeout bounds underlying work or reports non-cancellable classification** (`rq-statusProbeCache01.3`)
 
 **Given:**
-- A cached status probe fetch receives an AbortSignal from the probe cache timeout path
+- A cached status probe fetch receives an AbortMutation from the probe cache timeout path
 
 **When:** The probe implementation invokes its underlying operation
 
 **Then:**
-- The AbortSignal is forwarded into cancellable underlying work when the underlying operation accepts cancellation
+- The AbortMutation is forwarded into cancellable underlying work when the underlying operation accepts cancellation
 - Non-cancellable operations are explicitly bounded elsewhere or classified as non-cancellable diagnostic work
 - Non-cancellable expensive probes are not required for adv_status view: "summary" unless independently bounded and covered by tests
 
@@ -552,7 +462,7 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 
 **ID:** `rq-statusSummaryLazy01` | **Priority:** **[MUST]**
 
-adv_status view: "summary" must execute a summary-specific read plan instead of paying for health/hygiene-only diagnostics and cleanup work before projection. The summary plan must preserve active/recent orientation, bounded recommendations, and explicit degraded/freshness markers. Detailed health, hygiene, archived/closed leak archaeology, snapshot-health scanning, worktree cleanup retry/discovery, and similar expensive diagnostics belong in explicit health/hygiene views or dedicated tools unless proven bounded and required for summary orientation. Summary/cache/Visibility data must not authorize gate completion, archive, recovery, repair, task mutation, contract proof, unlock, override, or other safety-critical decisions.
+adv_status view: "summary" must execute a summary-specific read plan instead of paying for health/hygiene-only diagnostics and cleanup work before projection. The summary plan must preserve active/recent orientation, bounded recommendations, and explicit degraded/freshness markers. Detailed health, hygiene, archived/closed leak archaeology, snapshot-health scanning, worktree cleanup retry/discovery, and similar expensive diagnostics belong in explicit health/hygiene views or dedicated tools unless proven bounded and required for summary orientation. Summary/cache/projection lookup data must not authorize gate completion, archive, recovery, repair, task mutation, contract proof, unlock, override, or other safety-critical decisions.
 
 **Tags:** `status`, `latency`, `diagnostics`
 
@@ -584,13 +494,13 @@ adv_status view: "summary" must execute a summary-specific read plan instead of 
 **Summary projections remain advisory** (`rq-statusSummaryLazy01.3`)
 
 **Given:**
-- adv_status view: "summary" uses summary, cached, or Visibility-derived data
+- adv_status view: "summary" uses summary, cached, or projection lookup-derived data
 
 **When:** A safety-critical mutation, gate, archive, recovery, repair, unlock, override, or contract proof decision is evaluated
 
 **Then:**
 - The decision does not rely on the summary projection as authority
-- Authoritative workflow state is queried through the owning full-state path
+- Authoritative change projection state is queried through the owning full-state path
 
 ---
 
@@ -1280,31 +1190,29 @@ The primary adv orchestrator SHOULD delegate broad operational work before repea
 
 **ID:** `rq-archivePurge01` | **Priority:** **[MUST]**
 
-ADV must provide an explicit user-side lever to terminate an archived change workflow and remove its archive bundle and disk projection. The on-disk archive bundle is preserved by default; the destructive disk-removal escalation requires opt-in. After a workflow-only purge, adv_change_show for the purged change continues returning content from the on-disk projection.
+ADV must provide an explicit user-side lever to purge an archived change's archive bundle and disk projection. The on-disk archive bundle is preserved by default; destructive disk removal requires opt-in. A purge that does not include disk removal leaves the projection readable, while an approved disk purge removes the archived change from read surfaces.
 
 #### Scenarios
 
-**Workflow-only purge by default preserves disk bundle** (`rq-archivePurge01.1`)
+**Default purge preserves disk bundle** (`rq-archivePurge01.1`)
 
 **Given:**
-- An archived change with both an active change workflow and an existing archive/<id>/change.json bundle on disk
+- An archived change with an existing archive/<id>/change.json bundle on disk
 
 **When:** adv_archive_purge changeId: <id> is invoked without includeDiskBundle
 
 **Then:**
-- The change workflow is terminated via Temporal client
 - The on-disk archive bundle is preserved
 - adv_change_show for the changeId returns content from the on-disk projection
 
-**Opt-in includeDiskBundle removes both workflow state and disk artifacts** (`rq-archivePurge01.2`)
+**Opt-in includeDiskBundle removes disk artifacts** (`rq-archivePurge01.2`)
 
 **Given:**
-- An archived change with both active workflow and disk bundle
+- An archived change with a disk bundle
 
 **When:** adv_archive_purge changeId: <id> includeDiskBundle: true is invoked
 
 **Then:**
-- The change workflow is terminated
 - The archive/<id>/ directory is recursively removed from disk
 - Subsequent adv_change_show returns the existing not-found error path
 
@@ -1331,7 +1239,7 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 **Long-running tools declare an explicit override** (`rq-toolTimeoutOverride01.1`)
 
 **Given:**
-- A tool whose execute body wraps a subprocess or workflow operation that legitimately exceeds 10s
+- A tool whose execute body wraps a subprocess or bounded disk operation that legitimately exceeds 10s
 
 **When:** The tool is registered in tool-registry.ts
 
@@ -1339,16 +1247,16 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 - The registration uses safeExecute with an explicit { timeoutMs: N } where N is sufficient for the inner budget plus modest headroom
 - A code comment cites the inner-budget rationale and references this requirement
 
-**adv_doctor worker restart uses bounded verified recovery** (`rq-toolTimeoutOverride01.2`)
+**adv_doctor disk recovery uses bounded verified recovery** (`rq-toolTimeoutOverride01.2`)
 
 **Given:**
-- A Temporal worker restart is requested for the current project
+- A bounded disk recovery is requested for the current project
 
-**When:** adv_doctor applies a worker restart safe fix
+**When:** adv_doctor applies a safe disk fix
 
 **Then:**
-- The tool waits up to the configured verification budget (default 10s) for the expected project task queue to become serviceable
-- The tool returns success:true only when serviceability is proven by local worker readiness and/or fresh server-side poller evidence
+- The tool waits up to the configured verification budget (default 10s) for the expected disk condition to become verifiable
+- The tool returns success:true only when the post-fix disk condition is proven by bounded readback evidence
 - The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative
 - The tool is registered with an explicit safety-net timeout override that exceeds the verification budget with modest headroom
 
@@ -1432,272 +1340,17 @@ During vitest runs (process.env.VITEST === 'true' or process.env.ADV_TEST_MODE =
 
 ---
 
-### Singleton Temporal worker per project when explicitly enabled
-
-**ID:** `rq-workerSingleton01` | **Priority:** **[SHOULD]**
-
-When worker_singleton_enforce is explicitly true, at most ONE Temporal worker process MUST exist for that project_id at any given time when multiple plugin instances initialize against the same external state directory for the same project. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership; subsequent instances participate as Temporal clients only. When worker_singleton_enforce is omitted or explicitly false, per-session routing is the default and each session MAY spawn its own worker polling its own session task queue, so no client-only peer requirement applies. Heartbeat freshness is the primary liveness signal for v2 worker locks but proves only host liveness, not expected queue serviceability. Dead-PID reclaim remains automatic. For legacy v1 fallback locks, an alive PID protects singleton ownership during passive initialization and when the expected project queue is serviceable. A v1 alive-PID lock with no heartbeat and no serviceable queue is classified as suspect during recovery decisions and may only be reclaimed through an explicit user-approved recovery path. A v2 lock whose holder's local worker is not registered to the expected queue (or whose serviceability is otherwise negative) is also classified as suspect; live unserviceable v1/v2 reclaim requires explicit approval evidence unless dead-PID or stale-heartbeat rules prove the holder stale. When a lock holder's own local worker remains unserviceable past the configured grace window, the holder MUST stop renewing the heartbeat so the v2 lock can age out without manual deletion.
-
-#### Scenarios
-
-**First plugin instance acquires lock and spawns worker** (`rq-workerSingleton01.1`)
-
-**Given:**
-- No worker.lock file exists in the project external state directory
-
-**When:** The plugin initializes
-
-**Then:**
-- A worker.lock file is created atomically (O_CREAT | O_EXCL) with the plugin process PID
-- An out-of-process Temporal worker is spawned via the existing out-of-process-worker.ts path
-- Cleanup hooks (process exit / SIGINT / SIGTERM) release the lock and terminate the worker
-
-**Subsequent plugin instance reads lock and skips worker spawn** (`rq-workerSingleton01.2`)
-
-**Given:**
-- A worker.lock file exists and the recorded PID is alive (process.kill(pid, 0) succeeds or throws EPERM)
-- Either the lock has no last_heartbeat field (v1 fallback) during passive initialization or with serviceable queue evidence, or the lock has a fresh v2 heartbeat
-
-**When:** A second plugin initializes against the same project
-
-**Then:**
-- The acquireWorkerLock helper reports owned:false with ownerPid
-- No additional worker process is spawned
-- The plugin still initializes the Temporal client and participates as a client only
-
-**Stale lock from dead PID is reclaimed** (`rq-workerSingleton01.3`)
-
-**Given:**
-- A worker.lock file exists but the recorded PID is no longer alive (process.kill(pid, 0) throws ESRCH)
-
-**When:** A plugin attempts to acquire the lock
-
-**Then:**
-- The stale lock file is removed
-- Acquisition is retried once
-- On success the new plugin owns the lock and spawns its own worker
-
-**ADV_FORCE_IN_PROCESS_WORKER bypasses singleton lock** (`rq-workerSingleton01.4`)
-
-**Given:**
-- process.env.ADV_FORCE_IN_PROCESS_WORKER === '1'
-
-**When:** The plugin initializes
-
-**Then:**
-- The lock-acquisition step is skipped
-- The legacy in-process worker path is used
-- This rollback path supports per-session debugging when needed
-
-**Stale v2 heartbeat is reclaimed even when PID remains alive** (`rq-workerSingleton01.5`)
-
-**Given:**
-- A worker.lock file exists with schema_version 2 and a recorded PID that is alive
-- The lock last_heartbeat is older than the configured stale-heartbeat grace
-
-**When:** A plugin attempts to acquire the lock
-
-**Then:**
-- The stale heartbeat lock file is removed
-- Acquisition is retried through the existing atomic O_EXCL path
-- A fresh worker may acquire the singleton lock without requiring external lock cleanup
-
-**Suspect legacy live lock requires approval to reclaim** (`rq-workerSingleton01.6`)
-
-**Given:**
-- A v1 worker.lock exists with an alive recorded PID
-- The expected project queue is not serviceable within the verification budget
-
-**When:** diagnose or restart recovery evaluates the worker state
-
-**Then:**
-- The state is classified as suspect_live_legacy_lock
-- No lock is reclaimed automatically
-- Recovery requires explicit user approval evidence or restarting the owning OpenCode session
-- Successful approved reclaim records prior PID, schema version, expected queue, and approval evidence
-
-**Suspect fresh-v2 unserviceable lock requires approval to reclaim** (`rq-workerSingleton01.7`)
-
-**Given:**
-- A v2 worker.lock exists with an alive recorded PID and a fresh heartbeat
-- The expected project queue is not serviceable within the verification budget
-
-**When:** diagnose or restart recovery evaluates the worker state
-
-**Then:**
-- The state is classified as suspect_live_unserviceable_lock
-- No lock is reclaimed automatically by stale-PID or stale-heartbeat rules
-- Recovery requires explicit user approval evidence or restarting the owning OpenCode session
-- Successful approved reclaim records prior PID, schema version, workerId, expected queue, and approval evidence
-
-**Lock owner self-expires heartbeat when local worker remains unserviceable** (`rq-workerSingleton01.8`)
-
-**Given:**
-- The current OpenCode session holds the project worker.lock with a v2 heartbeat
-- The local worker is registered as the owner but is not serving the expected queue past the configured serviceability grace window
-
-**When:** The heartbeat writer evaluates whether to renew the heartbeat
-
-**Then:**
-- The owner MUST stop renewing the heartbeat so the v2 lock can age out via the existing stale-heartbeat reclaim path
-- The owner records the self-expiry decision in last_worker_run_error for diagnostics
-- Peer sessions can reclaim through the normal stale-heartbeat path without manual lock deletion
-
-**Worker role is visible in health diagnostics** (`rq-workerSingleton01.9`)
-
-**Given:**
-- ADV status health diagnostics are requested while worker singleton enforcement is active
-
-**When:** adv_status view:health is executed
-
-**Then:**
-- The response includes worker_role with host, client, or degraded
-- The worker_role field is additive and does not remove legacy Temporal health fields
-- The feature_flags response shows worker_singleton_enforce and worktree_guard_enforce effective defaults
-
----
-
-### Temporal worker run-loop failure is observable
-
-**ID:** `rq-workerHealth01` | **Priority:** **[MUST]**
-
-When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart attempts, ADV diagnostics must expose the last worker run-loop failure without requiring normal-path task-queue RPCs during plugin initialization.
-
-#### Scenarios
-
-**Worker run-loop failure appears in diagnostics** (`rq-workerHealth01.1`)
-
-**Given:**
-- A Temporal worker run loop rejects or an out-of-process worker reports a run-error
-
-**When:** adv_status or adv_doctor inspects Temporal health
-
-**Then:**
-- The last worker run-loop error includes queue, message, and timestamp
-- The diagnostic remains additive and does not require describeTaskQueue during normal plugin initialization
-
-**Queue serviceability appears in diagnostics** (`rq-workerHealth01.2`)
-
-**Given:**
-- A project queue has no proven local worker readiness and no fresh server-side poller evidence
-
-**When:** adv_status view:health or adv_doctor is executed
-
-**Then:**
-- Diagnostics include expected queue and local worker registration status
-- Diagnostics include worker process or IPC details when available
-- Diagnostics include server poller probe status and stale running workflow count or probe status
-- Diagnostics include a recommended next action
-
-**Fresh v2 heartbeat is liveness evidence only, not serviceability proof** (`rq-workerHealth01.3`)
-
-**Given:**
-- A worker.lock has schema_version 2 with a fresh last_heartbeat
-- The expected project queue is not serviceable through local registration or fresh server-side poller evidence
-
-**When:** adv_status view:health or adv_doctor classifies recovery state
-
-**Then:**
-- The fresh heartbeat is treated as host or owner liveness evidence only
-- The diagnostic does not classify the queue as serviceable or as normal recovery pending peer worker spawn
-- The recommended next action surfaces approval-gated suspect_live_unserviceable_lock or owner-restart guidance
-
-**STSL reconnect is STSL-only and not worker-registration recovery** (`rq-workerHealth01.4`)
-
-**Given:**
-- Recovery diagnostics show worker_alive false or expected queue not serviceable
-
-**When:** adv_doctor, adv_status, or workflow-access guidance proposes the next action
-
-**Then:**
-- STSL reconnect is reserved for STSL or client connection issues, not for worker-registration or queue-serviceability failures
-- The recommended next action for worker-registration failure routes through verified worker restart or owner-restart, not reconnect
-- Documentation surfaces (docs/temporal-recovery.md) reflect the same STSL-only boundary for STSL reconnect
-
----
-
-### Target-Aware Temporal Worker Lifecycle
-
-**ID:** `rq-targetWorkerLifecycle01` | **Priority:** **[MUST]**
-
-ADV must provide a target-aware path for ensuring or restarting a Temporal worker in another ADV-enabled project. When invoked with a target_path, the operation MUST derive the target project ID, external state root, and expected Temporal task queue from the target project, not from the source project. The tool MUST require explicit target trust confirmation (target_confirmed: true and non-blank confirmationEvidence) when the target is untrusted. It MUST preserve existing worker-lock approval semantics: suspect live v1 locks and suspect fresh-v2 unserviceable locks still require explicit approval evidence before reclaim, and dead-PID/stale-heartbeat reclaim remains automatic. The operation MUST verify the target queue serviceability within a bounded budget, and MUST return a structured envelope containing expected queue, registered queues, worker lock, queue serviceability snapshot, diagnostics, and recommended next action on both success and failure. If the operation triggers a full target worker restart, the source project's driving queue/worker MUST remain intact, or the call MUST fail closed rather than silently degrade the source worker.
-
-**Tags:** `temporal`, `worker`, `cross-project`, `target-path`, `lifecycle`, `serviceability`
-
-#### Scenarios
-
-**Target project queue and state root derive from target_path** (`rq-targetWorkerLifecycle01.1`)
-
-**Given:**
-- A source project ADV session invokes a target-aware worker restart/ensure with target_path
-
-**When:** The tool resolves the target project
-
-**Then:**
-- The target project ID is derived from the target_path git root
-- The target external state root is derived from the target project ID, not the source project shard
-- The expected Temporal task queue is derived from the target project ID
-
-**Untrusted target worker lifecycle requires explicit confirmation** (`rq-targetWorkerLifecycle01.2`)
-
-**Given:**
-- A target-aware worker restart/ensure targets a project that is not configured as trusted
-
-**When:** The mutation is evaluated
-
-**Then:**
-- The tool requires target_confirmed: true and non-blank confirmationEvidence
-- Without confirmation, the tool fails before any target worker state change
-
-**Worker lock approval semantics are preserved** (`rq-targetWorkerLifecycle01.3`)
-
-**Given:**
-- A target worker lifecycle operation encounters a suspect live v1 lock or suspect fresh-v2 unserviceable lock
-
-**When:** The lock evaluation runs
-
-**Then:**
-- No suspect live lock is reclaimed automatically
-- Reclaim still requires explicit user approval evidence or owner-session restart
-- Dead-PID and stale-heartbeat reclaim continue to follow existing automatic rules
-
-**Bounded verification returns structured queue evidence** (`rq-targetWorkerLifecycle01.4`)
-
-**Given:**
-- A target-aware worker restart/ensure is invoked
-
-**When:** The operation completes
-
-**Then:**
-- The tool waits up to a bounded budget for the target queue to become serviceable
-- Success includes local worker readiness and/or fresh server-side poller evidence
-- The response includes expected queue, registered queues, worker lock, serviceability snapshot, diagnostics, and recommended next action
-
-**Source driving queue is preserved or operation fails closed** (`rq-targetWorkerLifecycle01.5`)
-
-**Given:**
-- A target-aware worker restart/ensure triggers a full target worker restart
-
-**When:** The target worker is restarted
-
-**Then:**
-- The source project's driving worker and queue remain intact
-- If the operation cannot preserve the source worker, the call fails closed with a structured error
-- The failure includes the target queue and a source-queue-preservation blocker
-
----
-
-### Multi-Session-Safe ADV State Writes via Temporal Workflow Signals
+### Multi-Session-Safe ADV State Writes via Per-Change Projection Locks
 
 **ID:** `rq-multiSessionCoordination01` | **Priority:** **[MUST]**
 
-Multi-session is the supported design center for ADV. State writes from concurrent OpenCode sessions sharing the same project must be serialized by Temporal workflow signals on the per-change workflow, not by client-side locks. Replay-determinism must be preserved across sessions, and no ADV-mutating tool may rely on a client-side soft-lock for cross-session coordination. Sessions are process-fact based and are not durably tracked in workflow state.
+Multi-session state writes against the same change MUST serialize through commitChangeProjection’s per-change lock and conditional revision/readback proof. Different changes remain unconstrained by one another, and the separate git-worktree lock remains scoped to worktree operations. A mutation MUST return a typed verified, stale_revision, or operator_required outcome; an unverified write MUST NOT be reported as success.
 
-**Tags:** `multi-session`, `temporal`, `coordination`, `state-authority`
+**Tags:** `multi-session`, `disk`, `coordination`, `state-authority`
 
 #### Scenarios
 
-**Concurrent state writes from peer sessions are serialized via workflow signals** (`rq-multiSessionCoordination01.1`)
+**Concurrent state writes from peer sessions are serialized via change projection mutations** (`rq-multiSessionCoordination01.1`)
 
 **Given:**
 - Two or more OpenCode sessions sharing the same ADV project are active
@@ -1706,49 +1359,49 @@ Multi-session is the supported design center for ADV. State writes from concurre
 **When:** The plugin processes the concurrent updates
 
 **Then:**
-- All updates reach the change workflow as Temporal workflow signals
-- Signals are applied in delivery order chosen by Temporal, not by a client-side lock
-- No signal is silently dropped; each is applied to workflow state
-- The final workflow state reflects every delivered signal
+- Each update enters commitChangeProjection for the same change
+- The per-change lock and expected revision serialize competing writes
+- A stale revision returns stale_revision or operator_required rather than silently overwriting state
+- A verified final projection reflects every mutation that successfully committed
 
-**Workflow replay reproduces multi-session state deterministically** (`rq-multiSessionCoordination01.2`)
+**Change projection readback reproduces multi-session state deterministically** (`rq-multiSessionCoordination01.2`)
 
 **Given:**
-- A change workflow has accumulated signals from multiple sessions
-- The workflow is replayed from event history
+- A change projection has accumulated mutations from multiple sessions
+- The projection is read back after each conditional commit
 
-**When:** Replay executes the recorded signal events
+**When:** readback executes the recorded mutation events
 
 **Then:**
-- The replayed final state is identical to the original final state
-- Signal handlers serialize via the workflow signal queue, ensuring deterministic order
+- The read-back final state matches the last verified projection revision
+- Mutation commits preserve deterministic revision and operation identity ordering
 - No mutator depends on Date.now(), floating-point math, or process-local state
 
 **ADV-mutating tools must not use client-side soft locks for cross-session coordination** (`rq-multiSessionCoordination01.3`)
 
 **Given:**
-- The set of ADV tools whose execution mode is temporal-required is inspected
+- The set of ADV tools whose execution mode is authoritative is inspected
 
 **When:** Their implementation is reviewed
 
 **Then:**
-- No ADV-mutating tool uses a JSONL sidecar lock, in-process mutex, or other client-side soft lock for cross-session coordination
-- Per-process flocks are restricted to narrow git filesystem operations (for example git worktree add/remove)
-- All cross-session coordination flows through Temporal workflow signals on the change workflow
+- No ADV-mutating tool uses an unscoped JSONL sidecar lock or process-local mutex as a substitute for the projection authority
+- The per-change advisory lock is used only inside commitChangeProjection; git-worktree locking remains separate
+- All cross-session coordination flows through verified disk projection commits
 
 ---
 
-### Worktree State Authority Lives in Change Workflow State
+### Worktree State Authority Lives in Durable Change Projections
 
 **ID:** `rq-worktreeRegistry01` | **Priority:** **[MUST]**
 
-Worktree state for ADV-managed worktrees must live inside the change workflow state, with cross-change visibility via the AdvWorktreeBranches and AdvWorktreePaths Temporal search attributes. Sidecar SQLite databases or JSONL files must not be the authoritative source for worktree state. Cross-session reads must observe the same registry contents.
+Worktree state for ADV-managed worktrees MUST live inside durable change projections and be available through the bounded worktree registry read model. Sidecar SQLite databases or JSONL files MUST NOT be the authoritative source for worktree state. Cross-session reads MUST observe the same registry contents.
 
-**Tags:** `worktree`, `registry`, `state-authority`, `temporal`
+**Tags:** `worktree`, `registry`, `state-authority`, `disk`
 
 #### Scenarios
 
-**Worktree create persists state into change workflow worktree state** (`rq-worktreeRegistry01.1`)
+**Worktree create persists state into change change projection worktree state** (`rq-worktreeRegistry01.1`)
 
 **Given:**
 - A session invokes adv_worktree_create with a branch name
@@ -1756,17 +1409,17 @@ Worktree state for ADV-managed worktrees must live inside the change workflow st
 **When:** The create flow completes successfully
 
 **Then:**
-- A worktree record is added to change-workflow worktree state via the worktreeCreatedSignal
+- A worktree record is added to change-change projection worktree state via the worktreeCreatedMutation
 - The record contains branch, path, baseRef, headSha, and createdAt fields
 - No row is written to a sidecar SQLite database or JSONL file as the authoritative state
 
 **Peer session sees the same worktree registry contents** (`rq-worktreeRegistry01.2`)
 
 **Given:**
-- Session A has created a worktree and the worktreeCreatedSignal has applied
+- Session A has created a worktree and the worktreeCreatedMutation has applied
 - Session B in the same project queries worktree state
 
-**When:** Session B reads worktree state via the change workflow (via AdvWorktreeBranches/AdvWorktreePaths search attributes for cross-change aggregation)
+**When:** Session B reads worktree state via the change change projection (via AdvWorktreeBranches/AdvWorktreePaths projection fields for cross-change aggregation)
 
 **Then:**
 - Session B observes the worktree created by session A
@@ -1782,7 +1435,7 @@ Worktree state for ADV-managed worktrees must live inside the change workflow st
 **When:** The reads execute against a project with no legacy SQLite present
 
 **Then:**
-- All reads succeed using only the per-change workflow state, Temporal visibility search attributes, and git census
+- All reads succeed using only the per-change change projection state, disk visibility projection fields, and git census
 - No code path requires a sidecar SQLite or JSONL worktree-state file to function
 - Migrations from any legacy SQLite are idempotent and reversible
 
@@ -1809,7 +1462,7 @@ When adv_worktree_create is invoked for a branch that already has a registered g
 **Then:**
 - The tool returns success with the existing path, branch, baseRef, and headSha
 - The output marks the result as reused so callers can distinguish reuse from fresh create
-- No per-change workflow recovery is required — change-workflow state survives directly via Temporal
+- No per-change runtime recovery is required — durable worktree state survives in disk projections
 - No `git worktree add` is invoked
 
 **Stale git worktree metadata is pruned before fresh create** (`rq-worktreeReuse01.2`)
@@ -1859,7 +1512,7 @@ Production ADV code and ADV-managed instruction surfaces must frame multi-sessio
 **Then:**
 - A section titled Multi-Session Coordination is present
 - No section titled Concurrent Session Hazard is present
-- The Multi-Session Coordination section describes Temporal-serialized state writes and per-worktree git isolation
+- The Multi-Session Coordination section describes per-change projection locks and per-worktree git isolation
 
 **Status-marker table lists [ADV:PEER_SESSIONS] as informational** (`rq-multiSessionFraming01.3`)
 
@@ -1872,45 +1525,6 @@ Production ADV code and ADV-managed instruction surfaces must frame multi-sessio
 - A row for [ADV:PEER_SESSIONS] is present
 - The row classifies the marker as informational, not as an attention or blocked marker
 - Drift tests fail if the row is removed or reclassified
-
----
-
-### Temporal Worker Survives Concurrent Client Load and Worker-Kill Respawn-Elect
-
-**ID:** `rq-temporalConcurrentLoad01` | **Priority:** **[MUST]**
-
-ADV must support at least ten overlapping same-project agents (orchestrators and sub-agents combined, not ten independent orchestrators) within the existing host budget. Support is established from historical or current operational evidence — session counts, queue failure results, worker memory ranges, and the limits of inference — not from a synthetic latency benchmark. With the default per-session task-queue routing mode, each session's change workflows route to a session-scoped queue and the session's own worker is the normal host; the project task queue remains shared for Epic and legacy workflows. When worker_singleton_enforce is explicitly true, the worker singleton coordinates a single project-scoped worker across sessions per rq-workerSingleton01. In either mode, concurrent state writes on change workflows must not lose updates, deadlock, or violate replay determinism, and a killed worker-lock holder must be reclaimable so a surviving client can respawn-elect a new worker.
-
-**Tags:** `temporal`, `load-test`, `worker-singleton`, `concurrent-clients`
-
-#### Scenarios
-
-**Ten total overlapping agents are supported by current evidence** (`rq-temporalConcurrentLoad01.1`)
-
-**Given:**
-- Historical or current operational data shows at least ten overlapping same-project ADV agents, counting both orchestrators and sub-agents
-- The existing host RAM and core budget is unchanged
-
-**When:** The ten-agent evidence boundary is evaluated
-
-**Then:**
-- The agent count distinguishes total agents from orchestrators
-- The evidence records session composition, queue-failure result, worker-memory range, and limits of inference
-- No claim is made that ten independent-orchestrator latency was measured
-
-**Worker-kill mid-load triggers successful respawn-elect** (`rq-temporalConcurrentLoad01.2`)
-
-**Given:**
-- Concurrent ADV client sessions are mid-load against change workflows on the same project task queue
-- The current worker-lock holder PID is killed via SIGKILL
-
-**When:** The benchmark continues after the kill
-
-**Then:**
-- Surviving clients reclaim the stale worker lock per rq-workerSingleton01.3
-- A new worker is spawned by one of the surviving clients
-- Pre-kill writes remain reflected in workflow state
-- Post-respawn writes succeed and are reflected in workflow state
 
 ---
 
@@ -2200,7 +1814,7 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 
 **ID:** `rq-advStatusLazyView01` | **Priority:** **[MUST]**
 
-`adv_status` MUST execute only the provider groups required by the selected `view`. `view: "summary"` MUST NOT invoke detailed-only providers (queue serviceability, search-attribute probe, worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: "summary"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. The recommendation-list `_contextSnapshot` emission (chat-output-display `rq-ctxticker2.5` — advisory multi-change display) MUST be preserved across all views. The default-OFF opt-in behavior of `rq-ctxsnap2` and `rq-ctxticker2` (applied to mutation/ready tools) does NOT affect `adv_status` recommendation-list snapshots.
+`adv_status` MUST execute only the provider groups required by the selected `view`. `view: "summary"` MUST NOT invoke detailed-only providers (worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: "summary"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. The recommendation-list `_contextSnapshot` emission (chat-output-display `rq-ctxticker2.5` — advisory multi-change display) MUST be preserved across all views. The default-OFF opt-in behavior of `rq-ctxsnap2` and `rq-ctxticker2` (applied to mutation/ready tools) does NOT affect `adv_status` recommendation-list snapshots.
 
 **Tags:** `adv_status`, `latency`
 
@@ -2283,7 +1897,7 @@ The clarify_enforcement configuration flag (off | advisory | strict) MUST extend
 
 **ID:** `rq-changeSummaryReadModel01` | **Priority:** **[MUST]**
 
-Default `adv_change_list` and warm `adv_status` read paths MUST avoid per-change full hydration when summary data already satisfies the response contract. The Temporal store MUST expose a summary listing surface (`Store.changes.listSummary`) that serves rows from `ChangeSummaryMemo` or `changeCache` when available, hydrates only IDs missing summary proof, and falls back to the authoritative `listResolvedChanges`/`changes.get` path for archived/closed callers, content filters, and any path whose correctness requires full state. Summary/cache data MUST NOT authorize gates, archive, worker-lock recovery, claims, task completion, or contract evidence.
+Default `adv_change_list` and warm `adv_status` read paths MUST avoid per-change full hydration when summary data already satisfies the response contract. The disk store MUST expose a summary listing surface (`Store.changes.listSummary`) that serves rows from `ChangeSummaryMemo` or `changeCache` when available, hydrates only IDs missing summary proof, and falls back to the authoritative `listResolvedChanges`/`changes.get` path for archived/closed callers, content filters, and any path whose correctness requires full state. Summary/cache data MUST NOT authorize gates, archive, worker-lock recovery, claims, task completion, or contract evidence.
 
 **Tags:** `adv_change_list`, `adv_status`, `latency`, `cache`
 
@@ -2354,7 +1968,7 @@ ADV tool execution MUST record duration telemetry to an in-memory rollup surface
 
 **ID:** `rq-advLatencyBench01` | **Priority:** **[MUST]**
 
-`plugin/scripts/bench-adv-latency.ts` MUST initialize under the Temporal-only store contract. Default mode (`--mode disk`) MUST use a documented isolated substitute backed by `createDiskStore` so the harness runs without a live Temporal worker; samples MUST include `adv_status view: "summary"`, `adv_status view: "health"`, `adv_change_list`, `adv_change_show`, a disk-store task list fallback, and `adv_run_test` echo/no-op. `--mode temporal` MUST require a real Temporal-backed setup or fail closed with remediation; it MUST NOT fabricate a TemporalClientBundle or silently substitute disk numbers. Every report MUST label mode and runtime context and include operation name, iterations, warmup, min, p50, p95, max, and avg so disk-substitute results cannot be confused with live Temporal latency evidence.
+`plugin/scripts/bench-adv-latency.ts` MUST initialize under the disk-only store contract. Default mode (`--mode disk`) MUST use a documented isolated substitute backed by `createDiskStore` so the harness runs without a live disk worker; samples MUST include `adv_status view: "summary"`, `adv_status view: "health"`, `adv_change_list`, `adv_change_show`, a disk-store task list fallback, and `adv_run_test` echo/no-op. `--mode disk` MUST require a real disk-backed setup or fail closed with remediation; it MUST NOT fabricate a DiskProjectionStoreBundle or silently substitute disk numbers. Every report MUST label mode and runtime context and include operation name, iterations, warmup, min, p50, p95, max, and avg so disk-substitute results cannot be confused with live disk latency evidence.
 
 **Tags:** `benchmark`, `latency`
 
@@ -2363,7 +1977,7 @@ ADV tool execution MUST record duration telemetry to an in-memory rollup surface
 **Default disk substitute initializes and reports** (`rq-advLatencyBench01.1`)
 
 **Given:**
-- No Temporal worker is running
+- No disk worker is running
 
 **When:** Operator runs the bench in default mode against an existing change
 
@@ -2372,61 +1986,28 @@ ADV tool execution MUST record duration telemetry to an in-memory rollup surface
 - Markdown report includes metadata (mode, substitute, change id, iterations) and per-operation stats
 - Sample operations include both summary and health adv_status views
 
-**Temporal mode refuses to silently substitute** (`rq-advLatencyBench01.2`)
+**disk mode refuses to silently substitute** (`rq-advLatencyBench01.2`)
 
 **Given:**
-- Operator passes --mode temporal without providing a TemporalClientBundle
+- Operator passes --mode disk without providing a DiskProjectionStoreBundle
 
 **When:** The bench attempts to build the store
 
 **Then:**
 - The script exits non-zero with an explicit refusal message
-- The script does not emit disk-substitute measurements under a temporal-mode label
+- The script does not emit disk-substitute measurements under a disk-mode label
 
 **Reports label mode and latency statistics** (`rq-advLatencyBench01.3`)
 
 **Given:**
-- A latency benchmark run completes in disk or temporal mode
+- A latency benchmark run completes in disk or disk mode
 
 **When:** The report is rendered
 
 **Then:**
 - The report includes mode, runtime context, change id, iterations, and warmup metadata
 - Each operation row includes min, p50, p95, max, and avg statistics
-- Disk-substitute measurements are not compared against live Temporal thresholds
-
----
-
-### Visibility project-scope query convergence
-
-**ID:** `rq-visibilityProjectScope01` | **Priority:** **[MUST]**
-
-Project-scope Visibility queries used by ADV listing paths MUST filter on a registered search attribute. `list-change-workflows.buildVisibilityQuery` and the backlog claim queries (`visibility-claim-queries`) MUST scope by the registered `AdvAffectedProjects` KeywordList so list/claim reads share one Visibility contract. Legacy unregistered attributes (e.g. `AdvProjectId`) MUST NOT drive Visibility filters unless explicitly registered and documented.
-
-**Tags:** `temporal`, `visibility`, `search-attributes`
-
-#### Scenarios
-
-**Change list query uses registered AdvAffectedProjects** (`rq-visibilityProjectScope01.1`)
-
-**Given:**
-- buildVisibilityQuery is invoked with a project id
-
-**When:** The query string is constructed
-
-**Then:**
-- The query filters on `AdvAffectedProjects = "<projectId>"`
-- The legacy unregistered `AdvProjectId` filter is not emitted
-
-**Backlog claim queries share the registered attribute** (`rq-visibilityProjectScope01.2`)
-
-**Given:**
-- visibility-claim-queries builds a claim-collision or bulk query
-
-**When:** The query string is constructed
-
-**Then:**
-- The query also filters on `AdvAffectedProjects` for the same project id
+- Disk-substitute measurements are not compared against live disk thresholds
 
 ---
 
@@ -2565,7 +2146,7 @@ The session active-change pointer and status mirror MUST not retain phantom refe
 
 **ID:** `rq-projectIdentityStability01` | **Priority:** **[MUST]**
 
-ADV project identity is derived from the repository root commit. In a shallow clone, `git rev-list --max-parents=0 HEAD` returns the moving `.git/shallow` graft boundary as a fake root, and commit grafts rewrite parentage the same way. ADV MUST NOT mint external state or Temporal state under such an unstable pseudo-root identity: identity resolution must structurally detect shallow and grafted repositories and refuse with a typed, actionable error. Full clones, partial clones with complete root history (for example `--filter=blob:none`), and multi-root repositories must resolve exactly as before — the guard must never false-trip on stable histories.
+ADV project identity is derived from the repository root commit. In a shallow clone, `git rev-list --max-parents=0 HEAD` returns the moving `.git/shallow` graft boundary as a fake root, and commit grafts rewrite parentage the same way. ADV MUST NOT mint external disk state under such an unstable pseudo-root identity: identity resolution must structurally detect shallow and grafted repositories and refuse with a typed, actionable error. Full clones, partial clones with complete root history (for example `--filter=blob:none`), and multi-root repositories must resolve exactly as before — the guard must never false-trip on stable histories.
 
 **Tags:** `identity`, `git`, `stability`, `guard`
 
@@ -2581,7 +2162,7 @@ ADV project identity is derived from the repository root commit. In a shallow cl
 **Then:**
 - Resolution returns an unstable-identity refusal instead of the shallow graft-boundary SHA
 - The raised `UnstableIdentityError` names the repository path and the exact remediation command `git fetch --unshallow`
-- No external store directory or Temporal workflow state is created under the unstable identity
+- No external disk-state directory or change projection is created under the unstable identity
 
 **Grafted repository refuses with graft remediation** (`rq-projectIdentityStability01.2`)
 
@@ -2622,7 +2203,7 @@ ADV project identity is derived from the repository root commit. In a shallow cl
 
 **ID:** `rq-toolOwnership01` | **Priority:** **[MUST]**
 
-Every registered ADV tool must have an explicit ownership/reachability classification—orchestrator, operator-only, or dual—recorded in the git-tracked matrix at docs/tool-ownership.md. Machine-resolvable recovery belongs in normal operations and MUST NOT remain as routine operator-only repair tools. The repair group contains at most adv_archive_purge, adv_change_workflow_terminate, adv_doctor, and adv_store_consolidate. Intent-bearing origin, legacy-store, and worktree maintenance may remain separately classified outside the repair group. Operator-only destructive actions require explicit instruction and approval evidence. The matrix is enforced by static tests against the canonical registry.
+Every registered ADV tool must have an explicit ownership/reachability classification—orchestrator, operator-only, or dual—recorded in the git-tracked matrix at docs/tool-ownership.md. Machine-resolvable recovery belongs in normal operations and MUST NOT remain as routine operator-only repair tools. The operator repair group contains only genuine operator boundaries: adv_archive_purge, adv_doctor, and adv_store_cleanup. Deleted workflow-termination and identity-consolidation tools MUST NOT remain in the matrix or repair group. Intent-bearing origin, legacy-store, and worktree maintenance may remain separately classified outside the repair group. Operator-only destructive actions require explicit instruction and approval evidence. The matrix is enforced by static tests against the canonical registry.
 
 **Tags:** `tool-surface`, `ownership`, `operator-only`, `docs`
 
@@ -2647,7 +2228,7 @@ Every registered ADV tool must have an explicit ownership/reachability classific
 **When:** Tool ownership and grouping are inspected
 
 **Then:**
-- The repair group contains no more than adv_archive_purge, adv_change_workflow_terminate, adv_doctor, and adv_store_consolidate
+- The repair group contains no more than adv_archive_purge, adv_doctor, and adv_store_cleanup
 - Superseded diagnose, reconnect, restart, registration, status-repair, archive-repair, membership-repair, and pointer-forget tools are absent
 - Destructive actions retain explicit approval requirements
 
@@ -2662,45 +2243,6 @@ Every registered ADV tool must have an explicit ownership/reachability classific
 - Read actions are agent-reachable
 - Intent-bearing or destructive mutation remains operator-owned
 - Automatic internal convergence is limited by typed structural preconditions and does not consume operator authority
-
----
-
-### Deploy Asset Synchronization Survives Worker Refresh Failure
-
-**ID:** `rq-deployAssetContinuation01` | **Priority:** **[MUST]**
-
-After a mutating deploy synchronizes the runtime plugin, a failed exact-path Temporal worker refresh must remain loud and produce a nonzero final deploy status, but it must not prevent synchronization of independent supported assets such as commands, bundled agents, shared-agent overlays, skills, the managed CLI payload, and configuration validation. The final output must preserve the restart remediation and must not claim runtime worker code is active until refresh succeeds.
-
-**Tags:** `deploy-local`, `worker-refresh`, `agent-sync`, `morph-worktree`
-
-#### Scenarios
-
-**Worker refresh failure continues independent asset synchronization** (`rq-deployAssetContinuation01.1`)
-
-**Given:**
-- A mutating deploy has synchronized the runtime plugin
-- An exact-path deployed Temporal worker remains alive after bounded SIGTERM handling
-- ADV commands or bundled agent profiles have source updates
-
-**When:** The deploy processes supported assets
-
-**Then:**
-- The commands and bundled agent profiles are synchronized
-- The deploy emits the existing worker restart remediation
-- The final deploy status is nonzero
-- The output does not claim runtime worker code is active
-
-**Successful worker refresh preserves normal deploy success** (`rq-deployAssetContinuation01.2`)
-
-**Given:**
-- A mutating deploy has synchronized the runtime plugin
-- No exact-path deployed Temporal worker remains after refresh
-
-**When:** The deploy processes supported assets
-
-**Then:**
-- Supported assets are synchronized
-- The deploy preserves its normal success behavior
 
 ---
 
@@ -2884,7 +2426,7 @@ Once normal operations directly handle a machine-resolvable recovery class, the 
 **Destructive controls remain explicit** (`rq-recoverySurfaceRetirement01.2`)
 
 **Given:**
-- An action purges data, terminates or resets workflow execution, consolidates stores, or resolves competing authority
+- An action purges data, deletes legacy stores, or resolves competing authority
 
 **When:** The recovery surface is consolidated
 
@@ -2896,13 +2438,13 @@ Once normal operations directly handle a machine-resolvable recovery class, the 
 **Infrastructure incident has one entry point** (`rq-recoverySurfaceRetirement01.3`)
 
 **Given:**
-- Normal direct recovery cannot resolve a Temporal, worker, search-attribute, or snapshot incident
+- Normal direct recovery cannot resolve a runtime, projection, or snapshot incident
 
 **When:** An agent requests diagnosis
 
 **Then:**
 - One doctor entry point diagnoses, applies structurally safe fixes, verifies results, and returns typed approval-required proposals for unsafe actions
-- The agent is not required to choose among diagnose, reconnect, restart, register, and snapshot-repair tools
+- The agent is not required to choose among overlapping diagnosis and repair tools
 
 ---
 
@@ -2964,13 +2506,13 @@ The retired adv_change_forget tool's session active-change pointer clearing is c
 
 **ID:** `rq-projectionReadModel02` | **Priority:** **[MUST]**
 
-Routine ADV reads must resolve from schema-versioned durable entity projections and per-entity summary shards without workflow Queries. Temporal Queries, Visibility, and Describe are restricted to command confirmation, reconciliation, diagnostics, and repair. Pure metadata surfaces remain independent of both Temporal and entity projection machinery.
+Routine ADV reads MUST resolve from schema-versioned durable entity projections and per-entity summary shards. Disk projections are the sole persistence authority; metadata-only surfaces remain independent of entity projections. Reads MUST NOT infer missing state from caches or reconstruct deleted runtime entities.
 
 **Tags:** `read-model`, `projection`, `tool-catalog`, `tier4`, `performance`
 
 #### Scenarios
 
-**Routine reads avoid workflow Queries** (`rq-projectionReadModel02.1`)
+**Routine reads avoid change projection Queries** (`rq-projectionReadModel02.1`)
 
 **Given:**
 - A valid full projection or summary shard exists
@@ -2979,20 +2521,20 @@ Routine ADV reads must resolve from schema-versioned durable entity projections 
 
 **Then:**
 - The result is served from the read model
-- No workflow Query is dispatched
+- No change projection Query is dispatched
 - The response includes typed source, revision, and degraded provenance
 
-**Workflow health does not block reads** (`rq-projectionReadModel02.2`)
+**Change projection health does not block reads** (`rq-projectionReadModel02.2`)
 
 **Given:**
-- A workflow is missing, poisoned, or assigned to an orphaned task queue
+- A change projection is missing, unreadable, or assigned to an orphaned mutation path
 - A valid durable projection exists
 
 **When:** A routine read executes
 
 **Then:**
 - The projection result is returned
-- Temporal infrastructure failure is not surfaced as the read result
+- disk infrastructure failure is not surfaced as the read result
 - Any degradation is represented as typed provenance
 
 **Missing projection is typed** (`rq-projectionReadModel02.3`)
@@ -3004,7 +2546,7 @@ Routine ADV reads must resolve from schema-versioned durable entity projections 
 
 **Then:**
 - The result is typed not-found or corrupt-projection as applicable
-- The read does not silently hydrate from a workflow Query
+- The read does not silently hydrate from a change projection Query
 - Repair or reconciliation is an explicit operational path
 
 **Concurrent summaries preserve all changes** (`rq-projectionReadModel02.4`)
@@ -3019,7 +2561,7 @@ Routine ADV reads must resolve from schema-versioned durable entity projections 
 - No shared-manifest lost update occurs
 - The index can be rebuilt solely from full projections
 
-**Pure metadata stays Temporal-free** (`rq-projectionReadModel02.5`)
+**Pure metadata stays disk-free** (`rq-projectionReadModel02.5`)
 
 **Given:**
 - Tool catalog, tool describe, specs, backlog, or project context is requested
@@ -3028,7 +2570,7 @@ Routine ADV reads must resolve from schema-versioned durable entity projections 
 
 **Then:**
 - The request uses registry or filesystem context directly
-- No Temporal reachability probe is required
+- No disk reachability probe is required
 - Tool classification structurally distinguishes pure/context/read-model/diagnostic needs
 
 ---

@@ -20,10 +20,8 @@ import {
   cleanupTempDir,
   parseToolOutput,
 } from "../__tests__/setup";
-import { createLegacyStore } from "../storage/store";
+import { createDiskStore } from "../storage/store";
 import type { Store } from "../storage/store";
-import { GRPC_NOT_FOUND } from "../temporal/retry-wrapper";
-import type { StatusReadOptions } from "../storage/store-types";
 import { GATE_ORDER, createDefaultGates } from "../types";
 import {
   initializeToolSchemaTelemetry,
@@ -44,12 +42,10 @@ import {
 
 const {
   mockScanOpenCodeSessionDebt,
-  mockGetTemporalHealth,
   mockGetWorktreeCensus,
   mockScanSnapshotHealth,
 } = vi.hoisted(() => ({
   mockScanOpenCodeSessionDebt: vi.fn(),
-  mockGetTemporalHealth: vi.fn(),
   mockGetWorktreeCensus: vi.fn(),
   mockScanSnapshotHealth: vi.fn(),
 }));
@@ -64,14 +60,6 @@ const {
   mockDetectDefaultBranch: vi.fn(),
   mockGetCheckedOutChangeBranches: vi.fn(),
   mockResolveRepoRoot: vi.fn(),
-}));
-
-vi.mock("../temporal/health-probe", () => ({
-  getTemporalHealth: mockGetTemporalHealth,
-  isWorkerAffirmativelyAlive: (worker: {
-    status: "available" | "unavailable";
-    value?: boolean;
-  }) => worker.status === "available" && worker.value === true,
 }));
 
 vi.mock("../utils/worktree-census", () => ({
@@ -103,25 +91,6 @@ vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
   };
 });
 
-// Mock getStslStats and isStslInitialized for search_attributes testing.
-// `getService` is also mocked so the queue-serviceability path added by
-// the diagnose/status serviceability work (tk-669c7976) can compute a
-// "service layer not initialized" snapshot instead of throwing on the
-// missing export.
-vi.mock("../temporal/service", () => ({
-  getStslStats: vi.fn().mockReturnValue({
-    getServiceCalls: 0,
-    newConnections: 0,
-    reuseRate: 0,
-    reconnectCount: 0,
-    reconnectFailureCount: 0,
-    opTelemetry: [],
-    saVerification: null,
-  }),
-  isStslInitialized: vi.fn().mockReturnValue(false),
-  getService: vi.fn().mockReturnValue(null),
-}));
-
 const mockGetLaneProjections = vi.hoisted(() => vi.fn());
 vi.mock("../utils/tool-lane-projection", () => ({
   getLaneProjections: mockGetLaneProjections,
@@ -134,21 +103,6 @@ describe("Status Tools", () => {
 
   beforeEach(async () => {
     mockScanOpenCodeSessionDebt.mockReset();
-    mockGetTemporalHealth.mockReset();
-    mockGetTemporalHealth.mockResolvedValue({
-      server_alive: true,
-      worker_alive: { status: "available", value: false },
-      worker_process_alive: { status: "available", value: false },
-      registered_queues: [],
-      last_op_at: null,
-      last_error: null,
-      fallback_counts: {},
-      stale_queues: [],
-      reconnect_count: 0,
-      op_counters: [],
-      worker_lock: null,
-      last_worker_run_error: null,
-    });
     mockGetWorktreeCensus.mockReset();
     mockGetWorktreeCensus.mockResolvedValue({
       total: 0,
@@ -223,7 +177,7 @@ describe("Status Tools", () => {
       },
     });
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
   });
 
   afterEach(async () => {
@@ -235,195 +189,6 @@ describe("Status Tools", () => {
   });
 
   describe("adv_status", () => {
-    test("retries once when initial status load hits poisoned-history bootstrap error", async () => {
-      const originalStatus = store.status.bind(store);
-      const statusSpy = vi
-        .fn()
-        .mockRejectedValueOnce(
-          new Error(
-            "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
-          ),
-        )
-        .mockImplementation(() => originalStatus());
-      store.status = statusSpy;
-
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
-
-      expect(statusSpy).toHaveBeenCalledTimes(2);
-      expect(parsed.view).toBe("summary");
-      expect(parsed.diagnostics?.lastErrorClass).not.toBe(
-        "bootstrap_in_progress",
-      );
-    });
-
-    test("recovers when first two status loads hit bootstrap errors", async () => {
-      const originalStatus = store.status.bind(store);
-      const bootstrapError = new Error(
-        "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
-      );
-      const statusSpy = vi
-        .fn()
-        .mockRejectedValueOnce(bootstrapError)
-        .mockRejectedValueOnce(bootstrapError)
-        .mockImplementation(() => originalStatus());
-      store.status = statusSpy;
-
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
-
-      expect(statusSpy).toHaveBeenCalledTimes(3);
-      expect(parsed.view).toBe("summary");
-      expect(parsed.bootstrap_retry).toMatchObject({
-        recovered: true,
-        lastErrorClass: "bootstrap_in_progress",
-      });
-      expect(parsed.recommendations).not.toContain(
-        "⚠️ Temporal bootstrap in progress — status read hit replay recovery errors repeatedly; retry shortly.",
-      );
-    });
-
-    test("degrades structurally when bootstrap retry hits poisoned history again", async () => {
-      const bootstrapError = new Error(
-        "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
-      );
-      const statusSpy = vi.fn().mockRejectedValue(bootstrapError);
-      store.status = statusSpy;
-
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
-
-      expect(statusSpy).toHaveBeenCalledTimes(3);
-      expect(parsed.view).toBe("summary");
-      expect(parsed.changes.recent).toEqual([]);
-      expect(parsed.diagnostics?.lastErrorClass).toBe("bootstrap_in_progress");
-      expect(parsed.bootstrap_retry).toMatchObject({
-        recovered: false,
-        lastErrorClass: "bootstrap_in_progress",
-      });
-      expect(parsed.recommendations).toContain(
-        "⚠️ Temporal bootstrap in progress — status read hit replay recovery errors repeatedly; retry shortly.",
-      );
-    });
-
-    test("does not retry a NOT_FOUND status when a disk projection is already loaded", async () => {
-      const notFoundError = Object.assign(new Error("service response"), {
-        cause: {
-          code: GRPC_NOT_FOUND,
-          details: "service response",
-          metadata: {},
-        },
-      });
-      const statusSpy = vi.fn().mockRejectedValue(notFoundError);
-      store.status = statusSpy;
-      (
-        store as Store & { hasLoadedDiskProjection?: () => boolean }
-      ).hasLoadedDiskProjection = () => true;
-
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
-
-      expect(statusSpy).toHaveBeenCalledTimes(1);
-      expect(parsed.view).toBe("summary");
-      expect(parsed.bootstrap_retry).toBeUndefined();
-      expect(parsed.warnings).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: "SOURCE_WORKFLOW_DURABLY_ABSENT",
-            source: "workflow_query",
-          }),
-        ]),
-      );
-      expect(parsed.hydrationStats).toMatchObject({
-        durableAbsence: true,
-        omitted: 0,
-      });
-    });
-
-    test("admits NOT_FOUND retry when no disk projection is loaded", async () => {
-      const notFoundError = Object.assign(new Error("service response"), {
-        cause: {
-          code: GRPC_NOT_FOUND,
-          details: "service response",
-          metadata: {},
-        },
-      });
-      const originalStatus = store.status.bind(store);
-      const statusSpy = vi
-        .fn()
-        .mockRejectedValueOnce(notFoundError)
-        .mockImplementation(() => originalStatus());
-      store.status = statusSpy;
-
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
-
-      expect(statusSpy).toHaveBeenCalledTimes(2);
-      expect(parsed.view).toBe("summary");
-      expect(parsed.bootstrap_retry).toMatchObject({ recovered: true });
-    });
-
-    test("scopes disk projection admission to one status request", async () => {
-      const notFoundError = Object.assign(new Error("service response"), {
-        cause: {
-          code: GRPC_NOT_FOUND,
-          details: "service response",
-          metadata: {},
-        },
-      });
-      const originalStatus = store.status.bind(store);
-      let statusCalls = 0;
-      let durableProjectionWasLoaded = false;
-      store.status = vi.fn(async (options?: StatusReadOptions) => {
-        statusCalls += 1;
-        if (statusCalls === 1) {
-          durableProjectionWasLoaded = true;
-          if (options?.projectionState) options.projectionState.loaded = true;
-          return originalStatus(options);
-        }
-        throw notFoundError;
-      });
-      (
-        store as Store & {
-          hasLoadedDiskProjection?: (state?: { loaded: boolean }) => boolean;
-        }
-      ).hasLoadedDiskProjection = (state) =>
-        state?.loaded ?? durableProjectionWasLoaded;
-
-      await statusTools.adv_status.execute({}, store);
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
-
-      expect(statusCalls).toBe(4);
-      expect(parsed.bootstrap_retry).toMatchObject({
-        recovered: false,
-        lastErrorClass: "bootstrap_in_progress",
-      });
-    });
-
-    test("does not classify TMPRL1100 as durable absence even with projection signal", async () => {
-      const bootstrapError = new Error(
-        "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
-      );
-      const statusSpy = vi.fn().mockRejectedValue(bootstrapError);
-      store.status = statusSpy;
-      (
-        store as Store & {
-          hasLoadedDiskProjection?: () => boolean;
-        }
-      ).hasLoadedDiskProjection = () => true;
-
-      const result = await statusTools.adv_status.execute({}, store);
-      const parsed = parseToolOutput(result);
-
-      expect(statusSpy).toHaveBeenCalledTimes(3);
-      expect(parsed.bootstrap_retry).toMatchObject({
-        recovered: false,
-        lastErrorClass: "bootstrap_in_progress",
-      });
-      expect(parsed.warnings).toBeUndefined();
-    });
-
     test("shows retained terminal cleanup blocker counts without exact paths", async () => {
       const access = await initWorktreeStateDb(tempDir);
       const retainedPath = join(tempDir, "status-retained");
@@ -490,7 +255,7 @@ describe("Status Tools", () => {
       expect(parsed.formatted.activeSection).toContain("↳ childFollowUp");
     });
 
-    test("recommendation includes parent reference for fast-follow", async () => {
+    test("recent fast-follow change remains visibly linked in status output", async () => {
       const { changeTools } = await import("./change");
       const parentResult = await changeTools.adv_change_create.execute(
         { summary: "Parent change" },
@@ -509,12 +274,7 @@ describe("Status Tools", () => {
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
-      const followRec = parsed.recommendations.find((r: string) =>
-        r.includes("fast-follow"),
-      );
-      expect(followRec).toBeDefined();
-      expect(followRec).toContain("childFollowUp");
-      expect(followRec).toContain(parentParsed.changeId);
+      expect(parsed.formatted.activeSection).toContain("↳ childFollowUp");
     });
 
     test("active changes include compact Epic annotation", async () => {
@@ -568,14 +328,13 @@ describe("Status Tools", () => {
 
       expect(recs).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("next gate is `planning`"),
+          expect.stringContaining("resume from listed `planning` gate action"),
         ]),
       );
-      expect(recs.join("\n")).toContain("/adv-prep stalePlanningChange");
       expect(recs.join("\n")).not.toContain("/adv-apply stalePlanningChange");
     });
 
-    test("stale execution-ready change does not duplicate apply command", async () => {
+    test("stale execution-ready change does not duplicate its gate recommendation", async () => {
       const gates = createDefaultGates();
       for (const gateId of [
         "proposal",
@@ -605,8 +364,10 @@ describe("Status Tools", () => {
         .filter((r) => r.includes("staleApplyChange"))
         .join("\n");
 
-      expect(text).toContain("/adv-apply staleApplyChange");
-      expect(text.match(/\/adv-apply staleApplyChange/g) ?? []).toHaveLength(1);
+      expect(text).toContain("resume from listed `execution` gate action");
+      expect(
+        text.match(/resume from listed `execution` gate action/g) ?? [],
+      ).toHaveLength(1);
     });
 
     test("product-linked status defaults to current repo scoped changes", async () => {
@@ -891,12 +652,7 @@ Vague in-flight work.
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
-      const followRec = parsed.recommendations.find((r: string) =>
-        r.includes("fast-follow"),
-      );
-      expect(followRec).toBeDefined();
-      // Terminal parent (archived or closed) should be annotated with its state
-      expect(followRec).toMatch(/\((archived|closed)\)/);
+      expect(parsed.formatted.activeSection).toContain("↳ childFollowUp");
     });
 
     test("confines OpenCode session debt to hygiene view when stale rows exist", async () => {
@@ -982,25 +738,6 @@ Vague in-flight work.
       expect(parsed.formatted.peerSessionsSection).toBe("");
     });
 
-    test("summary forceRefresh stays lightweight while refreshing only selected advisory probes", async () => {
-      await statusTools.adv_status.execute({ view: "summary" }, store);
-      const result = await statusTools.adv_status.execute(
-        { view: "summary", forceRefresh: true },
-        store,
-      );
-      const parsed = parseToolOutput(result);
-
-      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(2);
-      expect(mockScanOpenCodeSessionDebt).not.toHaveBeenCalled();
-      expect(mockScanSnapshotHealth).not.toHaveBeenCalled();
-      expect(mockGetWorktreeCensus).not.toHaveBeenCalled();
-      expect(parsed._freshness).toBeUndefined();
-      expect(parsed.search_attributes).toBeUndefined();
-      expect(parsed.snapshot_health).toBeUndefined();
-      expect(parsed.temporal_queue_serviceability).toBeUndefined();
-      expect(parsed.worker_diagnostics).toBeUndefined();
-    });
-
     test("health view includes worker role and stability feature flag defaults", async () => {
       const result = await statusTools.adv_status.execute(
         { view: "health" },
@@ -1008,7 +745,6 @@ Vague in-flight work.
       );
       const health = parseToolOutput(result);
 
-      expect(health.worker_role).toMatch(/^(host|client|degraded)$/);
       expect(health.feature_flags).toMatchObject({
         worker_singleton_enforce: false,
         // rq-autoManageAdvWorktrees AC2 — default flipped to true.
@@ -1065,76 +801,6 @@ Vague in-flight work.
       expect(total).toBeGreaterThanOrEqual(0);
     });
 
-    test("health view includes probe freshness and reuses cached temporal health", async () => {
-      vi.useFakeTimers({ toFake: ["Date"] });
-      const firstResult = await statusTools.adv_status.execute(
-        { view: "health" },
-        store,
-      );
-      const secondResult = await statusTools.adv_status.execute(
-        { view: "health" },
-        store,
-      );
-      const first = parseToolOutput(firstResult);
-      const second = parseToolOutput(secondResult);
-
-      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(1);
-      expect(first.temporal_health.server_alive).toBe(true);
-      expect(second.temporal_health.server_alive).toBe(true);
-      expect(first._freshness.temporal_health).toMatchObject({
-        cached_at: expect.any(String),
-        stale: false,
-        age_ms: expect.any(Number),
-        ttl_ms: expect.any(Number),
-      });
-      expect(first._freshness.worktree_census).toMatchObject({
-        cached_at: expect.any(String),
-        stale: false,
-        age_ms: expect.any(Number),
-        ttl_ms: expect.any(Number),
-      });
-      expect(second._freshness.temporal_health.cached_at).toBe(
-        first._freshness.temporal_health.cached_at,
-      );
-    });
-
-    test("health view forceRefresh bypasses fresh advisory probe cache", async () => {
-      const firstResult = await statusTools.adv_status.execute(
-        { view: "health" },
-        store,
-      );
-      const secondResult = await statusTools.adv_status.execute(
-        { view: "health", forceRefresh: true } as any,
-        store,
-      );
-      const first = parseToolOutput(firstResult);
-      const second = parseToolOutput(secondResult);
-
-      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(2);
-      expect(mockGetWorktreeCensus).toHaveBeenCalledTimes(2);
-      expect(first.temporal_health.server_alive).toBe(true);
-      expect(second.temporal_health.server_alive).toBe(true);
-      expect(second._freshness.temporal_health).toMatchObject({
-        cached_at: expect.any(String),
-        stale: false,
-        age_ms: expect.any(Number),
-        ttl_ms: expect.any(Number),
-      });
-    });
-
-    test("status probe fetches forward AbortSignal to cancellable providers", async () => {
-      await statusTools.adv_status.execute({ view: "health" }, store);
-
-      expect(mockGetTemporalHealth).toHaveBeenCalledWith(
-        undefined,
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-      );
-      expect(mockGetWorktreeCensus).toHaveBeenCalledWith(
-        store.paths.root,
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-      );
-    });
-
     test("does not emit debt recommendation for live-only blank rows", async () => {
       mockScanOpenCodeSessionDebt.mockResolvedValueOnce({
         available: true,
@@ -1177,7 +843,7 @@ Vague in-flight work.
       ).toBeUndefined();
     });
 
-    describe("search_attributes", () => {
+    describe("plugin runtime diagnostics", () => {
       test("health view includes loaded plugin runtime diagnostic", async () => {
         const result = await statusTools.adv_status.execute(
           { view: "health" },
@@ -1221,90 +887,6 @@ Vague in-flight work.
           parsed.plugin_runtime.plugin_bundle_freshness,
         );
         expect(parsed.plugin_runtime).toHaveProperty("plugin_bundle_recovery");
-      });
-
-      test("includes search_attributes section with saVerification from getStslStats", async () => {
-        const { getStslStats, isStslInitialized } =
-          await import("../temporal/service");
-        const mockGetStslStats = vi.mocked(getStslStats);
-        const mockIsStslInitialized = vi.mocked(isStslInitialized);
-        mockIsStslInitialized.mockReturnValue(true);
-        mockGetStslStats.mockReturnValue({
-          getServiceCalls: 1,
-          newConnections: 1,
-          reuseRate: 1,
-          reconnectCount: 0,
-          reconnectFailureCount: 0,
-          opTelemetry: [],
-          saVerification: { ok: true, checkedAt: Date.now() },
-        });
-
-        const result = await statusTools.adv_status.execute(
-          { view: "health" },
-          store,
-        );
-        const parsed = parseToolOutput(result);
-
-        expect(parsed.search_attributes).toBeDefined();
-        expect(parsed.search_attributes.ok).toBe(true);
-      });
-
-      test("includes recommendation when search_attributes not ok", async () => {
-        const { getStslStats, isStslInitialized } =
-          await import("../temporal/service");
-        const mockGetStslStats = vi.mocked(getStslStats);
-        const mockIsStslInitialized = vi.mocked(isStslInitialized);
-        mockIsStslInitialized.mockReturnValue(true);
-        mockGetStslStats.mockReturnValue({
-          getServiceCalls: 1,
-          newConnections: 1,
-          reuseRate: 1,
-          reconnectCount: 0,
-          reconnectFailureCount: 0,
-          opTelemetry: [],
-          saVerification: { ok: false, checkedAt: Date.now() },
-        });
-
-        const healthResult = await statusTools.adv_status.execute(
-          { view: "health" },
-          store,
-        );
-        const health = parseToolOutput(healthResult);
-
-        expect(health.search_attributes).toBeDefined();
-        expect(health.search_attributes.ok).toBe(false);
-
-        const saRec = (health.recommendations as string[] | undefined)?.find(
-          (r: string) =>
-            r.includes("search attributes") || r.includes("adv_doctor"),
-        );
-        expect(saRec).toBeDefined();
-      });
-
-      test("shows search_attributes as unknown when STSL not initialized", async () => {
-        const { getStslStats, isStslInitialized } =
-          await import("../temporal/service");
-        const mockGetStslStats = vi.mocked(getStslStats);
-        const mockIsStslInitialized = vi.mocked(isStslInitialized);
-        mockIsStslInitialized.mockReturnValue(false);
-        mockGetStslStats.mockReturnValue({
-          getServiceCalls: 0,
-          newConnections: 0,
-          reuseRate: 0,
-          reconnectCount: 0,
-          reconnectFailureCount: 0,
-          opTelemetry: [],
-          saVerification: null,
-        });
-
-        const result = await statusTools.adv_status.execute(
-          { view: "health" },
-          store,
-        );
-        const parsed = parseToolOutput(result);
-
-        expect(parsed.search_attributes).toBeDefined();
-        expect(parsed.search_attributes.ok).toBe(false);
       });
     });
 
@@ -1478,7 +1060,7 @@ Vague in-flight work.
         expect(parsed.view).toBe("summary");
       });
 
-      test("summary view: returns specs.count + recommendations + temporal_health_ok + worktree_count", async () => {
+      test("summary view returns specs, changes, and recommendations", async () => {
         const result = await statusTools.adv_status.execute(
           { view: "summary" },
           store,
@@ -1491,11 +1073,8 @@ Vague in-flight work.
         expect(parsed.changes).toBeDefined();
         expect(parsed.changes.recent).toBeDefined();
         expect(Array.isArray(parsed.recommendations)).toBe(true);
-        expect(typeof parsed.temporal_health_ok).toBe("boolean");
-        expect(typeof parsed.worktree_count).toBe("number");
 
-        // Hygiene/health archaeology MUST be omitted from summary.
-        expect(parsed.search_attributes).toBeUndefined();
+        // Detailed health providers MUST be omitted from summary.
         expect(parsed._healthSnapshot).toBeUndefined();
         expect(parsed.opencode_session_debt).toBeUndefined();
         expect(parsed.diagnostics).toBeUndefined();
@@ -1608,7 +1187,7 @@ Vague in-flight work.
         expect(getSpy).toHaveBeenCalledTimes(120);
       });
 
-      test("health view: returns temporal_health + search_attributes + diagnostics", async () => {
+      test("health view returns diagnostics and tool-context telemetry", async () => {
         const result = await statusTools.adv_status.execute(
           { view: "health" },
           store,
@@ -1616,8 +1195,6 @@ Vague in-flight work.
         const parsed = parseToolOutput(result);
 
         expect(parsed.view).toBe("health");
-        expect(parsed.temporal_health).toBeDefined();
-        expect(parsed.search_attributes).toBeDefined();
         expect(parsed.opencode_session_debt).toBeUndefined();
         expect(parsed.diagnostics).toBeDefined();
 
@@ -1630,10 +1207,6 @@ Vague in-flight work.
             "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
           ]),
         );
-
-        // Summary-only fields are absent from health view.
-        expect(parsed.temporal_health_ok).toBeUndefined();
-        expect(parsed.worktree_count).toBeUndefined();
       });
 
       test("health view surfaces tool_context_telemetry with manifest, cache tokens, lane projections, and limitation", async () => {
@@ -1702,10 +1275,6 @@ Vague in-flight work.
             "Live per-request MCP tool counts are unavailable without upstream OpenCode support.",
           ]),
         );
-
-        // Summary-only fields remain absent.
-        expect(parsed.temporal_health_ok).toBeUndefined();
-        expect(parsed.worktree_count).toBeUndefined();
       });
 
       test("changes view: returns full active changes detail", async () => {
@@ -1720,8 +1289,6 @@ Vague in-flight work.
         expect(parsed.changes.recent).toBeDefined();
         // changes view also surfaces recommendations for next-step guidance.
         expect(Array.isArray(parsed.recommendations)).toBe(true);
-        // Health archaeology is absent.
-        expect(parsed.search_attributes).toBeUndefined();
       });
 
       test("hygiene view: returns _healthSnapshot + project_metadata + recommendations + session debt", async () => {
@@ -1736,8 +1303,6 @@ Vague in-flight work.
         expect(parsed.opencode_session_debt).toBeDefined();
         expect(parsed.project_metadata).toBeDefined();
         expect(Array.isArray(parsed.recommendations)).toBe(true);
-        // Temporal health detail is NOT in hygiene view.
-        expect(parsed.temporal_health).toBeUndefined();
       });
 
       test("hygiene view reports external-state artifacts as dry-run only", async () => {
@@ -1775,7 +1340,7 @@ Vague in-flight work.
             { recursive: true },
           );
 
-          extStore = await createLegacyStore(tempDir, { externalRoot });
+          extStore = await createDiskStore(tempDir, { externalRoot });
 
           const result = await statusTools.adv_status.execute(
             { view: "hygiene" },
@@ -2244,7 +1809,7 @@ Vague in-flight work.
       expect(statusSpy).toHaveBeenCalledWith({ recentLimit: 10 });
     });
 
-    test("view:health passes 7,500 ms cutoff and candidate limit 10 into store.status", async () => {
+    test("view:health passes the source-ranked candidate limit into store.status", async () => {
       const statusSpy = vi.spyOn(store, "status");
 
       const result = await statusTools.adv_status.execute(
@@ -2255,10 +1820,7 @@ Vague in-flight work.
 
       expect(parsed.view).toBe("health");
       expect(statusSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          recentLimit: 10,
-          deadline: expect.objectContaining({ budgetMs: 7500 }),
-        }),
+        expect.objectContaining({ recentLimit: 10, sourceRanked: true }),
       );
     });
 
@@ -2342,7 +1904,7 @@ Vague in-flight work.
         warnings: [
           {
             code: "SOURCE_BOUND_EXCEEDED",
-            source: "workflow_query",
+            source: "active_disk",
             message:
               "Read bound (10 candidate(s)) truncated 2 candidate(s); counts and recency are incomplete.",
             omittedCount: 2,

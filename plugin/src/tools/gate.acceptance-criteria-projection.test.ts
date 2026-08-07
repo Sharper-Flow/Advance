@@ -2,49 +2,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Store } from "../storage/store";
 import { gateTools } from "./gate";
 
-const mocks = vi.hoisted(() => {
-  const signalMock = vi.fn();
-  const queryMock = vi.fn();
-  const handleMock = { signal: signalMock, query: queryMock };
-  const getHandleMock = vi.fn(() => handleMock);
-  const temporalBundle = {
-    client: { workflow: { getHandle: getHandleMock } },
-  };
-  return {
-    signalMock,
-    queryMock,
-    handleMock,
-    getHandleMock,
-    temporalBundle,
-    getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
-    querySignal: vi.fn(),
-    getChangeHandle: vi.fn(() => handleMock),
-  };
-});
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return {
-    ...actual,
-    getProjectId: mocks.getProjectId,
-  };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignalAndRefresh: vi.fn(async () => {}),
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-  waitForGateCompletion: vi.fn(async () => ({ status: "done" })),
-  fireSignal: vi.fn(async () => {}),
-}));
-
 vi.mock("./target-project", () => ({
   formatTargetProjectContext: vi.fn((ctx) => ctx),
   resolveTargetAwareMutationCwd: vi.fn(({ store }) => store.paths.root),
@@ -164,7 +121,6 @@ describe("adv_gate_status acceptance criteria projection", () => {
         }),
       ]),
     );
-    expect(mocks.querySignal).not.toHaveBeenCalled();
   });
 
   test("AC2 — gateCriteria is unavailable in worker-free read", async () => {
@@ -185,24 +141,9 @@ describe("adv_gate_status acceptance criteria projection", () => {
         }),
       ]),
     );
-    expect(mocks.querySignal).not.toHaveBeenCalled();
   });
 
-  test("AC2 — ignores mocked workflow criteria/projection and still reports unavailable", async () => {
-    mocks.querySignal.mockResolvedValue({
-      current: [
-        {
-          id: "REVIEW_MATRIX_COMPLETE",
-          label: "Review matrix complete",
-          status: "fail",
-          evaluatedAt: "2026-05-20T00:00:00.000Z",
-        },
-      ],
-      snapshot: [],
-      freshness: "stale",
-      basisRevision: 2,
-    });
-
+  test("AC2 — reports unavailable criteria without a workflow projection", async () => {
     const store = createMockStore();
     const result = await gateTools.adv_gate_status.execute(
       { changeId: "test-change" },
@@ -212,6 +153,5 @@ describe("adv_gate_status acceptance criteria projection", () => {
 
     expect(parsed.gateCriteria).toBeUndefined();
     expect(parsed.acceptanceCriteriaProjection).toBeUndefined();
-    expect(mocks.querySignal).not.toHaveBeenCalled();
   });
 });

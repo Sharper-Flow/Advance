@@ -174,23 +174,23 @@ describe("request-local health execution primitive", () => {
     const starts: string[] = [];
     const providers: HealthProviderDescriptor[] = [
       {
-        source: "temporal",
+        source: "primary",
         dependencies: [],
         cap: 1000,
         cancellability: "abortable",
         async run() {
-          starts.push("temporal");
-          return { kind: "unavailable", evidence: "temporal down" };
+          starts.push("primary");
+          return { kind: "unavailable", evidence: "primary unavailable" };
         },
       },
       {
-        source: "queue",
-        dependencies: ["temporal"],
+        source: "dependent",
+        dependencies: ["primary"],
         cap: 1000,
         cancellability: "abortable",
         async run() {
-          starts.push("queue");
-          return { kind: "ok", value: "queue" } as HealthProviderOutcome;
+          starts.push("dependent");
+          return { kind: "ok", value: "dependent" } as HealthProviderOutcome;
         },
       },
     ];
@@ -199,9 +199,9 @@ describe("request-local health execution primitive", () => {
     await scheduler.advance(1000);
     const result: HealthExecutionResult = await plan;
 
-    expect(starts).not.toContain("queue");
-    expect(result.outcomes.queue.kind).toBe("not_admitted");
-    expect(result.outcomes.queue.evidence).toMatch(/temporal/);
+    expect(starts).not.toContain("dependent");
+    expect(result.outcomes.dependent.kind).toBe("not_admitted");
+    expect(result.outcomes.dependent.evidence).toMatch(/primary/);
   });
 
   test("abortable provider is cancelled and times out when cap expires", async () => {

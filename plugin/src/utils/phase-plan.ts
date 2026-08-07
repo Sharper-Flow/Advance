@@ -3,7 +3,7 @@
  *
  * This module is the canonical derivation kernel for ADV orchestration reads:
  *   - `directiveCtxFromState(state, epoch)` bridges durable
- *     `ChangeWorkflowState` into the shared normalized `DirectiveContext`.
+ *     `ChangeState` into the shared normalized `DirectiveContext`.
  *   - `derivePhasePlan(ctx)` produces the strict, versioned `PhasePlan`
  *     discriminated union: actionable, approval-required, blocked,
  *     recovery-required, terminal, or degraded (exactly one current state).
@@ -20,8 +20,7 @@
  * Invariants:
  *   - Read-only: no persistence, no caching, no signals, no `defineUpdate`.
  *     Equal (state, epoch) inputs produce structurally equal output.
- *   - Workflow-safe: imports from `../types`, `../temporal/*`, and
- *     `./buckets` only (all already workflow-reachable). No tools, storage,
+ *   - Read-safe: imports from `../types` and `./buckets` only. No tools, storage,
  *     manifest, or `node:` imports.
  *   - Bounded: actionable plans carry at most `PHASE_PLAN_MAX_EVIDENCE` (12)
  *     evidence entries and `PHASE_PLAN_MAX_GUIDANCE` (3) guidance snippets,
@@ -39,8 +38,7 @@ import {
   GateIdSchema,
   GateReadinessBlockerSchema,
 } from "../types";
-import type { ChangeWorkflowState } from "../temporal/contracts";
-import { isPrecisePoisonedHistoryEvidence } from "../temporal/recovery-classification";
+import type { ChangeState } from "../types/change-state";
 import type { Bucket } from "./buckets";
 import { bucketCtxFromState, deriveBucket } from "./buckets";
 import type {
@@ -149,56 +147,28 @@ function synthesizeStuckBlocker(
   };
 }
 
-function collectBlockers(state: ChangeWorkflowState): GateReadinessBlocker[] {
+function collectBlockers(state: ChangeState): GateReadinessBlocker[] {
   const blockers: GateReadinessBlocker[] = [];
   for (const id of GATE_ORDER) {
     const gate = state.gates[id];
     if (gate.readiness_blockers && gate.readiness_blockers.length > 0) {
       blockers.push(...gate.readiness_blockers);
     }
-    // A stuck gate that is NOT already explained by poisoned-history recovery
-    // is surfaced as a structural blocker so the plan routes to `blocked`.
-    if (
-      gate.status === "stuck" &&
-      !isPrecisePoisonedHistoryEvidence(gate.stuck_reason ?? "")
-    ) {
+    if (gate.status === "stuck") {
       blockers.push(synthesizeStuckBlocker(id, gate.stuck_reason));
     }
   }
   return blockers;
 }
 
-function deriveRecovery(state: ChangeWorkflowState): PlanRecovery | undefined {
-  // 1) Recent poisoned-history evidence from rejected signals (most precise).
-  for (const rej of state.signal_rejections ?? []) {
-    const text = `${rej.errorClass} ${rej.errorMessage}`;
-    if (isPrecisePoisonedHistoryEvidence(text)) {
-      return {
-        reason: "poisoned_history",
-        description: `Signal rejection indicates poisoned history: ${rej.errorClass}`,
-      };
-    }
-  }
-
-  // 2) Per-gate evidence: stuck reason or recovery audit.
+function deriveRecovery(state: ChangeState): PlanRecovery | undefined {
+  // Per-gate audited evidence remains readable on disk.
   for (const id of GATE_ORDER) {
     const gate = state.gates[id];
     if (gate.status === "stuck" && gate.stuck_reason) {
-      if (isPrecisePoisonedHistoryEvidence(gate.stuck_reason)) {
-        return {
-          reason: "poisoned_history",
-          description: `Gate ${id} stuck with poisoned-history evidence`,
-        };
-      }
+      continue;
     }
     if (gate.recovery_audit) {
-      const reasonText = `${gate.recovery_audit.reason} ${gate.recovery_audit.evidence}`;
-      if (isPrecisePoisonedHistoryEvidence(reasonText)) {
-        return {
-          reason: "poisoned_history",
-          description: `Gate ${id} carries poisoned-history recovery audit`,
-        };
-      }
       // Recovery audit present but unclassifiable → safe unknown recovery.
       return {
         reason: "unknown",
@@ -220,12 +190,12 @@ function deriveRecovery(state: ChangeWorkflowState): PlanRecovery | undefined {
   return undefined;
 }
 
-function isTerminalStatus(status: ChangeWorkflowState["status"]): boolean {
+function isTerminalStatus(status: ChangeState["status"]): boolean {
   return status === "archived" || status === "closed";
 }
 
 function deriveLightweightProfile(
-  state: ChangeWorkflowState,
+  state: ChangeState,
 ): DirectiveLightweightProfile | undefined {
   const profile = state.lightweight_profile;
   if (!profile) return undefined;
@@ -261,7 +231,7 @@ function deriveLightweightProfile(
 }
 
 export function directiveCtxFromState(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   epoch: number,
 ): DirectiveContext {
   const firstOpenGate = GATE_ORDER.find(
@@ -625,7 +595,7 @@ export function derivePhasePlan(ctx: DirectiveContext): PhasePlan {
 }
 
 export function derivePhasePlanFromState(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   epoch: number,
 ): PhasePlan {
   return derivePhasePlan(directiveCtxFromState(state, epoch));
@@ -668,7 +638,7 @@ export function degradedPhasePlan(
  * module stays workflow-safe (no debug-log import, no `node:*`).
  */
 export function derivePhasePlanSafe(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   epoch: number,
 ): PhasePlan {
   try {

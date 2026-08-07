@@ -5,7 +5,7 @@
  *
  * What this suite proves over every matrix row (7 gate positions keyed by
  * GATE_ORDER, never-started, all-gates-done, approval, readiness-blocked,
- * precise recovery, precedence collisions, archived, closed, malformed):
+ * precedence collisions, archived, closed, malformed):
  *
  *   1. AC2  — every gate position produces a deterministic plan from the
  *      same durable snapshot (derive twice → structurally equal).
@@ -51,6 +51,15 @@ import {
   directiveFromPlan,
 } from "./workflow-directive";
 
+// These rows modeled poisoned Temporal workflow history. That condition cannot
+// occur without Temporal workflows; genuine disk recovery remains covered by
+// recovery-audit tests.
+const PARITY_ROWS_WITHOUT_RETIRED_RECOVERY = PARITY_ROWS.filter(
+  (row) =>
+    row.name !== "precise-recovery" &&
+    row.name !== "precedence:recovery-beats-approval",
+);
+
 function deepFreeze<T>(value: T): T {
   if (value && typeof value === "object") {
     for (const key of Object.keys(value)) {
@@ -78,7 +87,7 @@ function snapshotFor(
 }
 
 describe("parity matrix — plan derivation from one durable snapshot (AC2)", () => {
-  it.each(PARITY_ROWS)(
+  it.each(PARITY_ROWS_WITHOUT_RETIRED_RECOVERY)(
     "$name: derives the expected variant deterministically",
     (row) => {
       const plan = derivePhasePlanSafe(row.state, PARITY_EPOCH);
@@ -112,7 +121,7 @@ describe("parity matrix — plan derivation from one durable snapshot (AC2)", ()
     },
   );
 
-  it.each(PARITY_ROWS)(
+  it.each(PARITY_ROWS_WITHOUT_RETIRED_RECOVERY)(
     "$name: reads perform zero mutations on the durable snapshot",
     (row) => {
       const state = structuredClone(row.state);
@@ -126,7 +135,7 @@ describe("parity matrix — plan derivation from one durable snapshot (AC2)", ()
 });
 
 describe("parity matrix — PhasePlan/directive adapter parity", () => {
-  const derivable = PARITY_ROWS.filter(
+  const derivable = PARITY_ROWS_WITHOUT_RETIRED_RECOVERY.filter(
     (row) => row.expect.planKind !== "degraded",
   );
 
@@ -216,7 +225,7 @@ describe("manifest ↔ workflow-safe command mapping (AC7)", () => {
   });
 
   it("actionable plans route every gate position to the manifest primary", () => {
-    for (const row of PARITY_ROWS) {
+    for (const row of PARITY_ROWS_WITHOUT_RETIRED_RECOVERY) {
       if (row.expect.planKind !== "actionable" || !row.expect.planGateId) {
         continue;
       }
@@ -275,7 +284,7 @@ describe("manifest ↔ workflow-safe command mapping (AC7)", () => {
 });
 
 describe("parity matrix — orientation consumers render routing-only responses", () => {
-  it.each(PARITY_ROWS)(
+  it.each(PARITY_ROWS_WITHOUT_RETIRED_RECOVERY)(
     "$name: context snapshot Next line matches the plan's routing",
     (row) => {
       const directive = deriveDirectiveSafe(row.state, PARITY_EPOCH);
@@ -298,7 +307,7 @@ describe("parity matrix — orientation consumers render routing-only responses"
     },
   );
 
-  it.each(PARITY_ROWS)(
+  it.each(PARITY_ROWS_WITHOUT_RETIRED_RECOVERY)(
     "$name: compaction context carries the same Next line",
     (row) => {
       const directive = deriveDirectiveSafe(row.state, PARITY_EPOCH);
@@ -317,7 +326,7 @@ describe("parity matrix — orientation consumers render routing-only responses"
     },
   );
 
-  it.each(PARITY_ROWS)(
+  it.each(PARITY_ROWS_WITHOUT_RETIRED_RECOVERY)(
     "$name: status next-gate recommendation matches the plan's routing",
     (row) => {
       const directive = deriveDirectiveSafe(row.state, PARITY_EPOCH);
@@ -386,7 +395,9 @@ describe("parity matrix — terminal safety", () => {
 });
 
 describe("parity matrix — malformed durable projection (typed degraded)", () => {
-  const malformed = PARITY_ROWS.find((row) => row.name === "malformed");
+  const malformed = PARITY_ROWS_WITHOUT_RETIRED_RECOVERY.find(
+    (row) => row.name === "malformed",
+  );
   if (!malformed) throw new Error("matrix is missing the malformed row");
 
   it("strict derivation throws; safe wrapper returns a typed non-authorizing plan", () => {

@@ -10,7 +10,7 @@
  * precedence drift during the migration.
  *
  *   - `directiveCtxFromState(state, epoch)` (re-exported from `./phase-plan`)
- *     bridges `ChangeWorkflowState` into the shared `DirectiveContext`.
+ *     bridges `ChangeState` into the shared `DirectiveContext`.
  *   - `deriveWorkflowDirective(state, epoch)` = `directiveCtxFromState` →
  *     `derivePhasePlan` → `directiveFromPlan`.
  *
@@ -22,7 +22,7 @@
  */
 
 import type { GateId, GateReadinessBlocker } from "../types";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import type { Bucket } from "./buckets";
 import type {
   DirectiveContext,
@@ -153,7 +153,7 @@ export function directiveFromPlan(
 // =============================================================================
 
 export function deriveWorkflowDirective(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   epoch: number,
 ): WorkflowDirective {
   const ctx = directiveCtxFromState(state, epoch);
@@ -164,7 +164,7 @@ export function deriveWorkflowDirective(
  * Best-effort wrapper for tool-layer call sites.
  *
  * `deriveWorkflowDirective` is pure and deterministic over well-formed
- * `ChangeWorkflowState`, but tool handlers read state that may be partially
+ * `ChangeState`, but tool handlers read state that may be partially
  * hydrated (disk projections, poisoned-history fallbacks, target-path
  * snapshots). A derivation throw must not break an otherwise-useful tool
  * response (gate completion, gate status, change show/create, status
@@ -179,7 +179,7 @@ export function deriveWorkflowDirective(
  * workflow-safe (no debug-log import, no `node:`).
  */
 export function deriveDirectiveSafe(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   epoch: number,
 ): WorkflowDirective | undefined {
   try {

@@ -5,7 +5,6 @@
  * Extracted from store.ts to keep the composition root under 300 lines.
  */
 
-import type { TemporalReadDeadline } from "../temporal/retry-wrapper";
 import { GATE_ORDER } from "../types";
 import type {
   ArtifactPayload,
@@ -40,8 +39,6 @@ import type {
   RetiredEpicProjection,
   WorkNodeRef,
 } from "../types";
-import type { GateProgress } from "./store-temporal-memo";
-import type { TemporalReadContext } from "./store-temporal/read-context";
 import type { ProjectPaths } from "./json";
 import type { LoadResult } from "./change-projection-reader";
 import type { ProductContext } from "./product-context";
@@ -77,7 +74,7 @@ export interface AuthorityDiagnostics {
 /**
  * Single active change proven by the active conflict authority.
  * Membership comes only from Visibility; facts come only from validated
- * durable active projections or a capped workflow fallback.
+ * durable active projections.
  */
 export interface ChangeConflictAuthorityEntry {
   id: string;
@@ -131,16 +128,11 @@ export interface ChangeConflictAuthority {
  *   candidates the result carries typed degradation (warnings +
  *   hydrationStats.boundedOmitted); counts/recency stay complete only
  *   when every candidate resolves within the bound.
- * - `deadline` lets a caller share one request-scoped aggregate deadline
- *   across the status read. Stores create their own per-call deadline
- *   when it is absent.
- *
- * Both fields are optional; stores that cannot honor them (disk
- * fallback, target-path snapshots) ignore them safely.
+ * These options are optional; stores that cannot honor them (target-path
+ * snapshots) ignore them safely.
  */
 export interface StatusReadOptions {
   recentLimit?: number;
-  deadline?: import("../temporal/retry-wrapper").TemporalReadDeadline;
   /** Use source-backed global recency before bounded hydration (health view). */
   sourceRanked?: boolean;
   /** Mutable marker owned by one status request; never shared across calls. */
@@ -323,35 +315,7 @@ export interface ReadStore extends StoreBase {
       /** Internal caller-specific cap for per-change hydration. */
       validationConcurrency?: number;
     }) => Promise<ChangeListResponse>;
-    get: (
-      changeId: string,
-      opts?: { context?: TemporalReadContext },
-    ) => Promise<LoadResult<Change | null>>;
-    listSummary?: (filter?: {
-      status?: string;
-      includeArchived?: boolean;
-      includeClosed?: boolean;
-      prefix?: string;
-      titleContains?: string;
-      createdBefore?: string;
-      lastActivityBefore?: string;
-      sort?: "recency" | "stalest" | "default";
-      limit?: number;
-      offset?: number;
-      deadline?: TemporalReadDeadline;
-      projectionState?: DiskProjectionReadState;
-    }) => Promise<
-      ChangeListResponse & {
-        hydrationStats?: import("../types").HydrationStats;
-        statusCounts?: Record<"draft" | "archived" | "closed", number>;
-        boundedOmittedIds?: string[];
-      }
-    >;
-    listConflictAuthority?: (options?: {
-      deadline?: TemporalReadDeadline;
-      /** Benchmark-only fact-load concurrency. */
-      concurrency?: number;
-    }) => Promise<ChangeConflictAuthority>;
+    get: (changeId: string) => Promise<LoadResult<Change | null>>;
   };
 
   // Tasks
@@ -396,7 +360,7 @@ export interface ReadStore extends StoreBase {
   };
 }
 
-/** Command (mutation) surface. Carries Temporal-backed write authority. */
+/** Command (mutation) surface. */
 export interface CommandStore extends StoreBase {
   // Specs
   specs: {
@@ -723,10 +687,7 @@ export interface Store extends ReadStore, CommandStore {
        */
       validationConcurrency?: number;
     }) => Promise<ChangeListResponse>;
-    get: (
-      changeId: string,
-      opts?: { context?: TemporalReadContext },
-    ) => Promise<LoadResult<Change | null>>;
+    get: (changeId: string) => Promise<LoadResult<Change | null>>;
     /**
      * Create a new change. Options-object API — single typed call shape:
      *
@@ -768,24 +729,19 @@ export interface Store extends ReadStore, CommandStore {
     ) => Promise<BulkCloseResult>;
     /**
      * Invalidate the in-memory change cache and refresh from the durable
-     * source of truth (Temporal workflow state for the temporal store,
-     * disk for the disk store). Must be called by tool-layer code paths
-     * that mutate workflow state via direct fireSignal() — those paths
-     * bypass the store's own mutation methods and would otherwise leave
-     * stale data in the cache.
+     * source of truth. Must be called by tool-layer code paths that mutate
+     * state outside the store's own mutation methods and would otherwise
+     * leave stale data in the cache.
      *
-     * R1 follow-on regression: adv_gate_complete fires gateCompletedSignal
-     * directly to avoid the store.gates.complete() boilerplate, which
-     * left changeCache holding pre-signal state with the gate still
-     * `pending`. adv_change_archive then read that stale cache and
-     * blocked archive even though the workflow gate was already done.
+     * R1 follow-on regression: callers that mutate gate state outside the
+     * store's own method must refresh before a subsequent archive read, or
+     * the cache can retain a stale `pending` gate and block archive.
      */
     refresh: (changeId: string) => Promise<void>;
     /**
      * Drop the in-memory change cache entry without issuing a readback query
-     * or disk write. The next read will query the workflow fresh. Use this
-     * when the caller has already confirmed the authoritative workflow state
-     * (e.g., after polling confirms a signal was applied) and a refresh's
+     * or disk write. The next read reloads the durable state. Use this when
+     * the caller has already confirmed the authoritative state and a refresh
      * readback could race and re-poison the cache with a stale snapshot.
      */
     invalidate: (changeId: string) => Promise<void>;
@@ -811,67 +767,6 @@ export interface Store extends ReadStore, CommandStore {
         setAt?: string;
       },
     ) => Promise<Change | null>;
-    /**
-     * rq-archiveInventoryActive01: active-only, fixed-8s, fail-closed conflict
-     * authority. Membership comes only from Visibility
-     * (`AdvLifecycleState="open" AND ExecutionStatus="Running"`); durable
-     * facts come only from Visibility-proven active IDs. Terminal history,
-     * archive bundles, cache, and memo cannot establish completeness.
-     *
-     * Returns complete only when Visibility pagination and every candidate
-     * fact load succeed. Any failure, deadline, or candidate omission makes
-     * the result incomplete with `canConcludeClean: false`.
-     */
-    listConflictAuthority?: (options?: {
-      deadline?: TemporalReadDeadline;
-      /**
-       * Benchmark-only fact-load concurrency. Defaults to the internal fixed
-       * concurrency used in production; callers should not pass this outside of
-       * performance regression fixtures.
-       */
-      concurrency?: number;
-    }) => Promise<ChangeConflictAuthority>;
-    /**
-     * rq-changeSummaryReadModel01 (advance-meta v1.12): lightweight summary
-     * listing surface for default read paths (`adv_change_list`,
-     * `adv_status` warm path).
-     *
-     * Returns the same projection shape as `list({})` but skips per-change
-     * full hydration when an in-memory summary (`ChangeSummaryMemo`) or
-     * cached `Change` already covers the requested IDs. Misses fall back
-     * to authoritative full hydration via the same orphan-tolerant path as
-     * `get()`, so safety-critical callers (gates, archive, claims, task
-     * completion, recovery) MUST continue using `list({...})` / `get(...)`
-     * — never this method — when the response contract requires
-     * authoritative workflow state.
-     *
-     * Supports the same filter surface as `list` for compatibility with
-     * `adv_change_list` callers; archived/closed inclusion still walks the
-     * disk/archive fallback because terminal records are not memo-only.
-     *
-     * Returns `{ changes, hydrationStats? }` so telemetry callers can
-     * observe how many IDs were served from memo vs full hydration without
-     * subscribing to the global metrics ring.
-     */
-    listSummary?: (filter?: {
-      status?: string;
-      includeArchived?: boolean;
-      includeClosed?: boolean;
-      prefix?: string;
-      titleContains?: string;
-      createdBefore?: string;
-      lastActivityBefore?: string;
-      sort?: "recency" | "stalest" | "default";
-      limit?: number;
-      offset?: number;
-      deadline?: TemporalReadDeadline;
-    }) => Promise<
-      ChangeListResponse & {
-        hydrationStats?: import("../types").HydrationStats;
-        statusCounts?: Record<"draft" | "archived" | "closed", number>;
-        boundedOmittedIds?: string[];
-      }
-    >;
   };
 
   // Tasks
@@ -1110,17 +1005,16 @@ export interface Store extends ReadStore, CommandStore {
     ) => Promise<LoadResult<RetiredEpicProjection | null>>;
     /**
      * Persist a durable retired projection for an Epic. Used by the
-     * retirement lifecycle path before the live workflow is completed.
+     * retirement lifecycle path before the Epic is completed.
      */
     saveRetiredProjection: (
       epicId: string,
       projection: RetiredEpicProjection,
     ) => Promise<void>;
     /**
-     * Guarded Epic retirement: query live state, verify the Epic is completed
-     * with no active or future entries, persist a retired projection, then
-     * signal the Epic workflow to archive. Supports dry-run to preview the
-     * projection without persisting or signaling.
+     * Guarded Epic retirement: verify the Epic is completed with no active or
+     * future entries, then persist a retired projection. Supports dry-run to
+     * preview the projection without persisting it.
      */
     retire: (
       epicId: string,
@@ -1132,11 +1026,8 @@ export interface Store extends ReadStore, CommandStore {
       },
     ) => Promise<RetiredEpicProjection>;
     /**
-     * Audited backfill/repair of the AdvEpicStatus search index for running
-     * Epic workflows. Enumerates running epicWorkflow executions without the
-     * AdvEpicStatus filter, hydrates each state, and signals reachable Epics
-     * to upsert their current status. Does not retire, archive, or mutate Epic
-     * records beyond the idempotency ledger and lastSignalAt.
+     * Audited backfill/repair of the Epic status index. Does not retire,
+     * archive, or mutate Epic records beyond status-index repair.
      */
     repairIndex: (input: { evidence: string; dryRun?: boolean }) => Promise<{
       total: number;
@@ -1171,27 +1062,20 @@ export interface SearchResult {
 
 /**
  * First non-done gate in GATE_ORDER, or "done" when every gate is complete.
- * Accepts both the full `Gates` map (object completions from hydrated
- * changes) and the summary `GateProgress` projection (string status values
- * from the ChangeSummaryMemo read model). Mirrors the `currentGate`
- * derivation used for the AdvCurrentGate search attribute: only
- * `status === "done"` advances. Missing gates data means nothing has
- * completed, so the first gate is current.
+ * Accepts the full `Gates` map from a hydrated change. Only `status ===
+ * "done"` advances. Missing gates data means nothing has completed, so the
+ * first gate is current.
  */
-export function firstOpenGate(
-  gates: Gates | GateProgress | undefined,
-): GateId | "done" {
+export function firstOpenGate(gates: Gates | undefined): GateId | "done" {
   if (!gates) return GATE_ORDER[0];
-  // GateId is `string` at the type level (GATE_IDS is a string tuple), and
-  // GateProgress is a concrete interface without an index signature — so
+  // GateId is `string` at the type level (GATE_IDS is a string tuple), so
   // access goes through one contained, runtime-safe cast. Every GATE_ORDER
-  // key exists on both shapes by construction; missing keys read as
-  // undefined and count as not-done.
-  const byGate = gates as Record<string, GateCompletion | string | undefined>;
+  // key exists on the shape by construction; missing keys read as undefined
+  // and count as not-done.
+  const byGate = gates as Record<string, GateCompletion | undefined>;
   for (const gateId of GATE_ORDER) {
     const gate = byGate[gateId];
-    const done =
-      typeof gate === "string" ? gate === "done" : gate?.status === "done";
+    const done = gate?.status === "done";
     if (!done) return gateId;
   }
   return "done";

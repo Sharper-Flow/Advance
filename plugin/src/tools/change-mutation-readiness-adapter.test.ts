@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { evaluateGateReadinessFromMutationOutcome } from "./change-mutation-readiness-adapter";
-import { createChangeWorkflowState } from "../temporal/change-state";
+import { createChangeState } from "../types/change-state-helpers";
 import { ChangeSchema } from "../types";
 import { createDefaultGates } from "../types/gates";
 import type { Change } from "../types";
@@ -16,7 +16,7 @@ import type { MutationOutcome } from "./change-mutation-coordinator";
 const PROJECT_ID = "test-project";
 
 function passingTemporalState() {
-  const state = createChangeWorkflowState({
+  const state = createChangeState({
     changeId: "gate-ready-change",
     title: "Gate Ready",
     createdAt: "2026-07-25T00:00:00.000Z",
@@ -47,11 +47,20 @@ function passingRecoveredChange(): Change {
 }
 
 describe("evaluateGateReadinessFromMutationOutcome", () => {
-  it("evaluates readiness from an applied_temporal verified readback", () => {
+  it("evaluates readiness from a verified disk readback", () => {
     const outcome: MutationOutcome<unknown> = {
-      kind: "applied_temporal",
+      kind: "verified",
       value: passingTemporalState(),
-      mutationReceiptId: "mrec-123",
+      revision: 1,
+      audit: {
+        mutation_kind: "proposal",
+        authority_kind: "mutation",
+        authority_reason: "proposal_update",
+        authority_evidence: "test",
+        prior_revision: 0,
+        new_revision: 1,
+        committed_at: "2026-07-25T00:00:00.000Z",
+      },
     };
 
     const result = evaluateGateReadinessFromMutationOutcome(
@@ -64,16 +73,16 @@ describe("evaluateGateReadinessFromMutationOutcome", () => {
     expect(result.blockers).toHaveLength(0);
   });
 
-  it("evaluates readiness from a recovered_verified projection readback", () => {
+  it("evaluates readiness from a verified recovery readback", () => {
     const outcome: MutationOutcome<unknown> = {
-      kind: "recovered_verified",
+      kind: "verified",
       value: passingRecoveredChange(),
       revision: 1,
-      recoveryAudit: {
+      audit: {
         mutation_kind: "proposal",
         authority_kind: "recovery",
-        recovery_reason: "missing_workflow",
-        recovery_evidence: "completed",
+        authority_reason: "missing_projection",
+        authority_evidence: "completed",
         prior_revision: 0,
         new_revision: 1,
         committed_at: "2026-07-25T00:00:00.000Z",
@@ -92,13 +101,13 @@ describe("evaluateGateReadinessFromMutationOutcome", () => {
 
   it("blocks readiness when recovery is unverified", () => {
     const outcome: MutationOutcome<unknown> = {
-      kind: "recovered_unverified",
+      kind: "unverified",
       reason: "postcondition invisible",
-      recoveryAudit: {
+      audit: {
         mutation_kind: "proposal",
         authority_kind: "recovery",
-        recovery_reason: "poisoned_history",
-        recovery_evidence: "TMPRL1100",
+        authority_reason: "postcondition_unverified",
+        authority_evidence: "disk_readback_unavailable",
         prior_revision: 0,
         new_revision: 1,
         committed_at: "2026-07-25T00:00:00.000Z",

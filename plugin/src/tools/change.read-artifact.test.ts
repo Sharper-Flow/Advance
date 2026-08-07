@@ -1,70 +1,56 @@
 /**
- * T9 KD-6: readArtifact + readArtifacts Temporal-first read path.
+ * T9 KD-6: readArtifact + readArtifacts disk-authoritative read path.
  *
  * Verifies:
- * - When state.documents[kind] is populated, content returns from Temporal
- *   without any disk read.
- * - When state.documents[kind] is empty/missing, disk active dir is consulted.
+ * - When the durable projection documents[kind] is populated, content returns
+ *   from the projection without any active-artifact read.
+ * - When projection documents[kind] is empty/missing, disk active dir is consulted.
  * - When disk is missing, archive bundle is consulted.
- * - readArtifacts issues exactly ONE store.changes.get() call regardless of
- *   how many kinds are requested (C9 batched-query requirement).
- *
- * Tests use an in-memory mock Store; full integration with real Temporal is
- * covered by AC5/AC6 in T16 (cross-session smoke).
+ * - readArtifacts reads the projection once regardless of how many kinds are
+ *   requested (C9 batched-read requirement).
  */
 
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { readArtifact, readArtifacts } from "./change";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import type { Store } from "../storage/store";
-import type { Change } from "../types";
-import { TemporalQueryTimeoutError } from "../temporal/retry-wrapper";
 
 function buildMockStore(overrides: {
   changesDir: string;
   rootDir: string;
-  documents?: Change["documents"];
-  get?: ReturnType<typeof vi.fn>;
 }): Store {
-  const get =
-    overrides.get ??
-    vi.fn().mockResolvedValue({
-      success: true,
-      data: {
-        id: "test-change",
-        documents: overrides.documents,
-      } as Change,
-    });
-
   return {
     paths: {
       root: overrides.rootDir,
       changes: overrides.changesDir,
     },
-    changes: {
-      get,
-    },
+    changes: {},
   } as unknown as Store;
 }
 
-describe("readArtifact — Temporal-first read path", () => {
-  it("returns content from state.documents when populated", async () => {
+describe("readArtifact — disk-authoritative read path", () => {
+  it("returns content from the durable projection when populated", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
       const store = buildMockStore({
         changesDir,
         rootDir: dir,
-        documents: { proposal: "from temporal" },
       });
+      await mkdir(changesDir, { recursive: true });
+      await writeFile(
+        join(changesDir, "test-change.json"),
+        JSON.stringify({ documents: { proposal: "from projection" } }),
+      );
 
       const result = await readArtifact(store, "test-change", "proposal");
-      expect(result).toEqual({ content: "from temporal", source: "workflow" });
-      // Verify store.changes.get was called (Temporal-first)
-      expect(store.changes.get).toHaveBeenCalledWith("test-change");
+      expect(result).toEqual({
+        content: "from projection",
+        source: "active_projection",
+      });
     } finally {
       await cleanupTempDir(dir);
     }
@@ -149,21 +135,27 @@ describe("readArtifact — Temporal-first read path", () => {
   });
 });
 
-describe("readArtifacts — batched query (C9)", () => {
-  it("issues exactly ONE store.changes.get() call regardless of kinds count", async () => {
+describe("readArtifacts — batched projection read (C9)", () => {
+  it("reads the projection once regardless of kinds count", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
       const store = buildMockStore({
         changesDir,
         rootDir: dir,
-        documents: {
-          proposal: "p",
-          design: "d",
-          executiveSummary: "es",
-          acceptance: "ac",
-        },
       });
+      await mkdir(changesDir, { recursive: true });
+      await writeFile(
+        join(changesDir, "test-change.json"),
+        JSON.stringify({
+          documents: {
+            proposal: "p",
+            design: "d",
+            executiveSummary: "es",
+            acceptance: "ac",
+          },
+        }),
+      );
 
       const result = await readArtifacts(store, "test-change", [
         "proposal",
@@ -175,13 +167,11 @@ describe("readArtifacts — batched query (C9)", () => {
       ]);
 
       expect(result).toEqual({
-        proposal: { content: "p", source: "workflow" },
-        design: { content: "d", source: "workflow" },
-        executiveSummary: { content: "es", source: "workflow" },
-        acceptance: { content: "ac", source: "workflow" },
+        proposal: { content: "p", source: "active_projection" },
+        design: { content: "d", source: "active_projection" },
+        executiveSummary: { content: "es", source: "active_projection" },
+        acceptance: { content: "ac", source: "active_projection" },
       });
-      // C9: single batched query
-      expect(store.changes.get).toHaveBeenCalledTimes(1);
     } finally {
       await cleanupTempDir(dir);
     }
@@ -194,16 +184,22 @@ describe("readArtifacts — batched query (C9)", () => {
       const store = buildMockStore({
         changesDir,
         rootDir: dir,
-        documents: { proposal: "p", design: "d", acceptance: "ac" },
       });
+      await mkdir(changesDir, { recursive: true });
+      await writeFile(
+        join(changesDir, "test-change.json"),
+        JSON.stringify({
+          documents: { proposal: "p", design: "d", acceptance: "ac" },
+        }),
+      );
 
       const result = await readArtifacts(store, "test-change", [
         "proposal",
         "design",
       ]);
       expect(result).toEqual({
-        proposal: { content: "p", source: "workflow" },
-        design: { content: "d", source: "workflow" },
+        proposal: { content: "p", source: "active_projection" },
+        design: { content: "d", source: "active_projection" },
       });
       // acceptance NOT in result because not requested
       expect("acceptance" in result).toBe(false);
@@ -212,7 +208,7 @@ describe("readArtifacts — batched query (C9)", () => {
     }
   });
 
-  it("falls back to disk per-kind when Temporal documents are missing", async () => {
+  it("falls back to disk per-kind when projection documents are missing", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
@@ -221,7 +217,7 @@ describe("readArtifacts — batched query (C9)", () => {
       await writeFile(join(changeDir, "proposal.md"), "from disk");
 
       const store = buildMockStore({ changesDir, rootDir: dir });
-      // No documents — Temporal returns empty, disk has proposal
+      // No projection documents — disk has proposal
 
       const result = await readArtifacts(store, "test-change", [
         "proposal",
@@ -238,7 +234,7 @@ describe("readArtifacts — batched query (C9)", () => {
 });
 
 describe("readArtifact — XDG-independence smoke check (AC2)", () => {
-  it("returns content from Temporal even when disk has been deleted", async () => {
+  it("returns content from the projection even when the active artifact is deleted", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
@@ -246,19 +242,25 @@ describe("readArtifact — XDG-independence smoke check (AC2)", () => {
       await mkdir(changeDir, { recursive: true });
       await writeFile(join(changeDir, "proposal.md"), "from disk");
 
-      // Populate Temporal documents (simulates content-in-state)
+      // Populate the durable projection.
       const store = buildMockStore({
         changesDir,
         rootDir: dir,
-        documents: { proposal: "from temporal" },
       });
+      await writeFile(
+        join(changesDir, "test-change.json"),
+        JSON.stringify({ documents: { proposal: "from projection" } }),
+      );
 
       // Delete disk file mid-test — simulates per-session XDG isolation
       await rm(join(changeDir, "proposal.md"));
 
-      // Content still available from Temporal
+      // Content still available from the projection.
       const result = await readArtifact(store, "test-change", "proposal");
-      expect(result).toEqual({ content: "from temporal", source: "workflow" });
+      expect(result).toEqual({
+        content: "from projection",
+        source: "active_projection",
+      });
     } finally {
       await cleanupTempDir(dir);
     }
@@ -266,20 +268,16 @@ describe("readArtifact — XDG-independence smoke check (AC2)", () => {
 });
 
 describe("readArtifact — active projection fallback", () => {
-  it("returns documents from change.json when the workflow query is unavailable", async () => {
+  it("returns documents from the durable projection", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "test-change");
-      await mkdir(changeDir, { recursive: true });
+      await mkdir(changesDir, { recursive: true });
       await writeFile(
-        join(changeDir, "change.json"),
+        join(changesDir, "test-change.json"),
         JSON.stringify({ documents: { proposal: "from projection" } }),
       );
-      const get = vi
-        .fn()
-        .mockRejectedValue(new TemporalQueryTimeoutError(1_500));
-      const store = buildMockStore({ changesDir, rootDir: dir, get });
+      const store = buildMockStore({ changesDir, rootDir: dir });
 
       const result = await readArtifact(store, "test-change", "proposal");
 
@@ -296,20 +294,15 @@ describe("readArtifact — active projection fallback", () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "test-change");
-      await mkdir(changeDir, { recursive: true });
+      await mkdir(changesDir, { recursive: true });
       await writeFile(
-        join(changeDir, "change.json"),
+        join(changesDir, "test-change.json"),
         JSON.stringify({ documents: { proposal: "after deadline" } }),
       );
-      const get = vi.fn();
-      const store = buildMockStore({ changesDir, rootDir: dir, get });
+      const store = buildMockStore({ changesDir, rootDir: dir });
 
-      const result = await readArtifact(store, "test-change", "proposal", {
-        deadline: { budgetMs: 8_000, deadlineAt: Date.now() - 1 },
-      });
+      const result = await readArtifact(store, "test-change", "proposal");
 
-      expect(get).not.toHaveBeenCalled();
       expect(result).toEqual({
         content: "after deadline",
         source: "active_projection",
@@ -319,25 +312,26 @@ describe("readArtifact — active projection fallback", () => {
     }
   });
 
-  it("does not consult the projection when the workflow query resolves content", async () => {
+  it("prefers the projection over stale active artifact content", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
       const changeDir = join(changesDir, "test-change");
       await mkdir(changeDir, { recursive: true });
+      await mkdir(changesDir, { recursive: true });
       await writeFile(
-        join(changeDir, "change.json"),
-        "not valid projection JSON",
+        join(changesDir, "test-change.json"),
+        JSON.stringify({ documents: { proposal: "from projection" } }),
       );
-      const store = buildMockStore({
-        changesDir,
-        rootDir: dir,
-        documents: { proposal: "from workflow" },
-      });
+      await writeFile(join(changeDir, "proposal.md"), "stale active artifact");
+      const store = buildMockStore({ changesDir, rootDir: dir });
 
       const result = await readArtifact(store, "test-change", "proposal");
 
-      expect(result).toEqual({ content: "from workflow", source: "workflow" });
+      expect(result).toEqual({
+        content: "from projection",
+        source: "active_projection",
+      });
     } finally {
       await cleanupTempDir(dir);
     }
@@ -347,16 +341,12 @@ describe("readArtifact — active projection fallback", () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "test-change");
-      await mkdir(changeDir, { recursive: true });
+      await mkdir(changesDir, { recursive: true });
       await writeFile(
-        join(changeDir, "change.json"),
+        join(changesDir, "test-change.json"),
         JSON.stringify({ documents: { proposal: "batched projection" } }),
       );
-      const get = vi
-        .fn()
-        .mockRejectedValue(new TemporalQueryTimeoutError(1_500));
-      const store = buildMockStore({ changesDir, rootDir: dir, get });
+      const store = buildMockStore({ changesDir, rootDir: dir });
 
       const result = await readArtifacts(store, "test-change", ["proposal"]);
 

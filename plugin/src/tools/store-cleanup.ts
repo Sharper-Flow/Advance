@@ -4,8 +4,8 @@
  * Maintenance-only cleanup for legacy Agenda data across discoverable local
  * ADV stores. Supports scan → dry_run → approval-gated execute.
  *
- * Reuses store-consolidation primitives: walkStoreDirs, content hashing,
- * live-lock refusal, ledger-based idempotency, and manifest-before-delete.
+ * Reuses shared store-discovery primitives plus live-lock refusal,
+ * ledger-based idempotency, and manifest-before-delete.
  *
  * Retained indefinitely as operator-only maintenance (C6): dry-run plans are
  * bounded and reviewable (summary counts + paged renders), and plan_hash
@@ -31,7 +31,7 @@ import {
   walkStoreDirs,
   defaultDataHomeRoot,
   CONSOLIDATION_LEDGER_FILENAME,
-} from "./store-consolidate";
+} from "./store-discovery";
 import type { Store } from "../storage/store";
 
 // =============================================================================

@@ -11,11 +11,9 @@ import { dirname, join, normalize, relative, resolve } from "path";
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 const BIN_ROOT = join(REPO_ROOT, "bin");
 const PLUGIN_SRC = join(REPO_ROOT, "plugin/src");
-const TEMPORAL_BOUNDARY = join(PLUGIN_SRC, "cli/temporal-boundary.ts");
 
 const APPROVED_BIN_PLUGIN_IMPORTS = new Set([
   "../../plugin/src/shared/cli-projection",
-  "../../plugin/src/cli/temporal-boundary",
   "../../plugin/src/cli/projection-boundary",
 ]);
 
@@ -74,13 +72,6 @@ function repoRelative(path: string): string {
   return normalize(relative(REPO_ROOT, path)).replaceAll("\\", "/");
 }
 
-function isApprovedDeepPath(file: string): boolean {
-  // The Temporal operation owner is the sole approved raw SDK holder.
-  // Its internal storage/tool imports are the owner's implementation detail,
-  // not a direct CLI boundary leak.
-  return file.startsWith(join(PLUGIN_SRC, "temporal/"));
-}
-
 function assertNoForbiddenPluginSrcPath(path: string) {
   const rel = repoRelative(path);
   for (const forbidden of FORBIDDEN_PLUGIN_SRC_PREFIXES) {
@@ -115,27 +106,6 @@ describe("root CLI plugin source boundary", () => {
     expect(violations).toEqual([]);
   });
 
-  test("Temporal CLI boundary exists and avoids forbidden plugin internals transitively", () => {
-    expect(existsSync(TEMPORAL_BOUNDARY)).toBe(true);
-
-    const visited = new Set<string>();
-    const stack = [TEMPORAL_BOUNDARY];
-    while (stack.length > 0) {
-      const file = stack.pop()!;
-      if (visited.has(file)) continue;
-      visited.add(file);
-      assertNoForbiddenPluginSrcPath(file);
-
-      const source = readFileSync(file, "utf8");
-      for (const specifier of importSpecifiers(source)) {
-        const next = resolveRelativeImport(file, specifier);
-        if (next && next.startsWith(PLUGIN_SRC) && !isApprovedDeepPath(file)) {
-          stack.push(next);
-        }
-      }
-    }
-  });
-
   test("Projection CLI boundary exists and avoids forbidden plugin internals transitively", () => {
     const boundary = join(PLUGIN_SRC, "cli/projection-boundary.ts");
     expect(existsSync(boundary)).toBe(true);
@@ -151,7 +121,7 @@ describe("root CLI plugin source boundary", () => {
       const source = readFileSync(file, "utf8");
       for (const specifier of importSpecifiers(source)) {
         const next = resolveRelativeImport(file, specifier);
-        if (next && next.startsWith(PLUGIN_SRC) && !isApprovedDeepPath(file)) {
+        if (next && next.startsWith(PLUGIN_SRC)) {
           stack.push(next);
         }
       }

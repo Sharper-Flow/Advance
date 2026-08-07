@@ -7,64 +7,13 @@
  * reconciliation fails.
  */
 
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { mkdir, writeFile } from "node:fs/promises";
 import type { Store } from "../storage/store";
 import { gateTools } from "./gate";
 import { createTempDir } from "../__tests__/setup";
-import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import { loadChange } from "../storage/json";
 import type { Change, ContractReviewMatrix } from "../types";
-
-const mocks = vi.hoisted(() => {
-  const signalMock = vi.fn();
-  const queryMock = vi.fn();
-  const handleMock = { signal: signalMock, query: queryMock };
-  const getHandleMock = vi.fn(() => handleMock);
-  const temporalBundle = {
-    client: { workflow: { getHandle: getHandleMock } },
-  };
-  return {
-    signalMock,
-    queryMock,
-    handleMock,
-    getHandleMock,
-    temporalBundle,
-    getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
-    querySignal: vi.fn(),
-    getChangeHandle: vi.fn(() => handleMock),
-  };
-});
-
-const artifactMocks = vi.hoisted(() => ({
-  inspectArtifactActivity: vi.fn(),
-  writeArtifactActivity: vi.fn(),
-}));
-
-vi.mock("../temporal/activities", () => artifactMocks);
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return {
-    ...actual,
-    getProjectId: mocks.getProjectId,
-  };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignalAndRefresh: vi.fn(async () => {}),
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-  waitForGateCompletion: vi.fn(async () => ({ status: "done" })),
-  fireSignal: vi.fn(async () => {}),
-}));
 
 vi.mock("./target-project", () => ({
   formatTargetProjectContext: vi.fn((ctx) => ctx),
@@ -227,70 +176,8 @@ function baseContract(
   } as NonNullable<Change["contract"]>;
 }
 
-function workflowState(families: {
-  design?: boolean;
-  verification?: boolean;
-  matrix?: boolean;
-}) {
-  return {
-    design_concern_dispositions: families.design ? [disposition("design")] : [],
-    verification_evidence_dispositions: families.verification
-      ? [disposition("verification")]
-      : [],
-    contract: families.matrix ? { reviewMatrix: reviewMatrix() } : undefined,
-  };
-}
-
 describe("adv_gate_complete acceptance reconciliation", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.signalMock.mockReset();
-    mocks.signalMock.mockResolvedValue(undefined);
-    mocks.queryMock.mockReset();
-    mocks.queryMock.mockImplementation(
-      (queryName: string, receiptId?: string) => {
-        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
-          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
-        }
-        return Promise.resolve({});
-      },
-    );
-    mocks.querySignal.mockReset();
-    mocks.querySignal.mockImplementation((...args: unknown[]) => {
-      const queryName = args[1];
-      const name =
-        typeof queryName === "object" &&
-        queryName !== null &&
-        "name" in queryName
-          ? (queryName as { name: string }).name
-          : String(queryName);
-      if (name === CHANGE_WORKFLOW_QUERY_NAMES.getGateStatus) {
-        return Promise.resolve(HEALTHY_GATES);
-      }
-      if (name === CHANGE_WORKFLOW_QUERY_NAMES.changeTasks) {
-        return Promise.resolve([]);
-      }
-      return Promise.resolve({});
-    });
-  });
-
-  afterEach(() => {
-    delete process.env.ADV_PLAN_ROUTING_FAIL_CLOSED;
-  });
-
   test("blocks recovery when the persisted acceptance projection cannot be read back", async () => {
-    artifactMocks.writeArtifactActivity.mockResolvedValue({ ok: true });
-    artifactMocks.inspectArtifactActivity
-      .mockResolvedValueOnce({
-        ok: true,
-        contentHash: "executive-summary-hash",
-        nonWhitespaceChars: 100,
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        error: "acceptance artifact unreadable",
-      });
-
     const { resolveAcceptanceRecoveryArtifactEvidence } =
       await import("./gate");
     const result = await resolveAcceptanceRecoveryArtifactEvidence({
@@ -314,23 +201,23 @@ describe("adv_gate_complete acceptance reconciliation", () => {
         artifacts: {
           executiveSummary: { contentHash: "executive-summary-hash" },
         },
-      } as import("../temporal/contracts").ChangeWorkflowState,
+      } as import("../types/change-state").ChangeState,
       fallbackEvidence: undefined,
     });
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("expected acceptance recovery to block");
     expect(JSON.parse(result.response)).toMatchObject({
-      stuckReason: "ACCEPTANCE_PROJECTION_READBACK_FAILED",
+      stuckReason: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
       readinessBlockers: [
         expect.objectContaining({
-          code: "ACCEPTANCE_PROJECTION_READBACK_FAILED",
+          code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
         }),
       ],
     });
   });
 
-  test("re-delivers recovered design-concern and verification-evidence dispositions before firing gateCompletedSignal", async () => {
+  test("clears recovered design-concern and verification-evidence markers before completing acceptance", async () => {
     const changesDir = await createTempDir("adv-gate-reconciliation-");
     const change = baseChange({
       design_concern_dispositions: [
@@ -341,17 +228,6 @@ describe("adv_gate_complete acceptance reconciliation", () => {
       ],
     });
     await seedProjection(changesDir, change);
-    mocks.queryMock.mockImplementation(
-      (queryName: string, receiptId?: string) => {
-        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
-          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
-        }
-        return Promise.resolve(
-          workflowState({ design: true, verification: true }),
-        );
-      },
-    );
-
     const result = await gateTools.adv_gate_complete.execute(
       {
         changeId: "test-change",
@@ -364,11 +240,6 @@ describe("adv_gate_complete acceptance reconciliation", () => {
 
     expect(parsed.success).toBe(true);
     expect(parsed.gateId).toBe("acceptance");
-    // Reconciliation signals fired before gateCompletedSignal.
-    expect(mocks.signalMock).toHaveBeenCalledTimes(2);
-    // Gate completion signal still fired via the mocked fireSignalAndRefresh.
-    expect(vi.mocked(mocks.querySignal)).not.toHaveBeenCalled();
-
     const disk = await loadChange(changesDir, "test-change");
     expect(disk.success).toBe(true);
     expect(
@@ -379,46 +250,7 @@ describe("adv_gate_complete acceptance reconciliation", () => {
     ).toBeUndefined();
   });
 
-  test("returns a single actionable block when reconciliation cannot confirm a disposition", async () => {
-    const changesDir = await createTempDir("adv-gate-reconciliation-");
-    const change = baseChange({
-      design_concern_dispositions: [
-        { ...disposition("design"), recovery_audit: recoveryAudit() },
-      ],
-    });
-    await seedProjection(changesDir, change);
-    // Receipt never confirmed, so redelivery fails.
-    mocks.queryMock.mockImplementation(
-      (queryName: string, _receiptId?: string) => {
-        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
-          return Promise.resolve(undefined);
-        }
-        return Promise.resolve(workflowState({ design: true }));
-      },
-    );
-
-    const result = await gateTools.adv_gate_complete.execute(
-      {
-        changeId: "test-change",
-        gateId: "acceptance",
-        completedBy: "agent",
-      },
-      createStore(changesDir, change),
-    );
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBeUndefined();
-    expect(parsed.error).toBeTruthy();
-    expect(parsed.code).toBe("ACCEPTANCE_RECONCILIATION_SIGNAL_FAILED");
-    expect(parsed.failedItems).toHaveLength(1);
-    expect(parsed.gateId).toBe("acceptance");
-    // gateCompletedSignal must not fire when reconciliation is blocked.
-    expect(vi.mocked(mocks.querySignal)).not.toHaveBeenCalledWith(
-      expect.objectContaining({ name: "gateCompleted" }),
-    );
-  });
-
-  test("re-delivers a recovered contract review matrix before firing gateCompletedSignal", async () => {
+  test("clears a recovered contract review matrix before completing acceptance", async () => {
     const changesDir = await createTempDir("adv-gate-reconciliation-");
     const change = baseChange({
       contract: baseContract({
@@ -426,15 +258,6 @@ describe("adv_gate_complete acceptance reconciliation", () => {
       }),
     });
     await seedProjection(changesDir, change);
-    mocks.queryMock.mockImplementation(
-      (queryName: string, receiptId?: string) => {
-        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
-          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
-        }
-        return Promise.resolve(workflowState({ matrix: true }));
-      },
-    );
-
     const result = await gateTools.adv_gate_complete.execute(
       {
         changeId: "test-change",
@@ -447,10 +270,6 @@ describe("adv_gate_complete acceptance reconciliation", () => {
 
     expect(parsed.success).toBe(true);
     expect(parsed.gateId).toBe("acceptance");
-    // Matrix reconciliation signal fired before gateCompletedSignal.
-    expect(mocks.signalMock).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(mocks.querySignal)).not.toHaveBeenCalled();
-
     const disk = await loadChange(changesDir, "test-change");
     expect(disk.success).toBe(true);
     expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeUndefined();
@@ -475,6 +294,5 @@ describe("adv_gate_complete acceptance reconciliation", () => {
 
     expect(parsed.success).toBe(true);
     expect(parsed.gateId).toBe("acceptance");
-    expect(mocks.signalMock).not.toHaveBeenCalled();
   });
 });

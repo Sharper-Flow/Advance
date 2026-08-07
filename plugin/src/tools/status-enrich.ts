@@ -16,17 +16,7 @@ import {
   type ChangeRecency,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
-import { changeToDirectiveState } from "../temporal/change-state";
-import {
-  deriveDirectiveSafe,
-  type WorkflowDirective,
-} from "../utils/workflow-directive";
-import {
-  degradedPhasePlan,
-  derivePhasePlanSafe,
-  type DegradedPhasePlan,
-} from "../utils/phase-plan";
-import { checkPlanRoutingGuard } from "../migration/routing-guard";
+import { type WorkflowDirective } from "../utils/workflow-directive";
 import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
@@ -133,7 +123,7 @@ export function buildNextGateRecommendationFromDirective(input: {
  * Request-local resolution context for status enrichment
  * (fixChangeListTimeouts KD4 / AC4). When `change` is present, enrichment
  * MUST reuse it — including its proposal document projection — instead of
- * issuing a duplicate per-change Temporal read. `resolvedChanges` lets
+ * issuing a duplicate per-change read. `resolvedChanges` lets
  * fast-follow parent context resolve from the same request-local map;
  * store reads remain the fallback for entries the request never resolved
  * (e.g. an archived parent outside the active candidate set).
@@ -191,11 +181,13 @@ export async function enrichRecentChangeStatus(
   let changeData: Change;
   let proposalText: string;
   if (resolved?.change) {
-    // AC4: the request already hydrated this change — reuse the document
-    // and its Temporal proposal projection. No second store.changes.get
-    // and no readArtifact call for an already-resolved row.
+    // AC4: the request already hydrated this change record — reuse it to
+    // avoid a second store.changes.get. The proposal is a separate file
+    // (proposal.md), not an inline field on change.json, so it must still
+    // be read from disk regardless of which path loaded the Change record.
     changeData = resolved.change;
-    proposalText = resolved.change.documents?.proposal ?? "";
+    proposalText =
+      (await readArtifact(store, changeId, "proposal"))?.content ?? "";
   } else {
     const changeResult = await store.changes.get(changeId);
     if (!enrichmentWithinBudget(options)) {
@@ -203,8 +195,8 @@ export async function enrichRecentChangeStatus(
     }
     if (!changeResult.success || !changeResult.data) return;
     changeData = changeResult.data;
-    // Temporal-first proposal read per KD-6. Falls back to disk/archive
-    // via readArtifact; null result means no proposal content — use
+    // Read the proposal from disk/archive via readArtifact; null result means
+    // no proposal content — use
     // empty string for snapshot rendering (status output is read-only).
     proposalText =
       (await readArtifact(store, changeId, "proposal"))?.content ?? "";
@@ -214,41 +206,10 @@ export async function enrichRecentChangeStatus(
   const gates = changeData.gates ?? createDefaultGates();
 
   // Authoritative next-action projection shared with gate status and the
-  // context snapshot. Derived from the disk change projection (Temporal-first
-  // reads elsewhere keep this fresh); never persisted. Best effort: a
-  // derivation failure must not break status enrichment — fall back to the
-  // first open gate and omit the `_directive` payload on the rare error path.
-  //
-  // AC9/DDC7 fail-closed: after an active build-bound cutover receipt, a
-  // degraded plan instead stops plan-dependent routing — no first-open-gate
-  // fallback (DONT4), typed degraded diagnostics attached, zero Temporal
-  // effects (DONT5).
-  const directiveState = changeToDirectiveState({
-    projectId: changeData.adv_project_id ?? "unknown",
-    change: changeData,
-    gates,
-  });
-  const directive = deriveDirectiveSafe(directiveState, Date.now());
-  let failClosedPlan: DegradedPhasePlan | undefined;
-  let fallbackNextGate: GateId | undefined;
-  if (!directive) {
-    const routingGuard = checkPlanRoutingGuard();
-    if (routingGuard.failClosed) {
-      const plan = derivePhasePlanSafe(directiveState, Date.now());
-      failClosedPlan =
-        plan.kind === "degraded"
-          ? plan
-          : degradedPhasePlan(
-              changeId,
-              "derivation_error",
-              "directive derivation failed while plan derivation succeeded; treating projections as conflicting",
-            );
-    } else {
-      fallbackNextGate = GATE_ORDER.find(
-        (gateId) => gates[gateId]?.status !== "done",
-      ) as GateId | undefined;
-    }
-  }
+  // The disk projection is the sole source for the next open gate.
+  const fallbackNextGate = GATE_ORDER.find(
+    (gateId) => gates[gateId]?.status !== "done",
+  ) as GateId | undefined;
 
   const snapshotInput = {
     change: changeData,
@@ -313,14 +274,11 @@ export async function enrichRecentChangeStatus(
     _contextSnapshot: isPrimary
       ? buildChangeContextSnapshot({
           ...snapshotInput,
-          directive,
           ...(resumeFreshnessInput
             ? { resumeFreshness: resumeFreshnessInput }
             : {}),
         })
       : buildChangeContextTicker(snapshotInput),
-    _directive: directive,
-    ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
   });
 
   if (!enrichmentWithinBudget(options)) return;
@@ -333,31 +291,7 @@ export async function enrichRecentChangeStatus(
       dependencyStatus.summary;
   }
 
-  const nextGate = directive
-    ? (directive.action.gateId as GateId | undefined)
-    : failClosedPlan
-      ? undefined
-      : fallbackNextGate;
-  if (directive && nextGate) {
-    if (!enrichmentWithinBudget(options)) return;
-    const parentContext = changeData.fast_follow_of
-      ? await getFastFollowParentContext(
-          store,
-          changeData.fast_follow_of.parent_change_id,
-          resolved?.resolvedChanges,
-        )
-      : undefined;
-    if (!enrichmentWithinBudget(options)) return;
-    const item = buildNextGateRecommendationFromDirective({
-      directive,
-      changeId,
-      parentContext,
-      minutesSinceActivity: rc.minutesSinceActivity,
-    });
-    if (item) {
-      pushStatusRecommendation(status, item);
-    }
-  }
+  const nextGate = fallbackNextGate;
 
   appendClarifyRecommendation(
     status,
@@ -693,7 +627,8 @@ export async function buildCandidateEnrichmentPatch(
 
     if (resolved?.change) {
       changeData = resolved.change;
-      proposalText = resolved.change.documents?.proposal ?? "";
+      proposalText =
+        (await readArtifact(store, changeId, "proposal"))?.content ?? "";
     } else {
       const changeResult = await store.changes.get(changeId);
       if (signal?.aborted || Date.now() >= cutoffAt) {
@@ -712,32 +647,9 @@ export async function buildCandidateEnrichmentPatch(
 
     const gates = changeData.gates ?? createDefaultGates();
 
-    const directiveState = changeToDirectiveState({
-      projectId: changeData.adv_project_id ?? "unknown",
-      change: changeData,
-      gates,
-    });
-    const directive = deriveDirectiveSafe(directiveState, Date.now());
-    let failClosedPlan: DegradedPhasePlan | undefined;
-    let fallbackNextGate: GateId | undefined;
-    if (!directive) {
-      const routingGuard = checkPlanRoutingGuard();
-      if (routingGuard.failClosed) {
-        const plan = derivePhasePlanSafe(directiveState, Date.now());
-        failClosedPlan =
-          plan.kind === "degraded"
-            ? plan
-            : degradedPhasePlan(
-                changeId,
-                "derivation_error",
-                "directive derivation failed while plan derivation succeeded; treating projections as conflicting",
-              );
-      } else {
-        fallbackNextGate = GATE_ORDER.find(
-          (gateId) => gates[gateId]?.status !== "done",
-        ) as GateId | undefined;
-      }
-    }
+    const fallbackNextGate = GATE_ORDER.find(
+      (gateId) => gates[gateId]?.status !== "done",
+    ) as GateId | undefined;
 
     const snapshotInput = {
       change: changeData,
@@ -798,14 +710,11 @@ export async function buildCandidateEnrichmentPatch(
       _contextSnapshot: isPrimary
         ? buildChangeContextSnapshot({
             ...snapshotInput,
-            directive,
             ...(candidateResumeFreshness
               ? { resumeFreshness: candidateResumeFreshness }
               : {}),
           })
         : buildChangeContextTicker(snapshotInput),
-      _directive: directive,
-      ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
     };
 
     if (signal?.aborted || Date.now() >= cutoffAt) {
@@ -822,11 +731,7 @@ export async function buildCandidateEnrichmentPatch(
       candidate._externalDependencyStatus = dependencyStatus.summary;
     }
 
-    const nextGate = directive
-      ? (directive.action.gateId as GateId | undefined)
-      : failClosedPlan
-        ? undefined
-        : fallbackNextGate;
+    const nextGate = fallbackNextGate;
 
     const localStatus: StatusRecommendationCarrier = { recommendations: [] };
 
@@ -837,31 +742,6 @@ export async function buildCandidateEnrichmentPatch(
         changeId,
         candidateResumeFreshness,
       );
-    }
-
-    if (directive && nextGate) {
-      if (signal?.aborted || Date.now() >= cutoffAt) {
-        return notAdmittedPatch(changeId, rank, start, "execution cutoff");
-      }
-      const parentContext = changeData.fast_follow_of
-        ? await getFastFollowParentContext(
-            store,
-            changeData.fast_follow_of.parent_change_id,
-            resolved?.resolvedChanges,
-          )
-        : undefined;
-      if (signal?.aborted || Date.now() >= cutoffAt) {
-        return notAdmittedPatch(changeId, rank, start, "execution cutoff");
-      }
-      const item = buildNextGateRecommendationFromDirective({
-        directive,
-        changeId,
-        parentContext,
-        minutesSinceActivity: rc.minutesSinceActivity,
-      });
-      if (item) {
-        pushStatusRecommendation(localStatus, item);
-      }
     }
 
     appendClarifyRecommendation(

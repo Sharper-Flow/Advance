@@ -1,7 +1,7 @@
 # Sub-Agent Reports
 
-> **Version:** 1.8.0
-> **Updated:** 2026-07-19
+> **Version:** 1.9.0
+> **Updated:** 2026-08-04
 
 ## Purpose
 
@@ -28,7 +28,7 @@ ADV worker reports MUST be submitted through adv_subagent_report_submit using st
 
 **Then:**
 - The tool returns INVALID_REPORT
-- No workflow signal is fired
+- No disk mutation is fired
 - No agenda follow-up is written
 
 **Known optimized handoff agents validate structurally** (`rq-subagentReports01.2`)
@@ -41,7 +41,7 @@ ADV worker reports MUST be submitted through adv_subagent_report_submit using st
 **Then:**
 - The strict payload schema validates the agent-specific object
 - The report carries explicit source metadata
-- The workflow signal is fired only after schema validation succeeds
+- The disk mutation is fired only after schema validation succeeds
 
 **adv-designer report variant validates structurally** (`rq-subagentReports01.3`)
 
@@ -70,13 +70,13 @@ ADV worker reports MUST be submitted through adv_subagent_report_submit using st
 
 ---
 
-### Signal-persisted sidecar report state
+### Mutation-persisted sidecar report state
 
 **ID:** `rq-subagentReports02` | **Priority:** **[MUST]**
 
-Accepted reports MUST persist via subagentReportSubmittedSignal into a change-level sidecar report store. Task-scoped adv-engineer and adv-reviewer reports keep legacy task.subagent_reports[] read compatibility, but new canonical persistence MUST be scope-aware sidecar storage. The workflow MUST dedupe repeated submissions by (change_id, scope, agent, attempt) using deterministic workflow state, and MUST map task-scoped report blockers into task error_recovery without defineUpdate-based mutations.
+Accepted reports MUST persist via subagentReportSubmittedMutation into a change-level sidecar report store. Task-scoped adv-engineer and adv-reviewer reports keep legacy task.subagent_reports[] read compatibility, but new canonical persistence MUST be scope-aware sidecar storage. The change projection MUST dedupe repeated submissions by (change_id, scope, agent, attempt) using deterministic change projection state, and MUST map task-scoped report blockers into task error_recovery without deprecated runtime update handler-based mutations. Blocker-to-error_recovery mapping MUST NOT write a record that violates the retry-budget invariant enforced on read (ErrorRecoverySchema rejects attempts.length > max_retries): retry_count MUST be clamped to max_retries, and attempts[] MUST be bounded to at most max_retries entries retaining the most recent, with each retained entry preserving its true monotonic attempt_number. The budget MUST resolve from a single shared constant so writer and reader cannot diverge. Because change projection state is re-derived by readbacking history through this reducer, a clamped reducer also restores changes whose recorded history already exceeded the budget; the clamp MUST therefore live in the reducer, not only at a tool boundary or in a schema normalizer.
 
-**Tags:** `temporal`, `signals`, `dedupe`, `tasks`
+**Tags:** `disk`, `mutations`, `dedupe`, `tasks`
 
 #### Scenarios
 
@@ -89,7 +89,7 @@ Accepted reports MUST persist via subagentReportSubmittedSignal into a change-le
 
 **Then:**
 - No duplicate sidecar report entry is appended
-- The workflow records the key in seenReportIds if needed
+- The change projection records the key in seenReportIds if needed
 - The tool response reports duplicate true
 
 **Blockers feed error recovery** (`rq-subagentReports02.2`)
@@ -97,12 +97,38 @@ Accepted reports MUST persist via subagentReportSubmittedSignal into a change-le
 **Given:**
 - A submitted engineer blocker or reviewer blocking finding exists
 
-**When:** The workflow applies subagentReportSubmittedSignal
+**When:** The change projection applies subagentReportSubmittedMutation
 
 **Then:**
 - The task error_recovery.last_error summarizes blocker location and issue
 - The error_recovery attempt records the report attempt number
 - No tool-layer heuristic owns persistence correctness
+
+**Over-budget blockers stay readable** (`rq-subagentReports02.3`)
+
+**Given:**
+- A task whose error_recovery.attempts already holds max_retries entries
+
+**When:** A further blocked sub-agent report is submitted and the change projection applies subagentReportSubmittedMutation
+
+**Then:**
+- attempts[] still holds at most max_retries entries, retaining the most recent
+- retry_count equals max_retries rather than the raw report attempt number
+- Each retained entry preserves its original monotonic attempt_number
+- The resulting error_recovery satisfies the read-path schema, so the change stays readable and writable
+
+**Pre-clamp history self-heals on readback** (`rq-subagentReports02.4`)
+
+**Given:**
+- An existing change projection whose recorded history contains more than max_retries subagentReportSubmitted mutations with blockers, written before the clamp shipped
+
+**When:** A disk reducer applying the clamp readbacks that unchanged history
+
+**Then:**
+- readback completes without a inconsistent readback error
+- The re-derived error_recovery satisfies the read-path schema
+- The previously unreadable change becomes readable and writable without manual repair
+- readback evidence alone is insufficient: command-sequence readback does not exercise the read-path schema, so both assertions are required
 
 ---
 
@@ -349,25 +375,25 @@ Persisted report follow_ups[] MUST be retained as bounded, source-attributed rep
 
 ---
 
-### Temporal replay and legacy compatibility
+### disk readback and legacy compatibility
 
 **ID:** `rq-subagentReports09` | **Priority:** **[MUST]**
 
-Sub-agent report persistence MUST preserve Temporal replay safety. Key-shape changes from legacy task_id keys to scope-aware sidecar keys MUST be versioned or compatibility-preserved. Existing adv-engineer and adv-reviewer behavior remains backward-compatible, including task/checkpoint consumers that detect legacy task.subagent_reports[].
+Sub-agent report persistence MUST preserve disk readback safety. Key-shape changes from legacy task_id keys to scope-aware sidecar keys MUST be versioned or compatibility-preserved. Existing adv-engineer and adv-reviewer behavior remains backward-compatible, including task/checkpoint consumers that detect legacy task.subagent_reports[].
 
-**Tags:** `temporal`, `replay`, `compatibility`, `legacy`
+**Tags:** `disk`, `readback`, `compatibility`, `legacy`
 
 #### Scenarios
 
-**Legacy report history replays** (`rq-subagentReports09.1`)
+**Legacy report history readbacks** (`rq-subagentReports09.1`)
 
 **Given:**
-- A workflow history contains legacy task-scoped report submissions
+- A change projection history contains legacy task-scoped report submissions
 
-**When:** New workflow code replays the history
+**When:** New change projection code readbacks the history
 
 **Then:**
-- Temporal replay does not fail due to report key shape changes
+- disk readback does not fail due to report key shape changes
 - Legacy task-scoped reports remain queryable
 - New sidecar reports use deterministic scope-aware keys
 
@@ -389,7 +415,7 @@ Sub-agent report persistence MUST preserve Temporal replay safety. Key-shape cha
 
 **ID:** `rq-subagentReports10` | **Priority:** **[MUST]**
 
-Persisted legacy task and sidecar sub-agent reports missing fields added after initial rollout MUST be deterministically normalized at readback, workflow seed, and projection boundaries before strict whole-change parsing. Missing task-scoped scope_drift defaults to null, and missing required_main_agent_actions defaults to an empty array. New adv_subagent_report_submit payload validation remains strict and MUST NOT accept those omissions as valid new ingest.
+Persisted legacy task and sidecar sub-agent reports missing fields added after initial rollout MUST be deterministically normalized at readback, projection seed, and projection boundaries before strict whole-change parsing. Missing task-scoped scope_drift defaults to null, and missing required_main_agent_actions defaults to an empty array. New adv_subagent_report_submit payload validation remains strict and MUST NOT accept those omissions as valid new ingest.
 
 **Tags:** `legacy`, `normalization`, `readback`, `zod`
 
@@ -417,7 +443,7 @@ Persisted legacy task and sidecar sub-agent reports missing fields added after i
 **Then:**
 - The strict report schema rejects the payload as INVALID_REPORT
 - No compatibility normalizer runs on new ingest
-- No workflow signal is fired
+- No disk mutation is fired
 
 ---
 
@@ -836,7 +862,7 @@ New adv-researcher reports MUST include an Architecture Judgement object as dura
 
 **ID:** `rq-subagentReports21` | **Priority:** **[MUST]**
 
-Briefing packets MUST be generated read-only projections derived from persisted sub-agent reports and workflow structured state. Lane identity anchors MUST match SUBAGENT_REPORT_FIELD_SOURCES / getSubagentReportPacketAnchors() for each supported persisted worker or bundle lane. Packet slices MUST be bounded and lane-specific; raw report bodies, raw artifacts, and raw transcripts MUST NOT be dumped into every packet. Missing structured state MUST render explicit unavailable markers or warnings instead of heuristically fabricating correctness-critical fields. Session/tool-read metadata MUST remain audit-only and MUST NOT be persisted as live briefing packet state.
+Briefing packets MUST be generated read-only projections derived from persisted sub-agent reports and structured projection state. Lane identity anchors MUST match SUBAGENT_REPORT_FIELD_SOURCES / getSubagentReportPacketAnchors() for each supported persisted worker or bundle lane. Packet slices MUST be bounded and lane-specific; raw report bodies, raw artifacts, and raw transcripts MUST NOT be dumped into every packet. Missing structured state MUST render explicit unavailable markers or warnings instead of heuristically fabricating correctness-critical fields. Session/tool-read metadata MUST remain audit-only and MUST NOT be persisted as live briefing packet state.
 
 **Tags:** `subagents`, `reports`, `briefing_packets`, `projection`, `anchors`
 
@@ -905,26 +931,26 @@ Briefing packets MUST be generated read-only projections derived from persisted 
 
 **ID:** `rq-subagentReports22` | **Priority:** **[MUST]**
 
-When the owning change workflow is terminal (archived or closed), adv_subagent_report_submit MUST persist the report via a disk-projection fallback rather than failing with SUBMIT_SIGNAL_FAILED. Archived changes write to the archive bundle change.json subagent_reports[] (or task.subagent_reports[] for task-scoped reports); closed changes write to the active changes dir change.json. The persisted report carries a recovery_audit marker distinguishing it from signal-persisted reports. Persistence is idempotent by report key (change_id, scope, agent, attempt). The read path needs no change — terminal projection dominance already routes archived/closed reads through the disk projection. Report consumers (follow_ups, required_follow_ups, design concerns) run after disk persistence because they operate on the persisted report projection and work post-archive. The active-workflow signal path (rq-subagentReports02), readback normalization (rq-subagentReports09, rq-subagentReports10), and Temporal replay safety (rq-subagentReports09) are unchanged.
+When the owning change change projection is terminal (archived or closed), adv_subagent_report_submit MUST persist the report via a disk-projection fallback rather than failing with SUBMIT_PROJECTION_FAILED. Archived changes write to the archive bundle change.json subagent_reports[] (or task.subagent_reports[] for task-scoped reports); closed changes write to the active changes dir change.json. The persisted report carries a recovery_audit marker distinguishing it from mutation-persisted reports. Persistence is idempotent by report key (change_id, scope, agent, attempt). The read path needs no change — terminal projection dominance already routes archived/closed reads through the disk projection. Report consumers (follow_ups, required_follow_ups, design concerns) run after disk persistence because they operate on the persisted report projection and work post-archive. The active-change projection mutation path (rq-subagentReports02), readback normalization (rq-subagentReports09, rq-subagentReports10), and disk readback safety (rq-subagentReports09) are unchanged.
 
-**Tags:** `temporal`, `terminal`, `disk-projection`, `post-archive`, `persistence`
+**Tags:** `disk`, `terminal`, `disk-projection`, `post-archive`, `persistence`
 
 #### Scenarios
 
 **Terminal change report persists via disk projection** (`rq-subagentReports22.1`)
 
 **Given:**
-- A change workflow is terminal (archived or closed)
+- A change change projection is terminal (archived or closed)
 
 **When:** adv_subagent_report_submit is called with a valid report
 
 **Then:**
 - The report persists to the terminal disk projection subagent_reports[] (archive bundle change.json for archived; active changes dir for closed)
 - The report carries a recovery_audit marker with persisted_via indicating the projection type
-- The tool returns success (not SUBMIT_SIGNAL_FAILED)
-- The signal path is not invoked
+- The tool returns success (not SUBMIT_PROJECTION_FAILED)
+- The mutation path is not invoked
 
-**Post-archive report is queryable without a live workflow** (`rq-subagentReports22.2`)
+**Post-archive report is queryable without a live change projection** (`rq-subagentReports22.2`)
 
 **Given:**
 - A report was persisted via the disk-projection fallback
@@ -933,7 +959,7 @@ When the owning change workflow is terminal (archived or closed), adv_subagent_r
 
 **Then:**
 - The report appears in _subagentReports
-- The read succeeds without a live/running workflow for the change
+- The read succeeds without a live/running change projection for the change
 - The report is loaded from the terminal disk projection
 
 **Post-archive re-submit is idempotent** (`rq-subagentReports22.3`)
@@ -959,40 +985,40 @@ When the owning change workflow is terminal (archived or closed), adv_subagent_r
 - required_follow_ups are retained as required-obligation report metadata
 - The early-return that previously blocked consumers is replaced by the disk-projection path
 
-**Active workflow signal path unchanged** (`rq-subagentReports22.5`)
+**Active change projection mutation path unchanged** (`rq-subagentReports22.5`)
 
 **Given:**
-- A change workflow is active (draft, pending, or active)
+- A change change projection is active (draft, pending, or active)
 
 **When:** adv_subagent_report_submit is called
 
 **Then:**
-- The signal path (subagentReportSubmittedSignal) is used as before
+- The mutation path (subagentReportSubmittedMutation) is used as before
 - No disk-projection fallback is triggered
-- A defensive catch routes authorized completed-workflow race errors to the fallback
+- A defensive catch routes authorized completed-change projection race errors to the fallback
 
-**Non-terminal WorkflowNotFound recovery is authorized** (`rq-subagentReports22.6`)
+**Non-terminal Change projectionNotFound recovery is authorized** (`rq-subagentReports22.6`)
 
 **Given:**
-- A change workflow is active (not archived/closed) but the signal fails with a completed-workflow error
+- A change change projection is active (not archived/closed) but the mutation fails with a completed-change projection error
 
-**When:** adv_subagent_report_submit catches the signal failure
+**When:** adv_subagent_report_submit catches the mutation failure
 
 **Then:**
-- The structural completed-workflow classifier (isWorkflowCompletedError) authorizes the disk-projection fallback
+- The structural completed-change projection classifier (isChange projectionCompletedError) authorizes the disk-projection fallback
 - One deduplicated, authorized disk projection is written via saveRecoveredSubagentReport
-- The tool returns success and does not re-signal the unreachable workflow
+- The tool returns success and does not re-mutation the unreachable change projection
 
-**Non-terminal signal failure without completed-workflow evidence returns typed failure** (`rq-subagentReports22.7`)
+**Non-terminal mutation failure without completed-change projection evidence returns typed failure** (`rq-subagentReports22.7`)
 
 **Given:**
-- A change workflow is active and the signal fails with an error that is NOT a completed-workflow error (e.g. transient timeout, or a benign message containing 'WorkflowNotFound' as a substring)
+- A change change projection is active and the mutation fails with an error that is NOT a completed-change projection error (e.g. transient timeout, or a benign message containing 'Change projectionNotFound' as a substring)
 
-**When:** adv_subagent_report_submit catches the signal failure
+**When:** adv_subagent_report_submit catches the mutation failure
 
 **Then:**
 - No disk-projection fallback is triggered
-- The tool returns SUBMIT_SIGNAL_FAILED with a failureRecord when task identity is available
+- The tool returns SUBMIT_PROJECTION_FAILED with a failureRecord when task identity is available
 - The transient error path is unchanged
 
 ---
@@ -1076,8 +1102,8 @@ For adv-researcher reports whose scope.scope_key starts with researcher:design-v
 
 **Then:**
 - The handler rejects the report with INVALID_REPORT and details.unknownContractIds listing exactly the unknown ids
-- No fireSignalAndRefresh call is made
-- No workflow state (task error_recovery, change state) is mutated
+- No disk mutation is made
+- No projection state (task error_recovery, change state) is mutated
 
 **validation.status fail remains advisory-only and never auto-blocks gates** (`rq-subagentReports24.3`)
 

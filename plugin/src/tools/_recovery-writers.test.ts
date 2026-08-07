@@ -528,7 +528,7 @@ describe("recovery writers via conditional projection commit", () => {
       expect(() => ChangeSchema.parse(disk)).not.toThrow();
     });
 
-    it("stores a clean signal payload in projection_commits for re-delivery", async () => {
+    it("stores recovery authority reason and evidence in projection_commits", async () => {
       const change = changeWithContract();
       await seedProjection(changesDir, change);
 
@@ -561,8 +561,11 @@ describe("recovery writers via conditional projection commit", () => {
       const commit = disk.projection_commits?.[0];
       expect(commit).toBeDefined();
       expect(commit.authority_kind).toBe("recovery");
-      expect(commit.payload.reviewMatrix).toEqual(reviewMatrix);
-      expect(commit.payload.reviewMatrix.recovery_audit).toBeUndefined();
+      expect(commit.authority_reason).toBe(
+        "poisoned_history_contract_review_matrix_recovery",
+      );
+      expect(commit.authority_evidence).toBe("TMPRL1100");
+      expect(commit.payload).toBeUndefined();
     });
 
     it("requires recovery authorization", async () => {

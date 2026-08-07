@@ -137,13 +137,6 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
     rationale:
       "RED/GREEN test seeds a durable delta-add projection directly via raw saveChange to prove the disk shard is written before the workflow ledger is consulted.",
   },
-  {
-    file: "plugin/src/storage/worker-bundle.archive-roundtrip.test.ts",
-    context: null,
-    category: "test_raw_primitive",
-    rationale:
-      "Disk round-trip test seeds a worker-bundle change directly via raw saveChange to verify persisted provenance and passing runs reach archive preflight.",
-  },
 ];
 
 export interface SaveChangeCallSite {

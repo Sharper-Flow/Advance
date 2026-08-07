@@ -23,16 +23,13 @@ import { isAbsolute, resolve } from "path";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
-import type { ErrorRecovery, ScopedSubagentReport } from "../types";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import type { Change, ErrorRecovery, ScopedSubagentReport } from "../types";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   targetPathSchema,
   withTargetPathStore,
   appendTargetProjectContextOutput,
 } from "./target-project";
-import { taskCompletedSignal, taskUpdatedSignal } from "../temporal/messages";
 import { readChangeProjectionState } from "../storage/read-change-projection";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 import { dismissAllSuggestedDrafts } from "../utils/wisdom-draft";
@@ -404,21 +401,6 @@ function subagentReportBelongsToTask(
   return "task_id" in report && report.task_id === taskId;
 }
 
-async function getHandleForChangeId(
-  store: Store,
-  changeId: string,
-): Promise<ReturnType<typeof getChangeHandle>> {
-  const bundle = getService();
-  if (!bundle) {
-    throw new Error("Temporal service not available");
-  }
-  const projectId = await getProjectId(store.paths.root);
-  if (!projectId) {
-    throw new Error("Could not resolve project ID");
-  }
-  return getChangeHandle(bundle, projectId, changeId);
-}
-
 async function fireTaskCompletedFromCheckpoint(
   store: Store,
   taskId: string,
@@ -435,7 +417,6 @@ async function fireTaskCompletedFromCheckpoint(
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
     }
-    const handle = await getHandleForChangeId(store, changeId);
     const structuredOutput = (await taskHasPersistedSubagentReports(
       store,
       taskId,
@@ -443,20 +424,60 @@ async function fireTaskCompletedFromCheckpoint(
       ? null
       : extractStructuredOutput(verification);
 
-    // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
-    // changeCache is invalidated after the signal fires — without this,
-    // the very next adv_change_show / adv_change_archive read returns
-    // stale state with the task still pending.
-    await fireSignalAndRefresh(handle, store, changeId, taskCompletedSignal, {
-      taskId,
-      verification,
-      summary: "Task checkpoint completed",
-      filesTouched: touchedFiles,
-      checkpointSha: sha,
-      completedAt: new Date().toISOString(),
-      ...(structuredOutput && { structured_output: structuredOutput }),
+    const completedAt = new Date().toISOString();
+    const outcome = await coordinateChangeMutation<Change>({
+      authority: {
+        reason: "record task checkpoint completion",
+        evidence: `${sha}:${verification}`,
+      },
+      changesDir: store.paths.changes,
+      intent: {
+        changeId,
+        mutationKind: "task_checkpoint_completed",
+        mutateLatestProjection: (latest) => ({
+          ...latest,
+          tasks: latest.tasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  status: "done" as const,
+                  verification,
+                  summary: verification,
+                  completed_at: completedAt,
+                  completedAt,
+                  checkpointSha: sha,
+                  filesTouched: touchedFiles,
+                  ...(structuredOutput && {
+                    structured_output: structuredOutput,
+                  }),
+                }
+              : task,
+          ),
+        }),
+        verifyProjection: (readback) => {
+          const task = readback.tasks.find(
+            (candidate) => candidate.id === taskId,
+          );
+          return (
+            task?.status === "done" &&
+            task.verification === verification &&
+            task.checkpointSha === sha &&
+            JSON.stringify(task.filesTouched ?? []) ===
+              JSON.stringify(touchedFiles)
+          );
+        },
+      },
     });
-
+    if (outcome.kind !== "verified") {
+      return {
+        recorded: false,
+        error:
+          outcome.kind === "unverified" || outcome.kind === "operator_required"
+            ? outcome.reason
+            : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
     const projectedState = readChangeProjectionState(
       store.paths.changes,
       changeId,
@@ -467,7 +488,7 @@ async function fireTaskCompletedFromCheckpoint(
     if (!recordedTask) {
       return {
         recorded: false,
-        error: `Task ${taskId} was not readable after checkpoint completion signal`,
+        error: `Task ${taskId} was not readable after checkpoint completion`,
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
     }
@@ -495,12 +516,32 @@ async function fireTaskCompletedFromCheckpoint(
       );
       draftsPendingReview = result.pendingReviewCount;
       if (result.dismissedCount > 0) {
-        await fireSignalAndRefresh(handle, store, changeId, taskUpdatedSignal, {
-          taskId,
-          partial: { wisdom_drafts: result.drafts },
-          updatedAt: new Date().toISOString(),
+        const dismissal = await coordinateChangeMutation<Change>({
+          authority: {
+            reason: "dismiss checkpoint-reviewed wisdom drafts",
+            evidence: taskId,
+          },
+          changesDir: store.paths.changes,
+          intent: {
+            changeId,
+            mutationKind: "checkpoint_draft_dismissal",
+            mutateLatestProjection: (latest) => ({
+              ...latest,
+              tasks: latest.tasks.map((task) =>
+                task.id === taskId
+                  ? { ...task, wisdom_drafts: result.drafts }
+                  : task,
+              ),
+            }),
+            verifyProjection: (readback) =>
+              JSON.stringify(
+                readback.tasks.find((task) => task.id === taskId)
+                  ?.wisdom_drafts ?? [],
+              ) === JSON.stringify(result.drafts),
+          },
         });
-        draftsAutoDismissed = result.dismissedCount;
+        if (dismissal.kind === "verified")
+          draftsAutoDismissed = result.dismissedCount;
       }
     } catch {
       // Draft auto-dismiss is best-effort; counts remain 0 on failure.
@@ -519,7 +560,7 @@ async function fireTaskCompletedFromCheckpoint(
         recorded: false,
         error:
           specificError ??
-          `Task ${taskId} status is ${recordedTask.status ?? "unknown"} after checkpoint completion signal`,
+          `Task ${taskId} status is ${recordedTask.status ?? "unknown"} after checkpoint completion`,
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
     }
@@ -564,7 +605,7 @@ async function fireTaskCompletedFromCheckpoint(
     };
   } catch (err) {
     if (ADV_DEBUG) {
-      console.warn("[checkpoint] taskCompletedSignal fire failed:", err);
+      console.warn("[checkpoint] task checkpoint mutation failed:", err);
     }
     return {
       recorded: false,
@@ -1059,7 +1100,7 @@ export const checkpointTools = {
           {
             currentProjectPath: store.paths.root,
             target_path: args.target_path,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
           },

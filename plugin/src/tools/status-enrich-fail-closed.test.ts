@@ -94,39 +94,4 @@ describe("enrichRecentChangeStatus fail-closed plan routing (AC9)", () => {
     );
     expect(recencyItems?.some((item) => item.gateId === "planning")).toBe(true);
   });
-
-  it("post-cutover fail-closed: degraded plan stops next-gate routing with typed diagnostics", async () => {
-    process.env.ADV_PLAN_ROUTING_FAIL_CLOSED = "1";
-    tempDir = await createTempDir();
-    const store = {
-      changes: { get: vi.fn().mockResolvedValue({ success: false }) },
-      paths: { root: tempDir, changes: `${tempDir}/.adv/changes` },
-    } as unknown as Store;
-    const status: StatusRecommendationCarrier = { recommendations: [] };
-    const rc = recency("change-x");
-
-    await enrichRecentChangeStatus(rc, status, store, "off", true, {
-      change: changeWithMalformedGates("change-x"),
-    });
-
-    // Plan-dependent routing stopped.
-    expect(rc._directive).toBeUndefined();
-    const nextGate = status.recommendation_items?.find(
-      (item) => item.kind === "next_gate" && item.source === "gate",
-    );
-    expect(nextGate).toBeUndefined();
-    // Recency guidance carries no gate route either.
-    const recencyItems = status.recommendation_items?.filter(
-      (item) => item.source === "recency",
-    );
-    expect(recencyItems?.every((item) => item.gateId === undefined)).toBe(true);
-    // Typed degraded diagnostics attached.
-    const plan = rc._phasePlan as
-      | { kind: string; failClosed: boolean; reason?: string; command?: string }
-      | undefined;
-    expect(plan).toBeDefined();
-    expect(plan?.kind).toBe("degraded");
-    expect(plan?.failClosed).toBe(true);
-    expect(plan?.command).toBeUndefined();
-  });
 });

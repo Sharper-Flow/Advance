@@ -1,36 +1,27 @@
 /**
  * Per-tool runtime degradation wrapper (KD3).
  *
- * Detects Temporal/host-probe unavailability at call time and returns
- * class-aware degraded response shapes for Tier-4 MCP read tools. This is the
- * runtime complement to the static KD10 classification table in
- * `tools/index.ts`: classifications decide *which* degradation path a tool
- * takes, and this module decides *when* to take it by probing actual runtime
- * state per call.
+ * Detects host-probe unavailability at call time and returns class-aware
+ * degraded response shapes for Tier-4 MCP read tools. This is the runtime
+ * complement to the static classification table in `tools/index.ts`.
  *
  * Design invariants (DDC6 determinism):
- *   - Same input + same Temporal state → same response.
+ *   - Same input + same host-probe state → same response.
  *   - No tool silently returns stale data without tagging.
  *   - Degraded envelopes are additive JSON objects; they never rewrite binary
  *     or non-JSON tool output (that shape is reported and skipped).
  */
 
 import type { Tier4ToolName, ToolClassification } from "./tools/index.js";
-import { TemporalOperationsOwner } from "../temporal/operations.js";
-import { makeTemporalLifecycleContext } from "../temporal/operations.js";
 
 export interface DegradationOptions {
-  /** Override Temporal reachability probe. */
-  temporalReachable?: () => Promise<boolean>;
   /** Override host-probe availability probe. */
   hostProbesAvailable?: () => Promise<boolean>;
 }
 
-const TEMPORAL_REACHABILITY_TIMEOUT_MS = 2_000;
-
 /**
  * Host-probe fields surfaced by `adv_status` whose data originates from host
- * probes (Temporal reachability, worker process lock, session-debt scan, etc.).
+ * probes (worker process lock, session-debt scan, etc.).
  * When host probes are unavailable, these fields are tagged with
  * `{ degraded: true, source: "host_probe_unavailable_in_mcp" }`.
  */
@@ -46,33 +37,6 @@ export const HOST_PROBE_FIELDS: readonly string[] = [
   "peer_sessions",
   "worktree_census",
 ];
-
-const TEMPORAL_REACHABILITY_PROBE_PROJECT_ID =
-  "0000000000000000000000000000000000000000";
-
-/**
- * Probe whether the configured Temporal server is reachable right now.
- * Returns `false` on any connection or timeout error.
- */
-export async function isTemporalReachable(): Promise<boolean> {
-  let owner: TemporalOperationsOwner | undefined;
-  try {
-    owner = await TemporalOperationsOwner.fromEnv(
-      TEMPORAL_REACHABILITY_PROBE_PROJECT_ID,
-    );
-    return await owner.isReachable(
-      makeTemporalLifecycleContext(
-        TEMPORAL_REACHABILITY_PROBE_PROJECT_ID,
-        "isTemporalReachable",
-        TEMPORAL_REACHABILITY_TIMEOUT_MS,
-      ),
-    );
-  } catch {
-    return false;
-  } finally {
-    await owner?.close();
-  }
-}
 
 /**
  * Probe whether representative host-side diagnostics are available right now.
@@ -150,36 +114,7 @@ export function wrapTier4Tool(
   options: DegradationOptions = {},
 ): (args: Record<string, unknown>) => Promise<string> {
   return async (args) => {
-    const needsTemporal =
-      classifications.includes("needs-temporal") ||
-      classifications.includes("needs-temporal-diagnostics");
     const needsHostProbe = classifications.includes("needs-host-probe");
-
-    if (needsTemporal) {
-      const reachable = await (options.temporalReachable?.() ??
-        isTemporalReachable());
-      if (!reachable) {
-        const raw = await execute(args);
-        const payload = tryParseJson(raw);
-        if (payload === undefined) {
-          // Non-JSON tool output cannot safely accommodate the degraded
-          // envelope. STOP_WHEN: report and skip with rationale.
-          return JSON.stringify({
-            error: "DEGRADED_NON_JSON_OUTPUT",
-            tool: toolName,
-            degraded: true,
-            source: "disk_projection",
-            text: raw,
-          });
-        }
-        return JSON.stringify({
-          ...payload,
-          degraded: true,
-          source: "disk_projection",
-          tool: toolName,
-        });
-      }
-    }
 
     const raw = await execute(args);
 

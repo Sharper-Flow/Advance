@@ -109,12 +109,13 @@ describe("AC10 — bin/adv adapters are connected to resume projection", () => {
     expect(content).toContain("../../plugin/src/cli/projection-boundary");
   });
 
-  test("bin/lib/resume-projection-live.ts loads Temporal state and calls buildBinResumeProjection", () => {
+  test("bin/lib/resume-projection-live.ts loads disk projections and calls buildBinResumeProjection", () => {
     const content = readFile(BIN_RESUME_PROJECTION_LIVE);
     expect(content).toContain("export async function loadLiveResumeProjection");
     expect(content).toContain("buildBinResumeProjection(");
-    expect(content).toContain("CHANGE_WORKFLOW_QUERY_NAMES.getState");
-    expect(content).toContain("EPIC_WORKFLOW_QUERY_NAMES.getState");
+    expect(content).toContain("loadResumeProjectionFromDisk");
+    expect(content).toContain("resolveAdvStateSubdir");
+    expect(content).not.toMatch(/temporal|workflow/i);
   });
 
   test("bin/adv status wires loadLiveResumeProjection into payload", () => {
@@ -162,15 +163,10 @@ describe("AC11 — next_entry_id authority boundary", () => {
     expect(content).not.toContain("next_entry_id");
   });
 
-  test("workflow code does not import projection kernel", () => {
-    const workflowFiles = [
-      "plugin/src/temporal/workflows.ts",
-      "plugin/src/temporal/epic-state.ts",
-    ];
-    for (const file of workflowFiles) {
-      const content = readFile(join(REPO_ROOT, file));
-      expect(content).not.toContain("projection/resume-projection");
-    }
+  test("disk resume loader does not import projection kernel through Temporal", () => {
+    const content = readFile(BIN_RESUME_PROJECTION_LIVE);
+    expect(content).not.toMatch(/from ["'].*temporal\//);
+    expect(content).not.toContain("getState");
   });
 
   test("Epic progress summary next_entry_id is advisory (schema nullable)", () => {

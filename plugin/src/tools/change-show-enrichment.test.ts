@@ -6,14 +6,9 @@
  * Temporal workflow queries, signals, or disk writes on the read path.
  */
 
-import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import type { Store } from "../storage/store";
 import type { Change } from "../types";
-
-let readContextBudgetMs = 2_000;
-function setReadContextBudgetMs(ms: number) {
-  readContextBudgetMs = ms;
-}
 
 const mocks = vi.hoisted(() => {
   return {
@@ -26,41 +21,6 @@ const mocks = vi.hoisted(() => {
     getProjectId: vi.fn(async () => "test-project-id"),
     validateCrossRepoTarget: vi.fn(async () => ({ ok: true }) as const),
     runClarifyReadinessChecks: vi.fn(() => ({ findings: [] })),
-  };
-});
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return {
-    ...actual,
-    getProjectId: mocks.getProjectId,
-  };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignal: mocks.fireSignal,
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-  waitForGateCompletion: mocks.waitForGateCompletion,
-}));
-
-vi.mock("../storage/store-temporal/read-context", async () => {
-  const actual = await vi.importActual<
-    typeof import("../storage/store-temporal/read-context")
-  >("../storage/store-temporal/read-context");
-  return {
-    ...actual,
-    // Use a short aggregate budget in tests so deadline degradation is
-    // deterministic without waiting the full 8 seconds.
-    createTemporalReadContext: (budgetMs?: number) =>
-      actual.createTemporalReadContext(budgetMs ?? readContextBudgetMs),
   };
 });
 
@@ -95,10 +55,6 @@ vi.mock("../storage/store-disk", () => ({
     };
     return store;
   }),
-}));
-
-vi.mock("../temporal/activities", () => ({
-  validateCrossRepoTarget: mocks.validateCrossRepoTarget,
 }));
 
 import { changeTools } from "./change";
@@ -262,101 +218,6 @@ describe("adv_change_show enrichment best-effort integration", () => {
       ],
     });
     expect(store.changes.save).not.toHaveBeenCalled();
-    assertNoWorkflowCalls(store);
-  });
-});
-
-describe("adv_change_show shared aggregate deadline", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    setReadContextBudgetMs(2_000);
-    mocks.runClarifyReadinessChecks.mockReturnValue({ findings: [] });
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    setReadContextBudgetMs(2_000);
-  });
-
-  test("skips optional subreads once the aggregate deadline expires and surfaces degraded hydrationStats", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
-
-    const store = createMockStore();
-    store.gates.get = vi.fn(async () => new Promise(() => {}));
-    store.tasks.ready = vi.fn(async () => new Promise(() => {}));
-
-    const executePromise = changeTools.adv_change_show.execute(
-      {
-        changeId: "test-change",
-        include: {
-          snapshot: true,
-          phasePlan: true,
-          readyTasks: true,
-        },
-      },
-      store,
-    );
-
-    await vi.advanceTimersByTimeAsync(2_500);
-    const result = await executePromise;
-    const parsed = JSON.parse(result);
-
-    expect(parsed.id).toBe("test-change");
-    expect(parsed.title).toBe("Test Change");
-    expect(parsed.hydrationStats?.deadlineExceeded).toBe(true);
-    expect(parsed.hydrationStats?.omitted).toBeGreaterThanOrEqual(1);
-    expect(parsed.hydrationStats?.omittedIds?.length).toBeGreaterThanOrEqual(1);
-    assertNoWorkflowCalls(store);
-  });
-
-  test("stays complete when all subreads resolve within the aggregate deadline", async () => {
-    const store = createMockStore();
-    const result = await changeTools.adv_change_show.execute(
-      { changeId: "test-change" },
-      store,
-    );
-    const parsed = JSON.parse(result);
-
-    expect(parsed.id).toBe("test-change");
-    expect(parsed.title).toBe("Test Change");
-    expect(parsed.hydrationStats).toBeUndefined();
-    assertNoWorkflowCalls(store);
-  });
-
-  test("completes within production 8s budget when subreads wedge", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
-    setReadContextBudgetMs(8_000);
-
-    const store = createMockStore();
-    store.gates.get = vi.fn(async () => new Promise(() => {}));
-    store.tasks.ready = vi.fn(async () => new Promise(() => {}));
-
-    const start = Date.now();
-    const executePromise = changeTools.adv_change_show.execute(
-      {
-        changeId: "test-change",
-        include: {
-          snapshot: true,
-          phasePlan: true,
-          readyTasks: true,
-        },
-      },
-      store,
-    );
-
-    await vi.advanceTimersByTimeAsync(8_500);
-    const result = await executePromise;
-    const elapsed = Date.now() - start;
-    const parsed = JSON.parse(result);
-
-    expect(elapsed).toBeLessThan(10_000);
-    expect(parsed.id).toBe("test-change");
-    expect(parsed.title).toBe("Test Change");
-    expect(parsed.hydrationStats?.deadlineExceeded).toBe(true);
-    expect(parsed.hydrationStats?.omitted).toBeGreaterThanOrEqual(1);
-    expect(parsed.hydrationStats?.omittedIds?.length).toBeGreaterThanOrEqual(1);
     assertNoWorkflowCalls(store);
   });
 });

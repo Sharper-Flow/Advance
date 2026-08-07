@@ -32,42 +32,6 @@ export {
   type ContractEvidencePolicy,
 } from "./evidence-policy";
 
-export const WorkerBundleImpactSchema = z.object({
-  kind: z.enum(["required", "not_applicable"]),
-  rationale: z.string().optional(),
-  confirmed_at: z.string().optional(),
-});
-
-export type WorkerBundleImpact = z.infer<typeof WorkerBundleImpactSchema>;
-
-/**
- * Worker-bundle release-provenance receipt recorded by
- * `workerBundleProvenanceRecordedSignal` and read by the release-readiness
- * evaluator (`temporal/gate-readiness.ts`).
- *
- * Mirrors the stored declaration on `ChangeWorkflowState`
- * (`temporal/contracts.ts`), which uses plain `string` / `number`. Format
- * validation of `recorded_at` belongs to the signal boundary
- * (`types/signals.ts` applies `IsoTimestampSchema`); repeating it here could
- * reject state the workflow already accepted.
- *
- * Declared rather than left to `ChangeSchema.passthrough()` because
- * `TEMPORAL_OWNED_PROJECTION_FIELDS` (`storage/store-temporal/shared.ts`) is
- * constrained to `keyof Change` and cannot project a field the type does not
- * declare.
- */
-export const WorkerBundleProvenanceSchema = z.object({
-  source_sha: z.string(),
-  build_run_id: z.string(),
-  replay_run_id: z.string(),
-  worker_manifest_generation: z.number().optional(),
-  recorded_at: z.string(),
-});
-
-export type WorkerBundleProvenance = z.infer<
-  typeof WorkerBundleProvenanceSchema
->;
-
 // =============================================================================
 // Coordination Claims
 // =============================================================================
@@ -1089,8 +1053,8 @@ export type ChangeContract = z.infer<typeof ChangeContractSchema>;
  * `kind` semantics (see ADV_INSTRUCTIONS.md § Change Origin Linkage Strategy):
  *   - `roadmap`   — READABLE LEGACY ONLY. Historically promoted from a
  *                   GitHub Project item; new writes rejected by
- *                   `adv_change_create` / `adv_change_repair_origin`
- *                   (retired by `reshapeTriagePortfolioBalance`).
+ *                   `adv_change_create` (retired by
+ *                   `reshapeTriagePortfolioBalance`).
  *                   Archived changes still carry this kind for read compat.
  *   - `discovery` — surfaced mid-session (bug found, drive-by improvement);
  *                   may carry source_artifact, never issue_number
@@ -1184,6 +1148,7 @@ export const SignalRejectionSchema = z.object({
   payloadDigest: SignalPayloadDigestSchema,
   rejectedAt: z.string(),
 });
+export type SignalRejection = z.infer<typeof SignalRejectionSchema>;
 
 /**
  * Read-model mirror of the workflow's bounded `state.testRuns[taskId][]`
@@ -1201,12 +1166,10 @@ export const TestRunRecordSchema = z.object({
     .array(z.object({ pattern: z.string(), count: z.number() }))
     .optional(),
   behaviorSurface: z.enum(["small", "medium", "large"]).optional(),
-  /** Typed release-provenance evidence classification. */
-  evidence_kind: z
-    .enum(["build_worker", "replay_determinism", "unit", "other"])
-    .optional(),
+  evidence_kind: z.enum(["unit", "other"]).optional(),
   recordedAt: z.string(),
 });
+export type TestRunRecord = z.infer<typeof TestRunRecordSchema>;
 
 /**
  * Bounded audit entry for a storage-owned conditional projection commit.
@@ -1217,7 +1180,24 @@ export const TestRunRecordSchema = z.object({
  */
 export const ProjectionCommitAuditEntrySchema = z.object({
   mutation_kind: z.string().min(1),
-  authority_kind: z.enum(["temporal", "recovery"]),
+  /**
+   * Why the commit was authorized.
+   *
+   * `mutation` (ordinary write) and `recovery` (repair) are the only values
+   * that can be written. `temporal` is retained as a read-only legacy value:
+   * archived changes committed before Temporal was removed carry it, and
+   * dropping it from the enum would make their `projection_commits`
+   * unreadable.
+   */
+  authority_kind: z.enum(["mutation", "recovery", "temporal"]),
+  authority_reason: z.string().optional(),
+  authority_evidence: z.string().optional(),
+  /**
+   * Legacy read-only fields. `mutation_receipt_id` was written by the
+   * Temporal authority; `recovery_reason` / `recovery_evidence` were the
+   * pre-rename spelling of `authority_reason` / `authority_evidence`. Kept
+   * optional so archived commits still parse.
+   */
   mutation_receipt_id: z.string().optional(),
   recovery_reason: z.string().optional(),
   recovery_evidence: z.string().optional(),
@@ -1289,8 +1269,8 @@ export const ChangeSchema = z
      * Workflow document content — authoritative source for the six change
      * artifacts (proposal, problemStatement, agreement, design,
      * executiveSummary, acceptance). Populated by content signals into
-     * `state.documents`. Used by `readArtifact` for Temporal-first reads and
-     * by `materializeBundleArtifactsActivity` for archive bundle writes.
+     * `state.documents`. Used by `readArtifact` for disk reads and by
+     * `materializeBundleArtifacts` for archive bundle writes.
      *
      * Additive optional fields — Temporal replay-safe.
      */
@@ -1489,14 +1469,6 @@ export const ChangeSchema = z
      * compatible; absence means no release notes have been authored yet.
      */
     release_notes: ReleaseNotesContentSchema.optional(),
-
-    /**
-     * Worker-bundle impact classification for release-readiness gating.
-     * Optional additive/backward-compatible; "required" means this change
-     * affects the Temporal worker bundle and needs provenance before release.
-     */
-    worker_bundle_impact: WorkerBundleImpactSchema.optional(),
-    workerBundleProvenance: WorkerBundleProvenanceSchema.optional(),
 
     /**
      * rq-creationRequestHash01 (tk-74c358188ffb, design D2 / AC4 / AC11):

@@ -1,565 +1,107 @@
 /**
- * Typed change mutation/recovery coordinator.
+ * Typed disk change-mutation coordinator.
  *
- * One authority/outcome seam for all ADV mutation families.
- *
- *   resolve authority
- *   → apply typed intent
- *   → persist through Temporal (healthy) or commitChangeProjection (recovery)
- *   → read back from the same authority
- *   → verify mutation-specific postcondition
- *   → return typed outcome
- *
- * Tools construct intents and render outcomes; they do not reimplement
- * probe/signal/recovery branching per mutation family.
+ * The disk projection is the only mutation authority. Every mutation is
+ * applied to the latest projection under the storage-owned per-change lock,
+ * then verified from the durable readback before the result is returned.
  */
 
-import {
-  isPoisonedHistoryError,
-  recoveryReasonFromError,
-  type RecoveryReason,
-} from "../temporal/recovery-classification";
-// poisonedDescriptionEvidence import removed — Temporal bypass
-import { waitForQueryPredicate } from "../utils/query-predicate";
-import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import {
   commitChangeProjection,
   type ProjectionCommitOutcome,
   type ProjectionCommitVerifyResult,
 } from "../storage/change-projection-transaction";
 import type { Change, ProjectionCommitAuditEntry } from "../types";
-import type {
-  TemporalOperations,
-  TemporalWorkflowHandle,
-} from "../temporal/operations";
 
-export type { RecoveryReason };
-
-export interface RecoveryEvidence {
-  reason: RecoveryReason;
+export interface DiskMutationAuthorization {
+  /**
+   * Whether this is an ordinary write or a repair. Defaults to `mutation`;
+   * only the recovery writers pass `recovery`, so the projection audit trail
+   * can still tell the two apart.
+   */
+  kind?: "mutation" | "recovery";
+  reason: string;
   evidence: string;
 }
 
-/**
- * Query-only workflow handle proxy. The narrowest surface needed for
- * polling helpers; full signal/describe operations still require the owner-bound
- * proxy so they cannot be issued without the owning TemporalOperations.
- */
-export interface TemporalWorkflowHandleQueryProxy {
-  readonly workflowId: string;
-  query<T>(definition: unknown, ...args: unknown[]): Promise<T>;
-}
-
-/**
- * Owner-bound workflow handle proxy. The only production-safe way to perform
- * query/signal/describe on a workflow: the owner stays the single RPC authority,
- * and the handle is the opaque workflow reference.
- */
-export interface TemporalWorkflowHandleProxy extends TemporalWorkflowHandleQueryProxy {
-  readonly owner: TemporalOperations;
-  readonly handle: TemporalWorkflowHandle;
-  readonly projectId: string;
-  signal(definition: unknown, ...args: unknown[]): Promise<void>;
-  describe(): Promise<unknown>;
-  terminate(reason?: string): Promise<void>;
-  cancel(): Promise<void>;
-}
-
-export type ChangeAuthority =
-  | {
-      kind: "temporal_live";
-      handle: TemporalWorkflowHandleProxy;
-      changeId: string;
-    }
-  | { kind: "workflow_completed"; evidence: RecoveryEvidence }
-  | { kind: "workflow_missing"; evidence: RecoveryEvidence }
-  | { kind: "workflow_poisoned"; evidence: RecoveryEvidence }
-  | { kind: "operator_required"; reason: string };
-
 export type MutationOutcome<T> =
-  | { kind: "applied_temporal"; value: T; mutationReceiptId: string }
   | {
-      kind: "recovered_verified";
-      value: Change;
+      kind: "verified";
+      value: T;
       revision: number;
-      recoveryAudit: ProjectionCommitAuditEntry;
+      audit: ProjectionCommitAuditEntry;
     }
   | {
-      kind: "recovered_unverified";
+      kind: "unverified";
       reason: string;
-      recoveryAudit: ProjectionCommitAuditEntry;
+      audit: ProjectionCommitAuditEntry;
     }
   | { kind: "stale_revision"; expected: number; actual: number }
   | { kind: "operator_required"; reason: string };
 
-export interface MutationIntent<T> {
+export interface MutationIntent {
   changeId: string;
   mutationKind: string;
-  /**
-   * Send the typed signal to a live workflow. The coordinator supplies a
-   * mutation receipt id and the full signal payload; callers must use both.
-   */
-  sendSignal: (
-    handle: TemporalWorkflowHandleProxy,
-    payload: Record<string, unknown>,
-  ) => Promise<void>;
-  /** Refresh authoritative state from Temporal after the signal is applied. */
-  refresh: (handle: TemporalWorkflowHandleProxy) => Promise<T>;
-  /** Verify the intended postcondition against the refreshed Temporal state. */
-  verifyTemporal: (value: T) => ProjectionCommitVerifyResult;
-  /**
-   * Optional full signal payload generator. When provided, the coordinator
-   * records it in the projection commit audit for recovery authority commits
-   * so the mutation can be re-delivered to a reachable workflow.
-   */
-  payload?: (mutationReceiptId: string) => Record<string, unknown>;
-  /**
-   * Apply the field-local mutation to the latest disk projection read inside
-   * the commit transaction. Callers must derive the result from `latest`.
-   */
+  /** Apply the field-local mutation to the latest locked projection. */
   mutateLatestProjection: (latest: Change) => Change;
-  /**
-   * Optional recovery-only projection mutation. When provided, executeRecoveryPath
-   * uses this instead of `mutateLatestProjection` so callers can stamp recovery
-   * audit markers that must never be written by the healthy Temporal signal path.
-   */
-  recoveryMutateLatestProjection?: (latest: Change) => Change;
-  /**
-   * Verify the intended postcondition against the committed projection readback.
-   */
+  /** Verify the intended postcondition against the durable readback. */
   verifyProjection: (readback: Change) => ProjectionCommitVerifyResult;
 }
 
-export type WorkflowFailureKind =
-  | "poisoned_history"
-  | "workflow_completed"
-  | "workflow_missing"
-  | "workflow_unresponsive"
-  | "query_failed"
-  | "unknown";
-
-export interface WorkflowFailure {
-  kind: WorkflowFailureKind;
-  evidence: string;
-}
-
-const MAX_EVIDENCE_CHARS = 500;
-
-function safeSummarize(error: unknown): string {
-  if (error === null || error === undefined) return "unknown error";
-  if (error instanceof Error) {
-    const name = error.name ?? "";
-    const msg = error.message ?? "";
-    const text =
-      name && msg ? `${name}: ${msg}` : msg || name || "unknown error";
-    return truncateEvidence(text);
-  }
-  const text = typeof error === "string" ? error : safeStringify(error);
-  return truncateEvidence(text);
-}
-
-function safeStringify(value: unknown): string {
-  if (typeof value === "string") return value;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function truncateEvidence(text: string): string {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (normalized.length <= MAX_EVIDENCE_CHARS) return normalized;
-  return `${normalized.slice(0, MAX_EVIDENCE_CHARS - 1)}…`;
-}
-
-// Legacy message phrasings for completed/absent workflows. These are checked
-// only after SDK error names/types fail to classify (D7).
-const COMPLETED_WORKFLOW_MESSAGE_RE =
-  /workflow execution already completed|already completed|workflow is not running|cannot signal a completed/i;
-const MISSING_WORKFLOW_MESSAGE_RE =
-  /workflow not found for ID|workflow execution not found|workflow not found/i;
-const QUERY_TIMEOUT_MESSAGE_RE = /temporal operation exceeded \d+ms timeout/i;
-
-/**
- * Normalize SDK errors, ADV wrapper errors, and service errors into exactly
- * one typed workflow failure.
- *
- * SDK type/name is checked first; message fixtures are a fallback confined to
- * this boundary.
- */
-export function normalizeWorkflowFailure(error: unknown): WorkflowFailure {
-  if (error instanceof Error) {
-    const name = error.name ?? "";
-    const msg = error.message ?? "";
-    const lowerName = name.toLowerCase();
-
-    if (isPoisonedHistoryError(error)) {
-      return { kind: "poisoned_history", evidence: safeSummarize(error) };
-    }
-
-    if (lowerName === "workflowexecutionalreadycompleted") {
-      return { kind: "workflow_completed", evidence: safeSummarize(error) };
-    }
-
-    if (lowerName === "workflownotfounderror") {
-      return { kind: "workflow_missing", evidence: safeSummarize(error) };
-    }
-
-    if (COMPLETED_WORKFLOW_MESSAGE_RE.test(msg)) {
-      return { kind: "workflow_completed", evidence: safeSummarize(error) };
-    }
-
-    if (MISSING_WORKFLOW_MESSAGE_RE.test(msg)) {
-      return { kind: "workflow_missing", evidence: safeSummarize(error) };
-    }
-
-    if (
-      name === "TemporalQueryTimeout" ||
-      lowerName === "temporalquerytimeout" ||
-      QUERY_TIMEOUT_MESSAGE_RE.test(msg)
-    ) {
-      return { kind: "workflow_unresponsive", evidence: safeSummarize(error) };
-    }
-  }
-
-  // Fallback to the existing recovery-classification reason taxonomy for any
-  // non-Error or unclassified shape.
-  const reason = recoveryReasonFromError(error);
-  switch (reason) {
-    case "poisoned_history":
-      return { kind: "poisoned_history", evidence: safeSummarize(error) };
-    case "missing_workflow":
-      return { kind: "workflow_missing", evidence: safeSummarize(error) };
-    case "workflow_unresponsive":
-      return { kind: "workflow_unresponsive", evidence: safeSummarize(error) };
-    case "query_failed":
-      return { kind: "query_failed", evidence: safeSummarize(error) };
-    default:
-      return { kind: "unknown", evidence: safeSummarize(error) };
-  }
-}
-
-function failureToAuthority(failure: WorkflowFailure): ChangeAuthority {
-  switch (failure.kind) {
-    case "poisoned_history":
-      return {
-        kind: "workflow_poisoned",
-        evidence: { reason: "poisoned_history", evidence: failure.evidence },
-      };
-    case "workflow_completed":
-      return {
-        kind: "workflow_completed",
-        evidence: { reason: "missing_workflow", evidence: failure.evidence },
-      };
-    case "workflow_missing":
-      return {
-        kind: "workflow_missing",
-        evidence: { reason: "missing_workflow", evidence: failure.evidence },
-      };
-    case "workflow_unresponsive":
-      return {
-        kind: "operator_required",
-        reason: `Workflow is unresponsive: ${failure.evidence}`,
-      };
-    case "query_failed":
-      return {
-        kind: "operator_required",
-        reason: `Workflow query failed: ${failure.evidence}`,
-      };
-    case "unknown":
-      return {
-        kind: "operator_required",
-        reason: `Unknown workflow failure: ${failure.evidence}`,
-      };
-  }
-}
-
-function failureToMutationOutcome<T>(
-  failure: WorkflowFailure,
-): MutationOutcome<T> {
-  switch (failure.kind) {
-    case "poisoned_history":
-      return {
-        kind: "operator_required",
-        reason: `Poisoned-history signal/refresh failure: ${failure.evidence}`,
-      };
-    case "workflow_completed":
-      return {
-        kind: "operator_required",
-        reason: `Workflow completed: ${failure.evidence}`,
-      };
-    case "workflow_missing":
-      return {
-        kind: "operator_required",
-        reason: `Workflow missing: ${failure.evidence}`,
-      };
-    case "workflow_unresponsive":
-      return {
-        kind: "operator_required",
-        reason: `Workflow is unresponsive: ${failure.evidence}`,
-      };
-    case "query_failed":
-      return {
-        kind: "operator_required",
-        reason: `Workflow query failed: ${failure.evidence}`,
-      };
-    case "unknown":
-      return {
-        kind: "operator_required",
-        reason: `Unknown workflow failure: ${failure.evidence}`,
-      };
-  }
-}
-
-/**
- * Resolve which authority should process a mutation.
- *
- * - When `signalError` is present, it is normalized and mapped to a recovery
- *   authority or operator_required.
- * - When no signal error is present and a handle is present, the coordinator
- *   probes describe() for poisoned-history evidence. Confirmed poisoned
- *   workflows route to disk recovery; otherwise the healthy Temporal signal
- *   path is used.
- * - `skipProbe` bypasses the describe probe and assumes a live workflow.
- */
-export async function resolveChangeAuthority(_args: {
-  changeId?: string;
-  signalError?: unknown;
-  handle?: TemporalWorkflowHandleProxy;
-  skipProbe?: boolean;
-}): Promise<ChangeAuthority> {
-  // Temporal bypass: all mutations write directly to disk projections via
-  // the recovery path. Temporal signal dispatch is permanently bypassed.
-  // See: simplifyAdvanceCore Phase 3 — rip-the-band-aid.
-  return {
-    kind: "workflow_missing",
-    evidence: {
-      reason: "missing_workflow",
-      evidence:
-        "Direct disk projection writes — Temporal signal dispatch bypassed",
-    },
-  };
-}
-
-function isRecoverableWorkflowFailure(failure: WorkflowFailure): boolean {
-  return (
-    failure.kind === "workflow_completed" ||
-    failure.kind === "workflow_missing" ||
-    failure.kind === "poisoned_history"
-  );
-}
-
-interface CoordinateOptions<T> {
-  authority: ChangeAuthority;
-  intent: MutationIntent<T>;
-  /** Disk projection directory. Required for recovery and optional dual-write. */
+interface CoordinateOptions {
+  /** Evidence retained in the projection commit audit. */
+  authority: DiskMutationAuthorization;
+  intent: MutationIntent;
   changesDir?: string;
-  /** Expected revision for conflict-sensitive mutations. */
   expectedRevision?: number;
-  /** How long to wait for the mutation receipt query to observe the signal. */
-  receiptTimeoutMs?: number;
-}
-
-function verifyToResult(
-  result: ProjectionCommitVerifyResult,
-  defaultError: string,
-): { ok: boolean; error: string } {
-  if (typeof result === "boolean") {
-    return { ok: result, error: defaultError };
-  }
-  return { ok: result.ok, error: result.error ?? defaultError };
 }
 
 /**
- * Execute one coordinated mutation through the resolved authority and return
- * a typed outcome.
+ * Execute one mutation through the disk projection transaction.
+ *
+ * There is intentionally no authority resolver or Temporal branch here:
+ * callers cannot select another mutation path, and a missing projection
+ * directory remains a fail-closed operator-required result.
  */
 export async function coordinateChangeMutation<T>(
-  options: CoordinateOptions<T>,
+  options: CoordinateOptions,
 ): Promise<MutationOutcome<T>> {
-  const { authority, intent, changesDir, expectedRevision, receiptTimeoutMs } =
-    options;
-
-  if (authority.kind === "operator_required") {
-    return { kind: "operator_required", reason: authority.reason };
-  }
-
-  if (authority.kind === "temporal_live") {
-    return executeTemporalPath({
-      authority,
-      intent,
-      changesDir,
-      receiptTimeoutMs,
-    });
-  }
-
-  return executeRecoveryPath({
-    authority,
-    intent,
-    changesDir,
-    expectedRevision,
-  });
+  return executeDiskPath(options);
 }
 
-async function executeTemporalPath<T>({
-  authority,
-  intent,
-  changesDir,
-  receiptTimeoutMs,
-}: {
-  authority: Extract<ChangeAuthority, { kind: "temporal_live" }>;
-  intent: MutationIntent<T>;
-  changesDir?: string;
-  receiptTimeoutMs?: number;
-}): Promise<MutationOutcome<T>> {
-  const mutationReceiptId = `mrec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  const payload = intent.payload
-    ? intent.payload(mutationReceiptId)
-    : undefined;
-
-  try {
-    await intent.sendSignal(authority.handle, payload ?? { mutationReceiptId });
-  } catch (signalError) {
-    // Signal dispatch failed before the healthy path could establish proof.
-    // If the failure is recoverable and the caller supplied a projection
-    // directory, transition to the recovery path with the same intent and the
-    // already-constructed payload so re-delivery remains byte-identical.
-    const failure = normalizeWorkflowFailure(signalError);
-    if (isRecoverableWorkflowFailure(failure) && changesDir) {
-      return executeRecoveryPath({
-        authority: failureToAuthority(failure) as Extract<
-          ChangeAuthority,
-          {
-            kind:
-              | "workflow_completed"
-              | "workflow_missing"
-              | "workflow_poisoned";
-          }
-        >,
-        intent,
-        changesDir,
-        payload,
-      });
-    }
-    return failureToMutationOutcome(failure);
-  }
-
-  const receipt = await waitForQueryPredicate(
-    () =>
-      authority.handle.query(
-        CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt,
-        mutationReceiptId,
-      ) as Promise<{ id: string } | undefined>,
-    (candidate) => candidate?.id === mutationReceiptId,
-    { attempts: 10, delayMs: receiptTimeoutMs ? receiptTimeoutMs / 10 : 100 },
-  );
-
-  if (!receipt) {
-    return {
-      kind: "operator_required",
-      reason: `Mutation receipt ${mutationReceiptId} was not observed in Temporal state after signaling ${intent.mutationKind}.`,
-    };
-  }
-
-  let refreshed: T;
-  try {
-    refreshed = await intent.refresh(authority.handle);
-  } catch (refreshError) {
-    return failureToMutationOutcome(normalizeWorkflowFailure(refreshError));
-  }
-
-  const temporalVerify = verifyToResult(
-    intent.verifyTemporal(refreshed),
-    "Temporal postcondition verification failed.",
-  );
-  if (!temporalVerify.ok) {
-    return {
-      kind: "operator_required",
-      reason: temporalVerify.error,
-    };
-  }
-
-  if (changesDir) {
-    const commit = await commitChangeProjection({
-      changesDir,
-      changeId: intent.changeId,
-      authority: {
-        kind: "temporal",
-        mutationReceiptId,
-      },
-      mutationKind: intent.mutationKind,
-      mutateLatest: intent.mutateLatestProjection,
-      verify: ({ readback }) => intent.verifyProjection(readback),
-      payload,
-    });
-    const commitOutcome = mapCommitOutcome(commit);
-    if (commitOutcome.kind !== "recovered_verified") {
-      // Dual-write projection failure is a blocker: the Temporal mutation is
-      // authoritative, but downstream disk readers would not observe it.
-      return {
-        kind: "operator_required",
-        reason:
-          commitOutcome.kind === "recovered_unverified"
-            ? `Temporal mutation applied but disk projection dual-write could not be verified: ${commitOutcome.reason}`
-            : `Temporal mutation applied but disk projection dual-write failed: ${commitOutcome.kind}`,
-      };
-    }
-  }
-
-  return { kind: "applied_temporal", value: refreshed, mutationReceiptId };
-}
-
-async function executeRecoveryPath<T>({
+async function executeDiskPath<T>({
   authority,
   intent,
   changesDir,
   expectedRevision,
-  payload: inputPayload,
-}: {
-  authority: Extract<
-    ChangeAuthority,
-    { kind: "workflow_completed" | "workflow_missing" | "workflow_poisoned" }
-  >;
-  intent: MutationIntent<T>;
-  changesDir?: string;
-  expectedRevision?: number;
-  payload?: Record<string, unknown>;
-}): Promise<MutationOutcome<T>> {
+}: CoordinateOptions): Promise<MutationOutcome<T>> {
   if (!changesDir) {
     return {
       kind: "operator_required",
-      reason: `Recovery authority ${authority.kind} requires a changesDir to commit the projection, but none was supplied.`,
+      reason: `Disk mutation for ${intent.changeId} requires a changesDir, but none was supplied.`,
     };
   }
-
-  const mutationReceiptId = `mrec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  const payload =
-    inputPayload ??
-    (intent.payload ? intent.payload(mutationReceiptId) : undefined);
 
   const commit = await commitChangeProjection({
     changesDir,
     changeId: intent.changeId,
     expectedRevision,
     authority: {
-      kind: "recovery",
-      reason: authority.evidence.reason,
-      evidence: authority.evidence.evidence,
+      kind: authority.kind ?? "mutation",
+      reason: authority.reason,
+      evidence: authority.evidence,
     },
     mutationKind: intent.mutationKind,
-    mutateLatest:
-      intent.recoveryMutateLatestProjection ?? intent.mutateLatestProjection,
+    mutateLatest: intent.mutateLatestProjection,
     verify: ({ readback }) => intent.verifyProjection(readback),
-    ...(payload !== undefined ? { payload } : {}),
   });
 
   return mapCommitOutcome(commit) as MutationOutcome<T>;
 }
 
 type CommitMappedOutcome =
-  | Extract<MutationOutcome<unknown>, { kind: "recovered_verified" }>
-  | Extract<MutationOutcome<unknown>, { kind: "recovered_unverified" }>
+  | Extract<MutationOutcome<unknown>, { kind: "verified" }>
+  | Extract<MutationOutcome<unknown>, { kind: "unverified" }>
   | Extract<MutationOutcome<unknown>, { kind: "stale_revision" }>
   | Extract<MutationOutcome<unknown>, { kind: "operator_required" }>;
 
@@ -569,16 +111,16 @@ function mapCommitOutcome(
   switch (commit.kind) {
     case "committed":
       return {
-        kind: "recovered_verified",
+        kind: "verified",
         value: commit.readback,
         revision: commit.revision,
-        recoveryAudit: commit.audit,
+        audit: commit.audit,
       };
     case "committed_unverified":
       return {
-        kind: "recovered_unverified",
+        kind: "unverified",
         reason: commit.postconditionError,
-        recoveryAudit: commit.audit,
+        audit: commit.audit,
       };
     case "stale_revision":
       return {
@@ -600,6 +142,21 @@ function mapCommitOutcome(
       return {
         kind: "operator_required",
         reason: `Projection write error: ${commit.error}`,
+      };
+    case "state_regression":
+      return {
+        kind: "operator_required",
+        reason: `Projection state regression: expected ${commit.expected}, actual ${commit.actual}.`,
+      };
+    case "state_revision_conflict":
+      return {
+        kind: "operator_required",
+        reason: `Projection state revision conflict at ${commit.stateRevision}: ${commit.reason}`,
+      };
+    case "operation_conflict":
+      return {
+        kind: "operator_required",
+        reason: `Projection operation conflict for ${commit.operationId}: payload hash differs.`,
       };
     case "operator_required":
       return { kind: "operator_required", reason: commit.reason };

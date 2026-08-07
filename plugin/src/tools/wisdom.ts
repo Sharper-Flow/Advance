@@ -14,35 +14,19 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import type { ProductOriginTags, Store } from "../storage/store";
-import { WisdomTypeSchema } from "../types";
+import { WisdomTypeSchema, type Change } from "../types";
 import {
   addProjectWisdom,
   compactProjectWisdom,
   listProjectWisdom,
 } from "../storage/project-wisdom";
-import { taskUpdatedSignal, wisdomAddedSignal } from "../temporal/messages";
 import { readChangeProjectionState } from "../storage/read-change-projection";
 import { formatToolOutput } from "../utils/tool-output";
 import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import { withOptionalTargetPathStore } from "./target-project";
 import { includeSnapshotSchema } from "./shared-args";
 import { findDraft, promoteDraft } from "../utils/wisdom-draft";
-
-async function getChangeHandleForChangeId(
-  store: Store,
-  changeId: string,
-): Promise<ReturnType<typeof getChangeHandle> | null> {
-  const bundle = getService();
-  if (!bundle) return null;
-  const projectId =
-    store.productContext?.productProjectId ??
-    (await getProjectId(store.paths.root));
-  if (!projectId) return null;
-  return getChangeHandle(bundle, projectId, changeId);
-}
 
 function getProductOriginTags(store: Store): ProductOriginTags | undefined {
   const context = store.productContext;
@@ -217,77 +201,47 @@ export const wisdomTools = {
           ...origin,
         };
 
-        // Signal-driven: fire wisdomAddedSignal to change workflow.
-        // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
-        // changeCache is invalidated after the signal fires — without
-        // this, subsequent reads in the same session return stale state.
-        const handle = await getChangeHandleForChangeId(store, changeId);
-        if (handle) {
-          await fireSignalAndRefresh(
-            handle,
-            store,
+        const nextDrafts =
+          from_draft_id && draftTask
+            ? promoteDraft(draftTask.wisdom_drafts, from_draft_id, entry.id)
+            : undefined;
+        const outcome = await coordinateChangeMutation<Change>({
+          authority: {
+            reason: "record wisdom entry",
+            evidence: entry.id,
+          },
+          changesDir: store.paths.changes,
+          intent: {
             changeId,
-            wisdomAddedSignal,
-            {
-              entry,
-              addedAt: entry.recorded_at,
-            },
-          );
-        } else {
-          // Fallback to disk store when Temporal is unavailable
-          await store.wisdom.add(changeId, type, content, sourceTask, origin);
-        }
-
-        // rq-wisdomAutoSurfacing01 / DDC5: atomic draft promotion — only
-        // after the wisdom add succeeded. Fire taskUpdatedSignal with the
-        // new wisdom_drafts array (Object.assign replaces the field).
-        //
-        // TOCTOU (correctness-5): concurrent from_draft_id calls can both
-        // pass validation against the same draft snapshot and both fire
-        // wisdomAddedSignal, then the second taskUpdatedSignal's
-        // Object.assign in applyTaskUpdatedToState overwrites the first
-        // promotion. Single-agent session model makes this theoretical;
-        // CAS-style fix deferred to fast-follow child change.
-        if (from_draft_id && draftTask) {
-          const nextDrafts = promoteDraft(
-            draftTask.wisdom_drafts,
-            from_draft_id,
-            entry.id,
-          );
-          if (nextDrafts && handle) {
-            try {
-              await fireSignalAndRefresh(
-                handle,
-                store,
-                changeId,
-                taskUpdatedSignal,
-                {
-                  taskId: draftTask.id,
-                  partial: { wisdom_drafts: nextDrafts },
-                  updatedAt: entry.recorded_at,
-                },
-              );
-            } catch {
-              // Draft promotion is best-effort after the wisdom add
-              // succeeded. Do not fail the whole tool. Wisdom entry is
-              // already durable; draft may be re-promoted or auto-dismissed
-              // at checkpoint.
-            }
-          } else if (nextDrafts && !handle) {
-            // Temporal unavailable (tdd-gap-wisdom-temporal-fallback):
-            // wisdom add succeeded via disk fallback above, but draft
-            // promotion requires a Temporal signal that we cannot fire.
-            // Surface the inconsistency to the caller so the agent knows
-            // the draft is still in the "suggested" state despite the
-            // wisdom entry being durable. The draft will be auto-dismissed
-            // at checkpoint or can be re-promoted when Temporal returns.
-            return formatToolOutput({
-              success: true,
-              entry,
-              _warning:
-                "Draft promotion skipped: Temporal unavailable. Wisdom entry is durable but draft remains in 'suggested' state.",
-            });
-          }
+            mutationKind: "wisdom_added",
+            mutateLatestProjection: (latest) => ({
+              ...latest,
+              wisdom: [...(latest.wisdom ?? []), entry],
+              ...(nextDrafts && draftTask
+                ? {
+                    tasks: latest.tasks.map((task) =>
+                      task.id === draftTask.id
+                        ? { ...task, wisdom_drafts: nextDrafts }
+                        : task,
+                    ),
+                  }
+                : {}),
+            }),
+            verifyProjection: (readback) =>
+              (readback.wisdom ?? []).some(
+                (candidate) => candidate.id === entry.id,
+              ),
+          },
+        });
+        if (outcome.kind !== "verified") {
+          return formatToolOutput({
+            error:
+              outcome.kind === "unverified" ||
+              outcome.kind === "operator_required"
+                ? outcome.reason
+                : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+            changeId,
+          });
         }
 
         let promoted: unknown | undefined;

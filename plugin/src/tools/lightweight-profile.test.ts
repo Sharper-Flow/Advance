@@ -3,7 +3,7 @@
  *
  * TDD coverage: boundary evaluation, exact allowlist, required controls
  * preservation, explicit delegation precedence, downgrade/no-reset, and
- * signal retry/deduplication.
+ * disk projection persistence and deduplication.
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
@@ -20,20 +20,8 @@ import {
 } from "../types/lightweight-change-profile";
 
 const mocks = vi.hoisted(() => {
-  const handleMock = {
-    signal: vi.fn(),
-    query: vi.fn(),
-  };
-  const temporalBundle = {
-    client: { workflow: { getHandle: vi.fn(() => handleMock) } },
-  };
   return {
-    handleMock,
-    temporalBundle,
     getProjectId: vi.fn(async () => "test-project-id"),
-    getService: vi.fn(() => temporalBundle),
-    getChangeHandle: vi.fn(() => handleMock),
-    fireSignalAndRefresh: vi.fn(async () => {}),
     collectLightweightProfileEvidence: vi.fn(),
   };
 });
@@ -41,12 +29,8 @@ const mocks = vi.hoisted(() => {
 vi.mock("../utils/project-id", () => ({
   getProjectId: mocks.getProjectId,
 }));
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-vi.mock("./_adapters", () => ({
-  getChangeHandle: mocks.getChangeHandle,
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
+vi.mock("./change-mutation-coordinator", () => ({
+  coordinateChangeMutation: vi.fn(async () => ({ kind: "verified" })),
 }));
 vi.mock("../utils/lightweight-change-profile-evidence", () => ({
   collectLightweightProfileEvidence: mocks.collectLightweightProfileEvidence,
@@ -144,7 +128,6 @@ function makeProfile() {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getProjectId.mockResolvedValue("test-project-id");
-  mocks.getService.mockReturnValue(mocks.temporalBundle);
   mocks.collectLightweightProfileEvidence.mockResolvedValue({
     snapshot: {
       projectId: "test-project-id",
@@ -186,7 +169,6 @@ describe("evaluateLightweightProfileAndSignal", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("not found");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
   test("returns error when change has no lightweight profile", async () => {
@@ -200,28 +182,9 @@ describe("evaluateLightweightProfileAndSignal", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("no lightweight profile request");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("returns error when Temporal service is unavailable", async () => {
-    mocks.getService.mockReturnValue(null);
-    const change = makeChange({
-      lightweight_profile: makeProfile(),
-    });
-    const store = createMockStore({ change });
-
-    const result = await evaluateLightweightProfileAndSignal({
-      store,
-      changeId: "test-change",
-      phase: "initial",
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("Temporal service not available");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-  });
-
-  test("sends lightweightProfileEvaluated signal on first evaluation", async () => {
+  test("records the first evaluation through the disk mutation", async () => {
     const change = makeChange({
       lightweight_profile: makeProfile(),
     });
@@ -235,14 +198,8 @@ describe("evaluateLightweightProfileAndSignal", () => {
 
     expect(result.success).toBe(true);
     expect(result.evaluation?.phase).toBe("initial");
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-    expect(signalCall[3]).toBeDefined();
-    const payload = signalCall[4] as {
-      evaluation: LightweightProfileEvaluation;
-    };
-    expect(payload.evaluation.phase).toBe("initial");
-    expect(payload.evaluation.result).toBe("qualified");
+    expect(result.evaluation?.phase).toBe("initial");
+    expect(result.evaluation?.result).toBe("qualified");
   });
 
   test("deduplicates evaluation with same requestId/phase/fingerprint", async () => {
@@ -263,7 +220,6 @@ describe("evaluateLightweightProfileAndSignal", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     expect(result.evaluation?.evaluationKey).toBe("req-1:initial:fp-1");
   });
 
@@ -278,20 +234,16 @@ describe("evaluateLightweightProfileAndSignal", () => {
     });
     const store = createMockStore({ change });
 
-    await evaluateLightweightProfileAndSignal({
+    const result = await evaluateLightweightProfileAndSignal({
       store,
       changeId: "test-change",
       phase: "execution_boundary",
     });
 
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const payload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      evaluation: LightweightProfileEvaluation;
-    };
-    expect(payload.evaluation.evaluationKey).toBe(
+    expect(result.evaluation?.evaluationKey).toBe(
       "req-1:execution_boundary:fp-1",
     );
-    expect(payload.evaluation.phase).toBe("execution_boundary");
+    expect(result.evaluation?.phase).toBe("execution_boundary");
   });
 
   test("downgrades when previous result was qualified and current is ineligible", async () => {

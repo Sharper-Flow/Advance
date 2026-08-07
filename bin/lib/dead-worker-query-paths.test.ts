@@ -1,12 +1,8 @@
 /**
  * Structural guard: dead worker-query state loaders stay deleted.
  *
- * `loadLiveStatus` and `listLiveChangeStates` carried the same sequential
- * per-change `getState` defect this change removes: a `for...of await` loop
- * issuing one worker-routed query per change, with no try/catch, so the first
- * timeout threw. Neither had a production caller — the only surviving
- * references were their own definitions and an assertion that the CLI does NOT
- * use them.
+ * The CLI status reader must remain a direct disk projection read. This guard
+ * prevents worker/query vocabulary from being reintroduced into the reader.
  *
  * Dead code with a live defect is a trap, not merely clutter: the next person
  * to need "load live status" would have found a function that looks correct and
@@ -37,21 +33,20 @@ describe("dead worker-query paths are gone", () => {
     expect(source).not.toContain("export async function loadLiveStatus");
   });
 
-  test("live-status.ts issues no per-change workflow query", () => {
+  test("live-status.ts issues no workflow or visibility query", () => {
     const source = readFileSync(LIVE_STATUS, "utf8");
 
-    // The surviving read path is summariesFromVisibility, which is worker-free
-    // per rq-statusCliWorkerFree01. No handle-and-query construct should remain.
+    // No handle-and-query construct should remain in the disk reader.
     expect(source).not.toContain("getHandle(");
     expect(source).not.toContain(".query(");
-    expect(source).not.toContain("CHANGE_WORKFLOW_QUERY_NAMES");
+    expect(source).not.toContain("Visibility");
   });
 
-  test("the worker-free Visibility loader survives", () => {
+  test("the disk loader survives", () => {
     const source = readFileSync(LIVE_STATUS, "utf8");
 
-    // Guard against over-deletion: C3 forbids changing this path's behaviour.
+    // Guard against over-deletion: the CLI still needs a disk read path.
     expect(source).toContain("export async function loadLiveSummaries");
-    expect(source).toContain("summariesFromVisibility");
+    expect(source).toContain("loadSummariesFromDisk");
   });
 });

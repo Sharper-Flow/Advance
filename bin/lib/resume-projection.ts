@@ -2,9 +2,8 @@
  * bin/adv resume-projection adapter.
  *
  * Thin adapter that maps bin/adv's data shapes to the kernel input types and
- * calls buildResumeProjection. Matches the bin/lib/live-status.ts pattern:
- * bin/adv loads data from Temporal directly (not through the plugin Store),
- * then calls this adapter.
+ * calls buildResumeProjection. bin/adv loads disk projections directly, then
+ * calls this adapter.
  *
  * rq-workGraphTypes01 (addDependencyAwareResume) — Phase E
  */
@@ -21,7 +20,7 @@ import {
 /**
  * Build the resume projection from bin/adv's loaded data.
  *
- * @param changeRecords - Live change records from Temporal Visibility
+ * @param changeRecords - Change records from disk projections
  * @param epics - Epic projections from the store
  * @param projectId - 40-hex project ID
  * @param epicIds - Optional Epic filter
@@ -65,9 +64,8 @@ export function buildBinResumeProjection(
       ? r.lifecycleState
       : "open") as ChangeNodeInput["lifecycleState"],
     same_project_dependencies: r.same_project_dependencies ?? [],
-    // Live Temporal records include task status, which is authoritative for
-    // activity. Keep the summary-count fallback for callers that do not load
-    // task records.
+    // Task status is authoritative for activity. Keep the summary-count
+    // fallback for callers that do not load task records.
     hasInProgressTasks:
       r.tasks?.some((task) => task.status === "in_progress") ??
       ((r.completedTasks ?? 0) > 0 &&

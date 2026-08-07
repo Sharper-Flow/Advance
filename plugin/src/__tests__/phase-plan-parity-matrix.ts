@@ -38,7 +38,7 @@
  * adv_change_show table and the derivation-level suites.
  */
 
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import type { Change, GateId, GateReadinessBlocker, Gates } from "../types";
 import {
   createDefaultGates,
@@ -89,13 +89,11 @@ export interface ParityExpectation {
 
 export interface ParityRow {
   name: string;
-  state: ChangeWorkflowState;
+  state: ChangeState;
   expect: ParityExpectation;
 }
 
-function makeState(
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+function makeState(overrides: Partial<ChangeState> = {}): ChangeState {
   return {
     projectId: "project-1",
     changeId: "change-1",

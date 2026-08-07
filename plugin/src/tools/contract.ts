@@ -10,30 +10,11 @@ import {
   type Change,
   type ContractReviewMatrix,
 } from "../types";
-import {
-  changeStateQuery,
-  contractReviewMatrixSetSignal,
-  contractSetSignal,
-} from "../temporal/messages";
-import type { ChangeWorkflowState } from "../temporal/contracts";
-import { acceptanceCriteriaFromContract } from "../temporal/change-state";
-import {
-  coordinateChangeMutation,
-  resolveChangeAuthority,
-} from "./change-mutation-coordinator";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
+import type { ContractEvidenceStatus } from "../types";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import { formatToolOutput } from "../utils/tool-output";
 import { buildContractFromAgreement } from "../validator/contract-mint";
 import type { WarrantLookup } from "../validator/warrant";
-import {
-  RECOVERY_RECONCILIATION_WARNING,
-  isFailingContractReviewStatus,
-} from "../temporal/recovery-classification";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import { logRecoveryProbeDiagnostics } from "./recovery-probe";
-import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
-import { saveRecoveredContractReviewMatrix } from "./_recovery-writers";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -73,7 +54,7 @@ async function withContractStore<T>(
       target_path: input.target_path,
       target_confirmed: input.target_confirmed,
       confirmationEvidence: input.confirmationEvidence,
-      stateRequirement: "temporal-required",
+      stateRequirement: "authoritative",
     },
     async ({ context, store: targetStore }) =>
       fn(targetStore, formatTargetProjectContext(context)),
@@ -153,74 +134,6 @@ function contractApprovedAt(input: {
   );
 }
 
-async function healthySignalHandle(store: Store, changeId: string) {
-  const bundle = getService();
-  if (!bundle) throw new Error("Temporal service not available");
-  const projectId = await getProjectId(store.paths.root);
-  if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle, projectId, changeId);
-}
-
-async function saveRecoveredContract(input: {
-  store: Store;
-  change: Change;
-  contract: Change["contract"];
-  diskDirect?: boolean;
-}): Promise<void> {
-  if (!input.contract) {
-    throw new Error("Cannot recover contract: no contract is set");
-  }
-  const contract = input.contract;
-  const outcome = await coordinateChangeMutation<Change>({
-    authority: {
-      kind: input.diskDirect ? "workflow_completed" : "workflow_poisoned",
-      evidence: {
-        reason: input.diskDirect ? "missing_workflow" : "poisoned_history",
-        evidence: "contract recovery after signal classification",
-      },
-    },
-    changesDir: input.store.paths.changes,
-    intent: {
-      changeId: input.change.id,
-      mutationKind: "contract_set",
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
-      mutateLatestProjection: (latest) => ({
-        ...latest,
-        contract,
-        acceptanceCriteria: acceptanceCriteriaFromContract(contract),
-      }),
-      verifyProjection: (readback) =>
-        readback.contract?.version === contract.version &&
-        readback.contract?.items.length === contract.items.length,
-    },
-  });
-  switch (outcome.kind) {
-    case "recovered_verified":
-    case "applied_temporal":
-      return;
-    case "recovered_unverified":
-      throw new Error(
-        `Contract recovery for ${input.change.id} wrote the projection but the postcondition could not be verified: ${outcome.reason}`,
-      );
-    case "stale_revision":
-      throw new Error(
-        `Contract recovery for ${input.change.id} encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
-      );
-    case "operator_required":
-      throw new Error(
-        `Cannot recover contract for ${input.change.id}: ${outcome.reason}`,
-      );
-    default: {
-      const _exhaustive: never = outcome;
-      throw new Error(
-        `Unexpected contract recovery outcome: ${String(_exhaustive)}`,
-      );
-    }
-  }
-}
-
 const reviewMatrixRowSchema = z.object({
   contractId: z.string(),
   kind: ContractItemKindSchema,
@@ -282,6 +195,12 @@ function reviewMatrixPostcondition(
       row.notes === exp.notes
     );
   });
+}
+
+function isFailingContractReviewStatus(
+  status: ContractEvidenceStatus,
+): boolean {
+  return ["fail", "violated", "unknown"].includes(status);
 }
 
 export const contractTools = {
@@ -360,90 +279,41 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          const handle = await healthySignalHandle(activeStore, args.changeId);
-          // D4 internal classification (rq-internalMonotonicRecovery01):
-          // probe describe() to auto-classify poison/missing workflow without
-          // operator-supplied recoveryMode/evidence (AC5/SC3).
-          {
-            const internalDecision = await classifyMutationRecoveryDecision({
-              handle,
-            });
-            if (internalDecision.kind === "recover_via_disk") {
-              await logRecoveryProbeDiagnostics(handle, args.changeId);
-              await saveRecoveredContract({
-                store: activeStore,
-                change,
+          const outcome = await coordinateChangeMutation<Change>({
+            authority: {
+              reason: "mint contract from approved agreement",
+              evidence:
+                args.priorApprovalEvidence ?? "approved agreement artifact",
+            },
+            changesDir: activeStore.paths.changes,
+            intent: {
+              changeId: args.changeId,
+              mutationKind: "contract_set",
+              mutateLatestProjection: (latest) => ({
+                ...latest,
                 contract,
-                diskDirect: internalDecision.authority === "workflow_completed",
-              });
-              return formatToolOutput({
-                success: true,
-                changeId: args.changeId,
-                itemCount: contract.items.length,
-                contractIds: contract.items.map((item) => item.id),
-                _recoveryMutation: true,
-                recovered: true,
-                recoveryMode: "poisoned_history",
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
-                ...(projectContext ? { _projectContext: projectContext } : {}),
-              });
-            }
-            if (internalDecision.kind === "operator_required") {
-              return formatToolOutput({
-                error: `Cannot safely mint contract: ${internalDecision.detail}`,
-                code: "CONTRACT_MINT_OPERATOR_REQUIRED",
-                cause: internalDecision.cause,
-                changeId: args.changeId,
-              });
-            }
+                acceptanceCriteria: contract.items
+                  .filter((item) => item.kind === "acceptance_criterion")
+                  .map((item) => item.text),
+              }),
+              verifyProjection: (readback) =>
+                readback.contract?.version === contract.version &&
+                readback.contract.items.length === contract.items.length,
+            },
+          });
+          if (outcome.kind === "unverified") {
+            return formatToolOutput({
+              error: `Contract projection was written but could not be verified: ${outcome.reason}`,
+              code: "CONTRACT_MINT_UNVERIFIED",
+              changeId: args.changeId,
+            });
           }
-          try {
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              args.changeId,
-              contractSetSignal,
-              { contract, updatedAt: new Date().toISOString() },
-            );
-          } catch (signalError) {
-            // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
-            // signal-error recovery is classified internally from the signal
-            // error + describe() evidence via the unified classifier — no
-            // operator-supplied recovery args.
-            const decision = await classifyMutationRecoveryDecision({
-              signalError,
-              handle,
+          if (outcome.kind !== "verified") {
+            return formatToolOutput({
+              error: `Cannot safely mint contract: ${outcome.kind === "stale_revision" ? `stale revision (expected ${outcome.expected}, actual ${outcome.actual})` : outcome.reason}`,
+              code: "CONTRACT_MINT_OPERATOR_REQUIRED",
+              changeId: args.changeId,
             });
-            if (decision.kind === "recover_via_disk") {
-              await saveRecoveredContract({
-                store: activeStore,
-                change,
-                contract,
-                diskDirect: decision.authority === "workflow_completed",
-              });
-              return formatToolOutput({
-                success: true,
-                changeId: args.changeId,
-                itemCount: contract.items.length,
-                contractIds: contract.items.map((item) => item.id),
-                _recoveryMutation: true,
-                recovered: true,
-                recoveryMode: "poisoned_history",
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
-                ...(projectContext ? { _projectContext: projectContext } : {}),
-              });
-            }
-            if (decision.kind === "operator_required") {
-              return formatToolOutput({
-                error: `Cannot safely mint contract: ${decision.detail}`,
-                code: "CONTRACT_MINT_OPERATOR_REQUIRED",
-                cause: decision.cause,
-                changeId: args.changeId,
-              });
-            }
-            throw signalError;
           }
           return formatToolOutput({
             success: true,
@@ -555,205 +425,66 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          const handle = await healthySignalHandle(activeStore, args.changeId);
-          const authority = await resolveChangeAuthority({
-            changeId: args.changeId,
-            handle,
-          });
-          if (authority.kind === "operator_required") {
-            return formatToolOutput({
-              error: `Cannot safely set review matrix: ${authority.reason}`,
-              code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
-              changeId: args.changeId,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          }
-
           const rowCount = reviewMatrix.rows.length;
           const failingRows = reviewMatrix.rows.filter((row) =>
             isFailingContractReviewStatus(row.status),
           ).length;
 
-          if (authority.kind !== "temporal_live") {
-            await logRecoveryProbeDiagnostics(handle, args.changeId);
-            await saveRecoveredContractReviewMatrix({
-              store: activeStore,
-              change,
-              reviewMatrix,
-              authorization: {
-                reason:
-                  authority.evidence.reason === "poisoned_history"
-                    ? "poisoned_history_contract_review_matrix_recovery"
-                    : "completed_workflow_contract_review_matrix_recovery",
-                evidence: authority.evidence.evidence,
-              },
-            });
-            return formatToolOutput({
-              success: true,
-              changeId: args.changeId,
-              rowCount,
-              failingRows,
-              _recoveryMutation: true,
-              recovered: true,
-              recoveryMode: "poisoned_history",
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              note: `Disk-direct recovery; signal skipped (authority=${authority.kind})`,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          }
-
-          const updatedAt = new Date().toISOString();
-          const auditedMatrix = {
-            ...reviewMatrix,
-            recovery_audit: {
-              reason: "poisoned_history_contract_review_matrix_recovery",
-              evidence: "signal dispatch failed after auto-classification",
-              recovered_at: new Date().toISOString(),
+          const outcome = await coordinateChangeMutation<Change>({
+            authority: {
+              reason: "record contract review matrix",
+              evidence:
+                args.priorApprovalEvidence ??
+                "review matrix supplied by caller",
             },
-          };
-          try {
-            const outcome = await coordinateChangeMutation<ChangeWorkflowState>(
-              {
-                authority,
-                changesDir: activeStore.paths.changes,
-                intent: {
-                  changeId: args.changeId,
-                  mutationKind: "contract_review_matrix_set",
-                  payload: (mutationReceiptId) => ({
-                    reviewMatrix,
-                    updatedAt,
-                    mutationReceiptId,
-                  }),
-                  sendSignal: async (h, payload) => {
-                    await h.signal(contractReviewMatrixSetSignal, payload);
-                  },
-                  refresh: async (h) =>
-                    h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
-                  verifyTemporal: (state) =>
-                    reviewMatrixPostcondition(
-                      state.contract?.reviewMatrix,
-                      reviewMatrix,
-                    ),
-                  mutateLatestProjection: (latest) => ({
-                    ...latest,
-                    contract: latest.contract
-                      ? { ...latest.contract, reviewMatrix }
-                      : undefined,
-                  }),
-                  recoveryMutateLatestProjection: (latest) => ({
-                    ...latest,
-                    contract: latest.contract
-                      ? { ...latest.contract, reviewMatrix: auditedMatrix }
-                      : undefined,
-                  }),
-                  verifyProjection: (readback) =>
-                    reviewMatrixPostcondition(
-                      readback.contract?.reviewMatrix,
-                      reviewMatrix,
-                    ),
-                },
-              },
-            );
+            changesDir: activeStore.paths.changes,
+            intent: {
+              changeId: args.changeId,
+              mutationKind: "contract_review_matrix_set",
+              mutateLatestProjection: (latest) => ({
+                ...latest,
+                contract: latest.contract
+                  ? { ...latest.contract, reviewMatrix }
+                  : undefined,
+              }),
+              verifyProjection: (readback) =>
+                reviewMatrixPostcondition(
+                  readback.contract?.reviewMatrix,
+                  reviewMatrix,
+                ),
+            },
+          });
 
-            switch (outcome.kind) {
-              case "applied_temporal":
-                return formatToolOutput({
-                  success: true,
-                  changeId: args.changeId,
-                  rowCount,
-                  failingRows,
-                  ...(projectContext
-                    ? { _projectContext: projectContext }
-                    : {}),
-                });
-              case "recovered_verified":
-                return formatToolOutput({
-                  success: true,
-                  changeId: args.changeId,
-                  rowCount,
-                  failingRows,
-                  _recoveryMutation: true,
-                  recovered: true,
-                  recoveryMode: "poisoned_history",
-                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                  note: `Disk-direct recovery after signal error (coordinator)`,
-                  ...(projectContext
-                    ? { _projectContext: projectContext }
-                    : {}),
-                });
-              case "recovered_unverified":
-                return formatToolOutput({
-                  error: `Review matrix recovery wrote the disk projection but the postcondition could not be verified: ${outcome.reason}`,
-                  code: "CONTRACT_REVIEW_MATRIX_RECOVERY_UNVERIFIED",
-                  changeId: args.changeId,
-                  ...(projectContext
-                    ? { _projectContext: projectContext }
-                    : {}),
-                });
-              case "stale_revision":
-                return formatToolOutput({
-                  error: `Review matrix recovery encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
-                  code: "CONTRACT_REVIEW_MATRIX_STALE_REVISION",
-                  changeId: args.changeId,
-                  ...(projectContext
-                    ? { _projectContext: projectContext }
-                    : {}),
-                });
-              case "operator_required":
-                return formatToolOutput({
-                  error: `Cannot safely set review matrix: ${outcome.reason}`,
-                  code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
-                  changeId: args.changeId,
-                  ...(projectContext
-                    ? { _projectContext: projectContext }
-                    : {}),
-                });
-              default: {
-                const _exhaustive: never = outcome;
-                throw new Error(
-                  `Unexpected review matrix mutation outcome: ${String(_exhaustive)}`,
-                );
-              }
-            }
-          } catch (signalError) {
-            const decision = await classifyMutationRecoveryDecision({
-              signalError,
-              handle,
-            });
-            if (decision.kind === "recover_via_disk") {
-              await logRecoveryProbeDiagnostics(handle, args.changeId);
-              await saveRecoveredContractReviewMatrix({
-                store: activeStore,
-                change,
-                reviewMatrix,
-                authorization: {
-                  reason: decision.reason,
-                  evidence: decision.evidence,
-                },
-              });
+          switch (outcome.kind) {
+            case "verified":
               return formatToolOutput({
                 success: true,
                 changeId: args.changeId,
                 rowCount,
                 failingRows,
-                _recoveryMutation: true,
-                recovered: true,
-                recoveryMode: "poisoned_history",
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
                 ...(projectContext ? { _projectContext: projectContext } : {}),
               });
-            }
-            if (decision.kind === "operator_required") {
+            case "unverified":
               return formatToolOutput({
-                error: `Cannot safely set review matrix: ${decision.detail}`,
-                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
-                cause: decision.cause,
+                error: `Review matrix wrote the disk projection but the postcondition could not be verified: ${outcome.reason}`,
+                code: "CONTRACT_REVIEW_MATRIX_UNVERIFIED",
                 changeId: args.changeId,
                 ...(projectContext ? { _projectContext: projectContext } : {}),
               });
-            }
-            throw signalError;
+            case "stale_revision":
+              return formatToolOutput({
+                error: `Review matrix encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
+                code: "CONTRACT_REVIEW_MATRIX_STALE_REVISION",
+                changeId: args.changeId,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            case "operator_required":
+              return formatToolOutput({
+                error: `Cannot safely set review matrix: ${outcome.reason}`,
+                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
+                changeId: args.changeId,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
           }
         } catch (error) {
           return formatToolOutput({

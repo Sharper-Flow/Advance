@@ -1,12 +1,8 @@
 /**
- * Live Temporal resume projection loader for bin/adv.
+ * Disk resume projection loader for bin/adv.
  *
- * Loads active change records and Epic workflow state directly from Temporal,
- * then adapts them through buildBinResumeProjection. This is intentionally
- * separate from the MCP plugin Store so the CLI can produce a projection even
- * when the plugin host is not running.
- *
- * rq-workGraphTypes01 (addDependencyAwareResume) — Phase F1
+ * Reads active change and Epic projections directly, then adapts them through
+ * buildBinResumeProjection.
  */
 
 import { buildBinResumeProjection } from "./resume-projection";
@@ -14,19 +10,6 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveAdvStateSubdir } from "./adv-state-paths";
 import type { ResumeProjection } from "../../plugin/src/cli/projection-boundary";
-import {
-  buildChangeWorkflowId,
-  buildEpicWorkflowId,
-  CHANGE_WORKFLOW_QUERY_NAMES,
-  EPIC_WORKFLOW_QUERY_NAMES,
-  listChangeWorkflowIds,
-  listEpicWorkflowIds,
-  makeTemporalOperationContext,
-  withTemporalOperations,
-  type TemporalOperations,
-  TemporalReadOutcomeError,
-} from "../../plugin/src/cli/temporal-boundary";
-import { QUERY_TIMEOUT_MS } from "./live-status";
 
 interface ChangeRecord {
   id: string;
@@ -77,65 +60,16 @@ export interface LiveResumeProjectionResult {
   truncated_count?: number;
 }
 
-async function queryChangeState(
-  owner: TemporalOperations,
-  projectId: string,
-  changeId: string,
-): Promise<unknown> {
-  const workflowId = buildChangeWorkflowId(projectId, changeId);
-  const ctx = makeTemporalOperationContext(
-    projectId,
-    workflowId,
-    "query",
-    "bin.resumeProjection.changeState",
-    QUERY_TIMEOUT_MS,
-  );
-  const handle = owner.getHandle(ctx);
-  const outcome = await owner.query(ctx, handle, CHANGE_WORKFLOW_QUERY_NAMES.getState);
-  if (outcome.kind !== "complete") {
-    throw new TemporalReadOutcomeError(outcome);
-  }
-  return outcome.value;
-}
-
-async function queryEpicState(
-  owner: TemporalOperations,
-  projectId: string,
-  epicId: string,
-): Promise<unknown> {
-  const workflowId = buildEpicWorkflowId(projectId, epicId);
-  const ctx = makeTemporalOperationContext(
-    projectId,
-    workflowId,
-    "query",
-    "bin.resumeProjection.epicState",
-    QUERY_TIMEOUT_MS,
-  );
-  const handle = owner.getHandle(ctx);
-  const outcome = await owner.query(ctx, handle, EPIC_WORKFLOW_QUERY_NAMES.getState);
-  if (outcome.kind !== "complete") {
-    throw new TemporalReadOutcomeError(outcome);
-  }
-  return outcome.value;
-}
-
 export async function loadLiveResumeProjection(
   projectId: string,
-  timeoutMs = QUERY_TIMEOUT_MS,
   epicIds?: string[],
 ): Promise<LiveResumeProjectionResult> {
-  try {
-    return await loadResumeProjectionFromTemporal(projectId, timeoutMs, epicIds);
-  } catch {
-    // Temporal removed: build the projection from disk projections.
-    return loadResumeProjectionFromDisk(projectId, epicIds);
-  }
+  return loadResumeProjectionFromDisk(projectId, epicIds);
 }
 
 /**
  * Disk-projection resume reader. Reads every change projection and every
- * active epic projection, then builds the same projection shape the Temporal
- * path produced.
+ * active Epic projection, then builds the resume projection.
  */
 function loadResumeProjectionFromDisk(
   projectId: string,
@@ -200,68 +134,6 @@ function loadResumeProjectionFromDisk(
   }
 }
 
-async function loadResumeProjectionFromTemporal(
-  projectId: string,
-  timeoutMs = QUERY_TIMEOUT_MS,
-  epicIds?: string[],
-): Promise<LiveResumeProjectionResult> {
-  return withTemporalOperations(
-    projectId,
-    async (owner) => {
-      const [changeIdsOutcome, epicIdListOutcome] = await Promise.all([
-        listChangeWorkflowIds(owner, { projectId }),
-        listEpicWorkflowIds(owner, { projectId, status: "active" }),
-      ]);
-      if (changeIdsOutcome.kind !== "complete") {
-        throw changeIdsOutcome.error;
-      }
-      if (epicIdListOutcome.kind !== "complete") {
-        throw epicIdListOutcome.error;
-      }
-      const changeIds = changeIdsOutcome.value;
-      const epicIdList = epicIdListOutcome.value;
-
-      const changeRecords: ChangeRecord[] = [];
-      for (const id of changeIds) {
-        try {
-          const raw = await queryChangeState(owner, projectId, id);
-          changeRecords.push(normalizeChangeRecord(raw));
-        } catch (err) {
-          // Skip unreachable changes; projection is advisory.
-          void err;
-        }
-      }
-
-      const epicRecords: EpicRecord[] = [];
-      const idsToQuery = epicIds?.length ? epicIds : epicIdList;
-      for (const id of idsToQuery) {
-        try {
-          const raw = await queryEpicState(owner, projectId, id);
-          const epic = normalizeEpicRecord(raw);
-          if (epic) epicRecords.push(epic);
-        } catch (err) {
-          // Skip unreachable epics; projection is advisory.
-          void err;
-        }
-      }
-
-      const projection = buildBinResumeProjection(
-        changeRecords,
-        epicRecords,
-        projectId,
-        epicIds,
-      );
-
-      return {
-        live: true,
-        resume_projection: projection,
-      };
-    },
-    undefined,
-    { connectTimeoutMs: timeoutMs },
-  );
-}
-
 function normalizeChangeRecord(raw: unknown): ChangeRecord {
   const anyRaw = raw as Record<string, unknown>;
   return {
@@ -281,8 +153,8 @@ function normalizeChangeRecord(raw: unknown): ChangeRecord {
 
 function normalizeEpicRecord(raw: unknown): EpicRecord | null {
   const anyRaw = raw as Record<string, unknown>;
-  const epic = anyRaw.epic as Record<string, unknown> | undefined;
-  if (!epic) return null;
+  const epic = (anyRaw.epic as Record<string, unknown> | undefined) ?? anyRaw;
+  if (typeof epic.id !== "string" && typeof anyRaw.id !== "string") return null;
 
   const id = String(epic.id ?? anyRaw.id ?? "");
   const title = String(epic.title ?? id);

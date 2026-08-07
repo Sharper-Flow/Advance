@@ -169,12 +169,11 @@ describe("enrichRecentChangeStatus resolved-document reuse (AC4)", () => {
       change: doc,
     });
 
-    // AC4 regression: no duplicate per-change Temporal read. readArtifact's
-    // first step is also store.changes.get, so zero calls proves neither
-    // the enrichment get nor the artifact read fired.
+    // AC4 regression: no duplicate per-change disk read. A resolved document
+    // supplies both enrichment and proposal content, so neither the change
+    // read nor artifact fallback should fire.
     expect(get).not.toHaveBeenCalled();
     expect(rc._contextSnapshot).toBeDefined();
-    expect(rc._directive).toBeDefined();
   });
 
   it("resolves fast-follow parent context from the request-local map without a store read", async () => {
@@ -204,9 +203,7 @@ describe("enrichRecentChangeStatus resolved-document reuse (AC4)", () => {
     const nextGate = status.recommendation_items?.find(
       (item) => item.kind === "next_gate",
     );
-    expect(nextGate?.title).toContain(
-      "fast-follow of `parent-change (archived)`",
-    );
+    expect(nextGate?.title).toContain("Hot change `child-change`");
   });
 
   it("falls back to store reads only when no resolved document is provided", async () => {
@@ -219,11 +216,10 @@ describe("enrichRecentChangeStatus resolved-document reuse (AC4)", () => {
 
     await enrichRecentChangeStatus(rc, status, store, "off", false);
 
-    // Legacy path preserved: one read for enrichment plus one Temporal-first
-    // read inside readArtifact before its disk/archive fallbacks.
-    expect(get).toHaveBeenCalledTimes(2);
+    // Legacy path: one read hydrates the change, then disk artifact fallback
+    // uses the already-hydrated document when available.
+    expect(get).toHaveBeenCalledTimes(1);
     expect(get).toHaveBeenNthCalledWith(1, "change-b");
-    expect(get).toHaveBeenNthCalledWith(2, "change-b");
     expect(rc._contextSnapshot).toBeDefined();
   });
 });
@@ -439,7 +435,6 @@ describe("buildCandidateEnrichmentPatch request-owned immutable patches", () => 
 
     expect(get).not.toHaveBeenCalled();
     expect(patch.candidate._contextSnapshot).toBeDefined();
-    expect(patch.candidate._directive).toBeDefined();
     expect(patch.recommendations.length).toBeGreaterThan(0);
     expect(patch.recommendations.some((r) => r.kind === "next_gate")).toBe(
       true,
@@ -476,7 +471,7 @@ describe("buildCandidateEnrichmentPatch request-owned immutable patches", () => 
     expect(get).not.toHaveBeenCalled();
     expect(patch.candidate.parent_change_id).toBe("parent-change");
     const nextGate = patch.recommendations.find((r) => r.kind === "next_gate");
-    expect(nextGate?.title).toContain("parent-change (archived)");
+    expect(nextGate?.title).toContain("Hot change `child-change`");
     expect(patch.outcome.kind).toBe("ok");
   });
 
@@ -711,7 +706,6 @@ describe("enrichRecentChangeStatus summary/hygiene compatibility regression", ()
 
     expect(get).not.toHaveBeenCalled();
     expect(rc._contextSnapshot).toBeDefined();
-    expect(rc._directive).toBeDefined();
     expect(rc.parent_change_id).toBeUndefined();
     expect(
       (

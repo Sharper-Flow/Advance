@@ -12,29 +12,33 @@ import { join } from "node:path";
 import { shapeCommandOutput, testTools } from "./test";
 import type { Store } from "../storage/store";
 
-const { mockGetService, mockGetChangeHandle, mockSignal, mockGetProjectId } =
-  vi.hoisted(() => ({
-    mockGetService: vi.fn(),
-    mockGetChangeHandle: vi.fn(),
-    mockSignal: vi.fn(),
-    mockGetProjectId: vi.fn(),
-  }));
-
-vi.mock("../temporal/service", () => ({
-  getService: mockGetService,
-}));
-
-vi.mock("./_adapters", () => ({
-  getChangeHandle: mockGetChangeHandle,
-}));
-
-vi.mock("../utils/project-id", () => ({
-  getProjectId: mockGetProjectId,
-}));
-
 function createMockStore(): Store {
+  const changes = join(tmpdir(), "adv-run-test-changes");
+  mkdirSync(join(changes, "change-a"), { recursive: true });
+  writeFileSync(
+    join(changes, "change-a", "change.json"),
+    JSON.stringify({
+      id: "change-a",
+      title: "Change A",
+      status: "active",
+      created_at: "2026-01-01T00:00:00Z",
+      created_by: "test",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      },
+    }),
+  );
   return {
-    paths: { root: "/tmp/test" } as Store["paths"],
+    paths: { root: "/tmp/test", changes } as Store["paths"],
     config: null,
     init: vi.fn(),
     sync: vi.fn(),
@@ -74,10 +78,6 @@ function createMockStore(): Store {
 describe("test tools — simplified adv_run_test", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetService.mockReturnValue(null);
-    mockGetChangeHandle.mockReturnValue({ signal: mockSignal });
-    mockSignal.mockResolvedValue(undefined);
-    mockGetProjectId.mockResolvedValue("proj-test");
   });
 
   test("runs command and returns result with optional descriptive phase", async () => {
@@ -147,12 +147,11 @@ describe("test tools — simplified adv_run_test", () => {
     });
   });
 
-  test("reports recorded evidence status when testRunRecordedSignal succeeds", async () => {
+  test("reports recorded evidence status when disk projection commit succeeds", async () => {
     const store = createMockStore();
     vi.mocked(store.tasks.show).mockResolvedValue({
       changeId: "change-a",
     } as Awaited<ReturnType<Store["tasks"]["show"]>>);
-    mockGetService.mockReturnValue({ client: {}, namespace: "default" });
 
     const result = await testTools.adv_run_test.execute(
       {
@@ -169,16 +168,14 @@ describe("test tools — simplified adv_run_test", () => {
       status: "recorded",
       runId: parsed.runId,
     });
-    expect(mockSignal).toHaveBeenCalledOnce();
   });
 
-  test("reports degraded evidence status when recording signal fails", async () => {
+  test("reports degraded evidence status when the disk projection is unavailable", async () => {
     const store = createMockStore();
     vi.mocked(store.tasks.show).mockResolvedValue({
       changeId: "change-a",
     } as Awaited<ReturnType<Store["tasks"]["show"]>>);
-    mockGetService.mockReturnValue({ client: {}, namespace: "default" });
-    mockSignal.mockRejectedValue(new Error("signal failed"));
+    store.paths.changes = join(tmpdir(), "missing-adv-run-test-changes");
 
     const result = await testTools.adv_run_test.execute(
       {
@@ -195,35 +192,7 @@ describe("test tools — simplified adv_run_test", () => {
     expect(parsed.evidenceRecording).toMatchObject({
       status: "degraded",
       reason: "signal_failed",
-      message: expect.stringContaining("signal failed"),
-    });
-  });
-
-  test("bounds evidence recording wait when signal hangs", async () => {
-    const store = createMockStore();
-    vi.mocked(store.tasks.show).mockResolvedValue({
-      changeId: "change-a",
-    } as Awaited<ReturnType<Store["tasks"]["show"]>>);
-    mockGetService.mockReturnValue({ client: {}, namespace: "default" });
-    mockSignal.mockReturnValue(new Promise(() => undefined));
-
-    const startedAt = performance.now();
-    const result = await testTools.adv_run_test.execute(
-      {
-        taskId: "tk-abc",
-        command: "printf bounded-recording",
-      },
-      store,
-      "/tmp",
-    );
-
-    const parsed = JSON.parse(result);
-    expect(performance.now() - startedAt).toBeLessThan(800);
-    expect(parsed.passed).toBe(true);
-    expect(parsed.evidenceRecording).toMatchObject({
-      status: "degraded",
-      reason: "timeout",
-      message: expect.stringContaining("timed out"),
+      message: expect.stringContaining("change not found"),
     });
   });
 

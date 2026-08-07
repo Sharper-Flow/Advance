@@ -514,9 +514,7 @@ async function executeWorktreeDetach(
     projectRoot,
     database,
     {
-      store,
       log,
-      signalTimeoutMs: Math.max(1, effectiveTimeoutMs - 2_000),
     },
   );
 
@@ -837,7 +835,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
           },
           async ({ context, store: targetStore }) =>
             executeWorktreeResume(args, targetStore, context),
@@ -876,7 +874,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: !args.dryRun,
           },
           async ({ context, store: targetStore }) =>
@@ -940,7 +938,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: !args.dryRun,
           },
           async ({ context, store: targetStore }) =>
@@ -989,7 +987,7 @@ export const advWorktreeTools = {
             target_path: args.target_path,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "temporal-required",
+            stateRequirement: "authoritative",
             mutation: args.mode === "apply",
           },
           async ({ context, store: targetStore }) =>
@@ -1040,7 +1038,6 @@ export const advWorktreeTools = {
           : {}),
         ...(result.omitted ? { omitted: result.omitted } : {}),
         ...(result.stageTimings ? { stageTimings: result.stageTimings } : {}),
-        ...(result.warnings ? { warnings: result.warnings } : {}),
       });
     },
   },

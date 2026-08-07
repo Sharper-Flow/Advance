@@ -13,16 +13,6 @@ export const ALLOWLIST = [
   /work-graph-d3-integration\.test\.ts$/,
 ];
 
-/**
- * Files permitted to call raw `TestWorkflowEnvironment.createLocal` /
- * `createTimeSkipping`. Construction of Temporal test servers is owned by the
- * shared harness (reapLeakedTestServers AC1); everywhere else must route
- * through the named wrappers in `src/temporal/__tests__/with-test-env.ts`.
- */
-export const TEMPORAL_ENV_ALLOWLIST = [
-  /^temporal\/__tests__\/with-test-env\.ts$/,
-];
-
 export function isAllowlisted(filePath: string): boolean {
   return ALLOWLIST.some((pattern) => pattern.test(filePath));
 }
@@ -70,20 +60,8 @@ export async function* walkTestFiles(dir: string): AsyncGenerator<string> {
       yield* walkTestFiles(fullPath);
     } else if (
       entry.isFile() &&
-      (entry.name.endsWith(".test.ts") || entry.name.endsWith(".itest.ts"))
+      entry.name.endsWith(".test.ts")
     ) {
-      yield fullPath;
-    }
-  }
-}
-
-export async function* walkSourceFiles(dir: string): AsyncGenerator<string> {
-  const entries = await readdir(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      yield* walkSourceFiles(fullPath);
-    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
       yield fullPath;
     }
   }
@@ -119,27 +97,6 @@ export async function runLint(targetDir: string): Promise<string[]> {
   return violations;
 }
 
-/**
- * Detect raw `TestWorkflowEnvironment.createLocal` / `createTimeSkipping`
- * outside the allow-listed helper module. Server-spawning constructors must
- * stay inside `src/temporal/__tests__/with-test-env.ts` so every
- * `temporal-test-server-sdk-*` process has an auditable, finally-guaranteed
- * teardown path (reapLeakedTestServers AC1, DONT1).
- */
-export function hasRawTemporalEnvConstruction(source: string): boolean {
-  const cleaned = stripCommentsAndStrings(source);
-  return /\bTestWorkflowEnvironment\s*\.\s*create(?:Local|TimeSkipping)\b/.test(
-    cleaned,
-  );
-}
-
-export function isTemporalEnvAllowlisted(relPath: string): boolean {
-  // path.relative() yields platform separators ("\" on Windows); normalize so
-  // the exact allow-list pattern matches identically on every OS.
-  const normalized = relPath.replace(/\\/g, "/");
-  return TEMPORAL_ENV_ALLOWLIST.some((pattern) => pattern.test(normalized));
-}
-
 function isErrnoException(err: unknown, code: string): boolean {
   return (
     typeof err === "object" &&
@@ -149,49 +106,13 @@ function isErrnoException(err: unknown, code: string): boolean {
   );
 }
 
-export async function runTemporalEnvLint(targetDir: string): Promise<string[]> {
-  const srcDir = join(targetDir, "src");
-  const violations: string[] = [];
-
-  try {
-    for await (const filePath of walkSourceFiles(srcDir)) {
-      const relPath = relative(srcDir, filePath);
-
-      if (isTemporalEnvAllowlisted(relPath)) {
-        continue;
-      }
-
-      const source = await readFile(filePath, "utf-8");
-
-      if (hasRawTemporalEnvConstruction(source)) {
-        violations.push(relPath);
-      }
-    }
-  } catch (err) {
-    if (isErrnoException(err, "ENOENT")) {
-      throw new Error(`Source directory not found: ${srcDir}`, {
-        cause: err,
-      });
-    }
-    throw err;
-  }
-
-  return violations;
-}
-
 async function main() {
   const targetDir = process.argv[2] || process.cwd();
   const violations = await runLint(targetDir);
-  const temporalEnvViolations = await runTemporalEnvLint(targetDir);
 
-  if (violations.length > 0 || temporalEnvViolations.length > 0) {
+  if (violations.length > 0) {
     for (const v of violations) {
       console.log(v);
-    }
-    for (const v of temporalEnvViolations) {
-      console.log(
-        `${v}: raw TestWorkflowEnvironment.createLocal/createTimeSkipping is forbidden outside src/temporal/__tests__/with-test-env.ts; use the helper-owned wrappers`,
-      );
     }
     process.exit(1);
   }

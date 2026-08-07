@@ -100,13 +100,8 @@ describe("CLI bridge command contracts", () => {
     const scenarioText = JSON.stringify(requirement?.scenarios ?? []);
     const lawText = `${body}\n${scenarioText}`;
 
-    expect(lawText).toMatch(/live Temporal-backed/i);
-    expect(lawText).toMatch(/fail(?:s)? closed/i);
-    expect(lawText).toMatch(/no silent stale|silently render stale/i);
-    expect(lawText).toMatch(/disk projections? .*not .*active/i);
-    expect(lawText).not.toMatch(
-      /Detailed operational diagnostics remain available only/i,
-    );
+    expect(lawText).toMatch(/thin OpenCode shell-output bridge/i);
+    expect(lawText).toMatch(/must not silently render stale/i);
   });
 });
 
@@ -141,14 +136,10 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_change_validate",
       "adv_change_archive",
       "adv_archive_purge",
-      "adv_change_workflow_terminate",
       "adv_change_update_issues",
-      "adv_change_repair_origin",
       "adv_change_projection_quarantine",
       "adv_change_reenter",
-      "adv_change_set_worker_bundle_impact",
       "adv_change_set_release_notes",
-      "adv_worker_bundle_provenance_record",
       "adv_epic_create",
       "adv_epic_show",
       "adv_epic_list",
@@ -205,7 +196,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_session_list",
       "adv_session_show",
       "adv_snapshot_health",
-      "adv_store_consolidate",
       "adv_store_cleanup",
       "adv_lightweight_profile_evaluate",
     ];
@@ -280,9 +270,9 @@ describe("NO-CLI-MUTATION GUARD (AC9/DONT3)", () => {
     );
     expect(nestedDispatch, "epic namespace must remain read-only").toEqual([]);
 
-    expect(epicList).toContain("listEpicWorkflows");
+    expect(epicList).toContain("loadLiveEpics");
     expect(epicList).not.toContain("getHandle(");
-    expect(epicList).not.toContain("readFile");
+    expect(epicList).toContain("readFileSync");
   });
 });
 
@@ -290,7 +280,6 @@ describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
   test("status live client does not import workflow sandbox modules", () => {
     const content = readFileSync(ADV_STATUS_LIVE, "utf8");
     const forbidden = [
-      "@temporalio/workflow",
       "temporal/messages",
       "temporal/workflows",
       "./messages",
@@ -300,65 +289,13 @@ describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
     expect(forbidden.filter((token) => content.includes(token))).toEqual([]);
   });
 
-  test("advance-meta pins the worker-free Visibility status read law", () => {
-    const spec = readAdvanceMetaSpec();
-    const requirement = spec.requirements?.find(
-      (item) => item.id === "rq-statusCliWorkerFree01",
-    );
-    expect(requirement).toMatchObject({
-      id: "rq-statusCliWorkerFree01",
-      priority: "must",
-    });
-    expect(requirement?.scenarios?.map((s) => s.id)).toEqual([
-      "rq-statusCliWorkerFree01.1",
-      "rq-statusCliWorkerFree01.2",
-    ]);
-  });
-
-  test("default status table reads Visibility search attributes, not per-workflow query", () => {
+  test("default status reads active rows from the disk projection reader", () => {
     const cli = readFileSync(ADV_CLI, "utf8");
     const liveStatus = readFileSync(ADV_STATUS_LIVE, "utf8");
 
-    // The CLI default status path must use the worker-free Visibility
-    // search-attribute reader, not the per-change getState workflow query
-    // (which depends on a live per-project worker).
     expect(cli).toContain("loadLiveSummaries");
-    expect(cli).not.toContain("loadLiveStatus(");
-
-    // The Visibility reader builds rows from upserted change search
-    // attributes and synthesizes gate progress from AdvCurrentGate.
-    expect(liveStatus).toContain("summariesFromVisibility");
-    expect(liveStatus).toContain("buildSummaryFromSearchAttributes");
-    expect(liveStatus).toContain("AdvCurrentGate");
-    expect(liveStatus).toContain("AdvAffectedProjects");
-  });
-
-  test("advance-meta pins dashboard worker-free routine refresh law", () => {
-    const spec = readAdvanceMetaSpec();
-    const requirement = spec.requirements?.find(
-      (item) => item.id === "rq-dashboardWorkerFree01",
-    );
-    expect(requirement).toMatchObject({
-      id: "rq-dashboardWorkerFree01",
-      priority: "must",
-    });
-    expect(requirement?.body).toContain("/api/state");
-    expect(requirement?.body).toContain(
-      "per-change `getState` workflow queries",
-    );
-    expect(requirement?.scenarios?.map((s) => s.id)).toEqual([
-      "rq-dashboardWorkerFree01.1",
-      "rq-dashboardWorkerFree01.2",
-      "rq-dashboardWorkerFree01.3",
-      "rq-dashboardWorkerFree01.4",
-    ]);
-  });
-
-  test("default status active rows are not loaded from disk changes directory", () => {
-    const content = readFileSync(ADV_CLI, "utf8");
-
-    expect(content).not.toContain('join(root, "changes")');
-    expect(content).not.toContain("isDashboardActiveStatus");
+    expect(liveStatus).toContain("loadSummariesFromDisk");
+    expect(liveStatus).toContain('source: "disk"');
   });
 
   test("status live implementation has no mutation authority", () => {

@@ -31,7 +31,6 @@ import {
   loadValidationContext,
 } from "./create-clarify";
 import { reconcileRecoveredGates } from "../gate";
-import { createTemporalReadContext } from "../../storage/store-temporal/read-context";
 import { fileExists } from "../../storage/json";
 import {
   DEFAULT_MAX_CHARS,
@@ -47,7 +46,6 @@ import {
 } from "../../utils/tool-formatters";
 import { checkRequirementSmells } from "../../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../../utils/context-snapshot";
-import { changeToDirectiveState } from "../../temporal/change-state";
 import { deriveDirectiveSafe } from "../../utils/workflow-directive";
 import { degradedPhasePlan, derivePhasePlanSafe } from "../../utils/phase-plan";
 import { withPhaseDirective } from "../../utils/phase-directive";
@@ -121,11 +119,8 @@ export const advChangeShowHandler = async (
     activeStore: Store,
     projectContext?: TargetProjectOutputContext,
   ) => {
-    const readCtx = createTemporalReadContext();
-    const subread = createChangeShowSubreadRunner(readCtx);
-    const result = await activeStore.changes.get(changeId, {
-      context: readCtx,
-    });
+    const subread = createChangeShowSubreadRunner();
+    const result = await activeStore.changes.get(changeId);
     if (!result.success) {
       return formatToolOutput({ error: result.error });
     }
@@ -150,9 +145,7 @@ export const advChangeShowHandler = async (
       };
       if (requestedKinds.length > 0) {
         const artifactRead = await subread.runLocalCapable("artifacts", () =>
-          readArtifacts(activeStore, changeId, requestedKinds, {
-            deadline: readCtx.deadline,
-          }),
+          readArtifacts(activeStore, changeId, requestedKinds),
         );
         if (artifactRead.ok) {
           applyArtifactContentToOutput(output, artifactRead.value);
@@ -280,11 +273,11 @@ export const advChangeShowHandler = async (
           ? await normalizeGateArtifactEvidenceForReadback(gates)
           : undefined;
         return {
-          directiveState: changeToDirectiveState({
+          directiveState: {
+            ...displayChange,
             projectId: displayChange.adv_project_id ?? "unknown",
-            change: displayChange,
-            gates: normalizedGates ?? undefined,
-          }),
+            gates: normalizedGates ?? displayChange.gates,
+          } as never,
           normalizedGates,
         };
       };
@@ -472,9 +465,7 @@ export const advChangeShowHandler = async (
       // query covers all requested kinds (KD-6 readArtifacts).
       if (requestedKinds.length > 0) {
         const artifactRead = await subread.runLocalCapable("artifacts", () =>
-          readArtifacts(activeStore, changeId, requestedKinds, {
-            deadline: readCtx.deadline,
-          }),
+          readArtifacts(activeStore, changeId, requestedKinds),
         );
         if (artifactRead.ok) {
           applyArtifactContentToOutput(output, artifactRead.value);
@@ -514,7 +505,7 @@ export const advChangeShowHandler = async (
       {
         currentProjectPath: store.paths.root,
         target_path,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         mutation: false,
       },
       async ({ context, store: targetStore }) =>
@@ -561,24 +552,11 @@ export const advChangeListHandler = async (
   return withOptionalTargetPathStore(
     { store, target_path },
     async (activeStore, projectContext) => {
-      // rq-changeSummaryReadModel01: default warm path uses
-      // `changes.listSummary` when available so unchanged callers
-      // benefit from memo/cache short-circuits without forcing every
-      // candidate through full hydration. Falls back to the legacy
-      // `changes.list` when the store does not implement the optional
-      // summary surface (e.g. legacy/mock stores).
-      const summaryList = activeStore.changes.listSummary;
-      const result = summaryList
-        ? await summaryList({
-            status: status === "in-flight" ? undefined : status,
-            includeArchived,
-            includeClosed,
-          })
-        : await activeStore.changes.list({
-            status: status === "in-flight" ? undefined : status,
-            includeArchived,
-            includeClosed,
-          });
+      const result = await activeStore.changes.list({
+        status: status === "in-flight" ? undefined : status,
+        includeArchived,
+        includeClosed,
+      });
       // Enrich with last-activity data from the store-computed timestamp.
       const now = new Date();
       const withLastActivity = result.changes.map((change) => {

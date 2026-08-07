@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import type { Store } from "../storage/store";
+import type { Change } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
 import { recordPhaseDuration, withRecordedPhase } from "../utils/metrics";
 import {
@@ -15,10 +16,7 @@ import {
   computeQualitySignals,
   type QualitySignals,
 } from "./test-quality";
-import { testRunRecordedSignal } from "../temporal/messages";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
-import { getChangeHandle } from "./_adapters";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 
 /**
  * Default bounded-execution limits for `adv_run_test`.
@@ -33,7 +31,7 @@ import { getChangeHandle } from "./_adapters";
 export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
 const DEFAULT_OUTPUT_MAX_LENGTH = 2000;
-const TEST_RUN_RECORDING_TIMEOUT_MS = 300;
+const TEST_RUN_RING_BUFFER_LIMIT = 20;
 const TRUNCATION_SUFFIX = "... (truncated)";
 const ADV_RUN_TEST_PHASES = ["red", "green", "verify"] as const;
 type AdvRunTestPhase = (typeof ADV_RUN_TEST_PHASES)[number];
@@ -179,27 +177,6 @@ const classifyRun = (run: ExecResult): TestClassification => {
 
 const formatRecordingError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
-
-const withRecordingTimeout = async (
-  recording: Promise<EvidenceRecordingStatus>,
-  runId: string,
-): Promise<EvidenceRecordingStatus> => {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const timeoutResult = new Promise<EvidenceRecordingStatus>((resolve) => {
-    timeout = setTimeout(() => {
-      resolve({
-        status: "degraded",
-        reason: "timeout",
-        message: `testRunRecordedSignal timed out after ${TEST_RUN_RECORDING_TIMEOUT_MS}ms`,
-        runId,
-      });
-    }, TEST_RUN_RECORDING_TIMEOUT_MS);
-  });
-
-  const result = await Promise.race([recording, timeoutResult]);
-  if (timeout) clearTimeout(timeout);
-  return result;
-};
 
 const findRepoLocalTestWrapper = (cwd: string): string | undefined => {
   let current = resolve(cwd);
@@ -384,10 +361,10 @@ export const testTools = {
           "Optional descriptive TDD phase metadata. Does not gate task completion; use 'red', 'green', or 'verify'.",
         ),
       evidence_kind: z
-        .enum(["build_worker", "replay_determinism", "unit", "other"])
+        .enum(["unit", "other"])
         .optional()
         .describe(
-          "Optional typed classification for the test evidence (build_worker, replay_determinism, unit, other).",
+          "Optional typed classification for the test evidence (unit, other).",
         ),
       workdir: z
         .string()
@@ -418,11 +395,7 @@ export const testTools = {
         phase?: AdvRunTestPhase;
         workdir?: string;
         timeoutMs?: number;
-        evidence_kind?:
-          | "build_worker"
-          | "replay_determinism"
-          | "unit"
-          | "other";
+        evidence_kind?: "unit" | "other";
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -438,7 +411,7 @@ export const testTools = {
             {
               currentProjectPath: store.paths.root,
               target_path: targetPath,
-              stateRequirement: "temporal-required",
+              stateRequirement: "authoritative",
               target_confirmed: args.target_confirmed,
               confirmationEvidence: args.confirmationEvidence,
             },
@@ -499,9 +472,9 @@ export const testTools = {
         outcome: passed ? "success" : "error",
       });
 
-      // rq-TDD009seq: fire testRunRecordedSignal for ordering enforcement.
-      // Best-effort: signal fire failure is non-fatal, but degradation is
-      // explicit in the response so callers do not infer durable evidence.
+      // rq-TDD009seq: persist test-run evidence in the durable change
+      // projection. A failed postcondition is surfaced as degraded evidence;
+      // callers must not infer durable evidence from command output alone.
       const runId = `tr_${Date.now().toString(36)}_${randomBytes(4).toString("hex")}`;
       let evidenceRecording: EvidenceRecordingStatus = {
         status: "not_applicable",
@@ -511,62 +484,60 @@ export const testTools = {
       try {
         const taskInfo = await store.tasks.show(args.taskId);
         if (taskInfo?.changeId) {
-          const bundle = getService();
-          if (bundle) {
-            const projectId = await getProjectId(store.paths.root);
-            if (projectId) {
-              const handle = getChangeHandle(
-                bundle,
-                projectId,
-                taskInfo.changeId,
-              );
-              // rq-cacheRefresh01-exempt: adv_run_test returns command output
-              // directly; does not read change state after firing
-              const recording = handle
-                .signal(testRunRecordedSignal, {
-                  taskId: args.taskId,
-                  runId,
-                  ...(args.phase && { phase: args.phase }),
-                  exitCode,
-                  classification,
-                  command: args.command,
-                  durationMs,
-                  ...(args.evidence_kind && {
-                    evidence_kind: args.evidence_kind,
-                  }),
-                  ...(qualitySignals && {
-                    assertionDensity: qualitySignals.assertionDensity,
-                    mockSurface: qualitySignals.mockSurface,
-                    behaviorSurface: qualitySignals.behaviorSurface,
-                  }),
-                  recordedAt: new Date().toISOString(),
-                })
-                .then(
-                  (): EvidenceRecordingStatus => ({
-                    status: "recorded",
-                    runId,
-                  }),
-                )
-                .catch(
-                  (error: unknown): EvidenceRecordingStatus => ({
-                    status: "degraded",
-                    reason: "signal_failed",
-                    message: formatRecordingError(error),
-                    runId,
-                  }),
-                );
-              evidenceRecording = await withRecordingTimeout(recording, runId);
-            } else {
-              evidenceRecording = {
-                status: "not_applicable",
-                reason: "project_id_unavailable",
-                runId,
-              };
-            }
+          const recordedAt = new Date().toISOString();
+          const record = {
+            runId,
+            ...(args.phase && { phase: args.phase }),
+            exitCode,
+            classification,
+            command: args.command,
+            durationMs,
+            ...(args.evidence_kind && { evidence_kind: args.evidence_kind }),
+            ...(qualitySignals && {
+              assertionDensity: qualitySignals.assertionDensity,
+              mockSurface: qualitySignals.mockSurface,
+              behaviorSurface: qualitySignals.behaviorSurface,
+            }),
+            recordedAt,
+          };
+          const outcome = await coordinateChangeMutation<Change>({
+            authority: {
+              reason: "record test-run evidence",
+              evidence: args.command,
+            },
+            changesDir: store.paths.changes,
+            intent: {
+              changeId: taskInfo.changeId,
+              mutationKind: "test_run_recorded",
+              mutateLatestProjection: (latest) => {
+                const existing = latest.test_runs?.[args.taskId] ?? [];
+                return {
+                  ...latest,
+                  test_runs: {
+                    ...(latest.test_runs ?? {}),
+                    [args.taskId]: [...existing, record].slice(
+                      -TEST_RUN_RING_BUFFER_LIMIT,
+                    ),
+                  },
+                };
+              },
+              verifyProjection: (readback) =>
+                readback.test_runs?.[args.taskId]?.some(
+                  (candidate) => candidate.runId === runId,
+                ) ?? false,
+            },
+          });
+          if (outcome.kind === "verified") {
+            evidenceRecording = { status: "recorded", runId };
           } else {
             evidenceRecording = {
-              status: "not_applicable",
-              reason: "temporal_service_unavailable",
+              status: "degraded",
+              reason: "signal_failed",
+              message:
+                outcome.kind === "unverified" ||
+                outcome.kind === "operator_required"
+                  ? outcome.reason
+                  : `Projection revision conflict: ${outcome.expected} != ${outcome.actual}`,
               runId,
             };
           }

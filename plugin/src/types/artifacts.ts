@@ -35,6 +35,22 @@ export const ArtifactKindSchema = z.enum([
 
 export type ArtifactKind = z.infer<typeof ArtifactKindSchema>;
 
+/** Metadata carried with a persisted change artifact. */
+export interface ArtifactMetadata {
+  path?: string;
+  updatedAt: string;
+  contentHash?: string;
+  source?: "temporal" | "disk" | "archive" | "recovery";
+  readable?: boolean;
+  rejection?: {
+    reason: "ARTIFACT_OVERSIZED" | "AGGREGATE_OVERSIZED";
+    attempted_size: number;
+    cap: number;
+    rejected_at: string;
+  };
+  sizeWarning?: { size: number; soft_cap: number; at: string };
+}
+
 /** Canonical disk filename for each artifact kind at filesystem boundaries. */
 export const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
   proposal: "proposal.md",

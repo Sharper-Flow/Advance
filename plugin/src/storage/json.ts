@@ -1,9 +1,7 @@
 /**
  * JSON File Storage
  *
- * Handles JSON disk projection for specs and changes. Temporal workflows are
- * the authoritative runtime state; JSON files serve projection and legacy
- * compatibility paths.
+ * Handles JSON disk projections for specs and changes.
  */
 
 import { join, basename } from "path";

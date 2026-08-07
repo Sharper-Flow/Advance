@@ -5,14 +5,9 @@ import {
   resolveDataHomeRoot,
   type CensusInventory,
   type StoreInventoryEntry,
-  type WorkflowInventoryRow,
 } from "./census";
 
 describe("resolveDataHomeRoot", () => {
-  // Regression: under the `oc` per-project shard wrapper XDG_DATA_HOME is the
-  // shard itself. Scanning it directly made the census session-scoped, so every
-  // other project's store became false "store does not exist" evidence and the
-  // abandoned-workflow dimension reported live work as abandoned.
   test("unwraps an oc per-project shard to the machine-wide root", () => {
     expect(
       resolveDataHomeRoot(
@@ -56,35 +51,11 @@ function store(
   };
 }
 
-function workflow(
-  workflowId: string,
-  options: Partial<WorkflowInventoryRow> = {},
-): WorkflowInventoryRow {
-  return {
-    workflowId,
-    executionStatus: "Running",
-    workflowType: workflowId.startsWith("adv/change/")
-      ? "changeWorkflow"
-      : "epicWorkflow",
-    ...options,
-  };
+function inventory(stores: StoreInventoryEntry[]): CensusInventory {
+  return { stores, storeInventoryComplete: true };
 }
 
-function inventory(
-  stores: StoreInventoryEntry[],
-  workflows: WorkflowInventoryRow[] = [],
-  archiveChangeIds: string[] = [],
-): CensusInventory {
-  return {
-    stores,
-    workflows,
-    archiveChangeIds: new Set(archiveChangeIds),
-    storeInventoryComplete: true,
-    temporal: { kind: "complete" },
-  };
-}
-
-describe("census analyzer", () => {
+describe("disk census analyzer", () => {
   test.each([
     ["canonical healthy", inventory([store(PROJECT_ID)])],
     ["bin-style non-store is excluded before classification", inventory([])],
@@ -135,71 +106,6 @@ describe("census analyzer", () => {
     expect(report.dimensions.malformed_identity.items).toHaveLength(0);
   });
 
-  test.each([
-    [
-      "synthetic project",
-      workflow(`adv/epic/${SYNTHETIC_ID}/demo`),
-      "synthetic_fixture",
-    ],
-    [
-      "malformed project",
-      workflow("adv/change/not-an-identity/demo"),
-      "malformed_identity",
-    ],
-    [
-      "unparseable ADV workflow id",
-      workflow("adv/change/broken"),
-      "malformed_identity",
-    ],
-  ] as const)(
-    "reports %s in the live namespace",
-    (_name, row, identityClass) => {
-      const report = analyzeCensus(inventory([store(PROJECT_ID)], [row]));
-      expect(report.dimensions.fixture_project_in_live_namespace.count).toBe(1);
-      expect(
-        report.dimensions.fixture_project_in_live_namespace.items[0]
-          ?.identity_classification,
-      ).toBe(identityClass);
-    },
-  );
-
-  test("classifies an abandoned running change with archive evidence", () => {
-    const changeId = "archivedChange";
-    const report = analyzeCensus(
-      inventory(
-        [store(PROJECT_ID)],
-        [workflow(`adv/change/${PROJECT_ID}/${changeId}`)],
-        [changeId],
-      ),
-    );
-    expect(report.dimensions.abandoned_running_workflow.count).toBe(1);
-    expect(
-      report.dimensions.abandoned_running_workflow.items[0]?.why,
-    ).toContain("archive");
-  });
-
-  test("classifies an abandoned running change with positive missing-store evidence", () => {
-    const missingProject = "c".repeat(40);
-    const report = analyzeCensus(
-      inventory([], [workflow(`adv/change/${missingProject}/missingChange`)]),
-    );
-    expect(report.dimensions.abandoned_running_workflow.count).toBe(1);
-    expect(
-      report.dimensions.abandoned_running_workflow.items[0]?.why,
-    ).toContain("store");
-  });
-
-  test("does not call a running change abandoned without positive disk evidence", () => {
-    const report = analyzeCensus({
-      ...inventory(
-        [store(PROJECT_ID)],
-        [workflow(`adv/change/${PROJECT_ID}/live`)],
-      ),
-      storeInventoryComplete: false,
-    });
-    expect(report.dimensions.abandoned_running_workflow.count).toBe(0);
-  });
-
   test("bounds rows and reports omitted findings", () => {
     const report = analyzeCensus(
       inventory([store("nogit"), store("also-bad")]),
@@ -208,5 +114,15 @@ describe("census analyzer", () => {
     expect(report.dimensions.malformed_identity.count).toBe(2);
     expect(report.dimensions.malformed_identity.items).toHaveLength(1);
     expect(report.dimensions.malformed_identity.omitted).toBe(1);
+  });
+
+  test("fails closed when disk inventory is incomplete", () => {
+    const report = analyzeCensus({
+      stores: [],
+      storeInventoryComplete: false,
+    });
+
+    expect(report.clean).toBe(false);
+    expect(report.exit_code).toBe(1);
   });
 });

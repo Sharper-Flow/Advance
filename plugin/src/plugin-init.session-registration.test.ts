@@ -36,18 +36,6 @@ vi.mock("./migration/paths", () => ({
   resolveOwnBuildIdentity: mocks.resolveOwnBuildIdentity,
 }));
 
-vi.mock("./temporal/runtime-manager", async () => {
-  const actual = await vi.importActual<
-    typeof import("./temporal/runtime-manager")
-  >("./temporal/runtime-manager");
-  return {
-    ...actual,
-    ensureTemporalRuntime: vi.fn(async () => {
-      throw new Error("no Temporal runtime in unit test");
-    }),
-  };
-});
-
 import {
   getCurrentSessionId,
   registerShutdownHandlers,
@@ -73,7 +61,7 @@ describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
     tempDirs = [];
   });
 
-  test("tryInitStore registers the session's loaded-build identity before runtime startup", async () => {
+  test("tryInitStore registers the session's loaded-build identity before disk startup", async () => {
     // Isolate any external-state side effects from the real machine shard.
     const xdg = await createTempDir("adv-initreg-xdg-");
     tempDirs.push(xdg);
@@ -81,7 +69,7 @@ describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
 
     const result = await tryInitStore(process.cwd(), undefined);
 
-    // Registration fired even though Temporal runtime startup fails here.
+    // Registration fires before disk store initialization completes.
     expect(mocks.registerPluginSession).toHaveBeenCalledTimes(1);
     const registerCall = mocks.registerPluginSession.mock.calls[0][0] as {
       projectId: string;
@@ -98,8 +86,10 @@ describe("plugin-init loaded-build session registration (AC9/DDC5)", () => {
     );
     expect(registerCall.sessionId).toMatch(/^sess_[A-Za-z0-9_-]{8}$/);
     expect(getCurrentSessionId()).toBe(registerCall.sessionId);
-    expect(result.initError).not.toBeNull();
-  });
+    expect(result.initError).toBeNull();
+    expect(result.store).not.toBeNull();
+    result.store?.close();
+  }, 20_000);
 
   test("subsequent tryInitStore calls reuse the same session ID", async () => {
     // Isolate any external-state side effects from the real machine shard.

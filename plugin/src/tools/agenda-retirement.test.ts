@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
 import { BriefingFactOutcomeSchema, OpsFollowupSourceSchema } from "../types";
 import { ADV_TOOL_NAMES, createToolMap } from "../tool-registry";
 import { getProjectPaths } from "../storage/json";
-import { createLegacyStore } from "../storage/store";
+import { createDiskStore } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -38,7 +38,7 @@ describe("retireAgendaWorkflow — no adv_agenda_* tools registered (AC1)", () =
   it("createToolMap does not register any adv_agenda_* tool", async () => {
     const tempDir = await createTempDir();
     await createTestProject(tempDir);
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir);
@@ -193,7 +193,7 @@ describe("retireAgendaWorkflow — tool surface has no active agenda references 
   it("no registered tool's description references agenda as an active product surface", async () => {
     const tempDir = await createTempDir();
     await createTestProject(tempDir);
-    const store = await createLegacyStore(tempDir);
+    const store = await createDiskStore(tempDir);
     await store.init();
     try {
       const map = createToolMap(store, tempDir);

@@ -14,16 +14,13 @@ import type {
   OpsFollowupResolutionReason,
   OpsRelationship,
 } from "../types";
-import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import type { TemporalWorkflowHandleProxy } from "./change-mutation-coordinator";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   withTargetPathStore,
   type TargetStoreScope,
   type WithTargetPathStoreInput,
 } from "./target-project";
 import { getProjectId } from "../utils/project-id";
-import { getService } from "../temporal/service";
 import type { Store } from "../storage/store";
 
 const HANDOFF_RELATIONSHIPS: OpsRelationship[] = [
@@ -48,9 +45,6 @@ export interface ReconcileOpsFollowupResolutionResult {
 export interface ReconcileOpsFollowupLinksDeps {
   withTargetPathStore?: typeof withTargetPathStore;
   getProjectId?: typeof getProjectId;
-  fireSignalAndRefresh?: typeof fireSignalAndRefresh;
-  getChangeHandle?: typeof getChangeHandle;
-  getService?: typeof getService;
   now?: () => string;
 }
 
@@ -272,7 +266,7 @@ async function readCrossProjectChild(input: {
       {
         currentProjectPath: store.paths.root,
         target_path: link.target_path,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed: true,
         confirmationEvidence: "ops follow-up reconciliation",
       } as WithTargetPathStoreInput,
@@ -431,44 +425,37 @@ async function persistResolutionUpsert(input: {
   linkId: string;
   resolution: OpsFollowupResolution;
   upsertedAt: string;
-  deps: ReconcileOpsFollowupLinksDeps;
 }): Promise<void> {
-  const { store, changeId, linkId, resolution, upsertedAt, deps } = input;
-  const payload = { linkId, resolution, upsertedAt };
-
-  if (deps.fireSignalAndRefresh) {
-    await deps.fireSignalAndRefresh(
-      {} as unknown as TemporalWorkflowHandleProxy,
-      store,
+  const { store, changeId, linkId, resolution, upsertedAt } = input;
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "reconcile ops follow-up resolution",
+      evidence: `${linkId}:${upsertedAt}`,
+    },
+    changesDir: store.paths.changes,
+    intent: {
       changeId,
-      opsFollowupResolutionUpsertedSignal,
-      payload,
+      mutationKind: "ops_followup_resolution_reconciled",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        ops_followup_links: (latest.ops_followup_links ?? []).map((link) =>
+          link.id === linkId ? { ...link, resolution } : link,
+        ),
+      }),
+      verifyProjection: (readback) =>
+        readback.ops_followup_links?.some(
+          (link) =>
+            link.id === linkId && resolutionsEqual(link.resolution, resolution),
+        ) ?? false,
+    },
+  });
+  if (outcome.kind !== "verified") {
+    throw new Error(
+      outcome.kind === "unverified" || outcome.kind === "operator_required"
+        ? outcome.reason
+        : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
     );
-    return;
   }
-
-  const getServiceFn = deps.getService ?? getService;
-  const getChangeHandleFn = deps.getChangeHandle ?? getChangeHandle;
-  const getProjectIdFn = deps.getProjectId ?? getProjectId;
-
-  const bundle = getServiceFn();
-  if (!bundle) {
-    throw new Error("Temporal service not available");
-  }
-  const projectId =
-    store.productContext?.productProjectId ??
-    (await getProjectIdFn(store.paths.root));
-  if (!projectId) {
-    throw new Error("Could not resolve project ID");
-  }
-  const handle = getChangeHandleFn(bundle, projectId, changeId);
-  await fireSignalAndRefresh(
-    handle,
-    store,
-    changeId,
-    opsFollowupResolutionUpsertedSignal,
-    payload,
-  );
 }
 
 export async function reconcileOpsFollowupLinks(
@@ -493,7 +480,6 @@ export async function reconcileOpsFollowupLinks(
         linkId,
         resolution,
         upsertedAt: now,
-        deps,
       });
     }
     reconciled.push({ linkId, resolution });

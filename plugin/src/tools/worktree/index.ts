@@ -14,14 +14,8 @@
  * Adapted for ADV with production-proven worktree patterns.
  */
 
-// T13: WorktreeStateAccess replaced the old local state handle.
-// The legacy `Database` alias survives only as a type alias so the
-// large amount of existing code in this file (call sites that pass
-// `db` around) keeps compiling. Behavioral rewrites (T9/T10) will
-// drop these adapters as flows are migrated to the Temporal-backed
-// state module directly.
+// WorktreeStateAccess remains named Database for the existing tool contract.
 import type { WorktreeStateAccess as Database } from "./state";
-import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
 import {
   access,
   copyFile,
@@ -80,7 +74,6 @@ import {
   initStateDb,
   listWorktrees,
   recordPendingDeleteFailure,
-  removeWorktree,
   setPendingDelete,
 } from "./state";
 import { openTerminal } from "./terminal";
@@ -108,36 +101,18 @@ import {
   workspaceAndWarpAvailable,
   type WarpDeps,
 } from "../../utils/workspace-warp";
-import { getService } from "../../temporal/service";
-import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
-import {
-  worktreeCreatedSignal,
-  worktreeDeletedSignal,
-  worktreeRegistrationRepairedSignal,
-  worktreeSetupFailedSignal,
-} from "../../temporal/messages";
 import type { Store } from "../../storage/store";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 import { execGh } from "../../integrations/gh-cli";
 
 export { advWorktreeDetachBatch } from "./detach";
 
-/** Maximum retries for database initialization */
+/** Maximum retries for worktree state initialization */
 const DB_MAX_RETRIES = 3;
 
 /** Delay between retry attempts in milliseconds */
 const DB_RETRY_DELAY_MS = 100;
 
-type WorktreeSignalResult = { ok: true } | { ok: false; warning: string };
-
-/**
- * Default timeout for the post-delete workflow notification signal.
- * Must be below the tool safe budget (8s) so the signal resolves
- * before the tool-level timeout fires.
- *
- * rq-worktreeBoundedCleanup02 AC5.
- */
-const DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 5_000;
 const DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS = 1_500;
 const DEFAULT_DELETE_OPERATION_TIMEOUT_MS = 7_500;
 
@@ -159,61 +134,6 @@ function getRemainingDeleteOperationMs(
 
 const PENDING_DELETE_RETURN_RESERVE_MS = 100;
 
-async function fireWorktreeSignal(
-  projectDir: string,
-  store: Store | undefined,
-  changeId: string | undefined,
-  signal: unknown,
-  payload: unknown,
-  signalTimeoutMs = DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS,
-): Promise<WorktreeSignalResult> {
-  if (!changeId) return { ok: true };
-  try {
-    const bundle = getService();
-    if (!bundle) {
-      const warning =
-        "Worktree notification skipped: Temporal service unavailable";
-      appendDebugLog("worktree", warning);
-      return { ok: false, warning };
-    }
-    const projectId = await getProjectIdRaw(projectDir);
-    if (!projectId) {
-      const warning = `Worktree notification skipped: project ID unavailable for ${projectDir}`;
-      appendDebugLog("worktree", warning);
-      return { ok: false, warning };
-    }
-    const handle = getChangeHandle(bundle, projectId, changeId);
-    if (store) {
-      // rq-cacheRefresh01: invalidate the cache after firing the signal
-      // so subsequent reads see the worktree-create/delete state change.
-      await withTimeout(
-        fireSignalAndRefresh(handle, store, changeId, signal, payload),
-        signalTimeoutMs,
-        "Worktree signal/cache refresh timed out",
-      );
-    } else {
-      // rq-cacheRefresh01-exempt: ADV worktree calls without a store
-      // bound (legacy/test paths) skip refresh — these paths are not
-      // backed by a live cache. The store argument is plumbed via
-      // AdvWorktreeCreateDeps/AdvWorktreeDeleteDeps for production use.
-      const { fireSignal: _fs } = await import("../_adapters");
-      await withTimeout(
-        _fs(handle, signal, payload),
-        signalTimeoutMs,
-        "Worktree signal timed out",
-      );
-    }
-    return { ok: true };
-  } catch (err) {
-    const warning =
-      err instanceof TimeoutError
-        ? `Worktree notification timed out after ${signalTimeoutMs}ms`
-        : `Worktree notification failed: ${err instanceof Error ? err.message : String(err)}`;
-    appendDebugLog("worktree", warning);
-    return { ok: false, warning };
-  }
-}
-
 async function readChangeStatusWithCleanupTimeout(
   store: Store,
   changeId: string,
@@ -222,7 +142,7 @@ async function readChangeStatusWithCleanupTimeout(
   | { ok: true; status: string | undefined }
   | {
       ok: false;
-      reason: "temporal_read_timeout" | "temporal_read_failed";
+      reason: "store_read_timeout" | "store_read_failed";
       error: unknown;
     }
 > {
@@ -241,8 +161,8 @@ async function readChangeStatusWithCleanupTimeout(
       ok: false,
       reason:
         error instanceof TimeoutError
-          ? "temporal_read_timeout"
-          : "temporal_read_failed",
+          ? "store_read_timeout"
+          : "store_read_failed",
       error,
     };
   }
@@ -251,7 +171,7 @@ async function readChangeStatusWithCleanupTimeout(
 /**
  * Build a durable terminal-status reader for branch integration.
  * Reads directly from the Store's disk-backed change projection, bypassing
- * any stale workflow/memo state after archive terminal convergence.
+ * any stale in-memory state after archive terminal convergence.
  */
 function makeDurableTerminalStatusReader(
   deps: AdvWorktreeDeleteDeps,
@@ -776,10 +696,8 @@ function registerCleanupHandlers(_database: Database): void {
   if (cleanupRegistered) return; // Early exit guard
   cleanupRegistered = true;
 
-  // T13: legacy local-state cleanup is no-op now —
-  // state lives in the project workflow, not in a local database.
-  // Cleanup hooks remain registered for back-compat with future
-  // session-shutdown work that may need to flush pending updates.
+  // State access is external-project keyed; process cleanup has no local handle
+  // to close, but the lifecycle hooks remain idempotent for plugin shutdown.
   const cleanup = () => {
     // no-op
   };
@@ -936,11 +854,7 @@ export interface AdvWorktreeCreateDeps {
   database: Database;
   log: Logger;
   /**
-   * Optional Store for cache-refresh after firing worktreeCreatedSignal
-   * (rq-cacheRefresh01). When omitted, the worktree-created signal still
-   * fires but the in-memory changeCache is not invalidated; subsequent
-   * reads of the affected change may return stale data. Production
-   * callers via adv-worktree.ts always provide store.
+   * Optional Store for durable change-status reads during cleanup.
    */
   store?: Store;
   resolveDefaultBranch?: (cwd: string) => Promise<string | null>;
@@ -1047,10 +961,8 @@ export async function advWorktreeCreate(
     };
   }
 
-  // Step 0: reuse an already-registered git worktree before any
-  // project-workflow recovery, stale-basis checks, flock, or git worktree add.
-  // This is intentionally git-authoritative: `git worktree list --porcelain`
-  // is local, cheap, and remains available when the Temporal worker is stuck.
+  // Step 0: reuse an already-registered git worktree before stale-basis checks,
+  // flock, or git worktree add. Git is authoritative for this local fact.
   const existingWorktree = await findGitWorktreeByBranch(repoRoot, branch);
   if (existingWorktree) {
     if (await pathExists(existingWorktree.path)) {
@@ -1058,27 +970,6 @@ export async function advWorktreeCreate(
         await execGit(["rev-parse", "HEAD"], existingWorktree.path)
       ).trim();
       const baseRef = opts.base ?? "existing";
-
-      // The disk worktree is authoritative for reuse, but a recovered workflow
-      // can be missing its durable registration. The query is advisory only:
-      // null also covers service/query failure, so the dedicated workflow
-      // reducer performs the authoritative if-absent check before insertion.
-      const record = await getWorktreeRecord(deps.database, branch);
-      if (!record) {
-        await fireWorktreeSignal(
-          repoRoot,
-          deps.store,
-          inferredChangeId ?? undefined,
-          worktreeRegistrationRepairedSignal,
-          {
-            branch,
-            path: existingWorktree.path,
-            baseRef,
-            headSha,
-            repairedAt: new Date().toISOString(),
-          },
-        );
-      }
 
       return {
         ok: true,
@@ -1216,23 +1107,6 @@ export async function advWorktreeCreate(
       ).trim();
       const baseRef = opts.base ?? "existing";
 
-      const record = await getWorktreeRecord(deps.database, branch);
-      if (!record) {
-        await fireWorktreeSignal(
-          repoRoot,
-          deps.store,
-          inferredChangeId ?? undefined,
-          worktreeRegistrationRepairedSignal,
-          {
-            branch,
-            path: existingWorktreeAfterLock.path,
-            baseRef,
-            headSha,
-            repairedAt: new Date().toISOString(),
-          },
-        );
-      }
-
       return {
         ok: true,
         branch,
@@ -1246,7 +1120,6 @@ export async function advWorktreeCreate(
     // Step 4: execute git worktree add explicitly with the resolved base.
     const worktreePath = await getWorktreePath(repoRoot, branch);
     await mkdir(path.dirname(worktreePath), { recursive: true });
-    const sourceVersion = Date.now();
 
     const exists = await branchExists(repoRoot, branch);
     let gitResult: Result<string, string>;
@@ -1262,23 +1135,6 @@ export async function advWorktreeCreate(
       );
     }
     if (!gitResult.ok) {
-      const failedAt = new Date(sourceVersion + 1).toISOString();
-      const changeId = inferChangeIdFromBranch(branch) ?? undefined;
-      await fireWorktreeSignal(
-        repoRoot,
-        deps.store,
-        changeId,
-        worktreeSetupFailedSignal,
-        {
-          branch,
-          path: worktreePath,
-          changeId,
-          baseRef: resolvedBase,
-          setupFailureReason: gitResult.error,
-          failedAt,
-          stage: "git_failed",
-        },
-      );
       return { ok: false, error: "GIT_FAILED", reason: gitResult.error };
     }
 
@@ -1312,24 +1168,6 @@ export async function advWorktreeCreate(
         await runHooksWithSafety("postCreate", worktreePath, postCreateHooks);
       } catch (err) {
         const reason = String(err instanceof Error ? err.message : err);
-        const failedAt = new Date(sourceVersion + 1).toISOString();
-        const changeId = inferChangeIdFromBranch(branch) ?? undefined;
-        await fireWorktreeSignal(
-          repoRoot,
-          deps.store,
-          changeId,
-          worktreeSetupFailedSignal,
-          {
-            branch,
-            path: worktreePath,
-            changeId,
-            baseRef: resolvedBase,
-            headSha,
-            setupFailureReason: reason,
-            failedAt,
-            stage: "hook_failed",
-          },
-        );
         deps.log.warn(
           `[worktree] postCreate hook failed for ${branch}: ${err}`,
         );
@@ -1342,22 +1180,6 @@ export async function advWorktreeCreate(
         };
       }
     }
-
-    // Signal-driven: notify change workflow that worktree was created
-    const createdChangeId = inferChangeIdFromBranch(branch);
-    await fireWorktreeSignal(
-      repoRoot,
-      deps.store,
-      createdChangeId ?? undefined,
-      worktreeCreatedSignal,
-      {
-        branch,
-        path: worktreePath,
-        baseRef: resolvedBase,
-        headSha,
-        createdAt: new Date().toISOString(),
-      },
-    );
 
     return {
       ok: true,
@@ -1409,9 +1231,7 @@ function branchFromResumeTarget(
   if (branch) return branch;
   const changeId = target.changeId?.trim();
   if (!changeId) return null;
-  return changeId.startsWith(CHANGE_BRANCH_PREFIX)
-    ? changeId
-    : `${CHANGE_BRANCH_PREFIX}${changeId}`;
+  return changeId.startsWith("change/") ? changeId : `change/${changeId}`;
 }
 
 export async function advWorktreeResume(
@@ -1556,15 +1376,11 @@ export interface AdvWorktreeDeleteDeps {
   database: Database;
   log: Logger;
   /**
-   * Optional Store for cache-refresh after firing worktreeDeletedSignal
-   * (rq-cacheRefresh01). When omitted, the worktree-deleted signal still
-   * fires but the in-memory changeCache is not invalidated. Production
-   * callers via adv-worktree.ts always provide store.
+   * Optional Store for durable change-status reads during cleanup.
    */
   store?: Store;
   /**
-   * Optional timeout in milliseconds for the post-delete workflow signal.
-   * Primarily a test seam; defaults to 10s in production.
+   * Optional timeout in milliseconds for durable change-status reads.
    */
   signalTimeoutMs?: number;
   /**
@@ -1788,7 +1604,7 @@ async function getPrMergedBranchIntegration(
   branch: string,
   deps: AdvWorktreeDeleteDeps,
 ): Promise<PrMergedBranchIntegrationResult> {
-  if (!branch.startsWith(CHANGE_BRANCH_PREFIX)) {
+  if (!branch.startsWith("change/")) {
     return {
       ok: false,
       reason: "branch_not_change_branch",
@@ -2044,7 +1860,6 @@ async function verifyMissingRegistryChangeBranchIntegration(
   return verifyNonAdvBranchIntegration(branch, deps);
 }
 
-// rq-worktreeStaleRegistryCleanup01: clear missing_from_disk registry entries
 // only for terminal changes; unsafe cases are retained with typed blockers.
 async function maybeRemoveMissingFromDiskRegistryEntry(
   branch: string,
@@ -2084,21 +1899,8 @@ async function maybeRemoveMissingFromDiskRegistryEntry(
     };
   }
 
-  // Durable cleanup through the owning change workflow.
-  const removed = await removeWorktree(
-    deps.database,
-    branch,
-    undefined,
-    deps.store,
-  );
-  if (!removed.ok) {
-    return {
-      ok: false,
-      error: "REMOVE_FAILED",
-      reason: removed.reason,
-    };
-  }
-
+  // Git has no local registry row to mutate after the missing branch/path has
+  // passed the terminal and ancestry gates. Clear only the retry marker.
   await clearPendingDelete(deps.database, branch);
   appendDebugLog(
     "worktree-delete",
@@ -2284,7 +2086,7 @@ export async function advWorktreeDelete(
     }
   } else if (!registryEntry && inferredChangeId) {
     // Registry drift recovery for ADV change branches. The registry is
-    // bookkeeping; archived state from Store/Temporal is the structural gate.
+    // bookkeeping; archived state from Store is the structural gate.
     const integrationResult = await withDeleteOperationBudget(
       branch,
       worktreePath,
@@ -2614,29 +2416,8 @@ export async function advWorktreeDelete(
     );
   }
 
-  // Signal-driven: notify change workflow that worktree was deleted
-  const deletedChangeId = inferChangeIdFromBranch(branch);
-  const deleteSignalResult = await fireWorktreeSignal(
-    deps.projectRoot,
-    deps.store,
-    deletedChangeId ?? undefined,
-    worktreeDeletedSignal,
-    {
-      branch,
-      reason: opts.force ? "force_delete" : "integration_complete",
-      deletedAt: new Date().toISOString(),
-    },
-    deps.signalTimeoutMs,
-  );
-
   // 8. Return success (deterministic warning composition)
-  let warning: string | undefined = workspaceCleanupWarning ?? undefined;
-  if (!deleteSignalResult.ok) {
-    warning = warning
-      ? `${warning}; ${deleteSignalResult.warning}`
-      : deleteSignalResult.warning;
-  }
-
+  const warning: string | undefined = workspaceCleanupWarning ?? undefined;
   return {
     ok: true as const,
     branch,

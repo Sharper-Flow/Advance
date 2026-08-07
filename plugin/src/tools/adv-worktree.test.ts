@@ -80,7 +80,7 @@ describe("advWorktreeTools", () => {
             externalRoot: "/external/target-project",
             trusted: false,
             trustSource: "explicit",
-            stateMode: "temporal",
+            stateMode: "authoritative",
           },
           store: targetStore,
         }),
@@ -617,7 +617,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target worktree resume",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );
@@ -766,7 +766,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target cleanup",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );
@@ -944,7 +944,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target cleanup",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );
@@ -1231,7 +1231,7 @@ describe("advWorktreeTools", () => {
 
   it("adv_worktree_triage delegates to triageWorktrees", async () => {
     triageMock.triageWorktrees.mockResolvedValue({
-      orphans: [{ class: "missing_from_disk", branch: "change/x" }],
+      orphans: [{ class: "stale_head", branch: "change/x" }],
       total: 1,
     });
 
@@ -1249,7 +1249,7 @@ describe("advWorktreeTools", () => {
         timeoutMs: 55_000,
       },
     );
-    expect(out).toContain("missing_from_disk");
+    expect(out).toContain("stale_head");
   });
 
   it("reports incomplete triage as actionable partial inventory", async () => {
@@ -1258,10 +1258,10 @@ describe("advWorktreeTools", () => {
       total: 0,
       complete: false,
       stopReason: "internal_budget_exhausted",
-      stoppedStage: "query_change_workflow",
+      stoppedStage: "dirty_uncommitted_work",
       inspectedCount: 4,
       candidateCount: 36,
-      omitted: [{ scope: "query_change_workflow", reason: "budget" }],
+      omitted: [{ scope: "dirty_uncommitted_work", reason: "budget" }],
     });
 
     const out = await advWorktreeTools.adv_worktree_triage.execute({}, store);
@@ -1271,7 +1271,7 @@ describe("advWorktreeTools", () => {
       success: false,
       complete: false,
       stopReason: "internal_budget_exhausted",
-      stoppedStage: "query_change_workflow",
+      stoppedStage: "dirty_uncommitted_work",
       inspectedCount: 4,
       candidateCount: 36,
     });
@@ -1313,14 +1313,8 @@ describe("advWorktreeTools", () => {
       },
       "/repo",
       database,
-      expect.objectContaining({
-        store,
-        signalTimeoutMs: expect.any(Number),
-      }),
+      expect.objectContaining({ log: expect.any(Object) }),
     );
-    const [, , , options] =
-      worktreeMock.advWorktreeDetachBatch.mock.calls.at(-1)!;
-    expect(options.signalTimeoutMs).toBeLessThan(WORKTREE_TOOL_SAFE_TIMEOUT_MS);
     expect(out).toContain('"ok":true');
     expect(out).toContain("change/x");
   });
@@ -1358,7 +1352,7 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target detach",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );
@@ -1367,7 +1361,7 @@ describe("advWorktreeTools", () => {
       expect.any(Object),
       "/target",
       database,
-      expect.objectContaining({ store: targetStore }),
+      expect.objectContaining({ log: expect.any(Object) }),
     );
   });
 

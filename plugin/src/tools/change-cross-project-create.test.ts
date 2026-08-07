@@ -63,7 +63,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
     vi.clearAllMocks();
   });
 
-  test("routes target_path creation through a temporal-required target store without target get", async () => {
+  test("routes target_path creation through a authoritative target store without target get", async () => {
     const targetCreate = vi.fn(async () => ({
       changeId: "addTargetFollowup",
       path: "/state/target/changes/addTargetFollowup/proposal.md",
@@ -111,7 +111,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
       expect.objectContaining({
         currentProjectPath: SOURCE_ROOT,
         target_path: TARGET_ROOT,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed: true,
         confirmationEvidence: "user approved target mutation",
       }),
@@ -240,7 +240,7 @@ describe("adv_change_create cross-project Temporal routing", () => {
     expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
       expect.objectContaining({
         target_path: TARGET_ROOT,
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
       }),
       expect.any(Function),
     );

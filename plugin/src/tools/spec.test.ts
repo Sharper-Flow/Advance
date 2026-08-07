@@ -6,7 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { resolveActiveSpecsDir, specTools } from "./spec";
-import { createLegacyStore, type Store } from "../storage/store";
+import { createDiskStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
@@ -23,7 +23,7 @@ describe("Spec Tools", () => {
   beforeEach(async () => {
     tempDir = await createTempDir();
     await createTestProject(tempDir);
-    store = await createLegacyStore(tempDir);
+    store = await createDiskStore(tempDir);
   });
 
   afterEach(async () => {

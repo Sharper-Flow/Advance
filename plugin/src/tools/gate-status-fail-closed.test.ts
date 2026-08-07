@@ -48,7 +48,7 @@ const mocks = vi.hoisted(() => {
           externalRoot: "/tmp/target-external",
           trusted: false,
           trustSource: "explicit",
-          stateMode: "temporal",
+          stateMode: "authoritative",
         },
         store: targetStoreRef.current,
       }),
@@ -87,10 +87,6 @@ vi.mock("./worktree-auto-manage", () => ({
   buildWorktreeAutoManageDeps: mocks.buildWorktreeAutoManageDeps,
 }));
 
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
 vi.mock("../utils/project-id", async () => {
   const actual = await vi.importActual<typeof import("../utils/project-id")>(
     "../utils/project-id",
@@ -110,13 +106,6 @@ vi.mock("../utils/workflow-directive", async () => {
     deriveDirectiveSafe: mocks.deriveDirectiveSafe,
   };
 });
-
-vi.mock("./_adapters", () => ({
-  fireSignal: mocks.fireSignal,
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-}));
 
 const HEALTHY_GATES = {
   proposal: { status: "done" },

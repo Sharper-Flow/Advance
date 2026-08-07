@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { ReleaseNotesContentSchema, WorkerBundleImpactSchema } from "./changes";
+import { ReleaseNotesContentSchema } from "./changes";
 import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
 import {
   EpicChangeRefSchema,
@@ -229,6 +229,7 @@ const MockSurfaceEntrySchema = z.object({
   pattern: z.string(),
   count: z.number().int().nonnegative(),
 });
+export type MockSurfaceEntry = z.infer<typeof MockSurfaceEntrySchema>;
 
 /**
  * Shared record shape for a persisted test run. Stored in
@@ -249,9 +250,7 @@ const TestRunRecordBaseSchema = z.object({
   assertionDensity: z.number().nonnegative().optional(),
   mockSurface: z.array(MockSurfaceEntrySchema).optional(),
   behaviorSurface: z.enum(["small", "medium", "large"]).optional(),
-  evidence_kind: z
-    .enum(["build_worker", "replay_determinism", "unit", "other"])
-    .optional(),
+  evidence_kind: z.enum(["unit", "other"]).optional(),
   recordedAt: IsoTimestampSchema,
 });
 
@@ -261,25 +260,6 @@ export const TestRunRecordedSignalPayloadSchema =
   });
 export type TestRunRecordedSignalPayload = z.infer<
   typeof TestRunRecordedSignalPayloadSchema
->;
-
-export const WorkerBundleProvenanceRecordedSignalPayloadSchema = z.object({
-  source_sha: z.string().min(1),
-  build_run_id: z.string().min(1),
-  replay_run_id: z.string().min(1),
-  worker_manifest_generation: z.number().int().nonnegative().optional(),
-  recorded_at: IsoTimestampSchema,
-});
-export type WorkerBundleProvenanceRecordedSignalPayload = z.infer<
-  typeof WorkerBundleProvenanceRecordedSignalPayloadSchema
->;
-
-export const WorkerBundleImpactSetSignalPayloadSchema = z.object({
-  worker_bundle_impact: WorkerBundleImpactSchema,
-  set_at: IsoTimestampSchema,
-});
-export type WorkerBundleImpactSetSignalPayload = z.infer<
-  typeof WorkerBundleImpactSetSignalPayloadSchema
 >;
 
 export const ReleaseNotesSetSignalPayloadSchema = z

@@ -72,6 +72,10 @@ import {
   type LoadResult,
 } from "./json";
 import {
+  normalizeProjectionDocument,
+  readBoundedProjectionDocument,
+} from "./change-projection-reader";
+import {
   listActiveEpicProjections,
   listRetiredEpicProjections,
   loadActiveEpicProjection,
@@ -82,6 +86,7 @@ import {
   buildChangeRecency,
   computeLastActivity,
   firstOpenGate,
+  type StatusReadOptions,
   type Store,
   type SearchResult,
 } from "./store-types";
@@ -89,6 +94,7 @@ import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
 import { createLogger } from "../utils/debug-log";
+import { createEpicDiskOps } from "./epics-disk";
 
 const logger = createLogger("store-disk");
 
@@ -143,6 +149,73 @@ export async function createDiskStore(
       .map((r) => r.data)
       .filter((change) => change.status === "archived");
   };
+
+  type StatusSource = {
+    id: string;
+    title: string;
+    status: ChangeStatus;
+    created_at: string;
+    lastActivityAt: string;
+  };
+
+  // Rank from source metadata before calling loadChange. This keeps bounded
+  // status reads from hydrating every full Change document just to discover
+  // which recent rows should be returned.
+  const readStatusSource = async (
+    directory: string,
+    id: string,
+    archive: boolean,
+  ): Promise<StatusSource | null> => {
+    const result = await readBoundedProjectionDocument(
+      join(directory, id, "change.json"),
+    );
+    if (result.kind !== "ok") return null;
+    try {
+      const [normalized] = normalizeProjectionDocument(
+        JSON.parse(result.content),
+      );
+      if (!normalized || typeof normalized !== "object") return null;
+      const raw = normalized as Record<string, unknown>;
+      if (
+        typeof raw.id !== "string" ||
+        typeof raw.title !== "string" ||
+        typeof raw.created_at !== "string"
+      ) {
+        return null;
+      }
+      let status: ChangeStatus;
+      if (archive) {
+        status = "archived";
+      } else if (
+        raw.status === "draft" ||
+        raw.status === "archived" ||
+        raw.status === "closed"
+      ) {
+        status = raw.status;
+      } else {
+        return null;
+      }
+      const sourceChange = {
+        ...raw,
+        status,
+        tasks: Array.isArray(raw.tasks) ? raw.tasks : [],
+      } as Change;
+      return {
+        id: raw.id,
+        title: raw.title,
+        status,
+        created_at: raw.created_at,
+        lastActivityAt: computeLastActivity(sourceChange),
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const epicDiskOps = createEpicDiskOps({
+    activeEpicsDir: paths.activeEpics,
+    retiredEpicsDir: paths.retiredEpics,
+  });
 
   const store: Store = {
     paths,
@@ -1238,13 +1311,10 @@ export async function createDiskStore(
     },
 
     // -------------------------------------------------------------------
-    // Epics — disk-only backend does not persist Epic state. Temporal store
-    // overrides this with workflow-backed Epic operations.
+    // Epics — active and retired projections are the disk authority.
     // -------------------------------------------------------------------
     epics: {
-      create: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
+      create: epicDiskOps.create,
       get: async (epicId) => {
         const retired = await loadRetiredEpicProjection(
           paths.retiredEpics,
@@ -1286,97 +1356,97 @@ export async function createDiskStore(
             a.id.localeCompare(b.id),
         );
       },
-      update: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      updateScope: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      markMerged: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      addShell: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      promoteShell: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      linkChange: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      retargetChange: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      unlinkChange: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      setEntryMembershipStatus: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      setEntryTerminalSummary: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      reorder: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
+      update: epicDiskOps.update,
+      updateScope: epicDiskOps.updateScope,
+      markMerged: epicDiskOps.markMerged,
+      addShell: epicDiskOps.addShell,
+      promoteShell: epicDiskOps.promoteShell,
+      linkChange: epicDiskOps.linkChange,
+      retargetChange: epicDiskOps.retargetChange,
+      unlinkChange: epicDiskOps.unlinkChange,
+      setEntryMembershipStatus: epicDiskOps.setEntryMembershipStatus,
+      setEntryTerminalSummary: epicDiskOps.setEntryTerminalSummary,
+      reorder: epicDiskOps.reorder,
       getRetiredProjection: async (epicId) =>
         loadRetiredEpicProjection(paths.retiredEpics, epicId),
       saveRetiredProjection: async (epicId, projection) =>
         saveRetiredEpicProjection(paths.retiredEpics, epicId, projection),
-      retire: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      repairIndex: async (): Promise<
-        Awaited<ReturnType<Store["epics"]["repairIndex"]>>
-      > => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
+      retire: epicDiskOps.retire,
+      repairIndex: epicDiskOps.repairIndex,
     },
 
     // -------------------------------------------------------------------
-    // Status — Temporal store overrides this entirely (buildTemporalStatus).
-    // The disk-only fallback returns minimal shape for tests/cross-repo.
+    // Status — disk projections are the sole authority. Source metadata is
+    // ranked first, then only the requested recent candidates are hydrated.
     // -------------------------------------------------------------------
-    status: async () => {
-      const ids = await listChangeDirs(paths.changes);
-      const specs = await listSpecDirs(paths.specs);
-      const loaded = await Promise.all(
-        ids.map((id) => loadChange(paths.changes, id)),
-      );
-      const changes = loaded
-        .filter((r): r is { success: true; data: Change } =>
-          Boolean(r.success && r.data),
-        )
-        .map((r) => r.data);
-      const archivedChanges = await loadArchivedChanges();
-      const activeIds = new Set(changes.map((change) => change.id));
-      for (const archived of archivedChanges) {
-        if (!activeIds.has(archived.id)) {
-          changes.push(archived);
-        }
+    status: async (options?: StatusReadOptions) => {
+      const recentLimit = options?.recentLimit;
+      if (
+        recentLimit !== undefined &&
+        (!Number.isInteger(recentLimit) || recentLimit <= 0)
+      ) {
+        throw new Error(
+          `status recentLimit must be a positive integer; received ${String(recentLimit)}`,
+        );
       }
+
+      const ids = await listChangeDirs(paths.changes);
+      const archiveDirs = await listChangeDirs(paths.archive);
+      if (options?.projectionState) options.projectionState.loaded = true;
+      const specs = await listSpecDirs(paths.specs);
+
+      const activeSources = (
+        await Promise.all(
+          ids.map((id) => readStatusSource(paths.changes, id, false)),
+        )
+      ).filter((source): source is StatusSource => source !== null);
+      const archivedSources = (
+        await Promise.all(
+          archiveDirs.map((id) => readStatusSource(paths.archive, id, true)),
+        )
+      ).filter((source): source is StatusSource => source !== null);
+      const activeIds = new Set(activeSources.map((source) => source.id));
+
       const byStatus: Record<ChangeStatus, number> = {
         draft: 0,
         archived: 0,
         closed: 0,
       };
-      for (const change of changes) {
-        // Finite-accumulation guard: stay NaN-safe even if a status key is
-        // ever missing from the initializer above (e.g. enum narrowing).
-        byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
+      for (const source of [
+        ...activeSources,
+        ...archivedSources.filter((source) => !activeIds.has(source.id)),
+      ]) {
+        byStatus[source.status]++;
       }
-      const now = new Date();
-      const recent = changes
+
+      const candidates = activeSources
         .filter(
-          (change) =>
-            change.status !== "archived" && change.status !== "closed",
+          (source) =>
+            source.status !== "archived" && source.status !== "closed",
         )
-        .map((change) =>
+        .sort((a, b) => {
+          const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+      const bound =
+        options?.sourceRanked && recentLimit === undefined ? 10 : recentLimit;
+      const admitted =
+        bound === undefined ? candidates : candidates.slice(0, bound);
+      const admittedIds = new Set(admitted.map((source) => source.id));
+      const loaded = await Promise.all(
+        admitted.map((source) => loadChange(paths.changes, source.id)),
+      );
+      const now = new Date();
+      const recent = loaded
+        .filter((result): result is { success: true; data: Change } =>
+          Boolean(result.success && result.data),
+        )
+        .map((result) =>
           buildChangeRecency(
-            change,
+            result.data,
             {
-              total: change.tasks.length,
-              done: change.tasks.filter((task) => task.status === "done")
+              total: result.data.tasks.length,
+              done: result.data.tasks.filter((task) => task.status === "done")
                 .length,
             },
             now,
@@ -1386,6 +1456,29 @@ export async function createDiskStore(
           const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
           return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
         });
+      const resolvedChanges = new Map(
+        loaded
+          .filter((result): result is { success: true; data: Change } =>
+            Boolean(result.success && result.data),
+          )
+          .map((result) => [result.data.id, result.data] as const),
+      );
+
+      const omittedIds = candidates
+        .filter((source) => !admittedIds.has(source.id))
+        .map((source) => source.id);
+      const warnings = omittedIds.length
+        ? [
+            {
+              code: "SOURCE_BOUND_EXCEEDED" as const,
+              source: "active_disk" as const,
+              message: `Read bound (${bound} candidate(s)) limited recent change hydration; ${omittedIds.length} recent candidate(s) were omitted while lifecycle counts remained source-backed.`,
+              omittedCount: omittedIds.length,
+              omittedIds: omittedIds.slice(0, 20),
+            },
+          ]
+        : undefined;
+
       return {
         specs: { count: specs.length, capabilities: specs },
         changes: {
@@ -1394,6 +1487,11 @@ export async function createDiskStore(
           recent,
         },
         recommendations: [],
+        resolvedChanges,
+        ...(warnings ? { warnings } : {}),
+        ...(omittedIds.length
+          ? { hydrationStats: { boundedOmitted: omittedIds.length } }
+          : {}),
       };
     },
   };

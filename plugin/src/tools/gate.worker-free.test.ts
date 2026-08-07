@@ -10,42 +10,6 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { gateTools } from "./gate";
 import type { Store } from "../storage/store";
 
-const mocks = vi.hoisted(() => {
-  const queryMock = vi.fn();
-  const handleMock = { query: queryMock };
-  const temporalBundle = {
-    client: { workflow: { getHandle: vi.fn(() => handleMock) } },
-  };
-  return {
-    queryMock,
-    handleMock,
-    temporalBundle,
-    getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
-    querySignal: vi.fn(),
-    getChangeHandle: vi.fn(() => handleMock),
-  };
-});
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return { ...actual, getProjectId: mocks.getProjectId };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignal: vi.fn(async () => {}),
-  fireSignalAndRefresh: vi.fn(async () => {}),
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-  waitForGateCompletion: vi.fn(),
-}));
-
 function createMockStore(
   overrides: {
     change?: Partial<import("../types").Change>;
@@ -112,7 +76,6 @@ function createMockStore(
 describe("adv_gate_status worker-free projection reads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.querySignal.mockReset();
   });
 
   afterEach(() => {
@@ -140,8 +103,6 @@ describe("adv_gate_status worker-free projection reads", () => {
     expect(parsed.gates).toEqual(gates);
     expect(parsed.nextGate).toBe("planning");
     expect(parsed.canArchive).toBe(false);
-    expect(mocks.querySignal).not.toHaveBeenCalled();
-    expect(mocks.getChangeHandle).not.toHaveBeenCalled();
   });
 
   test("AC1 — uses disk gates when workflow would have returned different state", async () => {
@@ -156,18 +117,6 @@ describe("adv_gate_status worker-free projection reads", () => {
     } as import("../types").Gates;
     const store = createMockStore({ gates: diskGates });
 
-    // Even if a workflow query would return different gates, the tool must
-    // never invoke it, so this mock should be ignored.
-    mocks.querySignal.mockResolvedValue({
-      proposal: { status: "done" },
-      discovery: { status: "done" },
-      design: { status: "pending" },
-      planning: { status: "pending" },
-      execution: { status: "pending" },
-      acceptance: { status: "pending" },
-      release: { status: "pending" },
-    });
-
     const result = await gateTools.adv_gate_status.execute(
       { changeId: "test-change" },
       store,
@@ -176,7 +125,6 @@ describe("adv_gate_status worker-free projection reads", () => {
     const parsed = JSON.parse(result);
     expect(parsed.gates.discovery.status).toBe("pending");
     expect(parsed.nextGate).toBe("discovery");
-    expect(mocks.querySignal).not.toHaveBeenCalled();
   });
 
   test("AC2 — workflow-only criteria are unavailable, not derived", async () => {

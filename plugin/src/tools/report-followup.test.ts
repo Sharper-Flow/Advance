@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { reportFollowupTools } from "./report-followup";
 import { parseToolOutput } from "../__tests__/setup";
 import {
@@ -11,7 +13,6 @@ import {
 } from "../types/subagent-reports";
 import { TaskSchema } from "../types/tasks";
 import { FastFollowOfSchema } from "../types/changes";
-import { taskAddedSignal } from "../temporal/messages";
 import type { Store } from "../storage/store-types";
 import type { Change, ScopedSubagentReport } from "../types";
 
@@ -42,7 +43,7 @@ const mocks = vi.hoisted(() => {
           externalRoot: "/tmp/target-external",
           trusted: false,
           trustSource: "explicit",
-          stateMode: "temporal",
+          stateMode: "authoritative",
         },
         store: {} as Store,
       }),
@@ -58,10 +59,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
 vi.mock("../utils/project-id", async () => {
   const actual = await vi.importActual<typeof import("../utils/project-id")>(
     "../utils/project-id",
@@ -71,11 +68,6 @@ vi.mock("../utils/project-id", async () => {
     getProjectId: mocks.getProjectId,
   };
 });
-
-vi.mock("./_adapters", () => ({
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  getChangeHandle: mocks.getChangeHandle,
-}));
 
 vi.mock("./target-project", async () => {
   const { z } = await import("zod");
@@ -147,13 +139,15 @@ function reportKey(report: ScopedSubagentReport): string {
 }
 
 function makeStore(overrides?: { sourceChange?: Change }): Store {
-  const sourceChange: Change = overrides?.sourceChange ?? {
+  const sourceChange: Change = {
     id: "sourceChange",
     title: "Source change",
     status: "active",
     created_at: "2026-06-20T04:00:00.000Z",
+    created_by: "test",
     tasks: [],
     deltas: {},
+    wisdom: [],
     gates: {
       proposal: { status: "done" },
       discovery: { status: "done" },
@@ -163,10 +157,21 @@ function makeStore(overrides?: { sourceChange?: Change }): Store {
       acceptance: { status: "pending" },
       release: { status: "pending" },
     },
-  };
+    ...(overrides?.sourceChange ?? {}),
+    created_by: overrides?.sourceChange?.created_by ?? "test",
+    wisdom: overrides?.sourceChange?.wisdom ?? [],
+    deltas: overrides?.sourceChange?.deltas ?? {},
+  } as Change;
+
+  const changesDir = "/tmp/source/.adv/changes";
+  mkdirSync(join(changesDir, sourceChange.id), { recursive: true });
+  writeFileSync(
+    join(changesDir, sourceChange.id, "change.json"),
+    JSON.stringify({ ...sourceChange, subagent_reports: undefined }),
+  );
 
   return {
-    paths: { root: "/tmp/source", changes: "/tmp/source/.adv/changes" },
+    paths: { root: "/tmp/source", changes: changesDir },
     config: { name: "source-project" } as never,
     init: vi.fn(),
     sync: vi.fn(),
@@ -495,15 +500,6 @@ describe("adv_report_followup_promote", () => {
       index: 0,
     });
     expect(parsed.task.metadata.followup_ref).toBeDefined();
-
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const call = mocks.fireSignalAndRefresh.mock.calls[0];
-    expect(call[3]).toBe(taskAddedSignal);
-    expect(call[4].task.followup_ref).toMatchObject({
-      report_key: key,
-      kind: "follow_ups",
-      index: 0,
-    });
   });
 
   test("post-planning creates fast-follow child with followup_ref", async () => {

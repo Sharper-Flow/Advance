@@ -1,16 +1,15 @@
 /**
- * Disk-projection recovery writers for poisoned-history fallback.
+ * Disk-projection repair writers for exceptional mutations.
  *
- * These helpers write poisoned/completed-workflow recovery mutations to the
- * disk projection through the shared typed mutation coordinator and the
+ * These helpers write exceptional mutations to the disk projection through
+ * the shared typed mutation coordinator and the
  * storage-owned conditional commit primitive. Every active-projection write
  * now acquires the per-change lock, re-reads the latest projection, applies
  * a family-specific field-local mutation, increments the projection revision,
  * and verifies the postcondition before returning.
  *
- * Every recovery write must be authorized by an explicit
- * `recoveryMode: "poisoned_history"` (with evidence), completed-workflow
- * evidence, or `compatibilityReason` at the calling tool.
+ * Every exceptional write must be authorized by an explicit reason and
+ * evidence at the calling tool.
  *
  * The disk-direct writers structurally require an authorization reason and
  * evidence. Callers remain responsible for proving that evidence before
@@ -32,7 +31,7 @@ import type {
   VerificationEvidenceDisposition,
 } from "../types";
 import { saveChange } from "../storage/json";
-import type { ArtifactMetadata } from "../temporal/contracts";
+import type { ArtifactMetadata } from "../types/artifacts";
 import {
   subagentReportImplementationCycleId,
   subagentReportKey,
@@ -41,7 +40,6 @@ import { findArchiveBundle, bundleJsonStringify } from "../archive/archive";
 import { atomicWriteFile } from "../utils/fs";
 import {
   coordinateChangeMutation,
-  type ChangeAuthority,
   type MutationOutcome,
 } from "./change-mutation-coordinator";
 
@@ -60,50 +58,15 @@ function assertRecoveryAuthorization(
   }
 }
 
-function recoveryAuthority(
-  authorization: RecoveryWriteAuthorization,
-): Extract<
-  ChangeAuthority,
-  { kind: "workflow_completed" | "workflow_missing" | "workflow_poisoned" }
-> {
-  const reasonLower = authorization.reason.toLowerCase();
-  const evidence = authorization.evidence;
-  if (
-    reasonLower.includes("poisoned") ||
-    reasonLower.includes("tmprl1100") ||
-    reasonLower.includes("nondetermin")
-  ) {
-    return {
-      kind: "workflow_poisoned",
-      evidence: { reason: "poisoned_history", evidence },
-    };
-  }
-  if (
-    reasonLower.includes("missing") ||
-    reasonLower.includes("not_found") ||
-    reasonLower.includes("not found")
-  ) {
-    return {
-      kind: "workflow_missing",
-      evidence: { reason: "missing_workflow", evidence },
-    };
-  }
-  return {
-    kind: "workflow_completed",
-    evidence: { reason: "missing_workflow", evidence },
-  };
-}
-
 function requireRecoveredChange(
   mutationKind: string,
   changeId: string,
   outcome: MutationOutcome<Change>,
 ): Change {
   switch (outcome.kind) {
-    case "recovered_verified":
-    case "applied_temporal":
+    case "verified":
       return outcome.value;
-    case "recovered_unverified":
+    case "unverified":
       throw new Error(
         `${mutationKind} recovery for ${changeId} wrote the projection but the postcondition could not be verified: ${outcome.reason}`,
       );
@@ -131,8 +94,7 @@ async function bestEffortRefresh(
   try {
     await store.changes.refresh(changeId);
   } catch {
-    // Recovery writes are disk-projection repairs. A poisoned workflow may
-    // still make refresh fail; the disk save above is the important effect.
+    // The disk save above is durable even when cache refresh cannot complete.
   }
 }
 
@@ -157,16 +119,14 @@ export async function saveRecoveredTaskMutation(input: {
   const taskId = input.taskId;
   const outcome = await coordinateChangeMutation<Change>({
     authority: {
-      kind: "workflow_completed",
-      evidence: { reason: "missing_workflow", evidence: "task recovery" },
+      kind: "recovery",
+      reason: "task recovery",
+      evidence: "disk projection mutation",
     },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "task_mutation",
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
         const taskIdx = latest.tasks.findIndex((t) => t.id === taskId);
         if (taskIdx < 0) {
@@ -212,16 +172,14 @@ export async function saveRecoveredTaskAdd(input: {
   const task = input.task;
   const outcome = await coordinateChangeMutation<Change>({
     authority: {
-      kind: "workflow_completed",
-      evidence: { reason: "missing_workflow", evidence: "task add recovery" },
+      kind: "recovery",
+      reason: "task add recovery",
+      evidence: "disk projection mutation",
     },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "task_add",
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
         if (latest.tasks.some((t) => t.id === task.id)) {
           throw new Error(
@@ -255,12 +213,6 @@ export async function saveRecoveredGateCompletion(input: {
   authorization: RecoveryWriteAuthorization;
   gateId: keyof Gates;
   completion: Gates[keyof Gates];
-  /**
-   * Optional full signal payload generator. When provided, the coordinator
-   * records it in the projection commit audit so the gate-completion signal
-   * can be re-delivered to a reachable workflow during reconciliation.
-   */
-  payload?: (mutationReceiptId: string) => Record<string, unknown>;
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
   const gateId = input.gateId;
@@ -275,15 +227,11 @@ export async function saveRecoveredGateCompletion(input: {
     },
   } as Gates[keyof Gates];
   const outcome = await coordinateChangeMutation<Change>({
-    authority: recoveryAuthority(input.authorization),
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "gate_completion",
-      payload: input.payload,
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
         ...latest,
         gates: {
@@ -307,8 +255,7 @@ export async function saveRecoveredGateCompletion(input: {
 }
 
 /**
- * Repair workflow artifact metadata on the disk projection when a completed or
- * poisoned workflow cannot accept `updateArtifactMetadataSignal`.
+ * Repair workflow artifact metadata on the disk projection.
  */
 export async function saveRecoveredArtifactMetadata(input: {
   store: Store;
@@ -321,14 +268,11 @@ export async function saveRecoveredArtifactMetadata(input: {
   const kind = input.kind;
   const metadata = input.metadata;
   const outcome = await coordinateChangeMutation<Change>({
-    authority: recoveryAuthority(input.authorization),
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "artifact_metadata",
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
         ...latest,
         artifacts: { ...(latest.artifacts ?? {}), [kind]: metadata },
@@ -362,14 +306,11 @@ export async function saveRecoveredChangeStatus(input: {
   const lifecycleState = input.lifecycleState;
   const closure = input.closure;
   const outcome = await coordinateChangeMutation<Change>({
-    authority: recoveryAuthority(input.authorization),
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "status_transition",
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
         ...latest,
         status,
@@ -390,9 +331,7 @@ export async function saveRecoveredChangeStatus(input: {
 }
 
 /**
- * Record a typed design-concern disposition on the disk projection when the
- * owning change workflow is already completed and cannot accept the normal
- * `designConcernDispositionedSignal`.
+ * Record a typed design-concern disposition on the disk projection.
  *
  * The same latest-wins semantics as `applyDesignConcernDispositionedToState`
  * are preserved for `(taskId, concernKey)`.
@@ -413,14 +352,11 @@ export async function saveRecoveredDesignConcernDisposition(input: {
     },
   };
   const outcome = await coordinateChangeMutation<Change>({
-    authority: recoveryAuthority(input.authorization),
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "design_concern_disposition",
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
         const existing = latest.design_concern_dispositions ?? [];
         const next = existing.filter(
@@ -454,9 +390,7 @@ export async function saveRecoveredDesignConcernDisposition(input: {
 }
 
 /**
- * Record a typed verification-evidence disposition on the disk projection when
- * the owning change workflow is already completed and cannot accept the normal
- * `verificationEvidenceDispositionedSignal`.
+ * Record a typed verification-evidence disposition on the disk projection.
  *
  * The same latest-wins semantics as
  * `applyVerificationEvidenceDispositionedToState` are preserved for
@@ -478,14 +412,11 @@ export async function saveRecoveredVerificationEvidenceDisposition(input: {
     },
   };
   const outcome = await coordinateChangeMutation<Change>({
-    authority: recoveryAuthority(input.authorization),
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "verification_evidence_disposition",
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
         const existing = latest.verification_evidence_dispositions ?? [];
         const next = existing.filter(
@@ -519,13 +450,10 @@ export async function saveRecoveredVerificationEvidenceDisposition(input: {
 }
 
 /**
- * Recover a contract review matrix on the disk projection when the owning
- * workflow is poisoned/completed and cannot accept contractReviewMatrixSetSignal.
+ * Repair a contract review matrix on the disk projection.
  *
- * The recovered matrix carries a recovery_audit marker so acceptance
- * reconciliation can later re-fire the signal into a reachable workflow and
- * clear the marker. The projection-commit payload stores the clean (marker-free)
- * matrix so re-delivery does not send recovery metadata into workflow state.
+ * The matrix carries a recovery_audit marker so operators can distinguish a
+ * repaired projection from an ordinary mutation.
  */
 export async function saveRecoveredContractReviewMatrix(input: {
   store: Store;
@@ -549,19 +477,11 @@ export async function saveRecoveredContractReviewMatrix(input: {
     },
   };
   const outcome = await coordinateChangeMutation<Change>({
-    authority: recoveryAuthority(input.authorization),
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
       mutationKind: "contract_review_matrix_set",
-      payload: (mutationReceiptId) => ({
-        reviewMatrix,
-        updatedAt: new Date().toISOString(),
-        mutationReceiptId,
-      }),
-      sendSignal: async (_h, _payload) => {},
-      refresh: async () => ({}) as never,
-      verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
         ...latest,
         contract: latest.contract
@@ -738,8 +658,8 @@ async function loadAuthoritativeBundleProjection(
 }
 
 /**
- * Persist a sub-agent report to a TERMINAL (archived/closed) change's disk
- * projection when the workflow can no longer accept `subagentReportSubmittedSignal`.
+ * Persist a sub-agent report to a terminal (archived/closed) change's disk
+ * projection.
  *
  * Split write by terminal status (validator-confirmed):
  * - ARCHIVED → write the archive BUNDLE change.json (resolved via
@@ -747,15 +667,13 @@ async function loadAuthoritativeBundleProjection(
  *   is INVISIBLE for archived changes because the read path
  *   (`loadArchiveBundleDominantProjection`) reads the bundle, not the active dir.
  * - CLOSED → route through the conditional projection commit so concurrent
- *   recovery writes remain safe.
+ *   writes remain safe.
  *
- * No `store.changes.refresh()` — `getTemporalChange` calls
- * `loadTerminalProjection` FIRST (re-reads disk every call), so a stale cache
- * cannot shadow the disk write; refresh re-queries Temporal and can clobber
- * the repair (rq-fix-archive-recovery-disk-write discipline).
+ * No `store.changes.refresh()` is needed for terminal projections: the read
+ * path re-reads the durable terminal record before returning it.
  *
  * Dedupe by report key (change_id, scope/task, agent, attempt) — idempotent,
- * matching active-workflow semantics.
+ * matching active-projection semantics.
  *
  * Mutation base: when an archive bundle exists, the mutation is computed from
  * the AUTHORITATIVE bundle projection (loadAuthoritativeBundleProjection),
@@ -808,14 +726,11 @@ export async function saveRecoveredSubagentReport(input: {
   // Active/closed changes route through the conditional projection commit.
   if (!bundleDir) {
     const outcome = await coordinateChangeMutation<Change>({
-      authority: recoveryAuthority(input.authorization),
+      authority: { ...input.authorization, kind: "recovery" },
       changesDir: input.store.paths.changes,
       intent: {
         changeId: input.change.id,
         mutationKind: "subagent_report",
-        sendSignal: async (_h, _payload) => {},
-        refresh: async () => ({}) as never,
-        verifyTemporal: () => true,
         mutateLatestProjection: (latest) => {
           if (taskId) {
             const idx = latest.tasks.findIndex((t) => t.id === taskId);

@@ -4,7 +4,7 @@
  *
  * The approved architecture is:
  *
- *   - Routine readers (store-temporal/read-model, change-summary-shard,
+ *   - Routine readers (change-summary-shard,
  *     launcher-projection, epic-projection) must be Temporal-free: no import
  *     path may reach a Temporal module, and they may not call workflow
  *     query/list/describe/getHandle APIs.
@@ -26,7 +26,6 @@ import ts from "typescript";
 import { readFileSync, statSync, existsSync } from "node:fs";
 import { resolve, dirname, join, relative, extname } from "node:path";
 import {
-  enclosingContextNames,
   findExecutableSaveChangeCalls,
   isAllowedSaveChangeCaller,
 } from "./save-change-allow-list";
@@ -163,11 +162,9 @@ function reachableModules(entry: string): ModuleRef[] {
 
 function isTemporalModule(ref: ModuleRef): boolean {
   if (ref.kind === "package") {
-    return (
-      ref.name.startsWith("@temporalio") || ref.name.includes("/temporal/")
-    );
+    return ref.name.includes("/temporal/");
   }
-  // Match the dedicated Temporal source directory, not storage/store-temporal.
+  // Match the dedicated retired Temporal source directory.
   return /\/temporal\//.test(ref.path);
 }
 
@@ -179,8 +176,6 @@ const writerModules = new Set(
     "storage/launcher-projection-writer.ts",
     "storage/store-disk.ts",
     "storage/change-projection-transaction.ts",
-    "storage/store-temporal/epics.ts",
-    "storage/store-temporal/shared.ts",
   ].map((p) => resolve(pluginSrc, p)),
 );
 
@@ -225,8 +220,7 @@ function directStoreImports(source: ts.SourceFile): string[] {
       if (
         spec.includes("/storage/store") &&
         !spec.includes("/storage/store-types") &&
-        !spec.includes("/storage/store-disk") &&
-        !spec.includes("/storage/store-temporal")
+        !spec.includes("/storage/store-disk")
       ) {
         specs.push(spec);
       }
@@ -237,36 +231,7 @@ function directStoreImports(source: ts.SourceFile): string[] {
   return specs;
 }
 
-function importsTemporalModule(source: ts.SourceFile): boolean {
-  let found = false;
-  function visit(node: ts.Node) {
-    if (found) return;
-    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
-      const spec = node.moduleSpecifier;
-      if (spec && ts.isStringLiteral(spec)) {
-        if (isTemporalModule({ kind: "package", name: spec.text })) {
-          found = true;
-          return;
-        }
-        if (spec.text.startsWith(".")) {
-          const resolved = resolveTsPath(
-            resolve(dirname(source.fileName), spec.text),
-          );
-          if (resolved && isTemporalModule({ kind: "file", path: resolved })) {
-            found = true;
-            return;
-          }
-        }
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(source);
-  return found;
-}
-
 const routineReaders = [
-  "storage/store-temporal/read-model.ts",
   "storage/change-summary-shard-reader.ts",
   "storage/launcher-projection.ts",
   "storage/epic-projection-reader.ts",
@@ -277,76 +242,6 @@ const pureMetadataRoots = [
   "tools/spec.ts",
   "mcp-server/tools/index.ts",
 ].map((p) => resolve(pluginSrc, p));
-
-const queryContextAllowlist = new Map<string, Set<string>>([
-  [
-    "storage/store-temporal/shared.ts",
-    new Set([
-      "changeCommand",
-      "getChangeHandle",
-      "hasPoisonedWorkflowDescription",
-    ]),
-  ],
-  [
-    "storage/store-temporal/epics.ts",
-    new Set([
-      "queryEpicState",
-      "queryEpicStateRead",
-      "getEpicHandle",
-      "verifyEpicStatusSearchAttribute",
-      "verifyEpicStatusSearchAttributeImpl",
-    ]),
-  ],
-  ["storage/store-temporal/gates.ts", new Set(["fireSignalWithMutationGuard"])],
-  [
-    "storage/store-temporal/changes.ts",
-    new Set([
-      "fireContentArtifactCommands",
-      "createBatchCloseCoordinationDeps",
-      "save",
-      "closeBatch",
-      "findActiveConflicts",
-      "loadActiveFact",
-    ]),
-  ],
-  [
-    "storage/store-temporal/index.ts",
-    new Set([
-      "dualWriteAfterMutation",
-      "resolveStateOrQuery",
-      "reseedChangeFromDisk",
-      "getTemporalChange",
-      "listResolvedChanges",
-    ]),
-  ],
-  [
-    "temporal/workflow-start.ts",
-    new Set(["ensureChangeWorkflowStarted", "ensureEpicWorkflowStarted"]),
-  ],
-]);
-
-function workflowCallContexts(source: ts.SourceFile): string[][] {
-  const calls: string[][] = [];
-  function visit(node: ts.Node) {
-    if (ts.isCallExpression(node)) {
-      const callee = node.expression;
-      const name = ts.isPropertyAccessExpression(callee)
-        ? callee.name.text
-        : ts.isIdentifier(callee)
-          ? callee.text
-          : undefined;
-      if (
-        name &&
-        new Set(["query", "getHandle", "listWorkflows", "describe"]).has(name)
-      ) {
-        calls.push(enclosingContextNames(node));
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(source);
-  return calls;
-}
 
 describe("routine disk-first readers are Temporal-free", () => {
   for (const file of routineReaders) {
@@ -399,25 +294,6 @@ describe("writer allowlist", () => {
       }
     }
 
-    expect(violations).toEqual([]);
-  });
-});
-
-describe("query calls are confined to confirmation/recovery/diagnostics", () => {
-  it("storage workflow calls exist only in named command or recovery contexts", () => {
-    const violations: string[] = [];
-    for (const [rel, allowed] of queryContextAllowlist) {
-      const file = resolve(pluginSrc, rel);
-      const source = parseSource(file);
-      if (!importsTemporalModule(source)) continue;
-      const calls = workflowCallContexts(source);
-      if (calls.length === 0) continue;
-      for (const contexts of calls) {
-        if (!contexts.some((name) => allowed.has(name))) {
-          violations.push(`${rel}: ${contexts.join(" > ") || "<anonymous>"}`);
-        }
-      }
-    }
     expect(violations).toEqual([]);
   });
 });

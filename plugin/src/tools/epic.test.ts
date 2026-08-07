@@ -1371,7 +1371,7 @@ describe("adv_epic_link_change", () => {
       expect.objectContaining({
         currentProjectPath: ownerStore.paths.root,
         target_path: "/workspace/pokeedge-api",
-        stateRequirement: "temporal-required",
+        stateRequirement: "authoritative",
         target_confirmed: true,
         confirmationEvidence: "target approved",
       }),

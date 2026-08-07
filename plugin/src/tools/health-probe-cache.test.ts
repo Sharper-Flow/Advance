@@ -1,55 +1,14 @@
 /**
  * health-probe-cache.test.ts
  *
- * TDD RED tests for request-owned health probe cache isolation and queue
- * serviceability input isolation.
- *
- * The production module (./health-probe-cache) does not yet exist.
+ * Request-owned health probe cache isolation and monotonic publication tests.
  */
 
 import { describe, test, expect } from "vitest";
 import { createProbeCache } from "./probe-cache";
-import {
-  createHealthProbeCache,
-  getQueueServiceability,
-  type TemporalHealthSnapshot,
-} from "./health-probe-cache";
+import { createHealthProbeCache } from "./health-probe-cache";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function buildUsableTemporalHealth(): TemporalHealthSnapshot {
-  return {
-    server_alive: true,
-    worker_alive: { status: "available", value: true },
-    worker_process_alive: { status: "available", value: true },
-    registered_queues: ["queue-a"],
-    last_op_at: Date.now(),
-    last_error: null,
-    fallback_counts: {},
-    stale_queues: [],
-    reconnect_count: 0,
-    op_counters: [],
-    worker_lock: null,
-    last_worker_run_error: null,
-  };
-}
-
-function buildUnusableTemporalHealth(): TemporalHealthSnapshot {
-  return {
-    server_alive: false,
-    worker_alive: { status: "available", value: false },
-    worker_process_alive: { status: "available", value: false },
-    registered_queues: [],
-    last_op_at: null,
-    last_error: "temporal unreachable",
-    fallback_counts: {},
-    stale_queues: [],
-    reconnect_count: 0,
-    op_counters: [],
-    worker_lock: null,
-    last_worker_run_error: null,
-  };
-}
 
 describe("createHealthProbeCache", () => {
   test("request-owned direct force refresh bypasses shared same-key inflight fetch", async () => {
@@ -207,54 +166,5 @@ describe("legacy createProbeCache", () => {
 
     expect(calls).toBe(1);
     expect(results.every((r) => r.value === 42)).toBe(true);
-  });
-});
-
-describe("queue serviceability input isolation", () => {
-  test("concurrent queue requests cannot overwrite each other's input", async () => {
-    const projectA = {
-      projectId: "0000ec0a00000000000000000000000000000000",
-      health: buildUsableTemporalHealth(),
-    };
-    const projectB = {
-      projectId: "0000ec0b00000000000000000000000000000000",
-      health: buildUsableTemporalHealth(),
-    };
-
-    const [resultA, resultB] = await Promise.all([
-      getQueueServiceability(projectA),
-      getQueueServiceability(projectB),
-    ]);
-
-    expect(resultA.value?.expectedQueue).toContain("ec0a");
-    expect(resultB.value?.expectedQueue).toContain("ec0b");
-    // Neither result should be polluted by the other project's input.
-    expect(resultA.value?.expectedQueue).not.toContain("ec0b");
-    expect(resultB.value?.expectedQueue).not.toContain("ec0a");
-  });
-
-  test("unusable Temporal dependency immediately yields queue not_admitted", async () => {
-    const result = await getQueueServiceability({
-      projectId: "0000ec0a00000000000000000000000000000000",
-      health: buildUnusableTemporalHealth(),
-    });
-
-    expect(result.outcome).toBe("not_admitted");
-    expect(result.evidence).toMatch(/temporal/i);
-  });
-
-  test("degraded Temporal health is still usable for queue serviceability", async () => {
-    const result = await getQueueServiceability({
-      projectId: "0000ec0a00000000000000000000000000000000",
-      health: {
-        ...buildUnusableTemporalHealth(),
-        server_alive: false,
-        worker_alive: { status: "available", value: true },
-        worker_process_alive: { status: "available", value: true },
-        probe_degraded: true,
-      },
-    });
-
-    expect(result.outcome).toBe("ok");
   });
 });

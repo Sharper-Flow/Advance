@@ -22,35 +22,16 @@ import {
 } from "../utils/lightweight-change-profile-evidence";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import { getService } from "../temporal/service";
-import { getChangeHandle, fireSignalAndRefresh } from "./_adapters";
-import type { TemporalWorkflowHandleProxy } from "./change-mutation-coordinator";
-import { lightweightProfileEvaluatedSignal } from "../temporal/messages";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 
 export interface EvaluateLightweightProfileDeps {
   getProjectId: (root: string) => Promise<string | null>;
-  getService: () => ReturnType<typeof getService>;
-  getChangeHandle: (
-    owner: NonNullable<ReturnType<typeof getService>>,
-    projectId: string,
-    changeId: string,
-  ) => TemporalWorkflowHandleProxy;
-  fireSignalAndRefresh: (
-    handle: TemporalWorkflowHandleProxy,
-    store: Store,
-    changeId: string,
-    signal: typeof lightweightProfileEvaluatedSignal,
-    payload: { evaluation: unknown; evaluatedAt: string },
-  ) => Promise<void>;
   collectLightweightProfileEvidence: typeof collectLightweightProfileEvidence;
   evaluateLightweightProfile: typeof evaluateLightweightProfile;
 }
 
 const defaultDeps: EvaluateLightweightProfileDeps = {
   getProjectId,
-  getService,
-  getChangeHandle,
-  fireSignalAndRefresh,
   collectLightweightProfileEvidence,
   evaluateLightweightProfile,
 };
@@ -96,11 +77,6 @@ export async function evaluateLightweightProfileAndSignal(input: {
     return { success: false, error: "Could not resolve project ID" };
   }
 
-  const bundle = deps.getService();
-  if (!bundle) {
-    return { success: false, error: "Temporal service not available" };
-  }
-
   const collectorResult = await deps.collectLightweightProfileEvidence({
     workdir: input.store.paths.root,
     projectId,
@@ -143,17 +119,42 @@ export async function evaluateLightweightProfileAndSignal(input: {
     evaluationKey,
   });
 
-  const handle = deps.getChangeHandle(bundle, projectId, input.changeId);
-  await deps.fireSignalAndRefresh(
-    handle,
-    input.store,
-    input.changeId,
-    lightweightProfileEvaluatedSignal,
-    {
-      evaluation,
-      evaluatedAt,
+  const outcome = await coordinateChangeMutation<typeof change>({
+    authority: {
+      reason: "record lightweight profile evaluation",
+      evidence: evaluationKey,
     },
-  );
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.changeId,
+      mutationKind: "lightweight_profile_evaluated",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        lightweight_profile: latest.lightweight_profile
+          ? {
+              ...latest.lightweight_profile,
+              evaluations: [
+                ...latest.lightweight_profile.evaluations,
+                evaluation,
+              ],
+            }
+          : undefined,
+      }),
+      verifyProjection: (readback) =>
+        readback.lightweight_profile?.evaluations.some(
+          (entry) => entry.evaluationKey === evaluationKey,
+        ) ?? false,
+    },
+  });
+  if (outcome.kind !== "verified") {
+    return {
+      success: false,
+      error:
+        outcome.kind === "unverified" || outcome.kind === "operator_required"
+          ? outcome.reason
+          : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+    };
+  }
 
   return {
     success: true,

@@ -9,14 +9,6 @@
  * has not been aborted, and the request has not passed its cutoff time.
  */
 
-import {
-  computeStatusQueueServiceability,
-  type StatusQueueServiceabilitySnapshot,
-  type TemporalHealthSnapshot,
-} from "./status-health";
-
-export type { StatusQueueServiceabilitySnapshot, TemporalHealthSnapshot };
-
 export interface Clock {
   now(): number;
 }
@@ -44,12 +36,6 @@ export interface HealthProbeCache<T, K extends string = string> {
   ): { value: T; generation: number; publishedAt: number } | undefined;
   currentGeneration(key: K): number;
   clear(): void;
-}
-
-export interface QueueServiceabilityResult {
-  value: StatusQueueServiceabilitySnapshot | null;
-  outcome: "ok" | "not_admitted";
-  evidence: string;
 }
 
 const DEFAULT_CLOCK: Clock = { now: () => Date.now() };
@@ -120,42 +106,4 @@ export function createHealthProbeCache<T, K extends string = string>(
       generations.clear();
     },
   };
-}
-
-function isTemporalHealthUsable(health: TemporalHealthSnapshot): boolean {
-  // A usable Temporal dependency requires a live server probe. Worker liveness
-  // and queue details are evaluated by the serviceability computation itself.
-  // A degraded probe that timed out still keeps the dependency usable because
-  // the fallback assumes the server/worker are reachable (false-down guard).
-  return health.server_alive === true || health.probe_degraded === true;
-}
-
-export async function getQueueServiceability(
-  input: {
-    projectId: string | undefined;
-    health: TemporalHealthSnapshot;
-  },
-  options?: { signal?: AbortSignal },
-): Promise<QueueServiceabilityResult> {
-  if (options?.signal?.aborted) {
-    return {
-      value: null,
-      outcome: "not_admitted",
-      evidence: "request aborted",
-    };
-  }
-  if (!isTemporalHealthUsable(input.health)) {
-    return {
-      value: null,
-      outcome: "not_admitted",
-      evidence: "temporal dependency not usable",
-    };
-  }
-  try {
-    const value = await computeStatusQueueServiceability(input);
-    return { value, outcome: "ok", evidence: "" };
-  } catch (error) {
-    const evidence = error instanceof Error ? error.message : String(error);
-    return { value: null, outcome: "not_admitted", evidence };
-  }
 }
