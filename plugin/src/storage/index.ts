@@ -34,3 +34,30 @@ export {
   type ProjectionCommitVerifyResult,
   type CommitChangeProjectionOptions,
 } from "./change-projection-transaction";
+export {
+  ResidueClassSchema,
+  StoreResidueRecordSchema,
+  StoreResidueCountersSchema,
+  StoreResidueScanSchema,
+  runStoreResidueScan,
+  type ResidueClass,
+  type StoreResidueRecord,
+  type StoreResidueCounters,
+  type StoreResidueScan,
+  type StoreResidueScanOptions,
+} from "./store-residue-scan";
+export {
+  ReconcileActionSchema,
+  ReconcilePlanRecordSchema,
+  ReconcilePlanSchema,
+  ReconcileReceiptSchema,
+  ReconcileRunReportSchema,
+  buildReconcilePlan,
+  createReconcilePlan,
+  canonicalizeReconcilePlan,
+  type ReconcileAction,
+  type ReconcilePlanRecord,
+  type ReconcilePlan,
+  type ReconcileReceipt,
+  type ReconcileRunReport,
+} from "./reconcile-plan";

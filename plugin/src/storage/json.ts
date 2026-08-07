@@ -77,6 +77,10 @@ export interface ProjectPaths {
   projectMetadata: string;
   /** Storage-owned completion marker for the bounded artifact metadata migration. */
   artifactMetadataMigrationMarker: string;
+  /** Storage-owned quarantine tree for unreadable projections. */
+  quarantineChanges: string;
+  /** Reconcile-owned artifacts; scanners must never report these as noise. */
+  reconcileDir: string;
   /**
    * Append-only audit log for adv_snapshot_health repairs. Purpose-specific
    * (not Agenda) per retireAgendaWorkflow AC4: every successful snapshot
@@ -125,6 +129,8 @@ export function getProjectPaths(
         ext,
         "artifact-metadata-migration-complete.json",
       ),
+      quarantineChanges: join(ext, ".adv", "quarantine", "changes"),
+      reconcileDir: join(ext, ".reconcile"),
       snapshotRepairAudit: join(ext, "snapshot-repair-audit.jsonl"),
       external: ext,
     };
@@ -148,6 +154,8 @@ export function getProjectPaths(
       root,
       ".adv/artifact-metadata-migration-complete.json",
     ),
+    quarantineChanges: join(root, ".adv/quarantine/changes"),
+    reconcileDir: join(root, ".adv/.reconcile"),
     snapshotRepairAudit: join(root, ".adv/snapshot-repair-audit.jsonl"),
     external: null,
   };

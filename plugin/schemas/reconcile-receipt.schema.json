@@ -1,0 +1,58 @@
+{
+  "$id": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/reconcile-receipt.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "action": {
+      "type": "string"
+    },
+    "after_hash": {
+      "type": "string"
+    },
+    "before_hash": {
+      "type": "string"
+    },
+    "class": {
+      "enum": [
+        "schema_drift_retired_enum",
+        "summary_pointer_missing",
+        "summary_pointer_stale",
+        "legacy_divergent_behind",
+        "legacy_newer_than_canonical",
+        "unmigrated_artifact_metadata",
+        "unmigrated_worktree_marker",
+        "epic_owner_missing",
+        "quarantined_record",
+        "unknown_store_noise",
+        "store_artifact_missing",
+        "healthy"
+      ],
+      "type": "string"
+    },
+    "error_class": {
+      "type": "string"
+    },
+    "record_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "mutated",
+        "skipped",
+        "failed"
+      ],
+      "type": "string"
+    },
+    "ts": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "class",
+    "action",
+    "status",
+    "ts"
+  ],
+  "title": "ADV Reconcile Receipt",
+  "type": "object"
+}

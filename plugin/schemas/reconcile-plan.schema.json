@@ -1,0 +1,288 @@
+{
+  "$id": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/reconcile-plan.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "plan_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "type": "string"
+    },
+    "records": {
+      "items": {
+        "properties": {
+          "actions": {
+            "items": {
+              "oneOf": [
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "normalize_enum_mapping",
+                        "quarantine_record"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "schema_drift_retired_enum",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "rebuild_summary_shard"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "summary_pointer_missing",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "rebuild_summary_shard"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "summary_pointer_stale",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "advance_legacy_to_canonical"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "legacy_divergent_behind",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "report_only"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "legacy_newer_than_canonical",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "migrate_record",
+                        "classify_terminal_noop",
+                        "quarantine_record"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "unmigrated_artifact_metadata",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "set_marker_auto",
+                        "set_marker_legacy"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "unmigrated_worktree_marker",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "reconstruct_from_child_fragments",
+                        "formally_lost_report",
+                        "clear_dangling_membership"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "epic_owner_missing",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "normalize_and_restore",
+                        "remain_quarantined_reported"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "quarantined_record",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "quarantine_to_trash"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "unknown_store_noise",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "rebuild_from_changes"
+                      ],
+                      "type": "string"
+                    },
+                    "class": {
+                      "const": "store_artifact_missing",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "action"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "class": {
+            "enum": [
+              "schema_drift_retired_enum",
+              "summary_pointer_missing",
+              "summary_pointer_stale",
+              "legacy_divergent_behind",
+              "legacy_newer_than_canonical",
+              "unmigrated_artifact_metadata",
+              "unmigrated_worktree_marker",
+              "epic_owner_missing",
+              "quarantined_record",
+              "unknown_store_noise",
+              "store_artifact_missing",
+              "healthy"
+            ],
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "source_path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "source_path",
+          "class",
+          "evidence",
+          "actions"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "records",
+    "plan_hash"
+  ],
+  "title": "ADV Reconcile Plan",
+  "type": "object"
+}

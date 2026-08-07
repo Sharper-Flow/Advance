@@ -10,6 +10,12 @@ import {
   SpecSchema,
   TaskSchema,
 } from "./types";
+import { StoreResidueScanSchema } from "./storage/store-residue-scan";
+import {
+  ReconcilePlanSchema,
+  ReconcileReceiptSchema,
+  ReconcileRunReportSchema,
+} from "./storage/reconcile-plan";
 
 // Public `$id` values intentionally use the canonical trunk URL. Feature-branch
 // validation uses the committed local artifacts plus `schemas:check`; external
@@ -80,6 +86,30 @@ export const PUBLIC_JSON_SCHEMAS: PublicJsonSchemaEntry[] = [
     filename: "task.schema.json",
     title: "ADV Task",
     schema: TaskSchema,
+  },
+  {
+    name: "store-residue-scan",
+    filename: "store-residue-scan.schema.json",
+    title: "ADV Store Residue Scan",
+    schema: StoreResidueScanSchema,
+  },
+  {
+    name: "reconcile-plan",
+    filename: "reconcile-plan.schema.json",
+    title: "ADV Reconcile Plan",
+    schema: ReconcilePlanSchema,
+  },
+  {
+    name: "reconcile-receipt",
+    filename: "reconcile-receipt.schema.json",
+    title: "ADV Reconcile Receipt",
+    schema: ReconcileReceiptSchema,
+  },
+  {
+    name: "reconcile-run-report",
+    filename: "reconcile-run-report.schema.json",
+    title: "ADV Reconcile Run Report",
+    schema: ReconcileRunReportSchema,
   },
 ] as const;
 

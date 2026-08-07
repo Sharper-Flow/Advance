@@ -1,0 +1,180 @@
+{
+  "$id": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/store-residue-scan.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "budget_exceeded": {
+      "type": "boolean"
+    },
+    "counters": {
+      "properties": {
+        "epic_owner_missing": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "healthy": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "legacy_divergent_behind": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "legacy_newer_than_canonical": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quarantined_record": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "schema_drift_retired_enum": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "store_artifact_missing": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "summary_pointer_missing": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "summary_pointer_stale": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unknown_store_noise": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unmigrated_artifact_metadata": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unmigrated_worktree_marker": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_drift_retired_enum",
+        "summary_pointer_missing",
+        "summary_pointer_stale",
+        "legacy_divergent_behind",
+        "legacy_newer_than_canonical",
+        "unmigrated_artifact_metadata",
+        "unmigrated_worktree_marker",
+        "epic_owner_missing",
+        "quarantined_record",
+        "unknown_store_noise",
+        "store_artifact_missing",
+        "healthy"
+      ],
+      "type": "object"
+    },
+    "omitted": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "records": {
+      "items": {
+        "properties": {
+          "also_matches": {
+            "items": {
+              "enum": [
+                "schema_drift_retired_enum",
+                "summary_pointer_missing",
+                "summary_pointer_stale",
+                "legacy_divergent_behind",
+                "legacy_newer_than_canonical",
+                "unmigrated_artifact_metadata",
+                "unmigrated_worktree_marker",
+                "epic_owner_missing",
+                "quarantined_record",
+                "unknown_store_noise",
+                "store_artifact_missing",
+                "healthy"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "class": {
+            "enum": [
+              "schema_drift_retired_enum",
+              "summary_pointer_missing",
+              "summary_pointer_stale",
+              "legacy_divergent_behind",
+              "legacy_newer_than_canonical",
+              "unmigrated_artifact_metadata",
+              "unmigrated_worktree_marker",
+              "epic_owner_missing",
+              "quarantined_record",
+              "unknown_store_noise",
+              "store_artifact_missing",
+              "healthy"
+            ],
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "source_path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "source_path",
+          "class",
+          "also_matches",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "scanned": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "type": "number"
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "records",
+    "counters",
+    "scanned",
+    "omitted",
+    "truncated",
+    "budget_exceeded"
+  ],
+  "title": "ADV Store Residue Scan",
+  "type": "object"
+}
