@@ -103,6 +103,9 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // boundedProjectionHydration: operator-only quarantine for corrupt or oversized
   // active change projections.
   "adv_change_projection_quarantine",
+  // reconcileStoreMigrationResidue adds the dry-run-first, approval-gated
+  // migration-residue repair surface.
+  "adv_store_reconcile",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -287,9 +290,9 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    // The current source surface contains 86 tools after the Temporal-only
+    // The current source surface contains 87 tools after the Temporal-only
     // removals in this branch. Pin the observable registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(86);
+    expect(ADV_TOOL_NAMES.length).toBe(87);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

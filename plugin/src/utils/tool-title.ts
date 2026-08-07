@@ -173,6 +173,16 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
         : "Scan stores for legacy agenda",
     );
   },
+  adv_store_reconcile: (args) => {
+    const mode = typeof args.mode === "string" ? args.mode : "plan";
+    return mode === "apply"
+      ? operator("Apply store reconciliation plan")
+      : read(
+          mode === "dry_run"
+            ? "Dry-run store reconciliation"
+            : "Plan store reconciliation",
+        );
+  },
   adv_project_metadata: (args) =>
     byAction(args, "Project metadata", {
       read: `Read project metadata${suffix(args, "key")}`,

@@ -102,6 +102,7 @@ import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
 import { storeCleanupTools } from "./tools/store-cleanup";
+import { storeReconcileTools } from "./tools/store-reconcile";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
 import { advInvokeTools } from "./tools/adv-invoke";
 type ToolExecute<TArgs> = (
@@ -797,6 +798,13 @@ export function createToolMap(
       store,
     ),
 
+    // Store Reconcile Tool — dry-run plan / approval-gated apply
+    adv_store_reconcile: bindTool(
+      storeReconcileTools.adv_store_reconcile,
+      "adv_store_reconcile",
+      store,
+    ),
+
     // Project Metadata Tool
     adv_project_metadata: bindTool(
       projectMetadataTools.adv_project_metadata,
@@ -1271,6 +1279,7 @@ const PUBLIC_TOOL_GROUPS = [
   advSessionTools,
   epicTools,
   storeCleanupTools,
+  storeReconcileTools,
   toolCatalogTools,
   advInvokeTools,
 ] as const satisfies readonly PublicToolGroup[];

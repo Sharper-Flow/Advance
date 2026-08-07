@@ -69,6 +69,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Deletes legacy agenda stores; manifest-before-delete with approvedByUser + approvalEvidence + dry-run plan_hash.",
   },
+  adv_store_reconcile: {
+    class: "operator-only",
+    rationale:
+      "Repairs disk-backed migration residue; plan/dry_run is read-only and apply requires a matching plan_hash plus target trust approval.",
+  },
   adv_launcher_projection_rebuild: {
     class: "operator-only",
     rationale:
