@@ -61,3 +61,40 @@ export {
   type ReconcileReceipt,
   type ReconcileRunReport,
 } from "./reconcile-plan";
+export {
+  RECONCILE_AUDIT_FILENAME,
+  ReconcileAuditEventSchema,
+  appendReconcileAudit,
+  getReconcileAuditPath,
+  type ReconcileAuditEvent,
+  type ReconcileAuditInput,
+  type ReconcileAuditResult,
+} from "./reconcile-audit";
+export {
+  deriveRunStatus,
+  rebuildProgressFromReceipts,
+  readReconcileReceipts,
+  writeReconcileProgress,
+  writeReconcileReceipt,
+  writeReconcileRunReport,
+  type DerivedRunStatus,
+  type ReconcileProgress,
+} from "./reconcile-report";
+export {
+  ACTION_EXECUTORS,
+  RECONCILE_BATCH_SIZE,
+  ReconcilePartialFailureError,
+  ReconcileRefusalError,
+  executeRecordAction,
+  probeWorkerLock,
+  notImplementedExecutor,
+  runReconcileApply,
+  reconcileExitCode,
+  saveEpicOptimistic,
+  type ActionContext,
+  type ActionExecutor,
+  type ActionOutcome,
+  type ReconcileApplyDeps,
+  type ReconcileErrorClass,
+  type RunReconcileApplyOptions,
+} from "./reconcile-apply";

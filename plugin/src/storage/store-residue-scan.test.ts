@@ -194,4 +194,24 @@ describe("runStoreResidueScan", () => {
       scan.records.find((item) => item.record_id === "fixture-change")?.class,
     ).toBe("healthy");
   });
+
+  test("reconcile run artifacts are fully excluded from unknown noise", async () => {
+    const root = await createTempDir("adv-reconcile-noise-");
+    try {
+      const paths = getProjectPaths(root);
+      await mkdir(join(paths.reconcileDir, "runs", "run-1", "receipts"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(paths.reconcileDir, "runs", "run-1", "receipts", "change-a.json"),
+        "{}",
+      );
+      const scan = await runStoreResidueScan({ directory: root });
+      expect(
+        scan.records.filter((item) => item.class === "unknown_store_noise"),
+      ).toHaveLength(0);
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
 });
