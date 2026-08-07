@@ -22,16 +22,50 @@ export const WorktreeDeletionFactsSchema = z
     locked: z.boolean(),
     prunable: z.boolean(),
     dirty: z.boolean(),
+    /** Planner-only safety facts. Optional for compatibility with wdp1 plans. */
+    mainWorktree: z.boolean().optional(),
+    cwd: NonEmptyTextSchema.optional(),
+    cwdInsideWorktree: z.boolean().optional(),
+    inUse: z.boolean().optional(),
+    gitCorrupt: z.boolean().optional(),
   })
   .strict();
 
 export type WorktreeDeletionFacts = z.infer<typeof WorktreeDeletionFactsSchema>;
+
+export const WorktreeDeletionIntegrationProofSchema = z
+  .object({
+    kind: z.enum(["merged_to_default", "pr_merged"]),
+    branch: NonEmptyTextSchema,
+    defaultBranch: NonEmptyTextSchema,
+    head: z.string().regex(HEX_SHA_RE),
+    evidence: NonEmptyTextSchema,
+  })
+  .strict();
+
+export type WorktreeDeletionIntegrationProof = z.infer<
+  typeof WorktreeDeletionIntegrationProofSchema
+>;
+
+export const WorktreeDeletionTerminalProofSchema = z
+  .object({
+    changeId: NonEmptyTextSchema,
+    status: z.enum(["archived", "closed"]),
+    evidence: NonEmptyTextSchema,
+  })
+  .strict();
+
+export type WorktreeDeletionTerminalProof = z.infer<
+  typeof WorktreeDeletionTerminalProofSchema
+>;
 
 const WorktreeDeletionTokenPayloadSchema = z
   .object({
     version: z.literal("wdp1"),
     facts: WorktreeDeletionFactsSchema,
     expiresAt: z.number().int().positive(),
+    integration: WorktreeDeletionIntegrationProofSchema.optional(),
+    terminal: WorktreeDeletionTerminalProofSchema.optional(),
   })
   .strict();
 
@@ -46,6 +80,8 @@ export const WorktreeDeletionPlanSchema = z
     facts: WorktreeDeletionFactsSchema,
     expiresAt: z.number().int().positive(),
     token: NonEmptyTextSchema,
+    integration: WorktreeDeletionIntegrationProofSchema.optional(),
+    terminal: WorktreeDeletionTerminalProofSchema.optional(),
   })
   .strict()
   .superRefine((plan, ctx) => {
@@ -62,7 +98,10 @@ export const WorktreeDeletionPlanSchema = z
       if (
         payload.expiresAt !== plan.expiresAt ||
         hashWorktreeDeletionFacts(payload.facts) !==
-          hashWorktreeDeletionFacts(plan.facts)
+          hashWorktreeDeletionFacts(plan.facts) ||
+        stableStringify(payload.integration) !==
+          stableStringify(plan.integration) ||
+        stableStringify(payload.terminal) !== stableStringify(plan.terminal)
       ) {
         ctx.addIssue({
           code: "custom",
@@ -123,6 +162,11 @@ function canonicalFacts(facts: WorktreeDeletionFacts): string {
     prunable: facts.prunable,
     repository: facts.repository,
     worktree: facts.worktree,
+    mainWorktree: facts.mainWorktree,
+    cwd: facts.cwd,
+    cwdInsideWorktree: facts.cwdInsideWorktree,
+    inUse: facts.inUse,
+    gitCorrupt: facts.gitCorrupt,
   });
 }
 
@@ -164,11 +208,15 @@ function decodePayload(encoded: string): WorktreeDeletionTokenPayload {
 export function encodeWorktreeDeletionToken(input: {
   facts: WorktreeDeletionFacts;
   expiresAt: number;
+  integration?: WorktreeDeletionIntegrationProof;
+  terminal?: WorktreeDeletionTerminalProof;
 }): string {
   const payload = WorktreeDeletionTokenPayloadSchema.parse({
     version: "wdp1",
     facts: input.facts,
     expiresAt: input.expiresAt,
+    ...(input.integration ? { integration: input.integration } : {}),
+    ...(input.terminal ? { terminal: input.terminal } : {}),
   });
   const encoded = encodePayload(payload);
   return `wdp1.${encoded}.${sha256(encoded)}`;
@@ -200,7 +248,12 @@ export type WorktreeDeletionTokenValidation =
 
 export function validateWorktreeDeletionToken(
   token: string,
-  options: { now?: number; facts?: WorktreeDeletionFacts } = {},
+  options: {
+    now?: number;
+    facts?: WorktreeDeletionFacts;
+    integration?: WorktreeDeletionIntegrationProof;
+    terminal?: WorktreeDeletionTerminalProof;
+  } = {},
 ): WorktreeDeletionTokenValidation {
   let payload: WorktreeDeletionTokenPayload;
   try {
@@ -215,6 +268,19 @@ export function validateWorktreeDeletionToken(
     options.facts !== undefined &&
     hashWorktreeDeletionFacts(options.facts) !==
       hashWorktreeDeletionFacts(payload.facts)
+  ) {
+    return { ok: false, reason: "facts_changed" };
+  }
+  if (
+    options.integration !== undefined &&
+    stableStringify(options.integration) !==
+      stableStringify(payload.integration)
+  ) {
+    return { ok: false, reason: "facts_changed" };
+  }
+  if (
+    options.terminal !== undefined &&
+    stableStringify(options.terminal) !== stableStringify(payload.terminal)
   ) {
     return { ok: false, reason: "facts_changed" };
   }

@@ -145,14 +145,17 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const wtPath = addWorktree(repoRoot, branch);
 
     const deps = createMockDeps(repoRoot, wtPath);
-    deps.integrationCheck = async () => ({
+    const integrationCheck = vi.fn(async () => ({
       ok: false,
       reason: "change_not_terminal",
       detail: "Change is not in terminal state",
       hint: "Archive or close the change first",
-    });
+    }));
+    deps.integrationCheck = integrationCheck;
 
     const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(integrationCheck).toHaveBeenCalledWith(branch, repoRoot);
 
     expect(result).toEqual({
       ok: false,
@@ -620,6 +623,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, path: wtPath }];
+    deps.integrationCheck = undefined;
     deps.operationTimeoutMs = 100;
     deps.mergedBranches = () =>
       new Promise<string[]>(() => {
@@ -701,11 +705,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, path: wtPath }];
     deps.mergedBranches = async () => [`+ ${branch}`];
-    deps.integrationCheck = async () => {
-      throw new Error(
-        "ADV integration check must be skipped for non-ADV branch",
-      );
-    };
+    deps.integrationCheck = undefined;
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
@@ -726,11 +726,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, path: wtPath }];
     deps.mergedBranches = async () => [`+ ${branch}`];
-    deps.integrationCheck = async () => {
-      throw new Error(
-        "ADV integration check must be skipped for non-ADV branch",
-      );
-    };
+    deps.integrationCheck = undefined;
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
@@ -752,11 +748,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, path: wtPath }];
     deps.mergedBranches = async () => ["main"];
-    deps.integrationCheck = async () => {
-      throw new Error(
-        "ADV integration check must be skipped for non-ADV branch",
-      );
-    };
+    deps.integrationCheck = undefined;
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
@@ -776,9 +768,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
     deps.mergedBranches = async () => [`+ ${branch}`];
-    deps.integrationCheck = async () => {
-      throw new Error("registry-drift recovery must skip registry integration");
-    };
+    deps.integrationCheck = undefined;
     attachChangeStatus(deps, "archived");
 
     const result = await advWorktreeDelete(branch, {}, deps);
@@ -802,6 +792,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     deps.mergedBranches = async () => [`+ ${branch}`];
     const terminalChange = {
       status: "archived",
@@ -881,9 +872,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
     deps.mergedBranches = async () => [`+ ${branch}`];
-    deps.integrationCheck = async () => {
-      throw new Error("registry-drift recovery must skip registry integration");
-    };
+    deps.integrationCheck = undefined;
     attachChangeStatus(deps, "closed");
 
     const result = await advWorktreeDelete(branch, {}, deps);
@@ -903,6 +892,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     deps.mergedBranches = async () => [`+ ${branch}`];
 
     const result = await advWorktreeDelete(branch, {}, deps);
@@ -922,6 +912,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     deps.mergedBranches = async () => [`+ ${branch}`];
     attachChangeStatus(deps, "active");
 
@@ -945,6 +936,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     execSync("git commit -m 'unmerged work'", { cwd: wtPath });
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     deps.mergedBranches = async () => ["main"];
     attachChangeStatus(deps, "archived");
 
@@ -966,6 +958,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     writeFileSync(join(wtPath, "dirty.txt"), "dirty");
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     deps.mergedBranches = async () => [`+ ${branch}`];
     attachChangeStatus(deps, "archived");
 
@@ -990,11 +983,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = []; // not in registry
     deps.mergedBranches = async () => [`+ ${branch}`];
-    deps.integrationCheck = async () => {
-      throw new Error(
-        "ADV integration check must be skipped for force-unregistered path",
-      );
-    };
+    deps.integrationCheck = undefined;
 
     const result = await advWorktreeDelete(branch, { force: true }, deps);
 
@@ -1021,9 +1010,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = []; // not in registry
     deps.mergedBranches = async () => ["main"];
-    deps.integrationCheck = async () => {
-      throw new Error("integration check should not run on force path");
-    };
+    deps.integrationCheck = undefined;
 
     const result = await advWorktreeDelete(branch, { force: true }, deps);
 
@@ -1050,6 +1037,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       .trim();
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     attachChangeStatus(deps, null);
     deps.mergedBranches = async () => ["main"];
     deps.prMergeEvidence = async () => ({
@@ -1083,6 +1071,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     execSync("git commit -m 'local branch commit'", { cwd: wtPath });
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     attachChangeStatus(deps, null);
     deps.mergedBranches = async () => ["main"];
     deps.prMergeEvidence = async () => ({
@@ -1112,6 +1101,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     execSync("git commit -m 'post pr commit'", { cwd: wtPath });
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     attachChangeStatus(deps, null);
     deps.mergedBranches = async () => ["main"];
     deps.prMergeEvidence = async () => ({
@@ -1145,6 +1135,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       execSync(`git commit -m '${hint}'`, { cwd: wtPath });
       const deps = createMockDeps(repoRoot, wtPath);
       deps.registry = [];
+      deps.integrationCheck = undefined;
       attachChangeStatus(deps, null);
       deps.mergedBranches = async () => ["main"];
       deps.prMergeEvidence = async () => ({
@@ -1170,12 +1161,8 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, changeId: "registered-squash", path: wtPath }];
-    deps.integrationCheck = async () => ({
-      ok: false,
-      reason: "branch_not_merged",
-      detail: "not ancestry-merged",
-      hint: "squash merge requires PR evidence",
-    });
+    deps.integrationCheck = undefined;
+    attachChangeStatus(deps, "archived");
     deps.prMergeEvidence = async () => ({
       ok: true,
       proof: "pr-head-exact",
@@ -1601,6 +1588,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createDrainDeps(wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     deps.mergedBranches = async () => [`+ ${branch}`];
     attachChangeStatus(deps, "archived");
     await setPendingDelete(
@@ -1626,6 +1614,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createDrainDeps(wtPath);
     deps.registry = [];
+    deps.integrationCheck = undefined;
     deps.signalTimeoutMs = 5;
     deps.store = {
       changes: {

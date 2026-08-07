@@ -106,6 +106,10 @@ import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 import { execGh } from "../../integrations/gh-cli";
 
 export { advWorktreeDetachBatch } from "./detach";
+export {
+  WorktreeDeletionPlanner,
+  createWorktreeDeletionPlanner,
+} from "./deletion-planner";
 
 /** Maximum retries for worktree state initialization */
 const DB_MAX_RETRIES = 3;
@@ -2059,7 +2063,31 @@ export async function advWorktreeDelete(
   // merged into the default branch. Force does NOT skip merged-to-default;
   // this preserves P32 trunk-is-prod by refusing to delete unmerged work.
   const inferredChangeId = inferChangeIdFromBranch(branch);
-  if (registryEntry && !registryEntry.changeId) {
+  // An explicitly supplied integration proof is an authority seam for tests
+  // and embedding consumers. It must run before registry classification:
+  // census-derived rows are advisory and must not route around a caller's
+  // failing safety proof.
+  if (deps.integrationCheck) {
+    const integrationResult = await withDeleteOperationBudget(
+      branch,
+      worktreePath,
+      deps,
+      deleteStartedAt,
+      deleteTimeoutMs,
+      "branch integration check",
+      () => deps.integrationCheck!(branch, deps.projectRoot),
+    );
+    if (!integrationResult.ok) return integrationResult.result;
+    const integration = integrationResult.value;
+    if (!integration.ok) {
+      return {
+        ok: false,
+        error: "INTEGRATION_REQUIRED",
+        reason: integration.reason,
+        hint: "Branch must be archived or closed, merged, and clean",
+      };
+    }
+  } else if (registryEntry && !registryEntry.changeId) {
     const integrationResult = await withDeleteOperationBudget(
       branch,
       worktreePath,
@@ -2154,17 +2182,15 @@ export async function advWorktreeDelete(
     let integration: Awaited<ReturnType<typeof verifyBranchIntegration>>;
     try {
       integration = await withTimeout(
-        deps.integrationCheck
-          ? deps.integrationCheck(branch, deps.projectRoot)
-          : verifyBranchIntegration(
-              branch,
-              deps.projectRoot,
-              {},
-              {
-                terminalStatusReader: makeDurableTerminalStatusReader(deps),
-                registry: registryEntry ? [registryEntry] : undefined,
-              },
-            ),
+        verifyBranchIntegration(
+          branch,
+          deps.projectRoot,
+          {},
+          {
+            terminalStatusReader: makeDurableTerminalStatusReader(deps),
+            registry: registryEntry ? [registryEntry] : undefined,
+          },
+        ),
         remainingMs,
         "Worktree branch integration check timed out",
       );

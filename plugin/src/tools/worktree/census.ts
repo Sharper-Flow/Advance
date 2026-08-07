@@ -18,6 +18,8 @@ export interface GitWorktreeFact {
   bare: boolean;
   locked: boolean;
   prunable: boolean;
+  /** Set by stricter census adapters when Git reports invalid worktree data. */
+  corrupt?: boolean;
 }
 
 export interface GitWorkspaceFacts {
@@ -44,7 +46,8 @@ function parseMergedBranches(stdout: string): Set<string> {
   return new Set(
     stdout
       .split("\n")
-      .map((line) => line.replace(/^\*?\s*/, "").trim())
+      // `+` marks a branch checked out in another linked worktree.
+      .map((line) => line.replace(/^[*+]\s*/, "").trim())
       .filter(Boolean),
   );
 }
