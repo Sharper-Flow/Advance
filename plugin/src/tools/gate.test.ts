@@ -2,8 +2,12 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, test } from "vitest";
-import { createTempDir, cleanupTempDir } from "../__tests__/setup";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  cleanupTempDir,
+  createTempDir,
+  createTempGitWorktree,
+} from "../__tests__/setup";
 import { gateTools, validateGateBoundary } from "./gate";
 import type { Change, Gates, Store, Task } from "../types";
 
@@ -80,6 +84,27 @@ async function readProjection(root: string): Promise<Change> {
 }
 
 describe("gate tools — disk projection lifecycle", () => {
+  let cleanupWorktree: (() => Promise<void>) | undefined;
+  let restoreCwd: (() => void) | undefined;
+
+  beforeEach(async () => {
+    const fixture = await createTempGitWorktree("adv-gate-");
+    cleanupWorktree = fixture.cleanup;
+    // Gate mutations must execute from an isolated linked worktree, never the
+    // checkout root used to run the test process.
+    const cwdSpy = vi
+      .spyOn(process, "cwd")
+      .mockReturnValue(fixture.worktreePath);
+    restoreCwd = () => cwdSpy.mockRestore();
+  });
+
+  afterEach(async () => {
+    restoreCwd?.();
+    restoreCwd = undefined;
+    await cleanupWorktree?.();
+    cleanupWorktree = undefined;
+  });
+
   test("adv_gate_status returns persisted gates and explicit unavailable workflow fields", async () => {
     const root = await createTempDir("adv-gate-");
     try {

@@ -5,6 +5,7 @@
  */
 
 import { mkdtemp, rm, mkdir, writeFile, readFile } from "fs/promises";
+import { execFileSync } from "node:child_process";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -20,6 +21,70 @@ export async function createTempDir(prefix = "adv-test-"): Promise<string> {
  */
 export async function cleanupTempDir(dir: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
+}
+
+/**
+ * Create a real Git repository and linked worktree for mutation tests.
+ *
+ * Tests that invoke state-transition tools must run from a worktree rather
+ * than the checkout root; otherwise the production trunk-write firewall is
+ * expected to reject the mutation. The returned cleanup removes the linked
+ * worktree before deleting the repository fixture.
+ */
+export async function createTempGitWorktree(prefix = "adv-test-git-"): Promise<{
+  repoRoot: string;
+  worktreePath: string;
+  cleanup: () => Promise<void>;
+}> {
+  const repoRoot = await createTempDir(`${prefix}repo-`);
+  const worktreePath = join(repoRoot, "worktree");
+
+  try {
+    execFileSync("git", ["init", "-b", "trunk"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["config", "user.email", "adv-test@example.invalid"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["config", "user.name", "ADV Test"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    await writeFile(join(repoRoot, ".adv-git-root"), "fixture\n");
+    execFileSync("git", ["add", ".adv-git-root"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["commit", "-m", "init"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    execFileSync(
+      "git",
+      ["worktree", "add", "-b", "change/test", worktreePath],
+      {
+        cwd: repoRoot,
+        stdio: "ignore",
+      },
+    );
+  } catch (error) {
+    await cleanupTempDir(repoRoot);
+    throw error;
+  }
+
+  return {
+    repoRoot,
+    worktreePath,
+    cleanup: async () => {
+      execFileSync("git", ["worktree", "remove", "--force", worktreePath], {
+        cwd: repoRoot,
+        stdio: "ignore",
+      });
+      await cleanupTempDir(repoRoot);
+    },
+  };
 }
 
 /**
