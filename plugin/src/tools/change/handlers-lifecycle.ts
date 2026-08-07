@@ -1,6 +1,6 @@
 /** Handler definitions for lifecycle change tools. */
 import { z } from "zod";
-import { join, resolve } from "path";
+import { resolve } from "path";
 import type {
   FastFollowOf,
   ChangeOrigin,
@@ -330,7 +330,13 @@ export const advChangeCreateHandler = async (
       ? { initialMetadata: createOptions.initialMetadata }
       : {}),
   });
-  const output: Record<string, unknown> = { ...result };
+  const output: Record<string, unknown> = {
+    changeId: result.changeId,
+    artifactAuthority: "change.documents",
+    ...(result.duplicateWarning
+      ? { duplicateWarning: result.duplicateWarning }
+      : {}),
+  };
   // rq-createPortfolioLine01 (AC4): bounded portfolio state at creation.
   // Deadline-capped and degrades to { available: false } — never blocks
   // creation (DDC3, R4).
@@ -553,36 +559,10 @@ export const advChangeUpdateHandler = async (
         changeId,
       });
     }
-    const result = {
-      success: true,
-      proposalPath:
-        proposal !== undefined
-          ? join(activeStore.paths.changes, changeId, "proposal.md")
-          : undefined,
-      problemStatementPath:
-        problemStatement !== undefined
-          ? join(activeStore.paths.changes, changeId, "problem-statement.md")
-          : undefined,
-      agreementPath:
-        agreement !== undefined
-          ? join(activeStore.paths.changes, changeId, "agreement.md")
-          : undefined,
-      designPath:
-        design !== undefined
-          ? join(activeStore.paths.changes, changeId, "design.md")
-          : undefined,
-      executiveSummaryPath:
-        executiveSummary !== undefined
-          ? join(activeStore.paths.changes, changeId, "executive-summary.md")
-          : undefined,
-    };
     return formatToolOutput({
+      success: true,
       changeId,
-      proposalPath: result.proposalPath,
-      problemStatementPath: result.problemStatementPath,
-      agreementPath: result.agreementPath,
-      designPath: result.designPath,
-      executiveSummaryPath: result.executiveSummaryPath,
+      artifactAuthority: "change.documents",
       ...(projectContext ? { _projectContext: projectContext } : {}),
     });
   };

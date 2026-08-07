@@ -759,7 +759,11 @@ export async function createCrossProjectFollowUp({
           initialMetadata,
         });
         const output: Record<string, unknown> = {
-          ...result,
+          changeId: result.changeId,
+          artifactAuthority: "change.documents",
+          ...(result.duplicateWarning
+            ? { duplicateWarning: result.duplicateWarning }
+            : {}),
           cross_project_origin: origin,
           target_path,
           _projectContext: formatTargetProjectContext(context),
