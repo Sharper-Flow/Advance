@@ -26,7 +26,7 @@ Detect stack from project files, then run stack-specific tools from the Stack Pa
 | Detected File | Stack Pack | Tools / Structural owners |
 |---------------|------------|---------------------------|
 | `package.json` + `tsconfig.json` | TypeScript/Node | `dependency-cruiser`, `madge` |
-| `package.json` + ADV command/spec/skill/Temporal assets | ADV stack pack | dependency graph tools; workflow bundle boundary tests; command/manifest symmetry tests; spec/asset anchors; command/skill methodology surfaces |
+| `package.json` + ADV command/spec/skill assets | ADV stack pack | dependency graph tools; plugin bundle boundary tests; command/manifest symmetry tests; spec/asset anchors; command/skill methodology surfaces |
 | `pyproject.toml` / `setup.py` | Python | `pydeps` |
 | `go.mod` | Go | `go vet`, `gocyclo` |
 | `Cargo.toml` | Rust | `cargo-deps` |
@@ -59,7 +59,7 @@ Run Phase 3 when the user requests `--phase 3`, after Phase 1/2 produce no findi
 | Stack Pack | Primary Tool / Structural Owner | Fallback Tool | Checks |
 |------------|----------------------------------|---------------|--------|
 | TypeScript/Node | `dependency-cruiser` | `madge` | Circular deps, layer violations, orphans |
-| ADV stack pack | existing structural enforcers | dependency graph tools | TypeScript/Bun/OpenCode plugin/Temporal workflow bundle boundary, command/manifest symmetry, spec/asset anchors, command/skill methodology surfaces |
+| ADV stack pack | existing structural enforcers | dependency graph tools | TypeScript/Bun/OpenCode plugin bundle boundary, command/manifest symmetry, spec/asset anchors, command/skill methodology surfaces |
 | Capability Consistency | `bun run bin/arch-scan.ts` (typed adapter) | (none — typed pipeline is primary) | Config↔code↔deps inconsistencies: plumbed-but-unused env vars, present-but-inactive artifacts, deferred migrations, scaffold without tests |
 | Python | `pydeps` | `import-deps` | Import cycles, module depth |
 | Go | `go vet` | `gocyclo` | Shadowing, complexity, unused code |

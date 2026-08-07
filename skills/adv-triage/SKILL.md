@@ -10,7 +10,7 @@ keywords: ["triage", "backlog", "portfolio", "github-projects", "prioritization"
 
 Methodology for `/adv-triage`: reconcile source items into GitHub issues, apply bug priorities autonomously, coalesce approved issue↔change overlaps, and report what to finish, clean up, or start across active changes, Epics, and open issues.
 
-GitHub Projects v2 owns issue/project membership. Temporal-backed ADV changes and Epics own work-in-progress state. Legacy roadmap files/readers are retired; this skill has no file-write or git-commit phase.
+GitHub Projects v2 owns issue/project membership. Disk-backed ADV changes and Epics own work-in-progress state. Legacy roadmap files/readers are retired; this skill has no file-write or git-commit phase.
 
 **Canonical source:** `.opencode/command/adv-triage.md` owns orchestration and mutation. This skill owns rubrics, prompt templates, schemas, and anti-patterns.
 
