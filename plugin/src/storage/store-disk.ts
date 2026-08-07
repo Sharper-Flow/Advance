@@ -93,6 +93,7 @@ import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
 import { createLogger } from "../utils/debug-log";
 import { createEpicDiskOps } from "./epics-disk";
+import { migrateArtifactMetadataProjections } from "./artifact-metadata-migration";
 
 const logger = createLogger("store-disk");
 
@@ -134,6 +135,15 @@ export async function createDiskStore(
   if (paths.external) {
     await mkdir(paths.external, { recursive: true });
   }
+
+  // Repair pre-disk artifact metadata before exposing the store. The migration
+  // is storage-owned and fail-closed: malformed projections are reported and
+  // left untouched by migrateArtifactMetadataProjections.
+  await migrateArtifactMetadataProjections(
+    paths.changes,
+    paths.archive,
+    paths.artifactMetadataMigrationMarker,
+  );
 
   const loadArchivedChanges = async (): Promise<Change[]> => {
     const archiveDirs = await listChangeDirs(paths.archive);
