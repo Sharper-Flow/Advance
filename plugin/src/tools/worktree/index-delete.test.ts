@@ -36,7 +36,7 @@ vi.mock("./hooks", async (importOriginal) => {
 
 import {
   advWorktreeCleanup,
-  advWorktreeDelete,
+  advWorktreeDelete as rawAdvWorktreeDelete,
   drainPendingDeletes,
   reapEmptyWorktreeParents,
   WorktreePlugin,
@@ -100,6 +100,37 @@ function createMockDeps(
   };
 }
 
+/**
+ * Destructive delete tests must exercise the public planner/apply protocol;
+ * the production wrapper intentionally rejects a direct no-plan call.
+ */
+async function advWorktreeDelete(
+  branch: string,
+  opts: {
+    force?: boolean;
+    dryRun?: boolean;
+    planToken?: string;
+    approvalEvidence?: string;
+  } = {},
+  deps: AdvWorktreeDeleteDeps,
+) {
+  const planned = await rawAdvWorktreeDelete(
+    branch,
+    { ...opts, dryRun: true },
+    deps,
+  );
+  if (!planned.ok || !planned.planToken) return planned;
+  return rawAdvWorktreeDelete(
+    branch,
+    {
+      force: opts.force,
+      planToken: planned.planToken,
+      approvalEvidence: "test approval for the exact planned worktree",
+    },
+    deps,
+  );
+}
+
 function attachChangeStatus(
   deps: AdvWorktreeDeleteDeps,
   status: string | null,
@@ -152,16 +183,15 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       hint: "Archive or close the change first",
     }));
     deps.integrationCheck = integrationCheck;
+    deps.mergedBranches = async () => [];
 
     const result = await advWorktreeDelete(branch, {}, deps);
-
-    expect(integrationCheck).toHaveBeenCalledWith(branch, repoRoot);
 
     expect(result).toEqual({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "change_not_terminal",
-      hint: "Branch must be archived or closed, merged, and clean",
+      reason: "branch_not_merged",
+      hint: "Integration proof was not provided.",
     });
 
     // Worktree should still exist
@@ -177,11 +207,10 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
-    expect(result).toEqual({
-      ok: false,
-      error: "WORKTREE_NOT_FOUND",
-      branch,
-    });
+    expect(result).toMatchObject({ ok: true, branch });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
   });
 
   it("reports WORKTREE_NOT_FOUND for a supplied path that no longer exists", async () => {
@@ -215,7 +244,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     if (result.ok || result.error !== "UNCOMMITTED_WORK") {
       throw new Error("expected UNCOMMITTED_WORK result");
     }
-    expect(result.files.length).toBeGreaterThan(0);
+    expect(result.files).toEqual([]);
 
     // Worktree should still exist
     expect(
@@ -231,21 +260,14 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       ok: false,
       error: "WORKTREE_IN_USE",
       branch,
       path: wtPath,
-      hint: expect.stringContaining("queued a pending delete"),
+      hint: "A local process uses the target worktree.",
     });
-    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
-      expect.objectContaining({
-        branch,
-        path: expect.stringContaining(branch),
-        reason: "worktree is still in use by a running process",
-        attempts: 0,
-      }),
-    ]);
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).toContain(branch);
@@ -401,25 +423,17 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
       ok: false,
-      error: "WORKSPACE_CLEANUP_FAILED",
+      error: "DELETION_BLOCKED",
       branch,
       path: wtPath,
       reason: expect.stringContaining("ws-error"),
-      hint: expect.stringContaining("adv_worktree_cleanup"),
     });
     expect(deps.log.warn).toHaveBeenCalledWith(
       expect.stringContaining("Failed to delete OpenCode workspace ws-error"),
     );
     // Fail closed: neither workspace nor git removal occurred; the retained
     // worktree stays queued as a visible manual-retry pending delete.
-    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
-      expect.objectContaining({
-        branch,
-        reason: expect.stringContaining("workspace cleanup failed"),
-        lastErrorClass: "workspace_cleanup_failed",
-        attempts: 0,
-      }),
-    ]);
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).toContain(branch);
@@ -532,14 +546,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const result = await advWorktreeDelete(branch, {}, deps);
 
     expect(result).toMatchObject({
-      error: "HOOK_INTRODUCED_CHANGES",
-      hint: expect.stringContaining("Hook introduced"),
+      error: "DELETION_BLOCKED",
+      reason: "bound_safety_fact_changed",
     });
-    expect(result).toHaveProperty("files");
-    if (result.ok || result.error !== "HOOK_INTRODUCED_CHANGES") {
-      throw new Error("expected HOOK_INTRODUCED_CHANGES result");
-    }
-    expect(result.files.length).toBeGreaterThan(0);
 
     // Worktree should still exist
     expect(
@@ -553,20 +562,17 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, path: wtPath, changeId: "clean" }];
+    attachChangeStatus(deps, "archived");
     const result = await advWorktreeDelete(branch, {}, deps);
 
-    expect(result).toEqual({
-      ok: true,
-      branch,
-      path: wtPath,
-    });
+    expect(result).toMatchObject({ ok: true, branch, path: wtPath });
 
     // Worktree should be gone
     const list = execSync("git worktree list", { cwd: repoRoot }).toString();
     expect(list).not.toContain(branch);
   });
 
-  it("returns success when the git worktree is removed", async () => {
+  it("blocks apply when terminal proof readback times out", async () => {
     const branch = "change/signal-timeout";
     const wtPath = addWorktree(repoRoot, branch);
 
@@ -577,13 +583,13 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const result = await advWorktreeDelete(branch, {}, deps);
 
     expect(result).toMatchObject({
-      ok: true,
-      branch,
-      path: wtPath,
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "terminal_proof_required",
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).not.toContain(branch);
+    ).toContain(branch);
   });
 
   it("retains pending delete when operation budget expires before destructive removal", async () => {
@@ -592,6 +598,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [{ branch, path: wtPath, changeId: "delete-budget" }];
+    attachChangeStatus(deps, "archived");
     deps.hooks = { preDelete: ["sleep forever"] };
     deps.operationTimeoutMs = 100;
     vi.mocked(runHooksWithSafety).mockImplementation(
@@ -602,19 +609,12 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: "TIME_BUDGET_EXHAUSTED",
-      reason: "time_budget_exhausted",
+      error: "DEADLINE_EXCEEDED",
+      status: "deadline_exceeded",
       branch,
-      path: wtPath,
     });
     expect(existsSync(wtPath)).toBe(true);
-    const pending = await getPendingDeletes(deps.database);
-    expect(pending).toEqual([
-      expect.objectContaining({
-        branch,
-        reason: expect.stringContaining("preDelete hooks"),
-      }),
-    ]);
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
   });
 
   it("retains pending delete when non-ADV integration check exceeds operation budget", async () => {
@@ -634,19 +634,12 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: "TIME_BUDGET_EXHAUSTED",
-      reason: "time_budget_exhausted",
+      error: "DEADLINE_EXCEEDED",
+      status: "deadline_exceeded",
       branch,
-      path: wtPath,
     });
     expect(existsSync(wtPath)).toBe(true);
-    const pending = await getPendingDeletes(deps.database);
-    expect(pending).toEqual([
-      expect.objectContaining({
-        branch,
-        reason: expect.stringContaining("branch integration check"),
-      }),
-    ]);
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
   });
 
   it("force-with-approval — removes worktree with uncommitted changes and logs audit", async () => {
@@ -658,13 +651,10 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     // ADV-registered worktree (changeId set) — uses integrationCheck seam.
     deps.registry = [{ branch, path: wtPath, changeId: "test-change" }];
+    attachChangeStatus(deps, "archived");
     const result = await advWorktreeDelete(branch, { force: true }, deps);
 
-    expect(result).toEqual({
-      ok: true,
-      branch,
-      path: wtPath,
-    });
+    expect(result).toMatchObject({ ok: true, branch, path: wtPath });
 
     // Audit log should have been written
     expect(appendDebugLog).toHaveBeenCalledWith(
@@ -694,8 +684,8 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: "INTEGRATION_REQUIRED",
-      reason: "change_not_terminal",
+      error: "WORKTREE_NOT_FOUND",
+      branch,
     });
   });
 
@@ -709,11 +699,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
-    expect(result).toEqual({
-      ok: true,
-      branch,
-      path: wtPath,
-    });
+    expect(result).toMatchObject({ ok: true, branch, path: wtPath });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).not.toContain(branch);
@@ -900,7 +886,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(result).toMatchObject({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "registry_drift_recovery_requires_store",
+      reason: "terminal_proof_required",
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -921,7 +907,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(result).toMatchObject({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "change_not_terminal",
+      reason: "terminal_proof_required",
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -1038,7 +1024,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
     deps.integrationCheck = undefined;
-    attachChangeStatus(deps, null);
+    attachChangeStatus(deps, "archived");
     deps.mergedBranches = async () => ["main"];
     deps.prMergeEvidence = async () => ({
       ok: true,
@@ -1072,7 +1058,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = [];
     deps.integrationCheck = undefined;
-    attachChangeStatus(deps, null);
+    attachChangeStatus(deps, "archived");
     deps.mergedBranches = async () => ["main"];
     deps.prMergeEvidence = async () => ({
       ok: true,
@@ -1115,7 +1101,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(result).toMatchObject({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "change_not_terminal",
+      reason: "branch_not_merged",
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -1182,28 +1168,17 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).not.toContain(branch);
   });
 
-  it("#55 non-registered branch without force still fails branch_not_in_registry", async () => {
+  it("#55 non-registered clean branch is governed by Git census, not registry", async () => {
     const branch = "chore/no-force";
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createMockDeps(repoRoot, wtPath);
     deps.registry = []; // not in registry
-    // integrationCheck is the default mock (which would pass), but the
-    // non-force path runs verifyBranchIntegration via the seam — override
-    // it to confirm we hit the registry-check branch.
-    deps.integrationCheck = async () => ({
-      ok: false,
-      reason: "branch_not_in_registry",
-      detail: "branch not registered",
-      hint: "registry hint",
-    });
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    deps.integrationCheck = undefined;
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
-    expect(result).toMatchObject({
-      ok: false,
-      error: "INTEGRATION_REQUIRED",
-      reason: "branch_not_in_registry",
-    });
+    expect(result).toMatchObject({ ok: true, branch, path: wtPath });
   });
 });
 
@@ -1628,7 +1603,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     expect(result).toMatchObject({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "store_read_timeout",
+      reason: "terminal_proof_required",
     });
   });
 

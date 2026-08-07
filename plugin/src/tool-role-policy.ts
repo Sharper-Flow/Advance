@@ -419,7 +419,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_worktree_cleanup: {
     class: "orchestrator",
     rationale:
-      "Worktree hygiene; archived_branches mode is operator-explicit (dry-run first).",
+      "Shared planner/executor cleanup; destructive manual and archived-branch modes require dry-run candidate identity plus count-matched approval evidence.",
   },
   adv_worktree_detach: {
     class: "operator-only",
@@ -432,7 +432,8 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   },
   adv_worktree_delete: {
     class: "orchestrator",
-    rationale: "Worktree deletion (merge-before-delete).",
+    rationale:
+      "Shared planner/executor worktree deletion; dry-run mints the typed plan token and apply requires nonblank approval evidence.",
   },
   adv_worktree_resume: {
     class: "orchestrator",

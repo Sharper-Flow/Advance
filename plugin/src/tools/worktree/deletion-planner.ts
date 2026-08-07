@@ -68,6 +68,8 @@ export interface WorktreeDeletionPlannerInput {
   cwd?: string;
   defaultBranch?: string;
   registry?: readonly WorktreeDeletionRegistryEntry[];
+  /** Explicit approval to include a dirty worktree in the deletion plan. */
+  force?: boolean;
   /** Test/operator override for the five-minute token clock. */
   now?: number;
   budgetMs?: number;
@@ -271,6 +273,25 @@ export class WorktreeDeletionPlanner {
       now,
       budgetMs: input.budgetMs,
     });
+    const runWithDeadline = async <T>(work: () => Promise<T>): Promise<T> => {
+      const remaining = operation.remainingMs();
+      if (remaining <= 0) throw new Error("planning deadline exceeded");
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          work(),
+          new Promise<T>((_resolve, reject) => {
+            timer = setTimeout(
+              () => reject(new Error("planning deadline exceeded")),
+              remaining,
+            );
+            timer.unref?.();
+          }),
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    };
     const platform = this.deps.platform ?? process.platform;
 
     try {
@@ -286,8 +307,12 @@ export class WorktreeDeletionPlanner {
       operation.startStage("target_resolution");
       let target: WorktreeDeletionTarget;
       try {
-        target = await (this.deps.targetResolver?.(input, operation) ??
-          this.defaultTarget(input));
+        target = await runWithDeadline(() =>
+          Promise.resolve(
+            this.deps.targetResolver?.(input, operation) ??
+              this.defaultTarget(input),
+          ),
+        );
       } catch (error) {
         if (isTimeoutError(error) || operation.remainingMs() <= 0) {
           return this.deadline(operation, "target_resolution", error);
@@ -428,10 +453,10 @@ export class WorktreeDeletionPlanner {
           operation,
           { facts, target },
         );
-      if (candidate.dirty)
+      if (candidate.dirty && input.force !== true)
         return refusal(
           "dirty_worktree",
-          "The worktree contains uncommitted changes.",
+          "The worktree contains uncommitted changes; replan with force:true only with explicit approval.",
           operation,
           { facts, target },
         );
@@ -470,7 +495,7 @@ export class WorktreeDeletionPlanner {
           operation,
           { facts, target },
         );
-      if (!branchFact.merged)
+      if (!branchFact.merged && !this.deps.integrationProof)
         return refusal(
           "branch_not_merged",
           `Branch ${branch} is not integrated into ${defaultBranch}.`,
@@ -481,19 +506,23 @@ export class WorktreeDeletionPlanner {
       operation.startStage("integration_proof");
       let integration: WorktreeDeletionIntegrationProof | undefined;
       try {
-        integration = await (this.deps.integrationProof?.(
-          branch,
-          candidate.headSha,
-          defaultBranch,
-          target.repository,
-          operation,
-        ) ?? {
-          kind: "merged_to_default",
-          branch,
-          defaultBranch,
-          head: candidate.headSha,
-          evidence: `git branch --merged ${defaultBranch}`,
-        });
+        integration = await (this.deps.integrationProof
+          ? runWithDeadline(() =>
+              this.deps.integrationProof!(
+                branch,
+                candidate.headSha,
+                defaultBranch,
+                target.repository,
+                operation,
+              ),
+            )
+          : {
+              kind: "merged_to_default",
+              branch,
+              defaultBranch,
+              head: candidate.headSha,
+              evidence: `git branch --merged ${defaultBranch}`,
+            });
       } catch (error) {
         if (isTimeoutError(error) || operation.remainingMs() <= 0)
           return this.deadline(operation, "integration_proof", error, target);
@@ -524,11 +553,13 @@ export class WorktreeDeletionPlanner {
       if (changeId) {
         operation.startStage("terminal_ownership_proof");
         try {
-          terminal = await (this.deps.terminalProof?.(
-            changeId,
-            target,
-            operation,
-          ) ?? readLightweightTerminalProof(changeId, target));
+          terminal = await (this.deps.terminalProof
+            ? runWithDeadline(() =>
+                this.deps.terminalProof!(changeId, target, operation),
+              )
+            : runWithDeadline(() =>
+                readLightweightTerminalProof(changeId, target),
+              ));
         } catch (error) {
           if (isTimeoutError(error) || operation.remainingMs() <= 0)
             return this.deadline(
@@ -567,6 +598,7 @@ export class WorktreeDeletionPlanner {
       const token = encodeWorktreeDeletionToken({
         facts,
         expiresAt,
+        force: input.force === true,
         integration,
         ...(terminal ? { terminal } : {}),
       });
@@ -574,6 +606,7 @@ export class WorktreeDeletionPlanner {
         version: "wdp1",
         repository: target.repository,
         facts,
+        force: input.force === true,
         expiresAt,
         token,
         integration,

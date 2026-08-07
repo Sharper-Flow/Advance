@@ -187,6 +187,17 @@ describe("WorktreeDeletionPlanner", () => {
     });
   });
 
+  it("bounds a target resolver that never settles", async () => {
+    const result = await new WorktreeDeletionPlanner({
+      targetResolver: () => new Promise<never>(() => {}),
+    }).plan({ repository: "/repo", branch: "release/v1", budgetMs: 10 });
+
+    expect(result).toMatchObject({
+      kind: "deadline",
+      stage: "target_resolution",
+    });
+  });
+
   it("rejects malformed census data as a repair result without touching state", async () => {
     const result = await new WorktreeDeletionPlanner({
       census: async () => ({

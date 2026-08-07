@@ -47,6 +47,8 @@ export interface ArchivedBranchCleanupInput {
   store: Store;
   changeId?: string;
   dryRun?: boolean;
+  /** Candidate identity/evidence carried from the count-matched cleanup approval. */
+  approvalEvidence?: string;
   /**
    * Handler-clamped effective budget (ms). The helper derives its internal
    * deadline (`effectiveTimeoutMs - RETURN_RESERVE_MS`) and self-returns typed
@@ -292,6 +294,14 @@ export async function cleanupArchivedMergedBranches(
   input: ArchivedBranchCleanupInput,
 ): Promise<Record<string, unknown>> {
   const { store, changeId, dryRun, effectiveTimeoutMs } = input;
+  if (!dryRun && !input.approvalEvidence?.trim()) {
+    return {
+      success: false,
+      mode: "archived_branches",
+      error:
+        "APPROVAL_REQUIRED: archived branch cleanup needs approvalEvidence",
+    };
+  }
 
   // PHASE 1 — setup + internal deadline (tighter than any handler guard).
   const budget = (effectiveTimeoutMs ?? SAFE_BUDGET_MS) - RETURN_RESERVE_MS;

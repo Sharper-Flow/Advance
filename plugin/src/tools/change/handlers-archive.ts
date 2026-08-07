@@ -692,17 +692,30 @@ export const advChangeArchiveHandler = async (
         | undefined;
       if (worktreePath) {
         try {
-          targetedWorktreeDeleteResult = await advWorktreeDelete(
+          const deletionDeps = {
+            projectRoot: activeStore.paths.root,
+            database: await initWorktreeStateDb(activeStore.paths.root),
+            log: logger,
+            store: activeStore,
+            worktreePath,
+          };
+          const deletionPlan = await advWorktreeDelete(
             `change/${change.id}`,
-            { force: false },
-            {
-              projectRoot: activeStore.paths.root,
-              database: await initWorktreeStateDb(activeStore.paths.root),
-              log: logger,
-              store: activeStore,
-              worktreePath,
-            },
+            { force: false, dryRun: true },
+            deletionDeps,
           );
+          targetedWorktreeDeleteResult =
+            deletionPlan.ok && deletionPlan.planToken
+              ? await advWorktreeDelete(
+                  `change/${change.id}`,
+                  {
+                    force: false,
+                    planToken: deletionPlan.planToken,
+                    approvalEvidence: `archive sign-off and release finalization approved change ${change.id}`,
+                  },
+                  deletionDeps,
+                )
+              : deletionPlan;
         } catch (error) {
           archiveResult.errors.push(
             `Targeted worktree cleanup warning: ${error instanceof Error ? error.message : String(error)}`,

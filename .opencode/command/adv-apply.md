@@ -75,7 +75,7 @@ If `adv_worktree_create` unavailable → `[ADV:BLOCKED] Worktree tools required`
 - Exists → reuse, switch `workdir`
 - Missing → `git worktree prune` then create
 
-Create: `adv_worktree_create branch: "change/{change-id}"`. Capture path; use it for ALL subsequent calls. To delete later, pass `branch: "change/{change-id}"`.
+Create: `adv_worktree_create branch: "change/{change-id}"`. Capture path; use it for ALL subsequent calls. To delete later, first call `adv_worktree_delete branch: "change/{change-id}" dryRun: true`, retain the exact returned `planToken`, then apply with that token and nonblank approval evidence. A branch-only destructive call returns `PLAN_REQUIRED`.
 
 Post-creation: verify task-referenced paths exist in worktree. Distinguish read-reference from create-target paths. For MISSING read-reference: discover with `glob`/`bash`; if essential and absent, check main checkout and note discrepancy. Emit: `Path verification: {N} OK, {M} corrected, {K} advisory-skipped, {L} to-create`.
 

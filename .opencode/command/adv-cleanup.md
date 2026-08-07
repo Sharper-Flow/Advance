@@ -6,7 +6,7 @@ description: Triage stale changes, drifted worktrees, merged branches, and state
 
 Dry-run by default: scan all four ADV hygiene surfaces, bucket candidates, report actions. `--execute` applies only after per-bucket approval. Runs inline; no sub-agents.
 
-> **CHECKLIST**: Default dry-run. Reversible closures require Tier B per-bucket approval (`rq-inlineApproval01.4`). Irreversible buckets require count-matched typed confirmation and reject `approve all` (`rq-cleanupHygieneScope01`). Deletion always delegates to `adv_worktree_delete` / `adv_worktree_cleanup` (`rq-terminalCleanupSafety01`). Never auto-archive; recommend `/adv-archive {id}` to preserve per-change Tier B sign-off (`rq-inlineApproval01.3`).
+> **CHECKLIST**: Default dry-run. Reversible closures require Tier B per-bucket approval (`rq-inlineApproval01.4`). Irreversible buckets require count-matched typed confirmation and reject `approve all` (`rq-cleanupHygieneScope01`). Deletion always delegates to the shared `adv_worktree_delete` planner/executor or `adv_worktree_cleanup` drain (`rq-terminalCleanupSafety01`). Never auto-archive; recommend `/adv-archive {id}` to preserve per-change Tier B sign-off (`rq-inlineApproval01.3`).
 
 <UserRequest>
   $ARGUMENTS
@@ -103,7 +103,7 @@ Required snippet:
 
 ### Deletion authority
 
-`adv_worktree_triage` output is advisory discovery and selection data — **never deletion authority** (`rq-terminalCleanupSafety01`). Every approved deletion is executed by `adv_worktree_delete` or `adv_worktree_cleanup`, which independently re-verify terminal owning-change status, branch integration, clean worktree state, no live process CWD, and squash-merge-safe tree-SHA equivalence. Their refusals are final: surface each refusal verbatim, never retry around it.
+`adv_worktree_triage` output is advisory discovery and selection data — **never deletion authority** (`rq-terminalCleanupSafety01`). Every approved deletion first calls `adv_worktree_delete dryRun:true` for the exact branch and records its returned `planToken`; apply must pass that token plus nonblank `approvalEvidence`. A legacy branch-only apply returns deterministic `PLAN_REQUIRED` and performs no shell or write. `adv_worktree_delete` / `adv_worktree_cleanup` independently re-verify terminal owning-change status, branch integration, clean worktree state, no live process CWD, and squash-merge-safe tree-SHA equivalence. Their refusals are final: surface each refusal verbatim, never retry around it.
 
 ---
 
@@ -195,7 +195,7 @@ Before Duplicate apply, `adv_change_show` each `supersededBy` target. Missing ta
 
 ### Irreversible buckets
 
-Worktree deletion → `adv_worktree_delete` per approved branch. Branch deletion → `adv_worktree_cleanup({ mode: "archived_branches", changeId: <approved candidate change ID> })` without `dryRun`, once per approved candidate. Never issue an unscoped merged-branch cleanup apply: it would delete every currently eligible branch and bypass a subset approval.
+Worktree deletion → apply the exact returned `planToken` with `adv_worktree_delete` per approved branch and the count-matched `approvalEvidence`. Branch deletion → `adv_worktree_cleanup({ mode: "archived_branches", changeId: <approved candidate change ID>, approvalEvidence: <count-matched approval> })` without `dryRun`, once per approved candidate. Never issue an unscoped merged-branch cleanup apply: it would delete every currently eligible branch and bypass a subset approval.
 
 Deletion authority belongs to those tools alone (`rq-terminalCleanupSafety01`). Never call `git worktree remove` or `git branch -d` directly. When a tool refuses, report the refusal verbatim and move on — a refusal is evidence the candidate was misclassified, not an obstacle to route around.
 

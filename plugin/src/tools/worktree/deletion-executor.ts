@@ -62,6 +62,19 @@ export interface WorktreeDeletionExecutorDeps {
     repository: string,
     operation: WorktreeOperationContext,
   ) => Promise<WorktreeDeletionTerminalProof | undefined>;
+  /**
+   * Lifecycle-specific cleanup that must complete after safety revalidation
+   * and before Git removal. The worktree planner/executor remains the only
+   * destructive authority; adapters may only provide this bounded pre-remove
+   * hook for adjacent ownership cleanup (for example OpenCode workspaces).
+   */
+  beforeRemove?: (input: {
+    plan: WorktreeDeletionPlan;
+    operation: WorktreeOperationContext;
+  }) => Promise<
+    | { ok: true; warning?: string }
+    | { ok: false; status?: "busy" | "repair_required"; reason: string }
+  >;
   acquireLease?: (
     repositoryLeaseDir: string,
   ) => ReturnType<typeof acquireGitWorktreeFlock>;
@@ -201,14 +214,17 @@ function sameProof(
   return stableStringify(expected) === stableStringify(actual);
 }
 
-function safeToRemove(facts: WorktreeDeletionFacts): boolean {
+function safeToRemove(
+  facts: WorktreeDeletionFacts,
+  allowDirty = false,
+): boolean {
   return (
     facts.mainWorktree !== true &&
     facts.detached === false &&
     facts.bare === false &&
     facts.locked === false &&
     facts.prunable === false &&
-    facts.dirty === false &&
+    (allowDirty || facts.dirty === false) &&
     facts.cwdInsideWorktree === false &&
     facts.inUse === false &&
     facts.gitCorrupt !== true
@@ -343,7 +359,7 @@ export class WorktreeDeletionExecutor {
       );
       if (!sameFacts(plan.facts, actual))
         return failure("drifted", "bound_safety_fact_changed", stage);
-      if (!safeToRemove(actual))
+      if (!safeToRemove(actual, plan.force === true))
         return failure("refused", "unsafe_worktree_state", stage);
 
       const branchFact = current.branches.find(
@@ -354,7 +370,7 @@ export class WorktreeDeletionExecutor {
         !branchFact ||
         !integration ||
         branchFact.headSha !== integration.head ||
-        !branchFact.merged
+        (!branchFact.merged && !this.deps.integrationProof)
       )
         return failure("drifted", "integration_fact_changed", stage);
       if (this.deps.integrationProof) {
@@ -444,6 +460,20 @@ export class WorktreeDeletionExecutor {
       const beforeDecision = await evaluate(before, "census");
       if (beforeDecision) return beforeDecision;
 
+      let beforeRemoveWarning: string | undefined;
+      if (this.deps.beforeRemove) {
+        const preRemove = await runBounded("before_remove", () =>
+          this.deps.beforeRemove!({ plan, operation }),
+        );
+        if (!preRemove.ok)
+          return failure(
+            preRemove.status ?? "repair_required",
+            preRemove.reason,
+            "before_remove",
+          );
+        beforeRemoveWarning = preRemove.warning;
+      }
+
       for (const command of hooks) {
         const hookExpiry = expiryDecision("preDelete_hook");
         if (hookExpiry) return hookExpiry;
@@ -508,7 +538,13 @@ export class WorktreeDeletionExecutor {
       const removeResult = await runBounded("remove", () =>
         runProcess({
           command: resolveGitBinary(),
-          args: ["worktree", "remove", "--", plan.facts.worktree],
+          args: [
+            "worktree",
+            "remove",
+            ...(plan.force === true ? ["--force"] : []),
+            "--",
+            plan.facts.worktree,
+          ],
           cwd: plan.repository,
           signal: operation.signal,
           timeoutMs: Math.max(
@@ -568,7 +604,13 @@ export class WorktreeDeletionExecutor {
         status: "deleted",
         repository: plan.repository,
         worktree: plan.facts.worktree,
-        ...(warning ? { warning } : {}),
+        ...(warning || beforeRemoveWarning
+          ? {
+              warning: [beforeRemoveWarning, warning]
+                .filter(Boolean)
+                .join("; "),
+            }
+          : {}),
       };
     } catch (error) {
       if (

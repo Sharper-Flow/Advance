@@ -102,9 +102,15 @@ git -C "$MAIN" log --oneline trunk..change/{change-id}
 
 Only after merge is confirmed:
 
-```bash
-adv_worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged to default branch"
+```text
+adv_worktree_delete branch: "change/{change-id}" dryRun: true
+# retain returned planToken, then apply:
+adv_worktree_delete branch: "change/{change-id}" planToken: "<planToken>" approvalEvidence: "user approved deletion of change/{change-id}"
 ```
+
+Destructive branch-only calls are rejected with `PLAN_REQUIRED`. The planner
+token binds Git repository, branch, HEAD, safety facts, integration proof, and
+expiry; approval evidence must be nonblank and describe the exact candidate.
 
 The 3-condition gate (archived AND merged AND clean) blocks unsafe deletion. `opts.force: true` never bypasses integration; it only affects uncommitted-work removal after explicit audit reason.
 

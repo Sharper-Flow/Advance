@@ -63,6 +63,8 @@ const WorktreeDeletionTokenPayloadSchema = z
   .object({
     version: z.literal("wdp1"),
     facts: WorktreeDeletionFactsSchema,
+    /** Explicit approval to remove a dirty worktree; bound by the token. */
+    force: z.boolean().optional(),
     expiresAt: z.number().int().positive(),
     integration: WorktreeDeletionIntegrationProofSchema.optional(),
     terminal: WorktreeDeletionTerminalProofSchema.optional(),
@@ -78,6 +80,7 @@ export const WorktreeDeletionPlanSchema = z
     version: z.literal("wdp1"),
     repository: NonEmptyTextSchema,
     facts: WorktreeDeletionFactsSchema,
+    force: z.boolean().optional(),
     expiresAt: z.number().int().positive(),
     token: NonEmptyTextSchema,
     integration: WorktreeDeletionIntegrationProofSchema.optional(),
@@ -101,6 +104,7 @@ export const WorktreeDeletionPlanSchema = z
           hashWorktreeDeletionFacts(plan.facts) ||
         stableStringify(payload.integration) !==
           stableStringify(plan.integration) ||
+        payload.force !== plan.force ||
         stableStringify(payload.terminal) !== stableStringify(plan.terminal)
       ) {
         ctx.addIssue({
@@ -133,6 +137,22 @@ const DeletionFailureStatusSchema = z.enum([
   "deadline_exceeded",
   "already_absent",
 ]);
+
+export const WorktreeDeletionPlanResultSchema = z
+  .object({
+    ok: z.literal(true),
+    status: z.literal("planned"),
+    branch: NonEmptyTextSchema,
+    worktree: NonEmptyTextSchema,
+    plan: WorktreeDeletionPlanSchema,
+    planToken: NonEmptyTextSchema,
+    warnings: z.array(NonEmptyTextSchema),
+  })
+  .strict();
+
+export type WorktreeDeletionPlanResult = z.infer<
+  typeof WorktreeDeletionPlanResultSchema
+>;
 
 export const WorktreeDeletionResultSchema = z.union([
   z
@@ -216,6 +236,7 @@ function decodePayload(encoded: string): WorktreeDeletionTokenPayload {
 
 export function encodeWorktreeDeletionToken(input: {
   facts: WorktreeDeletionFacts;
+  force?: boolean;
   expiresAt: number;
   integration?: WorktreeDeletionIntegrationProof;
   terminal?: WorktreeDeletionTerminalProof;
@@ -223,6 +244,7 @@ export function encodeWorktreeDeletionToken(input: {
   const payload = WorktreeDeletionTokenPayloadSchema.parse({
     version: "wdp1",
     facts: input.facts,
+    ...(input.force !== undefined ? { force: input.force } : {}),
     expiresAt: input.expiresAt,
     ...(input.integration ? { integration: input.integration } : {}),
     ...(input.terminal ? { terminal: input.terminal } : {}),

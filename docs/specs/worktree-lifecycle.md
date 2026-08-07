@@ -488,6 +488,21 @@ ADV mutating tools that advance working-tree-impacting gates or change task exec
 
 ---
 
+### Planner-Backed Worktree Deletion
+
+**ID:** `rq-worktreeDeletionProtocol01` | **Priority:** **[MUST]**
+
+Every destructive worktree deletion surface — public delete, terminal cleanup,
+reaper/drain, manual cleanup, and archive cleanup — uses the shared Git census
+planner and drift-safe executor. `dryRun:true` returns a typed expiring plan and
+`planToken`; destructive apply requires that token and nonblank approval
+evidence. A legacy branch-only apply returns `PLAN_REQUIRED` before shell or
+write effects. Registry rows remain advisory; target-path trust is established
+before the planner resolves the target and timeout results are typed and
+terminal.
+
+---
+
 ### Bounded Worktree Cleanup
 
 **ID:** `rq-worktreeBoundedCleanup01` | **Priority:** **[MUST]**
