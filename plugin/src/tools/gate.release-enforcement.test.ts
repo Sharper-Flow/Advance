@@ -2,8 +2,12 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, test, vi } from "vitest";
-import { createTempDir, cleanupTempDir } from "../__tests__/setup";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  cleanupTempDir,
+  createTempDir,
+  createTempGitWorktree,
+} from "../__tests__/setup";
 import { gateTools } from "./gate";
 import type { Change, Store } from "../types";
 
@@ -85,6 +89,32 @@ async function storeFor(root: string, current: Change): Promise<Store> {
 }
 
 describe("release gate fail-closed enforcement", () => {
+  let cleanupWorktree: (() => Promise<void>) | undefined;
+  let restoreCwd: (() => void) | undefined;
+
+  beforeEach(async () => {
+    const fixture = await createTempGitWorktree("adv-release-gate-");
+    cleanupWorktree = fixture.cleanup;
+    // Mutation tools derive their session workdir from process.cwd(). Keep
+    // that dependency explicit and isolated from the checkout running Vitest.
+    const cwdSpy = vi
+      .spyOn(process, "cwd")
+      .mockReturnValue(fixture.worktreePath);
+    restoreCwd = () => cwdSpy.mockRestore();
+  });
+
+  afterEach(async () => {
+    restoreCwd?.();
+    restoreCwd = undefined;
+    await cleanupWorktree?.();
+    cleanupWorktree = undefined;
+    git.resolveReleaseReachability.mockReturnValue({
+      reachable: false,
+      proof: "origin_unmerged",
+      details: ["tip not on origin/trunk"],
+    });
+  });
+
   test("refuses release completion when trunk reachability proof is absent", async () => {
     const root = await createTempDir("adv-release-gate-");
     try {

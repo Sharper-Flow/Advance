@@ -2,8 +2,12 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, test } from "vitest";
-import { createTempDir, cleanupTempDir } from "../__tests__/setup";
+import { describe, expect, test, vi } from "vitest";
+import {
+  cleanupTempDir,
+  createTempDir,
+  createTempGitWorktree,
+} from "../__tests__/setup";
 import { taskTools } from "./task";
 import type { Store, Task } from "../types";
 import { ChangeSchema } from "../types";
@@ -126,6 +130,10 @@ describe("task tools — disk projection", () => {
 
   test("task add/list/show and blockedBy use canonical state despite stale flat data", async () => {
     const root = await createTempDir("adv-task-canonical-");
+    const worktree = await createTempGitWorktree("adv-task-canonical-");
+    const cwdSpy = vi
+      .spyOn(process, "cwd")
+      .mockReturnValue(worktree.worktreePath);
     const changeDir = join(root, "changes");
     const changeId = "canonical-task-change";
     const canonical = ChangeSchema.parse({
@@ -222,6 +230,8 @@ describe("task tools — disk projection", () => {
       );
       expect(shown.task.id).toBe("tk-canonical");
     } finally {
+      cwdSpy.mockRestore();
+      await worktree.cleanup();
       await cleanupTempDir(root);
     }
   });
