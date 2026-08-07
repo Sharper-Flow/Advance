@@ -116,3 +116,25 @@ export {
   advanceLegacyToCanonicalExecutor,
   reportOnlyExecutor,
 } from "./reconcile-action-legacy-envelope";
+export {
+  migrateRecordExecutor,
+  migrateArtifactMetadataExecutor,
+  classifyTerminalNoopExecutor,
+  setMarkerAutoExecutor,
+  setMarkerLegacyExecutor,
+  normalizeWorktreeMarkerExecutor,
+} from "./reconcile-action-artifact-metadata";
+export {
+  EpicReconstructionProvenanceSchema,
+  buildReconstructedEpic,
+  verifyEpicReconstructionConvergence,
+  reconstructFromChildFragmentsExecutor,
+  formallyLostReportExecutor,
+  clearDanglingMembershipExecutor,
+} from "./reconcile-action-epic-recovery";
+export {
+  RECONCILE_NOISE_ALLOWLIST,
+  normalizeAndRestoreExecutor,
+  remainQuarantinedReportedExecutor,
+  quarantineToTrashExecutor,
+} from "./reconcile-action-quarantine";

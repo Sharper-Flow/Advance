@@ -184,7 +184,19 @@ function fragmentFailureReason(
 
 function childEntry(
   fragment: EpicRecoveryFragment,
-): Extract<EpicEntry, { kind: "change" }> {
+): Extract<EpicEntry, { kind: "change" }> | null {
+  const isTerminal =
+    fragment.change.status === "archived" ||
+    fragment.change.status === "closed";
+  // Boundary narrowing: archived_at/closed_at/updated_at arrive via the
+  // ChangeSchema .passthrough() as unknown. A terminal fragment without a
+  // usable string completion timestamp is corrupt evidence — refuse it
+  // (fail-closed) rather than emitting an entry that EpicSchema would reject.
+  const completedAt =
+    fragment.change.archived_at ??
+    fragment.change.closed_at ??
+    fragment.change.updated_at;
+  if (isTerminal && typeof completedAt !== "string") return null;
   return {
     kind: "change",
     entry_id: fragment.membership.entry_id,
@@ -203,15 +215,11 @@ function childEntry(
         project_id: fragment.membership.epic_project_id,
       },
     }),
-    ...(fragment.change.status === "archived" ||
-    fragment.change.status === "closed"
+    ...(isTerminal
       ? {
           terminal_summary: {
-            status: fragment.change.status,
-            completed_at:
-              fragment.change.archived_at ??
-              fragment.change.closed_at ??
-              fragment.change.updated_at,
+            status: fragment.change.status as "archived" | "closed",
+            completed_at: completedAt as string,
           },
         }
       : {}),
@@ -235,7 +243,15 @@ export function buildReconstructedEpic(
       left.membership.order - right.membership.order ||
       left.membership.entry_id.localeCompare(right.membership.entry_id),
   );
-  const entries = sorted.map(childEntry);
+  const mapped = sorted.map(childEntry);
+  if (mapped.some((entry) => entry === null)) {
+    return {
+      kind: "insufficient",
+      reason:
+        "one or more terminal child fragments lack a usable completion timestamp",
+    };
+  }
+  const entries = mapped as Extract<EpicEntry, { kind: "change" }>[];
   const completedEntries = sorted.filter(
     ({ change }) => change.status === "archived" || change.status === "closed",
   ).length;

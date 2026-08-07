@@ -24,6 +24,22 @@ import {
   reportOnlyExecutor,
 } from "./reconcile-action-legacy-envelope";
 import {
+  migrateRecordExecutor,
+  classifyTerminalNoopExecutor,
+  setMarkerAutoExecutor,
+  setMarkerLegacyExecutor,
+} from "./reconcile-action-artifact-metadata";
+import {
+  reconstructFromChildFragmentsExecutor,
+  formallyLostReportExecutor,
+  clearDanglingMembershipExecutor,
+} from "./reconcile-action-epic-recovery";
+import {
+  normalizeAndRestoreExecutor,
+  remainQuarantinedReportedExecutor,
+  quarantineToTrashExecutor,
+} from "./reconcile-action-quarantine";
+import {
   normalizeEnumMappingExecutor,
   quarantineRecordExecutor,
 } from "./reconcile-action-schema-drift";
@@ -181,6 +197,16 @@ export const ACTION_EXECUTORS: Record<
   rebuild_from_changes: rebuildFromChangesExecutor,
   advance_legacy_to_canonical: advanceLegacyToCanonicalExecutor,
   report_only: reportOnlyExecutor,
+  migrate_record: migrateRecordExecutor,
+  classify_terminal_noop: classifyTerminalNoopExecutor,
+  set_marker_auto: setMarkerAutoExecutor,
+  set_marker_legacy: setMarkerLegacyExecutor,
+  reconstruct_from_child_fragments: reconstructFromChildFragmentsExecutor,
+  formally_lost_report: formallyLostReportExecutor,
+  clear_dangling_membership: clearDanglingMembershipExecutor,
+  normalize_and_restore: normalizeAndRestoreExecutor,
+  remain_quarantined_reported: remainQuarantinedReportedExecutor,
+  quarantine_to_trash: quarantineToTrashExecutor,
 };
 
 export async function executeRecordAction(
