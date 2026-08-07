@@ -135,7 +135,7 @@ export async function listIssueClaims(
  * Extract structured context-mismatch fields from an error, if it's an
  * AdvProjectContextMismatchError. Returns undefined for other error types.
  * GH #11: surface actionable project-context diagnostics instead of
- * opaque Temporal gRPC errors.
+ * opaque transport errors.
  */
 export function extractContextMismatch(error: unknown): {
   errorClass: "AdvProjectContextMismatch";

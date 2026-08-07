@@ -242,7 +242,7 @@ export async function ensureWorktreeForMutation(
   //
   // Placed BEFORE the block_only branch so non-auto-managed (block_only) changes
   // with an existing worktree ALLOW, and before auto_manage create logic to
-  // short-circuit a redundant resume. On probe error / Temporal-unavailable the
+  // short-circuit a redundant resume. On probe error / unavailable state the
   // probe returns false (never ALLOW on unknown existence) and we fall through
   // to the marker-based behavior below.
   if (change) {

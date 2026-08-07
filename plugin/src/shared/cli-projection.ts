@@ -3,7 +3,7 @@
  *
  * Plain TypeScript module with zero runtime imports. Safe to import from the
  * Bun `bin/adv` CLI without dragging in the plugin runtime graph (no zod, no
- * node:*, no Temporal, no storage, no tools).
+ * node:*, no storage, no tools).
  */
 
 // =============================================================================
@@ -96,7 +96,7 @@ export interface ChangeSummary {
 
 /** Payload returned by `adv status --json`. */
 export interface LiveStatusPayload {
-  source: "temporal";
+  source: "disk";
   live: boolean;
   stale: false;
   generated_at: string;

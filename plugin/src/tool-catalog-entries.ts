@@ -182,7 +182,6 @@ export type ToolRealm =
   | "status"
   | "store"
   | "task"
-  | "temporal"
   | "test"
   | "tool"
   | "verification"
@@ -403,7 +402,6 @@ export const LIFECYCLE_BY_REALM: Readonly<
   ],
   store: ["release"],
   task: ["planning", "execution"],
-  temporal: ["execution", "acceptance", "release"],
   test: ["execution", "acceptance"],
   tool: [
     "proposal",

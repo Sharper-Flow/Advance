@@ -341,8 +341,7 @@ export const statusTools = {
               archivedCount: status.changes.byStatus.archived ?? 0,
               recommendations: status.recommendations,
               recommendationSummary,
-              temporalAlive: false,
-              temporalDegraded: true,
+              storeAvailable: true,
               terminalCleanupRetained: { total: 0, classes: {} },
             });
             const degradedOutput = {
@@ -966,8 +965,7 @@ export const statusTools = {
                 archivedCount: status.changes.byStatus.archived ?? 0,
                 recommendations: status.recommendations,
                 recommendationSummary,
-                temporalAlive: false,
-                temporalDegraded: true,
+                storeAvailable: true,
                 pluginRuntime: pluginRuntimeInfo
                   ? {
                       source_dist_freshness:

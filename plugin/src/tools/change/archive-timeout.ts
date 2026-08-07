@@ -14,7 +14,7 @@
  * the generic timeout response surfaces the real failure (DONT2: never
  * mask a genuine archive failure as recoverable).
  *
- * Probe discipline: disk-only. After a timeout the Temporal worker may be
+ * Probe discipline: disk-only. After a timeout the underlying operation may be
  * the thing that hung; the classifier must not issue workflow queries or
  * git operations that could hang a second time.
  */

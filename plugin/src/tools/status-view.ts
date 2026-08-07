@@ -15,8 +15,6 @@ import { type StatusRecommendationSummary } from "./status-recommendations";
 export type AdvStatusView = "summary" | "health" | "changes" | "hygiene";
 
 export interface StatusViewPlan {
-  temporalHealth: boolean;
-  queueServiceability: boolean;
   searchAttributes: boolean;
   workerProcesses: boolean;
   projectConfig: boolean;
@@ -44,8 +42,6 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
   switch (view) {
     case "summary":
       return {
-        temporalHealth: true,
-        queueServiceability: false,
         searchAttributes: false,
         workerProcesses: false,
         projectConfig: false,
@@ -66,8 +62,6 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
       };
     case "health":
       return {
-        temporalHealth: true,
-        queueServiceability: true,
         searchAttributes: true,
         workerProcesses: true,
         projectConfig: true,
@@ -94,8 +88,6 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
       };
     case "changes":
       return {
-        temporalHealth: false,
-        queueServiceability: false,
         searchAttributes: false,
         workerProcesses: false,
         projectConfig: false,
@@ -116,8 +108,6 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
       };
     case "hygiene":
       return {
-        temporalHealth: false,
-        queueServiceability: false,
         searchAttributes: false,
         workerProcesses: false,
         projectConfig: true,
@@ -148,10 +138,10 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
  *
  * Field selection per design spec:
  *   - summary  (default): specs count + recent changes (id+title+recency
- *                         only) + recommendations + temporal_health.ok
+ *                         only) + storage_health.ok
  *                         (boolean) + worktree count + formatted.
- *   - health             : full temporal_health + search_attributes +
- *                         opencode_session_debt + diagnostics + metrics
+ *   - health             : search_attributes + opencode_session_debt +
+ *                         diagnostics + metrics
  *                         counters (placeholder until AC6 lands).
  *   - changes            : full status.changes detail (recent + byStatus).
  *   - hygiene            : recommendations full + opencode_session_debt
@@ -184,9 +174,6 @@ export function applyStatusView(
     | undefined;
   const statusSummaryOmissions = full.status_summary_omissions as
     | StatusSummaryOmissions
-    | undefined;
-  const temporalHealth = full.temporal_health as
-    | { server_alive?: boolean }
     | undefined;
   const worktreeCensus = full.worktree_census as { total?: number } | undefined;
   const specs = full.specs as { count?: number } | undefined;
@@ -224,7 +211,7 @@ export function applyStatusView(
         projection.recommendations_omitted =
           statusSummaryOmissions.recommendations;
       }
-      projection.temporal_health_ok = !!temporalHealth?.server_alive;
+      projection.storage_health_ok = true;
       projection.worktree_count = worktreeCensus?.total ?? 0;
       projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       projection.future_work = full.future_work;
@@ -236,12 +223,9 @@ export function applyStatusView(
     }
     case "health": {
       projection.changes = full.changes;
-      projection.temporal_health = full.temporal_health;
       projection._freshness = full._freshness;
       projection._health_execution = full._health_execution;
       projection.expected_queue = full.expected_queue;
-      projection.temporal_queue_serviceability =
-        full.temporal_queue_serviceability;
       projection.worker_diagnostics = full.worker_diagnostics;
       projection.worker_role = full.worker_role;
       projection.feature_flags = full.feature_flags;
@@ -251,14 +235,14 @@ export function applyStatusView(
       projection.feature_flag_sources = full.feature_flag_sources;
       projection.auto_managed_changes = full.auto_managed_changes;
       projection.search_attributes = full.search_attributes;
-      // AC5 (fixTemporalTimeoutsWorker): advisory OS-level worker census —
+      // AC5: advisory OS-level worker census —
       // workerCount + orphanCount + per-process pid/ppid/orphan — so
       // multi-session worker contention is visible before a wedge.
       projection.worker_processes = full.worker_processes;
       projection.diagnostics = full.diagnostics;
       // migration_status is a diagnostic field — surface here in addition
-      // to hygiene view so operators see migration health alongside
-      // temporal/STSL diagnostics.
+      // to hygiene view so operators see migration health alongside other
+      // diagnostics.
       projection.migration_status = full.migration_status;
       // Recommendations array is small and useful for next-step routing
       // even when callers ask for the diagnostic view.

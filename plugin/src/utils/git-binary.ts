@@ -14,7 +14,7 @@
  * (hooks, credential helpers, …) can still find their tools.
  *
  * This module is workflow-unsafe (uses node:child_process / node:fs). It
- * is imported only by tool-layer code, never by `temporal/workflows.ts`
+ * is imported only by tool-layer code.
  * reachable modules.
  */
 

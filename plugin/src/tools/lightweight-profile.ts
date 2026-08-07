@@ -2,9 +2,8 @@
  * Lightweight Change Profile — host-side routing tool.
  *
  * Evaluates a lightweight change profile using the host-side collector and
- * persists the result via the existing Temporal signal. The tool is the single
- * host-side entry point that wires Git/worktree evidence collection to the
- * durable workflow state.
+ * persists the result in the disk projection. The tool is the single host-side
+ * entry point that wires Git/worktree evidence collection to durable state.
  */
 
 import { z } from "zod";

@@ -62,7 +62,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_change_projection_quarantine: {
     class: "operator-only",
     rationale:
-      "Operator-only quarantine for corrupt or oversized active change projections. Atomically moves the bad change.json outside the active read path, preserves original bytes/metadata, and appends a purpose-specific audit entry (approvedByUser + approvalEvidence + changeId). Refuses healthy, missing, or Temporal-reconstructable records.",
+      "Operator-only quarantine for corrupt or oversized active change projections. Atomically moves the bad change.json outside the active read path, preserves original bytes/metadata, and appends a purpose-specific audit entry (approvedByUser + approvalEvidence + changeId). Refuses healthy or missing records.",
   },
   adv_store_cleanup: {
     class: "operator-only",
@@ -139,7 +139,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   // Routine ADV command-workflow and agent tools. Several mutations remain
   // approval-gated, driven by the orchestrator through gate/command workflows
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
-  // task checkpoint/update/cancel, Temporal repair, cross-project trust
+  // task checkpoint/update/cancel, projection repair, cross-project trust
   // boundaries) stay distinct — no universal router (DONT1/DONT3).
   adv_resume_projection: {
     class: "orchestrator",
@@ -320,7 +320,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_lightweight_profile_evaluate: {
     class: "orchestrator",
     rationale:
-      "Host-side evidence collection + Temporal signal for lightweight profile evaluation; driven by gate workflow.",
+      "Host-side evidence collection for lightweight profile evaluation; driven by the gate workflow.",
   },
   adv_ops_evidence_add: {
     class: "orchestrator",

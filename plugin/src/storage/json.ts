@@ -321,7 +321,7 @@ export async function saveChange(
   if (isSyntheticValidationDraftPattern(change.id)) {
     throw new Error(
       `Refusing to write change with synthetic-validation-draft ID "${change.id}": ` +
-        `matches reserved pattern (changeRoundtrip*, gateParity*, parityTemporal*, ` +
+        `matches reserved pattern (changeRoundtrip*, gateParity*, parityLegacy*, ` +
         `latencyLegacy*, etc). These IDs are reserved for ADV's own validation/parity/` +
         `latency/roundtrip workflows which must use isolated temp storage, not live ADV ` +
         `state. Spec: rq-synthstate01.`,
@@ -680,13 +680,12 @@ export async function updateChangeArtifacts(
 /**
  * Remove a change's on-disk directory (proposal.md, change.json, etc.)
  * recursively and force-idempotently. Used by `changes.create`'s
- * transactional rollback (P1.4) when the Temporal workflow start fails
- * AFTER the disk scaffold was written.
+ * transactional rollback when the disk scaffold was written before a later
+ * operation failed.
  *
  * `force: true` makes the operation a no-op if the directory doesn't
- * exist — critical for the re-throw semantics in store-temporal.ts's
- * rollback path: we must propagate the ORIGINAL Temporal error, not
- * mask it with an ENOENT from a double-rollback.
+ * exist — critical for rollback paths that must propagate the original error,
+ * not mask it with an ENOENT from a double-rollback.
  *
  * See design.md § KD-7 (validator-corrected).
  */

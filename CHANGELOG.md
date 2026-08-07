@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Changed
+
+- **Disk-only runtime persistence** — Removed the historical Temporal runtime architecture. Advance now keeps authoritative change, task, gate, and Epic state in per-project disk projections with per-change locking, atomic crash-safe writes, optimistic version checks for Epics, and fail-closed transaction verification. No external runtime service is required.
+
 ### Added
 
 - **Recommended rule P32 `worktree-isolation`** backfilled in `SETUP.md` (sibling to P29-P31). Targets the agent failure mode of writing implementation changes into a shared trunk/default checkout or running deploy/rebuild from a worktree. P32 (priority 8) keeps the trunk on its default branch and routes all branch work — ADV changes and ad-hoc fixes — through isolated worktrees; the inverse clause forces deploy/rebuild/release/install/publish operations onto the merged default branch. Pairs structurally with the ADV plugin's trunk-write firewall and the `oc-worktree` helper. Like P29-P31, `rules.yaml` stays user-managed.

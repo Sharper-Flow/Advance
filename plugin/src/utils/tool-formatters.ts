@@ -97,6 +97,8 @@ export interface TaskReadyInput {
 }
 
 export interface StatusInput {
+  /** Forward-compatible fields from older status callers are ignored. */
+  [key: string]: unknown;
   specCount: number;
   requirementCount: number;
   activeChanges: Array<{
@@ -119,8 +121,7 @@ export interface StatusInput {
       shown: Array<{ title: string; detail: string; action: string }>;
     }>;
   };
-  temporalAlive: boolean;
-  temporalDegraded?: boolean;
+  storeAvailable?: boolean;
   worktreeCensus?: {
     total: number;
     stale: Array<{ path: string; branch: string; lastActivity: string }>;
@@ -155,19 +156,6 @@ export interface StatusInput {
     idleToolPartCount?: number;
     reason?: string;
   };
-  temporalHealth?: {
-    /** Legacy fields are accepted for read compatibility but never formatted. */
-    worker_alive?: unknown;
-    worker_process_alive?: unknown;
-    worker_lock?: WorkerLockHealthInput | null;
-    last_worker_run_error?: WorkerRunErrorInput | null;
-  };
-  temporalQueueServiceability?: {
-    status: string;
-    confidence: string;
-    expectedQueue: string;
-    blockers?: string[];
-  } | null;
   /**
    * rq-runtimeProvenance01: optional plugin runtime info. When present and
    * source_dist_freshness !== "fresh", healthSection appends freshness verdict
@@ -202,17 +190,6 @@ export interface PluginRuntimeInput {
   loaded_plugin_generation?: string | null;
   deployed_plugin_generation?: string | null;
   plugin_bundle_recovery?: string | null;
-}
-
-export interface WorkerLockHealthInput {
-  holder_pid: number;
-  schema_version: 1;
-}
-
-export interface WorkerRunErrorInput {
-  queue: string;
-  message: string;
-  at: string;
 }
 
 export interface ValidationInput {
@@ -315,20 +292,6 @@ const VALIDATION_FIX_SUGGESTIONS: Record<string, string> = {
 
 function getFixSuggestion(code: string): string {
   return VALIDATION_FIX_SUGGESTIONS[code] ?? "Review and fix";
-}
-
-export function formatWorkerLockHealth(
-  lock: WorkerLockHealthInput | null | undefined,
-): string | undefined {
-  if (!lock) return undefined;
-  return `pid=${lock.holder_pid} v${lock.schema_version}`;
-}
-
-export function formatWorkerRunError(
-  error: WorkerRunErrorInput | null | undefined,
-): string | undefined {
-  if (!error) return undefined;
-  return `${error.queue}: ${error.message} @ ${error.at}`;
 }
 
 // =============================================================================
@@ -456,28 +419,8 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
     input.recommendationSummary,
   );
   const healthLines = [
-    `Temporal: ${
-      input.temporalAlive
-        ? input.temporalDegraded
-          ? "server degraded ⚠ (liveness unconfirmed)"
-          : "server alive ✓"
-        : "server down ✗"
-    }`,
+    `Storage: ${input.storeAvailable !== false ? "disk-backed ✓" : "unavailable ✗"}`,
   ];
-  const queueServiceability = input.temporalQueueServiceability;
-  if (queueServiceability) {
-    healthLines.push(
-      `Queue serviceability: ${queueServiceability.status} (${queueServiceability.confidence}) ${queueServiceability.expectedQueue}`,
-    );
-  }
-  const workerLock = formatWorkerLockHealth(input.temporalHealth?.worker_lock);
-  if (workerLock) healthLines.push(`Worker lock: ${workerLock}`);
-  const workerRunError = formatWorkerRunError(
-    input.temporalHealth?.last_worker_run_error,
-  );
-  if (workerRunError) {
-    healthLines.push(`Last worker run error: ${workerRunError}`);
-  }
   // rq-runtimeProvenance01: surface plugin freshness verdict + recovery hint
   // when the running plugin is not fresh. Verbatim rendering — agent passes
   // through to user for actionable next steps.

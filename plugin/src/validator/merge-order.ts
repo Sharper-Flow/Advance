@@ -2,13 +2,13 @@
  * Merge-Order Validator
  *
  * Computes an advisory merge-order queue for archived-but-not-yet-merged
- * changes from Temporal-backed state. Output is informational —
+ * changes from persisted state. Output is informational —
  * /adv-archive Phase 9 still drives the actual merging; this module just
  * suggests the order.
  *
  * Spec anchors:
- * - rq-worktreeRegistry01 (per-change workflow worktree state via Temporal search attributes)
- * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes via signals)
+ * - rq-worktreeRegistry01 (per-change worktree state via the project registry)
+ * - rq-multiSessionCoordination01 (peer-session writes use storage locking)
  */
 
 import {
@@ -51,7 +51,7 @@ export interface MergeOrderDeps {
  * @param projectRoot — absolute path to the project main checkout
  * @param opts        — optional dependency injection (for tests)
  *
- * When `opts.changeSummaries` is supplied, the function skips Temporal I/O
+ * When `opts.changeSummaries` is supplied, the function skips storage I/O
  * and uses the injected snapshot directly. Otherwise it resolves workflow
  * access via `initStateDb` and reads `change_summaries` from the project
  * workflow.

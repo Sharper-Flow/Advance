@@ -1,26 +1,21 @@
 /**
  * Typed timeout classifier for adv_gate_complete.
  *
- * fixTemporalTimeoutsWorker AC1: adv_gate_complete fires a single
- * Temporal signal (gateCompletedSignal) via fireSignalAndRefresh. There
- * is no bundle-first durable write — the sole durable mutation is the
- * gate-completed signal landing on the workflow. When the safety-net
- * tool timeout fires under worker contention, the signal may or may
- * not have landed; the caller has no way to distinguish without an
- * authoritative read.
+ * A gate completion has one durable disk mutation. When the safety-net tool
+ * timeout fires, the write may or may not have landed; the caller has no way
+ * to distinguish without an authoritative read.
  *
  * Unlike adv_change_archive (which has a disk-durable bundle to probe
- * and an idempotent re-run reconcile), gate_complete has no disk probe
- * that would resolve "did the signal land?" — only a fresh
- * adv_gate_status read can answer that. The classifier is therefore
+ * and an idempotent re-run reconcile), gate_complete has no local probe that
+ * would resolve "did the write land?" — only a fresh adv_gate_status read can
+ * answer that. The classifier is therefore
  * PURELY ADVISORY: it returns a typed "may have landed — verify via
  * adv_gate_status before retrying" result so the agent is not left
  * staring at a bare ToolExecutionTimeout with no next step.
  *
- * Probe discipline: the classifier must NEVER issue Temporal queries,
- * workflow reads, or any IO. After a timeout the Temporal worker may
- * be the thing that hung; a second hang in the classifier would mask
- * the original failure. The advisory path is constant-work and
+ * Probe discipline: the classifier must NEVER issue reads or any IO. After a
+ * timeout the underlying operation may be the thing that hung; a second hang
+ * in the classifier would mask the original failure. The advisory path is constant-work and
  * throw-free by construction (safe-execute.ts also guards with
  * try/catch around classifier invocation).
  */

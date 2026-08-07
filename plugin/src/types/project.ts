@@ -146,7 +146,7 @@ export const FeatureFlagsSchema = z
      */
     worktree_guard_enforce: z.boolean().default(true),
     /**
-     * Whether project-scoped Temporal worker singleton enforcement is active.
+     * Whether project-scoped worker singleton enforcement is active.
      * Default: false (per-session routing is the default; each session spawns
      * its own worker). Explicit `true` opts into the legacy project-scoped
      * singleton lock and client-only peer behavior per rq-workerSingleton01.

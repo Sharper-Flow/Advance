@@ -11,10 +11,9 @@
  * mutation, revision increment, atomic write, in-lock readback, and
  * mutation-specific postcondition verification.
  *
- * Temporal remains canonical for healthy workflows. Recovery writers and
- * (eventually) Temporal dual-write projection updates route through here so
- * concurrent disjoint writes survive and conflicting writes produce typed
- * evidence instead of last-writer-wins silence.
+ * The disk projection is canonical. All recovery and mutation writers route
+ * through here so concurrent disjoint writes survive and conflicting writes
+ * produce typed evidence instead of last-writer-wins silence.
  */
 
 import { join } from "path";
@@ -29,9 +28,9 @@ export const PROJECTION_COMMIT_MAX_AUDIT_ENTRIES = 50;
 /**
  * Collection-shaped fields that a mutation must never silently empty.
  *
- * History: the removed Temporal dual-write built its payload with
- * `{...latest, ...temporalOwned}`, where `Object.fromEntries` emitted a key
- * for every owned field even when the value was `undefined`. An empty
+ * History: a removed dual-write path built its payload with
+ * `{...latest, ...ownedFields}`, where `Object.fromEntries` emitted a key for
+ * every owned field even when the value was `undefined`. An empty
  * workflow state therefore nulled `tasks`, `gates`, `documents` and `deltas`
  * in a single write. It committed as `committed` because the caller's
  * postcondition only compared two scalars — `status` and `lifecycleState` —
@@ -89,10 +88,9 @@ function findCollectionWipe(
  * `recovery` is the repair path, and stays distinct so the audit trail can
  * still tell the two apart.
  *
- * There is deliberately no `temporal` variant here. Archived changes on disk
- * carry `authority_kind: "temporal"` in their `projection_commits`, so the
- * value stays readable — see `ProjectionCommitAuditEntry` — but nothing can
- * write it any more.
+ * There is deliberately no legacy authority variant here. Archived changes
+ * can still carry that value in their `projection_commits`, so it stays
+ * readable — see `ProjectionCommitAuditEntry` — but nothing can write it.
  */
 export type ProjectionCommitAuthority =
   | { kind: "mutation"; reason: string; evidence: string }

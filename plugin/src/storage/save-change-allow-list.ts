@@ -8,7 +8,7 @@
  *
  *   1. The conditional commit primitive itself.
  *   2. Disk-store internal methods that are part of the disk-only backend
- *      contract and are overridden by the Temporal store in production.
+ *      contract and are implemented by the disk store.
  *   3. Terminal / import / bootstrap paths where no active workflow exists.
  *   4. Tests that intentionally exercise the raw primitive.
  *
@@ -60,7 +60,7 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
     context: null,
     category: "disk_store_internal",
     rationale:
-      "Disk-only store backend contract. Every method here is overridden by the Temporal store in production; active-projection production writes route through commitChangeProjection.",
+      "Disk store backend contract. Active-projection writes route through commitChangeProjection.",
   },
   {
     file: "plugin/src/tools/change.ts",
@@ -129,13 +129,6 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
     category: "inventory_reference",
     rationale:
       "Scanner self-reference: the read/command boundary test contains a documentation snippet of the saveChange scanner rule, not a live call site.",
-  },
-  {
-    file: "plugin/src/storage/store-temporal/spec-deltas.disk-projection.test.ts",
-    context: null,
-    category: "test_raw_primitive",
-    rationale:
-      "RED/GREEN test seeds a durable delta-add projection directly via raw saveChange to prove the disk shard is written before the workflow ledger is consulted.",
   },
 ];
 

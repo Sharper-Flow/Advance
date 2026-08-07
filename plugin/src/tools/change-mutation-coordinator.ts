@@ -59,7 +59,7 @@ interface CoordinateOptions {
 /**
  * Execute one mutation through the disk projection transaction.
  *
- * There is intentionally no authority resolver or Temporal branch here:
+ * There is intentionally no authority resolver or external-runtime branch here:
  * callers cannot select another mutation path, and a missing projection
  * directory remains a fail-closed operator-required result.
  */

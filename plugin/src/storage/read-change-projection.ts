@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { ChangeState } from "../types/change-state";
 
 /**
- * Read the disk projection for one change without involving Temporal.
+ * Read the disk projection for one change.
  *
  * Current projections are wrapped in a schemaVersion envelope, while older
  * projections stored the workflow state at the top level. Both shapes remain

@@ -63,7 +63,7 @@ type EvidenceRecordingStatus =
       status: "not_applicable";
       reason:
         | "no_change_for_task"
-        | "temporal_service_unavailable"
+        | "storage_unavailable"
         | "project_id_unavailable";
       runId: string;
     };
@@ -383,7 +383,7 @@ export const testTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When provided, records evidence in that project through a Temporal-backed target store.",
+          "Optional absolute path to another ADV project. When provided, records evidence in that project's disk-backed store.",
         ),
       target_confirmed: z.literal(true).optional(),
       confirmationEvidence: z.string().optional(),

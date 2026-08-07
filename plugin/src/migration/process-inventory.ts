@@ -3,11 +3,10 @@
  *
  * Scans the process table (injectable root) and classifies:
  *
- *   - Temporal worker processes: any argv token ending in
- *     `dist/temporal/worker.js` or `src/temporal/worker.ts`. `deployed`
- *     workers run the deployment's script; `foreign` workers run from any
- *     other checkout — they still execute local project workflows, so their
- *     build must be identity-compared before cutover.
+ *   - Worker processes: any argv token ending in a deployed or source worker
+ *     script. `deployed` workers run the deployment's script; `foreign`
+ *     workers run from another checkout and their build must be
+ *     identity-compared before cutover.
  *   - OpenCode session processes: executable basename `opencode` (shape
  *     verified against the live machine's `/proc`). Each must appear in the
  *     loaded-build session registry with the current digest before cutover.
@@ -49,8 +48,8 @@ export interface ProcessInventory {
   problems: string[];
 }
 
-const WORKER_BUNDLE_TOKEN = "dist/temporal/worker.js";
-const WORKER_SOURCE_TOKEN = "src/temporal/worker.ts";
+const WORKER_BUNDLE_TOKEN = "/worker.js";
+const WORKER_SOURCE_TOKEN = "/worker.ts";
 const SESSION_EXECUTABLE = "opencode";
 
 /** Extract the worker script path token from a cmdline, when present. */

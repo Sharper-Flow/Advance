@@ -3,7 +3,7 @@
  *
  * Collects a complete eligibility snapshot from a git worktree against a
  * baseline revision. This module performs host I/O (git, filesystem, storage
- * projection) but stays outside Temporal workflows. The resulting
+ * projection) but stays outside runtime adapters. The resulting
  * LightweightProfileEvidenceSnapshot is consumed by the pure evaluator in
  * types/lightweight-change-profile.ts.
  *

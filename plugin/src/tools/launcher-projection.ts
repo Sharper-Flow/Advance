@@ -3,7 +3,7 @@
  *
  * Producer-owned MCP tools for rebuilding the aggregate launcher projection
  * from on-disk per-change projections. These tools are intentionally plugin-
- * only (never exposed via bin/adv) and do not touch Temporal workflows.
+ * only (never exposed via bin/adv) and do not touch external runtimes.
  */
 
 import type { Store } from "../storage/store-types";
@@ -21,7 +21,7 @@ export const launcherProjectionTools = {
     description:
       "Rebuild the aggregate launcher projection (active-launcher-state.json) from " +
       "the on-disk per-change projection set. Producer-only MCP tool; does not touch " +
-      "Temporal workflows or bin/adv.",
+      "external runtimes or bin/adv.",
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
       const generatedAt = new Date().toISOString();

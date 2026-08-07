@@ -409,7 +409,7 @@ function clampLimit(raw: number | undefined): number {
 /**
  * Project a compact loop-ledger readback (and optionally bounded details) from
  * already-loaded change/workflow-state-like records. Pure: no storage, tool,
- * Temporal, or node access; never throws on legacy/missing fields.
+ * external runtime or node access; never throws on legacy/missing fields.
  */
 export function projectLoopLedger(
   state: LoopLedgerSourceState,

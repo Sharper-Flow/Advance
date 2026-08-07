@@ -1,8 +1,8 @@
 /**
  * Disk-owned Epic mutations.
  *
- * Active Epic projections are the sole authority after Temporal removal. Every
- * mutation takes the per-Epic lock, reads the latest validated projection,
+ * Active Epic projections are the sole authority. Every mutation takes the
+ * per-Epic lock, reads the latest validated projection,
  * applies the domain transition, writes atomically, and validates the readback.
  */
 

@@ -110,10 +110,10 @@ function assertSafeChangeId(changeId: string): void {
 
 async function readAgreement(store: Store, change: Change): Promise<string> {
   assertSafeChangeId(change.id);
-  // AC8 (completeStateBackedGate): Temporal-first ordering, matching the
+  // AC8 (completeStateBackedGate): persisted-state-first ordering, matching the
   // canonical readArtifact (tools/change.ts): state.documents.agreement →
   // disk active dir → archive bundle. Previously this reader was disk-first,
-  // the lone outlier among artifact readers; in the Temporal-canonical
+  // the lone outlier among artifact readers; in the persisted-state-canonical
   // architecture state.documents is the source of truth and disk is the legacy
   // fallback. readArtifact already encodes the full fallback chain, so we
   // delegate to it. change.ts does not import from contract.ts, so this is a

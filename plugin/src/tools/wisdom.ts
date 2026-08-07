@@ -425,7 +425,7 @@ export const wisdomTools = {
               wisdom = await activeStore.wisdom.listAll({ type: wisdomType });
             } else {
               // Change-specific reads come from the disk projection. A missing
-              // or malformed projection is an empty result, never a Temporal
+              // or malformed projection is an empty result, never a runtime
               // query failure.
               const state = readChangeProjectionState(
                 activeStore.paths.changes,

@@ -764,7 +764,7 @@ async function completeGateAndBuildResponse({
     },
   };
 
-  // Temporal-first proposal read per KD-6. Falls back to disk/archive via
+  // Persisted proposal read per KD-6. Falls back to disk/archive via
   // readArtifact; null result means no proposal content yet — pass empty
   // string downstream (gate-completion success output, not validation).
   const proposalText =
@@ -878,7 +878,7 @@ async function handlePlanningGateCompletion({
   let clarifyPayload: Record<string, unknown> = {};
 
   if (clarifyMode !== "off") {
-    // Temporal-first proposal read for clarify-readiness validator input.
+    // Persisted proposal read for clarify-readiness validator input.
     const proposalText =
       (await readArtifact(store, changeId, "proposal"))?.content ?? "";
     const clarifyResult = runClarifyReadinessChecks(change, proposalText);
@@ -1009,7 +1009,7 @@ export const gateTools = {
             // AC9/DDC7 fail-closed: after an active build-bound cutover
             // receipt, a degraded plan instead stops plan-dependent consumer
             // routing — no gate-derived next action (DONT4), typed degraded
-            // diagnostics only, and zero Temporal signals/writes (DONT5).
+            // diagnostics only, with no mutation or external execution (DONT5).
             const directiveState = changeToDirectiveState({
               projectId: result.data.adv_project_id ?? "unknown",
               change: result.data,
@@ -1175,7 +1175,7 @@ export const gateTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+          "Optional absolute path to another ADV project. When provided, mutates that project's disk-backed store.",
         ),
       target_confirmed: z.literal(true).optional(),
       confirmationEvidence: z.string().optional(),

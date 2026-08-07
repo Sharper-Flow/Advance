@@ -79,8 +79,8 @@ function extractTouchedFiles(change: Change): string[] {
 }
 
 /**
- * Compute the change's lastActivityAt. Uses `change.lastActivityAt` (set by
- * Temporal at signal time). Falls back to created_at if missing.
+ * Compute the change's lastActivityAt. Uses the persisted value when present.
+ * Falls back to created_at if missing.
  *
  * Kept for callers that need a single timestamp; the sub-resolvers below use
  * the ChangeListResponse's `lastActivityAt` field directly.

@@ -2,8 +2,7 @@
  * Change Artifact Types — canonical source of truth
  *
  * Single canonical definition for `ArtifactKind` and `ArtifactPayload`.
- * Replaces previous local definitions in `temporal/contracts.ts`,
- * `temporal/activities.ts`, and the gate-subset in `types/gates.ts`.
+ * Replaces the previous split definitions in the workflow and gate layers.
  *
  * Naming standard: **camelCase at type/payload/signal layers**.
  * Filesystem kebab-case (problem-statement.md, executive-summary.md)
@@ -21,8 +20,8 @@ import { z } from "zod";
 
 /**
  * The six change artifact kinds. Order is significant — it defines the
- * deterministic signal-fan-out order in `store-temporal/changes.ts`
- * (`ARTIFACT_SIGNAL_ORDER`) so workflow histories diff cleanly across runs.
+ * deterministic artifact-processing order so persisted projections remain
+ * stable across runs.
  */
 export const ArtifactKindSchema = z.enum([
   "proposal",
@@ -64,8 +63,7 @@ export const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
 // =============================================================================
 // ArtifactPayload — typed shape carried by Store.changes.create() and
 // Store.changes.updateArtifacts(). Replaces the positional 7-arg content
-// parameter API. Every defined field flows through one content-bearing
-// Temporal signal; undefined fields are no-ops.
+// parameter API. Every defined field is persisted; undefined fields are no-ops.
 // =============================================================================
 
 export const ArtifactPayloadSchema = z.object({
@@ -99,13 +97,8 @@ void _check;
 // =============================================================================
 // Size caps
 //
-// Validated against Temporal limits (per-payload 2 MB, history 50 MB) by
-// adv-researcher report `removePositionalArtifactApi|change:researcher:
-// temporal-signal-payload-history-limits|adv-researcher|1`.
-//
-// Per-artifact caps protect individual signal payload size.
-// Aggregate caps protect the `continueAsNew` seed, which is also subject to
-// the 2 MB payload ceiling.
+// Per-artifact caps protect individual persisted content size.
+// Aggregate caps protect the serialized change projection.
 // =============================================================================
 
 /** Warn when a single artifact content exceeds this size. */
@@ -117,11 +110,10 @@ export const ARTIFACT_SOFT_CAP = 64 * 1024; // 64 KB
  */
 export const ARTIFACT_HARD_CAP = 256 * 1024; // 256 KB
 
-/** Warn when total state.documents size approaches the continueAsNew ceiling. */
+/** Warn when total state.documents size approaches the serialized projection ceiling. */
 export const AGGREGATE_SOFT_CAP = 1024 * 1024; // 1 MB
 
 /**
- * Reject when aggregate state.documents would exceed this size. Leaves
- * comfortable headroom under the 2 MB continueAsNew seed payload cap.
+ * Reject when aggregate state.documents would exceed this size.
  */
 export const AGGREGATE_HARD_CAP = Math.floor(1.8 * 1024 * 1024); // ~1.8 MB

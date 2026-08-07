@@ -26,7 +26,6 @@ export interface DegradationOptions {
  * `{ degraded: true, source: "host_probe_unavailable_in_mcp" }`.
  */
 export const HOST_PROBE_FIELDS: readonly string[] = [
-  "temporal_health",
   "queue_serviceability",
   "worker_processes",
   "search_attributes",

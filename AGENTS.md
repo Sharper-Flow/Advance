@@ -4,7 +4,7 @@
 
 - This is an OpenCode plugin repository, not a monorepo. `plugin/` is the only buildable/released code. Root-level `bin/`, `scripts/`, `skills/`, `.opencode/` are tooling and deployed assets, not shipped packages.
 - Plugin entry: `plugin/src/index.ts`. Tool definitions live beside handlers under `plugin/src/tools/`; `tool-registry.ts` binds exported `*Tools` groups to the SDK. A second surface, `plugin/src/mcp-server/`, provides a stdio MCP server (deployed as Vision `adv-advance` on port 6298) that exposes 13 Tier-4 read tools as `tools.adv.*` under Code Mode, dispatching to the same `tool-registry.js` handlers via dynamic import.
-- `.adv/specs/` contains git-tracked, branch-local capability laws. Runtime change/task/gate state uses Temporal-only persistence written to per-project external state (keyed by the repo root commit); do not restore a legacy SQLite/file-backed runtime path.
+- `.adv/specs/` contains git-tracked, branch-local capability laws. Runtime change/task/gate state uses per-project disk projections under `~/.local/share/opencode/plugins/advance/<projectId>/changes/<changeId>/change.json`; writes are transactionally locked, crash-safe, and fail closed on verification problems.
 - `project.md` is agent-facing project context. `ADV_INSTRUCTIONS.md` owns detailed ADV workflow protocol; do not duplicate either here.
 
 ## Commands
@@ -13,8 +13,7 @@ Run package commands from `plugin/`:
 
 ```bash
 pnpm run check                 # schemas:check, typecheck, agent-manifest/test-isolation/lockfile checks, lint, format:check; no tests
-pnpm run build                 # plugin + Temporal worker + build-identity bundles
-pnpm run build:worker          # required before OOP Temporal integration tests
+pnpm run build                 # plugin + build-identity bundles
 pnpm run generate:manifests    # regenerate agent YAML tool lists from AGENT_TOOL_POLICY (run after editing tool-role-policy.ts)
 pnpm run schemas:generate      # regenerate tracked plugin/schemas artifacts after public Zod changes
 pnpm test -- src/tools/foo.test.ts
@@ -28,19 +27,15 @@ bin/oc-test smoke
 bin/oc-test full
 ```
 
-- CI uses Node 24 and pnpm 11. CI order: schemas:check → typecheck → lint → format:check → test → build. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI builds the Temporal worker before `pnpm test` and separately runs `bun test bin/` from the repo root.
+- CI uses Node 24 and pnpm 11. CI order: schemas:check → typecheck → lint → format:check → test → build. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI separately runs `bun test bin/` from the repo root.
 - `pnpm` owns dependencies. Never add `bun.lock` or `bun.lockb` beside `plugin/pnpm-lock.yaml`.
 - `bin/adv` is a Bun-powered standalone CLI (`adv status`, `adv roadmap`, `adv epic list --json`); requires Bun 1.3+ on PATH. `bun test bin/` covers it as a separate CI job — do not put bin/ tests under Vitest.
 
 ## Boundaries enforced by tests
 
-- Vitest runs two projects: `unit` (`src/**/*.test.ts` + `scripts/**/*.test.ts`, parallel) and `temporal` (`src/**/*.itest.ts`, sequential, `fileParallelism: false`). Put Temporal integration tests in `.itest.ts`, never `.test.ts`. `@opencode-ai/plugin` is mocked via the vitest alias in `vitest.config.ts` — tests never load the real SDK.
+- Vitest runs one project: `unit` (`src/**/*.test.ts` + `scripts/**/*.test.ts`, parallel). `@opencode-ai/plugin` is mocked via the vitest alias in `vitest.config.ts` — tests never load the real SDK.
 - `pnpm test` requires `bun` on PATH: `opencode-session-debt.test.ts` shells out to `bun` to seed a `bun:sqlite` DB. Without it the suite fails with `spawnSync bun ENOENT`.
 - Keep tests that create changes or access worktree/data-home state isolated with `createTempDir`, `tmpdir`, `os.tmpdir`, or `XDG_DATA_HOME`. The isolation checker (`scripts/check-test-isolation.ts`) enforces this for any test calling `adv_change_create`, `changeCreate`, `getWorktreeBase`, or `getDataHome`; the only exempt patterns are `*-assets.test.ts` and `target-project.test.ts`.
-- Temporal test-server construction (`TestWorkflowEnvironment.createLocal` / `createTimeSkipping`) must route through `src/temporal/__tests__/with-test-env.ts`; direct construction is rejected everywhere else.
-- `plugin/src/temporal/workflows.ts` is the worker-bundle root. Its static import graph must not reach `storage/`, `tools/`, `tool-registry.ts`, `plugin-init.ts`, or `node:*`; do not add `defineUpdate` handlers to workflow-reachable code.
-- Temporal TypeScript determinism: the SDK sandbox patches `Date.now()`, `new Date()`, and `Math.random()` to deterministic replay-safe values, so workflow code may use them directly; route workflow timers/waits through Temporal workflow APIs such as `sleep()` or `condition()`, never host timers. This official SDK determinism behavior is distinct from the project-specific signal-only change-workflow surface (no `defineUpdate`). <!-- rq-temporalTsDeterminismDocs01 -->
-
 - `utils/context-snapshot.ts` is a pure formatter. Persistence-backed loading belongs in `storage/context-snapshot-fetch.ts`.
 - Zod schemas are authoritative. Public JSON schemas originate in `src/schema-registry.ts`, generated deterministically via Zod v4 `z.toJSONSchema()`; run `pnpm run schemas:generate` after public Zod changes and keep `pnpm run schemas:check` green. Agent YAML `tools:` frontmatter is likewise generated from `AGENT_TOOL_POLICY` — run `pnpm run generate:manifests` after editing it and keep `pnpm run generate:manifests:check` green.
 - Tool-argument schemas use the intentional `as any` SDK-boundary cast in `tool-registry.ts`; do not remove it. Add tools through their `src/tools/*` group and its export rather than wiring handlers directly in `index.ts`.

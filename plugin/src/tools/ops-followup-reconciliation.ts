@@ -1,10 +1,9 @@
 /**
  * Host reconciliation for ops follow-up link resolutions.
  *
- * Reads the authoritative child ops_followup profile through Temporal-backed
- * state only and projects a fresh child_profile resolution onto the parent
- * outbound link. No workflow-side reads; all routing and persistence happens in
- * the host tool layer.
+ * Reads the authoritative child ops_followup profile from persisted state and
+ * projects a fresh child_profile resolution onto the parent outbound link.
+ * All routing and persistence happens in the host tool layer.
  */
 import type {
   Change,

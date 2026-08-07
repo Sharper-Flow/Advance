@@ -79,7 +79,7 @@ const writeFileSink = (scope: string, level: LogLevel, line: string): void => {
  * appears in both the console prefix and the file sink.
  *
  * Console output (warn/error) is gated on `ADV_DEBUG=1` to prevent
- * Temporal retry/init spam from drowning interactive sessions. All
+ * Retry/init spam from drowning interactive sessions. All
  * levels always write to the file sink when `ADV_DEBUG=1`.
  */
 export const createLogger = (scope: string): Logger => {

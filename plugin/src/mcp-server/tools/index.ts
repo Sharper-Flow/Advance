@@ -43,8 +43,6 @@ export interface ExecuteTier4ToolOptions extends DegradationOptions {
 export type ToolClassification =
   | "pure"
   | "needs-read-model"
-  | "needs-temporal"
-  | "needs-temporal-diagnostics"
   | "needs-host-git"
   | "needs-host-probe";
 
@@ -53,7 +51,7 @@ export type ToolClassification =
  * per-tool runtime degradation wrapper added in task tk-951c84c42397.
  */
 export const TOOL_CLASSIFICATIONS = {
-  status: ["needs-read-model", "needs-temporal-diagnostics"],
+  status: ["needs-read-model"],
   spec: ["needs-read-model"],
   wisdom_list: ["needs-read-model"],
   reflection_list: ["needs-read-model"],
@@ -93,7 +91,7 @@ export const TIER4_TOOL_DESCRIPTIONS: Record<Tier4ToolName, string> = {
  * `adv_<toolName>` handler.
  *
  * The store is created per-call as a disk-only backend and closed in `finally`
- * so the MCP server never holds a Temporal connection between calls.
+ * so the MCP server never holds a Store connection between calls.
  */
 export async function executeTier4Tool(
   cwd: string,

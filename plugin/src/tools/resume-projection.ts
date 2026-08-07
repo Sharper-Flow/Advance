@@ -24,7 +24,7 @@ import {
 /**
  * Bounded concurrency for hydrating non-terminal changes. Running these gets
  * in parallel with a small cap avoids the sequential N+1 timeout that blew the
- * 10s direct tool deadline while keeping in-flight Temporal reads bounded.
+ * 10s direct tool deadline while keeping in-flight reads bounded.
  */
 const RESUME_PROJECTION_GET_CONCURRENCY = 8;
 

@@ -30,9 +30,8 @@ export function generateSessionId(): string {
  * Runtime holder for the current process's session ID.
  *
  * Set once per plugin-init lifecycle by the host (plugin-init.ts) or
- * initialized from `ADV_TEMPORAL_SESSION_ID` env var by the worker child
- * (`runTemporalWorkerFromEnv` in worker.ts). Kept here — co-located with
- * `generateSessionId` — so callers in any layer (storage, temporal, tools)
+ * initialized by the host process.
+ * Kept here — co-located with `generateSessionId` — so callers in any layer
  * can read it without importing plugin-init.ts (which would create an
  * import cycle, since plugin-init imports the storage layer).
  *

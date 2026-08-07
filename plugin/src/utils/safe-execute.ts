@@ -221,7 +221,6 @@ export function formatErrorResponse(
       tool: toolName,
       hint:
         formatToolTimeoutHint(error) ??
-        formatTemporalErrorHint(error) ??
         "An unexpected error occurred. Please check your arguments.",
       ...(args !== undefined && { received_args: redactedArgs }),
       ...enrichment,
@@ -233,8 +232,7 @@ export function formatErrorResponse(
   return formatToolOutput({
     error: unknownMessage,
     tool: toolName,
-    hint:
-      formatTemporalErrorHint(unknownMessage) ?? "An unknown error occurred.",
+    hint: "An unknown error occurred.",
     ...enrichment,
   });
 }
@@ -316,42 +314,17 @@ function raceWithTimeout<T>(
  * three most common root causes surfaced by the safety-net timeout:
  *
  *   1. Missing required args (zero-args invocation of a mutating tool).
- *   2. Stale/corrupted workflow state where a Temporal Update hangs.
- *   3. Unresponsive worker — query/update never gets a poller response.
+ *   2. Stale/corrupted persisted state where a read or write hangs.
+ *   3. An unresponsive host dependency.
  */
 function formatToolTimeoutHint(error: unknown): string | undefined {
   if (!(error instanceof ToolExecutionTimeoutError)) return undefined;
   return (
     "Tool execution timed out. Likely causes: (1) missing required args — " +
-    "verify all required fields are provided; (2) stuck Temporal workflow — " +
-    "try `adv_status` and `adv_doctor` to check worker/workflow health; " +
-    "(3) unresponsive worker — an OpenCode restart " +
-    "may be required if `adv_status` shows `worker_alive: false`."
+    "verify all required fields are provided; (2) stale persisted state — " +
+    "retry with `adv_status` and `adv_doctor`; (3) an unresponsive host " +
+    "dependency — an OpenCode restart may be required."
   );
-}
-
-function formatTemporalErrorHint(error: unknown): string | undefined {
-  const messages: string[] = [];
-  let current: unknown = error;
-  while (current instanceof Error) {
-    messages.push(current.message);
-    current = current.cause;
-  }
-  const combined = messages.join("\n");
-
-  if (/NonDeterministicWorkflowError|non[- ]determin/i.test(combined)) {
-    return "Temporal workflow determinism issue detected. Check replay safety, patch/version workflow code changes, and avoid non-deterministic APIs inside workflows.";
-  }
-  const mentionsTemporal = /temporal/i.test(combined);
-  if (
-    mentionsTemporal &&
-    /did not become reachable|runtime|worker|gRPC|ECONNREFUSED|Connection/i.test(
-      combined,
-    )
-  ) {
-    return "Temporal runtime/worker connectivity issue. Verify the local Temporal runtime is running, the worker process is started, and the configured address/namespace are reachable.";
-  }
-  return undefined;
 }
 
 /**

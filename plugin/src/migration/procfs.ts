@@ -2,7 +2,7 @@
  * procfs — Linux process-table primitives for machine inventory (AC9/DDC5).
  *
  * Structural full-machine migration proof needs to know which processes are
- * running the deployed Temporal worker and which OpenCode sessions are live.
+ * running the deployed worker and which OpenCode sessions are live.
  * These helpers parse `/proc` deterministically with an injectable root so
  * tests run against fixture trees:
  *

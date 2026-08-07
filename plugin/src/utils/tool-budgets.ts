@@ -1,10 +1,8 @@
 /**
  * Shared host-tool budget constants.
  *
- * The global TEMPORAL_READ_DEADLINE_BUDGET_MS remains unchanged because it is
- * also used by non-status read paths (including callers whose outer tool cap
- * is not the 10-second default). The status path gets its own budget below;
- * its owner must pass this value when creating the request context.
+ * The status path gets its own budget below; its owner must pass this value
+ * when creating the request context.
  */
 export const DEFAULT_TOOL_TIMEOUT_MS = 10_000;
 
@@ -19,7 +17,7 @@ export const DEFAULT_TOOL_TIMEOUT_MS = 10_000;
  * variance without inventing a round-number margin.
  *
  * A larger reserve makes the status read degrade more often under load because
- * it shortens the Temporal budget. That completeness trade is intentional:
+ * it shortens the available read budget. That completeness trade is intentional:
  * bounded typed failure is safer than letting an opaque host timeout win.
  */
 export const TOOL_RESPONSE_HEADROOM_MS = 199;

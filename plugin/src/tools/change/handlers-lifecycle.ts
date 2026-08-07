@@ -315,7 +315,7 @@ export const advChangeCreateHandler = async (
   const createOptions =
     Object.keys(initialMetadata).length > 0 ? { initialMetadata } : undefined;
   // rq-backlogCoord08: seed creation metadata before workflow start so
-  // origin/search attributes are authoritative Temporal state, not a late
+  // origin/search attributes are authoritative persisted state, not a late
   // disk-only patch.
   const result = await store.changes.create(summary, {
     capability,
@@ -1190,7 +1190,7 @@ export const lifecycleChangeTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+          "Optional absolute path to another ADV project. When provided, mutates that project's disk-backed store.",
         ),
       target_confirmed: z
         .literal(true)

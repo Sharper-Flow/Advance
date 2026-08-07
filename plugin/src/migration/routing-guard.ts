@@ -12,8 +12,8 @@
  *   - A malformed receipt → fail-closed: unknown cutover state must never
  *     silently route through legacy prose. Recovery is `disable` (DDC7).
  *
- * This check only governs consumer read paths. It never signals, writes
- * plan state, or touches Temporal execution (DONT5).
+ * This check only governs consumer read paths. It never writes plan state or
+ * performs external execution (DONT5).
  */
 
 import { existsSync, statSync } from "node:fs";

@@ -1,7 +1,7 @@
 /**
  * Structured Output Extraction Utility
  *
- * NOT importable from temporal/ — tool-layer only.
+ * Tool-layer only; do not import from runtime adapters.
  * The workflow-bundle-boundary test enforces this boundary.
  *
  * Extracts structured output from `<adv-output>` tags in agent task

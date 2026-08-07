@@ -19,12 +19,10 @@ import { dirname, join } from "node:path";
  * (untouched) or the new content (fully written), never a torn partial.
  *
  * Concurrent writes to the same `path` from the same process are serialized
- * by the caller (store-temporal.ts is single-threaded per session); we do
- * NOT attempt cross-process locking because the plugin guarantees one
- * in-process Temporal worker writes derived exports per project.
+ * by the caller; this helper does not attempt cross-process locking.
  *
- * Per D6 (validateTemporal agreement), derived JSONL exports are tooling-
- * compat only — the authoritative state lives in the Temporal workflow.
+ * Derived JSONL exports are tooling-compatibility artifacts; authoritative
+ * state lives in the disk projections.
  */
 export async function writeJsonlAtomic(
   path: string,

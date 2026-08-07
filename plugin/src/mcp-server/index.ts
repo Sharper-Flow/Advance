@@ -47,7 +47,7 @@ async function loadVersion(): Promise<string> {
  * Start the ADV MCP server on stdio (or the provided streams).
  *
  * Resolves the project id from `process.cwd()` and binds the read tools.
- * Does not block on Temporal at startup; each read tool lazily creates a
+ * Does not block on external services at startup; each read tool lazily creates a
  * disk-only store when invoked via the generic dispatcher.
  */
 export async function startServer(

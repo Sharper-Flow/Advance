@@ -3,8 +3,8 @@
  *
  * Tool execution is asynchronous and may overlap with other sessions, so this
  * uses AsyncLocalStorage rather than a mutable module-level current value.
- * Store adapters derive command children from this context; Temporal workflow
- * code must never import this module.
+ * Store adapters derive command children from this context; runtime adapters
+ * must never import this module.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { computeHostCanonicalHash } from "./command-payload-hash";

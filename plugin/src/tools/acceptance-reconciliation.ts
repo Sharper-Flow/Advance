@@ -119,9 +119,9 @@ function reviewMatrixMatches(
 
 /**
  * A marker clear must target the exact recovered disposition that was
- * confirmed in Temporal. Matching only its logical latest-wins key could
+ * confirmed in the persisted projection. Matching only its logical latest-wins key could
  * erase a newer recovered disposition committed while reconciliation was in
- * flight, leaving that newer state absent from the workflow.
+ * flight, leaving that newer state absent from the projection.
  */
 function matchesPendingRecoveredDisposition(
   disposition: RecoveryAuditedDisposition,

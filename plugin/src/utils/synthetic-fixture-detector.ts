@@ -22,7 +22,7 @@
  *      "changeRoundtrip", "changeRoundtripN".
  *   2. Per-subsystem parity runs — patterns: task/gate/wisdom/reentry
  *      parity (with or without space, with or without N suffix), and
- *      bracket-prefix markers like "[parity:legacy]" / "[parity:temporal]".
+ *      bracket-prefix markers like "[parity:legacy]".
  *   3. Latency benchmark runs — patterns: "latency legacy",
  *      "latencyLegacy", "latencyLegacyN".
  *   4. Harness cleanup artifacts — pattern: "cleanupParityHarnessLeak".
@@ -32,9 +32,9 @@
 
 const SYNTHETIC_PATTERNS: RegExp[] = [
   // Bracket-prefix parity markers
-  /^\[parity:(legacy|temporal)\]\s+/i,
+  /^\[parity:legacy\]\s+/i,
   // Explicit parity-prefix markers
-  /^parity(Legacy|Temporal)\w*\d*$/i,
+  /^parityLegacy\w*\d*$/i,
   // Roundtrip validation
   /^change\s+roundtrip\d*$/i,
   /^changeRoundtrip\d*$/i,

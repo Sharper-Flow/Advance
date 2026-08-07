@@ -10,8 +10,8 @@
  * manual patch, stale checkout) makes the build stale, and a stale or
  * unknown identity blocks cutover-receipt activation.
  *
- * The digest also gives cross-checkout comparability: a foreign Temporal
- * worker process (started from a dev checkout) can only be treated as
+ * The digest also gives cross-checkout comparability: a foreign worker
+ * process (started from a dev checkout) can only be treated as
  * current when its own recorded identity digest equals the deployed digest.
  */
 

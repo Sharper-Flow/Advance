@@ -1129,8 +1129,8 @@ export type Phase9FinalizationStatus = z.infer<
 // =============================================================================
 
 /**
- * Zod mirror of the workflow-layer `SignalPayloadDigest` (temporal/digest.ts)
- * and `SignalRejection` (temporal/contracts.ts). Declared here so ChangeSchema
+ * Zod mirror of the persisted `SignalPayloadDigest` and `SignalRejection`.
+ * Declared here so ChangeSchema
  * can type the persisted `signal_rejections` projection at the read boundary
  * instead of relying on `as unknown as` casts (AI-007). Structurally identical
  * to the workflow interfaces; keep the two in sync.
@@ -1272,7 +1272,7 @@ export const ChangeSchema = z
      * `state.documents`. Used by `readArtifact` for disk reads and by
      * `materializeBundleArtifacts` for archive bundle writes.
      *
-     * Additive optional fields — Temporal replay-safe.
+     * Additive optional fields retained for persisted-state compatibility.
      */
     documents: z
       .object({
@@ -1339,8 +1339,8 @@ export const ChangeSchema = z
     origin: ChangeOriginSchema.optional(),
 
     /**
-     * Temporal project ID that owns this change. Persisted on disk snapshots
-     * so the shared guard can detect cross-project context mismatches.
+     * Project ID that owns this change. Persisted on disk snapshots so the
+     * shared guard can detect cross-project context mismatches.
      * Optional for legacy compatibility — ownerless changes are best-effort.
      */
     adv_project_id: z.string().optional(),

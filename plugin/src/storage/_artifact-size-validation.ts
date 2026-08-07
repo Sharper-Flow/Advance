@@ -3,10 +3,7 @@
  * pre-check). Fails fast before any signal fires. Layer 2 (signal-handler
  * state-mutation rejection) is the structural defense in T8.
  *
- * Cap values defined in `types/artifacts.ts`, validated against Temporal
- * 2 MB per-payload limit by the design-validation researcher report
- * `removePositionalArtifactApi|change:researcher:design-validation|
- * adv-researcher|1`.
+ * Cap values are defined in `types/artifacts.ts`.
  */
 
 import {
@@ -28,7 +25,7 @@ function byteLength(content: string): number {
 
 /**
  * Validate a single artifact's content size. Throws on hard cap; warns on
- * soft cap. Throw fails the write fast before any signal fires.
+ * soft cap.
  */
 export function validatePerArtifactSize(
   field: ArtifactKind,
@@ -37,7 +34,7 @@ export function validatePerArtifactSize(
   const size = byteLength(content);
   if (size > ARTIFACT_HARD_CAP) {
     throw new Error(
-      `Artifact '${field}' size ${size} bytes exceeds hard cap ${ARTIFACT_HARD_CAP} bytes (256 KB). Reduce the content; Temporal per-payload limit is 2 MB and this cap leaves ~8x headroom.`,
+      `Artifact '${field}' size ${size} bytes exceeds hard cap ${ARTIFACT_HARD_CAP} bytes (256 KB). Reduce the content before writing.`,
     );
   }
   if (size > ARTIFACT_SOFT_CAP) {
@@ -49,8 +46,8 @@ export function validatePerArtifactSize(
 
 /**
  * Validate aggregate `state.documents` size after applying the proposed
- * artifact payload. Protects the `continueAsNew` seed from approaching the
- * 2 MB payload ceiling.
+ * artifact payload. Protects the serialized change projection from excessive
+ * size.
  *
  * `existingDocuments` is the current state.documents shape (or empty/undefined
  * for `create()` calls). Each field in `proposed` overrides the corresponding
@@ -81,18 +78,17 @@ export function validateAggregateSize(
 
   // Use the JSON-serialized form as the proxy for transport size; this is
   // a conservative overestimate of just the raw bytes because JSON adds
-  // structural overhead, which matches how Temporal serializes signal
-  // payloads.
+  // structural overhead.
   const totalBytes = byteLength(JSON.stringify(projected));
 
   if (totalBytes > AGGREGATE_HARD_CAP) {
     throw new Error(
-      `Aggregate documents size ${totalBytes} bytes exceeds hard cap ${AGGREGATE_HARD_CAP} bytes (~1.8 MB). continueAsNew seed payload limit is 2 MB; reduce one or more artifact contents before writing.`,
+      `Aggregate documents size ${totalBytes} bytes exceeds hard cap ${AGGREGATE_HARD_CAP} bytes (~1.8 MB). Reduce one or more artifact contents before writing.`,
     );
   }
   if (totalBytes > AGGREGATE_SOFT_CAP) {
     logger.warn(
-      `Aggregate documents size ${totalBytes} bytes exceeds soft cap ${AGGREGATE_SOFT_CAP} bytes (1 MB). Approaching continueAsNew seed payload ceiling.`,
+      `Aggregate documents size ${totalBytes} bytes exceeds soft cap ${AGGREGATE_SOFT_CAP} bytes (1 MB). Approaching the aggregate projection ceiling.`,
     );
   }
 }
