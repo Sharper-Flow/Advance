@@ -271,10 +271,10 @@ export function stateBackedArtifactEvidence(
  * non-deterministic hashing primitive inside the workflow bundle. The metadata
  * contentHash and state.documents.executiveSummary are consistent by
  * construction: the content signal fires before the metadata signal (hash
- * computed from the same content) sequentially. The
- * disk-inspecting hash re-verification is reserved for the poisoned-history
- * recovery path in gate.ts (C2/C4), which writes the disk file at recovery
- * time before inspecting it.
+ * computed from the same content) sequentially. Hash re-verification is
+ * reserved for the poisoned-history recovery path in gate.ts (C2/C4), which
+ * resolves content through the artifact-authority chain
+ * (`inspectArtifactContent`) rather than an active-directory .md round-trip.
  */
 export function stateBackedAcceptanceProof(
   state: ChangeState,

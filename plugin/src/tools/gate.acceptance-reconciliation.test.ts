@@ -9,10 +9,11 @@
 
 import { describe, expect, test, vi } from "vitest";
 import { mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import type { Store } from "../storage/store";
 import { gateTools } from "./gate";
 import { createTempDir } from "../__tests__/setup";
-import { loadChange } from "../storage/json";
+import { fileExists, loadChange } from "../storage/json";
 import type { Change, ContractReviewMatrix } from "../types";
 
 vi.mock("./target-project", () => ({
@@ -214,6 +215,70 @@ describe("adv_gate_complete acceptance reconciliation", () => {
         }),
       ],
     });
+  });
+
+  // KD6: post-KD2 the active change directory holds no narrative markdown, so
+  // acceptance recovery must resolve the executive-summary proof and persist
+  // the acceptance projection through the artifact-authority chain
+  // (change.documents), not through active-dir .md round-trips.
+  test("resolves acceptance recovery evidence from the projection when no active-dir markdown exists", async () => {
+    const changesDir = await createTempDir("adv-gate-acceptance-projection-");
+    const executiveSummaryText = "# Executive Summary\n\nDelivered outcome.\n";
+    const change = baseChange({
+      documents: { executiveSummary: executiveSummaryText },
+    } as Partial<Change>);
+    await seedProjection(changesDir, change);
+    const store = createStore(changesDir, change);
+    // The disk store persists the projection on save; the shared mock is a
+    // no-op stub, so make it write so the recovery readback is exercised.
+    store.changes.save = vi.fn(async (saved: Change) => {
+      await seedProjection(changesDir, saved);
+    }) as Store["changes"]["save"];
+
+    const { resolveAcceptanceRecoveryArtifactEvidence } =
+      await import("./gate");
+    const result = await resolveAcceptanceRecoveryArtifactEvidence({
+      store,
+      changeId: change.id,
+      recoveryState: {
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: { artifact: "agreement", approvedAt: "2026-01-01T00:00:00Z" },
+          items: [],
+          reviewMatrix: reviewMatrix(),
+          amendments: [],
+        },
+        artifacts: {
+          executiveSummary: {
+            contentHash: createHash("sha256")
+              .update(executiveSummaryText)
+              .digest("hex"),
+          },
+        },
+      } as unknown as import("../types/change-state").ChangeState,
+      fallbackEvidence: undefined,
+    });
+
+    if (!result.ok) {
+      throw new Error(
+        `expected acceptance recovery to resolve from the projection, got: ${result.response}`,
+      );
+    }
+    expect(result.artifactEvidence).toMatchObject({
+      kind: "acceptance",
+    });
+    expect(result.artifactEvidence?.path).toBeUndefined();
+    // The acceptance projection is persisted through the change record, and no
+    // acceptance.md is materialized in the active change directory.
+    expect(store.changes.save).toHaveBeenCalled();
+    const persisted = await loadChange(changesDir, change.id);
+    expect(
+      (persisted.data as Change | undefined)?.documents?.acceptance,
+    ).toBeTruthy();
+    expect(await fileExists(`${changesDir}/${change.id}/acceptance.md`)).toBe(
+      false,
+    );
   });
 
   test("clears recovered design-concern and verification-evidence markers before completing acceptance", async () => {

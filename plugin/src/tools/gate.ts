@@ -66,7 +66,6 @@ import {
   isRequiredOpsFollowupLink,
   reconcileOpsFollowupLinks,
 } from "./ops-followup-reconciliation";
-import { inspectArtifact, writeArtifact } from "../storage/disk-operations";
 import { changeToDirectiveState } from "../types/change-state-helpers";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
@@ -90,6 +89,7 @@ import {
   type LightweightProfileEvaluation,
   type LightweightProfileResult,
 } from "../types/lightweight-change-profile";
+import { inspectArtifactContent } from "./change/artifacts";
 
 const logger = createLogger("gate");
 
@@ -632,12 +632,14 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
   if (!input.recoveryState.contract?.reviewMatrix) {
     return { ok: true, artifactEvidence: input.fallbackEvidence };
   }
-  const acceptanceWrite = await writeArtifact({
-    changesDir: input.store.paths.changes,
-    changeId: input.changeId,
-    kind: "acceptance",
-    content: renderAcceptanceProjection(input.recoveryState),
-  });
+  // KD6: the acceptance projection is persisted into change.documents — the
+  // live artifact authority — not materialized as active-dir acceptance.md.
+  const acceptanceContent = renderAcceptanceProjection(input.recoveryState);
+  const acceptanceWrite = await persistAcceptanceProjection(
+    input.store,
+    input.changeId,
+    acceptanceContent,
+  );
   if (!acceptanceWrite.ok) {
     return {
       ok: false,
@@ -661,26 +663,25 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       }),
     };
   }
-  const executiveSummary = await inspectArtifact({
-    changesDir: input.store.paths.changes,
-    changeId: input.changeId,
-    kind: "executiveSummary",
-  });
+  const executiveSummary = await inspectArtifactContent(
+    input.store,
+    input.changeId,
+    "executiveSummary",
+  );
   if (
-    !executiveSummary.ok ||
+    executiveSummary === null ||
     executiveSummary.nonWhitespaceChars <
       MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS ||
     executiveSummary.contentHash !==
       input.recoveryState.artifacts.executiveSummary?.contentHash
   ) {
-    const code = !executiveSummary.ok
-      ? executiveSummary.code === "missing"
+    const code =
+      executiveSummary === null
         ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
-        : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE"
-      : executiveSummary.nonWhitespaceChars <
-          MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS
-        ? "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED"
-        : "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE";
+        : executiveSummary.nonWhitespaceChars <
+            MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS
+          ? "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED"
+          : "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE";
     return {
       ok: false,
       response: workflowReadinessBlockedResponse({
@@ -694,28 +695,28 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
               code,
               gateId: "acceptance",
               artifactKind: "acceptance",
-              message: !executiveSummary.ok
-                ? executiveSummary.error
-                : "executive-summary proof failed recovery validation",
+              message:
+                executiveSummary === null
+                  ? `No executive-summary content available for change ${input.changeId}`
+                  : "executive-summary proof failed recovery validation",
               remediation:
-                "Repair executive-summary.md and workflow metadata before retrying recovery.",
+                "Repair the executive-summary artifact and workflow metadata before retrying recovery.",
             },
           ],
         },
       }),
     };
   }
-  const acceptanceArtifact = await inspectArtifact({
-    changesDir: input.store.paths.changes,
-    changeId: input.changeId,
-    kind: "acceptance",
-  });
-  if (acceptanceArtifact.ok) {
+  const acceptanceArtifact = await inspectArtifactContent(
+    input.store,
+    input.changeId,
+    "acceptance",
+  );
+  if (acceptanceArtifact !== null) {
     return {
       ok: true,
       artifactEvidence: {
         kind: "acceptance",
-        path: acceptanceArtifact.path,
         content_hash: acceptanceArtifact.contentHash,
         non_whitespace_chars: acceptanceArtifact.nonWhitespaceChars,
         checked_at: acceptanceArtifact.checkedAt,
@@ -735,7 +736,7 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
             code: "ACCEPTANCE_PROJECTION_READBACK_FAILED",
             gateId: "acceptance",
             artifactKind: "acceptance",
-            message: acceptanceArtifact.error,
+            message: `Acceptance projection unreadable after persistence for change ${input.changeId}`,
             remediation:
               "Repair acceptance projection persistence before retrying recovery.",
           },
@@ -743,6 +744,38 @@ export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       },
     }),
   };
+}
+
+/**
+ * Persist the acceptance projection into the change's durable documents.
+ * KD6: replaces the legacy `writeArtifact` active-directory materialization —
+ * `change.documents` is the sole live artifact authority, and the archive
+ * boundary is the only place narrative `.md` is produced.
+ */
+async function persistAcceptanceProjection(
+  store: Store,
+  changeId: string,
+  content: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const result = await store.changes.get(changeId);
+    if (!result.success || !result.data) {
+      return {
+        ok: false,
+        error: `Change ${changeId} could not be loaded for acceptance projection persistence`,
+      };
+    }
+    const change = result.data;
+    change.documents = { ...change.documents, acceptance: content };
+    await store.changes.save(change);
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      error: `Acceptance projection write failed: ${message}`,
+    };
+  }
 }
 
 /**

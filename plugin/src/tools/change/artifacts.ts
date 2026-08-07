@@ -2,6 +2,7 @@
  * artifacts helpers extracted from change.ts.
  */
 import { join } from "path";
+import { createHash } from "node:crypto";
 import {
   GATE_ORDER,
   ARTIFACT_FILENAME,
@@ -181,6 +182,38 @@ export async function readArtifact(
   }
   return null;
 }
+export interface InspectedArtifact {
+  kind: ArtifactKind;
+  source: ArtifactReadSource;
+  contentHash: string;
+  nonWhitespaceChars: number;
+  checkedAt: string;
+}
+
+/**
+ * Content-integrity inspection over the artifact-authority chain.
+ *
+ * Replaces the active-directory `.md` round-trip that recovery paths used to
+ * perform: content now comes from `readArtifact` (projection → disk → archive
+ * bundle) and the hash is computed from that content. Returns `null` when no
+ * source carries the artifact.
+ */
+export async function inspectArtifactContent(
+  store: Store,
+  changeId: string,
+  kind: ArtifactKind,
+): Promise<InspectedArtifact | null> {
+  const artifact = await readArtifact(store, changeId, kind);
+  if (artifact === null) return null;
+  return {
+    kind,
+    source: artifact.source,
+    contentHash: createHash("sha256").update(artifact.content).digest("hex"),
+    nonWhitespaceChars: artifact.content.replace(/\s/g, "").length,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
 /**
  * Load proposal content with the legacy scaffold-fallback semantics layered
  * over the persisted-projection-first read path. Returns generated scaffold text
