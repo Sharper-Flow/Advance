@@ -145,12 +145,20 @@ describe("spawn wrappers actually find git", () => {
     vi.stubEnv("PATH", "");
     _resetGitBinaryCacheForTesting();
 
-    const { stdout } = await execFileGitAsync(["--version"], { timeout: 5000 });
+    const controller = new AbortController();
+    const { stdout } = await execFileGitAsync(["--version"], {
+      timeout: 5000,
+      remainingMs: 5000,
+      signal: controller.signal,
+    });
     expect(stdout).toMatch(/^git version /);
   });
 
   it("spawnGit returns a ChildProcess with stdout stream", async () => {
-    const child = spawnGit(["--version"], { stdio: "pipe" });
+    const child = spawnGit(["--version"], {
+      stdio: "pipe",
+      remainingMs: 5000,
+    });
     expect(child.pid).toBeTypeOf("number");
     const output = await new Promise<string>((resolve, reject) => {
       let buf = "";

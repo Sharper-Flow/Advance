@@ -1,15 +1,11 @@
-/** Parse worktree paths from `git worktree list --porcelain` output. */
+import { parseWorktreeListPorcelain } from "../tools/worktree/porcelain-parser";
+
+/** Parse worktree paths from canonical Git worktree output. */
 export function parseWorktreePaths(porcelain: string): string[] {
-  const paths: string[] = [];
-  for (const line of porcelain.split("\n")) {
-    if (line.startsWith("worktree ")) {
-      paths.push(line.substring("worktree ".length));
-    }
-  }
-  return paths;
+  return parseWorktreeListPorcelain(porcelain).map((entry) => entry.path);
 }
 
-/** One record of `git worktree list --porcelain` output. */
+/** One record of canonical Git worktree output. */
 export interface WorktreeTopologyEntry {
   path: string;
   /** The first porcelain record is the repository's main (non-linked) checkout. */
@@ -23,24 +19,14 @@ export interface WorktreeTopologyEntry {
 }
 
 /**
- * Parse `git worktree list --porcelain` output into structured topology
- * records, preserving main-vs-linked position and the `prunable` attribute
- * that `parseWorktreePaths` discards.
+ * Parse canonical Git worktree output into structured topology records.
  */
 export function parseWorktreeTopology(
   porcelain: string,
 ): WorktreeTopologyEntry[] {
-  const entries: WorktreeTopologyEntry[] = [];
-  for (const line of porcelain.split("\n")) {
-    if (line.startsWith("worktree ")) {
-      entries.push({
-        path: line.substring("worktree ".length),
-        isMain: entries.length === 0,
-        prunable: false,
-      });
-    } else if (line.startsWith("prunable") && entries.length > 0) {
-      entries[entries.length - 1].prunable = true;
-    }
-  }
-  return entries;
+  return parseWorktreeListPorcelain(porcelain).map((entry, index) => ({
+    path: entry.path,
+    isMain: index === 0,
+    prunable: entry.prunable ?? false,
+  }));
 }

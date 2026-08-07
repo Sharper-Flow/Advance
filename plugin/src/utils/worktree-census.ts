@@ -9,11 +9,29 @@
 import { statSync } from "node:fs";
 
 import { execFileGitCb } from "./git-binary";
+import { parseWorktreeListPorcelain } from "../tools/worktree/porcelain-parser";
 
 export interface WorktreeCensus {
   total: number;
-  worktrees: Array<{ path: string; branch: string; mtime: Date }>;
-  stale: Array<{ path: string; branch: string; lastActivity: string }>;
+  worktrees: Array<{
+    path: string;
+    branch: string;
+    mtime: Date;
+    headSha?: string;
+    detached: boolean;
+    bare: boolean;
+    locked: boolean;
+    prunable: boolean;
+  }>;
+  stale: Array<{
+    path: string;
+    branch: string;
+    lastActivity: string;
+    detached: boolean;
+    bare: boolean;
+    locked: boolean;
+    prunable: boolean;
+  }>;
 }
 
 export interface WorktreeCensusOptions {
@@ -42,7 +60,7 @@ export async function getWorktreeCensus(
   try {
     const stdout = await new Promise<string>((resolve, reject) => {
       execFileGitCb(
-        ["worktree", "list", "--porcelain"],
+        ["worktree", "list", "--porcelain", "-z"],
         {
           cwd: repoRoot,
           timeout: 5000,
@@ -57,22 +75,12 @@ export async function getWorktreeCensus(
       );
     });
 
-    // Parse porcelain: blocks separated by blank lines
-    // Each block: worktree <path>, HEAD <sha>, [branch refs/heads/<name>]
-    const blocks = stdout.split("\n\n").filter((b) => b.trim().length > 0);
     const worktrees: WorktreeCensus["worktrees"] = [];
     const stale: WorktreeCensus["stale"] = [];
 
-    for (const block of blocks) {
-      const lines = block.split("\n");
-      const wtLine = lines.find((l) => l.startsWith("worktree "));
-      const brLine = lines.find((l) => l.startsWith("branch "));
-      if (!wtLine) continue;
-
-      const wtPath = wtLine.slice("worktree ".length);
-      const branch = brLine
-        ? brLine.slice("branch ".length).replace("refs/heads/", "")
-        : "(detached)";
+    for (const parsed of parseWorktreeListPorcelain(stdout)) {
+      const wtPath = parsed.path;
+      const branch = parsed.branch ?? "(detached)";
 
       let mtime: Date;
       try {
@@ -82,7 +90,16 @@ export async function getWorktreeCensus(
         continue;
       }
 
-      worktrees.push({ path: wtPath, branch, mtime });
+      worktrees.push({
+        path: wtPath,
+        branch,
+        mtime,
+        headSha: parsed.headSha,
+        detached: parsed.detached ?? false,
+        bare: parsed.bare ?? false,
+        locked: parsed.locked ?? false,
+        prunable: parsed.prunable ?? false,
+      });
 
       const ageMs = Date.now() - mtime.getTime();
       if (ageMs > SEVEN_DAYS_MS) {
@@ -91,6 +108,10 @@ export async function getWorktreeCensus(
           path: wtPath,
           branch,
           lastActivity: `${days}d ago`,
+          detached: parsed.detached ?? false,
+          bare: parsed.bare ?? false,
+          locked: parsed.locked ?? false,
+          prunable: parsed.prunable ?? false,
         });
       }
     }

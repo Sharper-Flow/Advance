@@ -113,9 +113,10 @@ function cleanupFix(repoRoot: string, targetProject: boolean): string {
 async function listDiskWorktrees(repoRoot: string): Promise<DiskWorktree[]> {
   let stdout: string;
   try {
-    const result = await execFileGitAsync(["worktree", "list", "--porcelain"], {
-      cwd: repoRoot,
-    });
+    const result = await execFileGitAsync(
+      ["worktree", "list", "--porcelain", "-z"],
+      { cwd: repoRoot },
+    );
     stdout = result.stdout;
   } catch {
     return [];

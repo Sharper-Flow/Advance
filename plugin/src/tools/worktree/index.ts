@@ -1053,7 +1053,10 @@ export async function advWorktreeCreate(
       const acquired = await acquireGitWorktreeFlock(dir);
       return {
         ...acquired,
-        release: async () => releaseGitWorktreeFlock(dir),
+        release: async () =>
+          acquired.owned
+            ? releaseGitWorktreeFlock(dir, acquired.ownerToken)
+            : Promise.resolve(),
       };
     });
   const contention = deps.contention ?? {};
@@ -2737,6 +2740,7 @@ async function discoverTerminalCleanupCandidates(
 
   for (const worktree of facts.worktrees) {
     const branch = worktree.branch;
+    if (!branch) continue;
     const changeId = inferChangeIdFromBranch(branch);
     if (!changeId) continue;
 
