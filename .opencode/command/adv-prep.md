@@ -150,10 +150,10 @@ When creating tasks, include the structured `contract_refs` payload in task muta
 
 For artifact-backed gates, prep must preserve enough context for execution and review to diagnose workflow readiness failures without reading ADV state files directly:
 
-- Include a `problem-statement.md excerpt` or proposal summary when task scope depends on the confirmed problem.
-- Include `agreement.md` acceptance/constraint excerpts in task verification notes when they drive `contract_refs.verifies` or `contract_refs.respects`.
-- Include `design.md` decision excerpts for tasks implementing architecture-sensitive behavior.
-- Do not create tasks that rely on manually editing `acceptance.md`; acceptance proof is generated from typed contract review state.
+- Include a problem-statement projection excerpt via `adv_change_show include.problemStatement`, or a proposal projection excerpt via `adv_change_show include.proposal`, when task scope depends on the confirmed problem.
+- Include agreement projection excerpts via `adv_change_show include.agreement` in task verification notes when acceptance/constraints drive `contract_refs.verifies` or `contract_refs.respects`.
+- Include design projection excerpts via `adv_change_show include.design` for tasks implementing architecture-sensitive behavior.
+- Read the acceptance projection via `adv_change_show include.acceptance` when acceptance context is needed; do not create tasks that rely on manually editing it; acceptance proof is generated from typed contract review state.
 
 ### Delegation Hints
 
@@ -218,7 +218,7 @@ If criteria are missing, contradictory, implementation-derived, or invalidated, 
 | ---------------------- | --------------------------------- | ---------------------------------------- |
 | Unmapped contract item | No task implements/verifies it    | Add task or contract refs                |
 | Ambiguous task         | "handle X" without behavior       | Clarify task scope from agreement/design |
-| Unsupported design     | Task contradicts design.md        | Re-enter design or revise task           |
+| Unsupported design     | Task contradicts the design artifact | Re-enter design or revise task           |
 | Over-broad task        | Multiple independent outcomes     | Split or sequence tasks                  |
 | Missing proof          | No evidence plan for the typed deliverable | Add the appropriate TDD or non-test verification detail |
 
@@ -337,9 +337,9 @@ When 2+ worktrees are active for same project, scan for file-path intersections 
 | Must     | Without it = failure         | Blocking task           |
 | Should   | Important, workarounds exist | Task                    |
 | Could    | Desirable, time permitting   | Optional                |
-| Won't    | Out of scope                 | Document in proposal.md |
+| Won't    | Out of scope                 | Document in the proposal projection |
 
-Won't items are findings too: document them in proposal.md AND route each to `adv_backlog_add` — the durable middle-tier option between folding scope into this change and losing the finding in prose. `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up.
+Won't items are findings too: document them in the proposal projection via `adv_change_update proposal` AND route each to `adv_backlog_add` — the durable middle-tier option between folding scope into this change and losing the finding in prose. `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up.
 
 ---
 
@@ -416,7 +416,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 - Missing scenarios → document the gap in proposal/problem statement, add follow-up task(s), and stop for explicit delta editing support not writing `change.json` directly
 - Cross-cutting → add task or document N/A
 - Smells → record required wording changes in proposal/problem notes or add follow-up task(s); don't rewrite requirement text inline during prep
-- Cross-spec conflicts → document resolution in proposal.md
+- Cross-spec conflicts → document resolution in the proposal projection via `adv_change_update proposal`
 
 ---
 
