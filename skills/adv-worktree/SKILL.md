@@ -1,6 +1,6 @@
 ---
 name: adv-worktree
-description: "ADV worktree workflow — create, manage, triage, and clean up git worktrees with Temporal-coordinated state and per-worktree git isolation. Covers when to isolate, multi-session model, and merge-before-delete protocol."
+description: "ADV worktree workflow — create, manage, triage, and clean up git worktrees with disk-coordinated state and per-worktree git isolation. Covers when to isolate, multi-session model, and merge-before-delete protocol."
 keywords:
   [
     "worktree",
@@ -24,7 +24,7 @@ Load this skill when you need to **create, manage, triage, or clean up git workt
 
 ## Multi-Session Note
 
-This skill applies in single-session AND multi-session modes. **Concurrent worktrees per project are first-class and Temporal-coordinated** — no soft-locks, no warnings, no fallback framing. ADV serializes state writes via Temporal workflow updates; per-worktree git isolation eliminates working-tree races between sessions. See `ADV_INSTRUCTIONS.md § Multi-Session Coordination`.
+This skill applies in single-session AND multi-session modes. **Concurrent worktrees per project are first-class and disk-coordinated** — no soft-locks, no warnings, no fallback framing. ADV serializes state writes via per-change file locks in `commitChangeProjection`; per-worktree git isolation eliminates working-tree races between sessions. See `ADV_INSTRUCTIONS.md § Multi-Session Coordination`.
 
 ## When to Create a Worktree
 
@@ -51,7 +51,7 @@ Use `adv_worktree_create` when:
 - `mode: "spawn"` returns the worktree path for follow-up launch handling; do not assume a terminal was opened unless the calling workflow explicitly does so
 - Already-warped sessions cannot create another worktree; open a fresh OpenCode session from the trunk checkout
 - On delete, the change branch must be archived AND merged AND clean (3-condition gate); pre-delete and post-delete hooks run with safety bounds (timeout, env sanitization, exit-code surfaced)
-- Multiple worktrees per project are first-class — coordinate-by-design via Temporal `worktree_registry`
+- Multiple worktrees per project are first-class — coordinate-by-design via the disk `worktree_registry`
 
 ## Post-Change Cleanup (Merge Before Delete)
 
@@ -140,5 +140,5 @@ Before creating a worktree, explain why isolation helps. Ask the user only when 
 
 worktree, git worktree, branch isolation, parallel development, merge before delete,
 worktree create, worktree delete, feature branch, risky refactor,
-exploratory work, worktree cleanup, multi-session, peer-session, Temporal coordination,
+exploratory work, worktree cleanup, multi-session, peer-session, disk coordination,
 adv-worktree

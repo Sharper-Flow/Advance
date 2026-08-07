@@ -110,8 +110,8 @@ The `adv_worktree_triage` classes map to these groups as follows:
 | `archived_not_cleaned` | safe | yes — owning change archived; delete tool enforces archived+merged+clean |
 | `missing_from_disk` | safe | yes — registry-only record, nothing on disk to lose |
 | `dirty_uncommitted_work` | dirty/in-use | **no** — force-deleting discards staged/modified/untracked work |
-| `missing_from_temporal_unmerged` | dirty/in-use | **no** — has commits ahead of the default branch |
-| `missing_from_temporal` | needs-investigation | no — may still be active; resume or inspect first |
+| `stale_head_unmerged` | dirty/in-use | **no** — has commits ahead of the default branch |
+| `stale_head` | needs-investigation | no — may still be active; resume or inspect first |
 | `registry_missing_change_id` | needs-investigation | no — repair registry metadata first |
 | `stale_head` | needs-investigation | no — classification ambiguous |
 | `terminal_cleanup_retained` | blocked | no — cleanup already attempted and blocked; resolve the blocker first |
