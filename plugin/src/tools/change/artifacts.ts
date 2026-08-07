@@ -46,32 +46,44 @@ async function readProjectionDocuments(
   changesDir: string,
   changeId: string,
 ): Promise<Partial<Record<ArtifactKind, string>>> {
-  const projectionPath = join(changesDir, `${changeId}.json`);
-  const result = await readBoundedProjectionDocument(projectionPath);
-  if (result.kind !== "ok") return {};
-
-  try {
-    const parsed: unknown = JSON.parse(result.content);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
+  // Canonical projection lives at {changesDir}/{changeId}/change.json (matches
+  // read-change-projection.ts:17). The flat {changeId}.json envelope is a
+  // legacy read-only fallback. Previously this read ONLY the flat path, which
+  // never exists for canonical-layout changes — so the projection-first read
+  // always missed and fell through to disk. That silent miss is the root cause
+  // of #403 (update-written artifacts unreadable from the projection).
+  const candidates = [
+    join(changesDir, changeId, "change.json"),
+    join(changesDir, `${changeId}.json`),
+  ];
+  let parsed: unknown = null;
+  for (const projectionPath of candidates) {
+    const result = await readBoundedProjectionDocument(projectionPath);
+    if (result.kind !== "ok") continue;
+    try {
+      parsed = JSON.parse(result.content);
+    } catch {
+      continue;
     }
-    const state = (parsed as { state?: unknown }).state;
-    const projection =
-      state && typeof state === "object" && !Array.isArray(state)
-        ? state
-        : parsed;
-    const documents = (projection as { documents?: unknown }).documents;
-    if (
-      !documents ||
-      typeof documents !== "object" ||
-      Array.isArray(documents)
-    ) {
-      return {};
-    }
-    return documents as Partial<Record<ArtifactKind, string>>;
-  } catch {
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) break;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return {};
   }
+  const state = (parsed as { state?: unknown }).state;
+  const projection =
+    state && typeof state === "object" && !Array.isArray(state)
+      ? state
+      : parsed;
+  const documents = (projection as { documents?: unknown }).documents;
+  if (
+    !documents ||
+    typeof documents !== "object" ||
+    Array.isArray(documents)
+  ) {
+    return {};
+  }
+  return documents as Partial<Record<ArtifactKind, string>>;
 }
 
 export async function normalizeArtifactMetadataForReadback(

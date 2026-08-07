@@ -361,3 +361,61 @@ describe("readArtifact — active projection fallback", () => {
     }
   });
 });
+
+describe("readArtifact — canonical projection layout (#403 regression)", () => {
+  it("reads agreement from {changeId}/change.json when no agreement.md exists", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      // Canonical projection: {changeId}/change.json with documents. No
+      // agreement.md on disk — the #403 scenario where an update-written
+      // artifact exists only in the projection. Previously readProjectionDocuments
+      // read only the flat {changeId}.json (which never exists), so this missed
+      // and readArtifact fell through to disk and returned null.
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify({
+          documents: { agreement: "from canonical projection" },
+        }),
+      );
+
+      const store = buildMockStore({ changesDir, rootDir: dir });
+      const result = await readArtifact(store, "test-change", "agreement");
+      expect(result).toEqual({
+        content: "from canonical projection",
+        source: "active_projection",
+      });
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  });
+
+  it("prefers canonical {changeId}/change.json over a stale flat envelope", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify({ documents: { agreement: "canonical" } }),
+      );
+      // Stale flat envelope that must NOT win over canonical.
+      await writeFile(
+        join(changesDir, "test-change.json"),
+        JSON.stringify({ documents: { agreement: "stale flat" } }),
+      );
+
+      const store = buildMockStore({ changesDir, rootDir: dir });
+      const result = await readArtifact(store, "test-change", "agreement");
+      expect(result).toEqual({
+        content: "canonical",
+        source: "active_projection",
+      });
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  });
+});
