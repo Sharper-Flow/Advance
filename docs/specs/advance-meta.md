@@ -1266,7 +1266,7 @@ The plugin's safety-net wrapper has a default 10s timeout (DEFAULT_TOOL_TIMEOUT_
 
 **ID:** `rq-bulkCloseDiskSweep01` | **Priority:** **[MUST]**
 
-After a successful adv_change_bulk_close, both workflow state and on-disk source artifacts (changes/<id>/change.json, proposal.md) MUST be removed in the same call for changes whose individual close succeeded. Per-id outcomes are reported in diskRemoved and diskFailed arrays in the response. Mid-flight workflow-close failure preserves source dirs as the orphan-sweep recovery path.
+After a successful adv_change_bulk_close, both workflow state and the on-disk change projection (changes/<id>/change.json) MUST be removed in the same call for changes whose individual close succeeded. Per-id outcomes are reported in diskRemoved and diskFailed arrays in the response. Mid-flight workflow-close failure preserves source dirs as the orphan-sweep recovery path.
 
 #### Scenarios
 
