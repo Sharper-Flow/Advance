@@ -289,9 +289,12 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_worktree_delete: {
     branch: { blank: "reject" }, // required-when-present
+    planToken: { blank: "omit" }, // optional; handler returns PLAN_REQUIRED when absent
+    approvalEvidence: { blank: "omit" }, // required only for destructive apply
   },
   adv_worktree_cleanup: {
     reason: { blank: "reject" }, // audit
+    approvalEvidence: { blank: "omit" }, // required only when deletion is applied
     // Optional mode selector. Strict-mode providers fill optional enums
     // with ""; normalize to omitted so Zod enum validation is bypassed.
     mode: { blank: "omit" },

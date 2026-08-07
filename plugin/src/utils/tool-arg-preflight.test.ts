@@ -30,6 +30,24 @@ type ExpectedFieldPolicy = {
 
 const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
+    toolName: "adv_worktree_delete",
+    field: "planToken",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_worktree_delete",
+    field: "approvalEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_worktree_cleanup",
+    field: "approvalEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
     toolName: "adv_task_update",
     field: "proof_target",
     policy: "blank",
