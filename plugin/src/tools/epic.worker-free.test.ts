@@ -68,7 +68,6 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
         path: "/tmp/change-1",
       })),
       save: vi.fn(),
-      updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
       refresh: vi.fn(),

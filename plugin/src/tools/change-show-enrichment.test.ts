@@ -105,7 +105,6 @@ function createMockStore(changeOverride: Partial<Change> = {}): Store {
       get: vi.fn(async () => ({ success: true, data: change })),
       create: vi.fn(),
       save: vi.fn(),
-      updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
       refresh: vi.fn(async () => undefined),
@@ -141,7 +140,6 @@ function assertNoWorkflowCalls(store: Store) {
   expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   expect(mocks.fireSignal).not.toHaveBeenCalled();
   expect(store.changes.save).not.toHaveBeenCalled();
-  expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
 }
 
 describe("adv_change_show enrichment best-effort integration", () => {
@@ -219,5 +217,38 @@ describe("adv_change_show enrichment best-effort integration", () => {
     });
     expect(store.changes.save).not.toHaveBeenCalled();
     assertNoWorkflowCalls(store);
+  });
+
+  // KD2 (AC2): the projection is the live artifact authority. Presence must be
+  // derived from `change.documents`, not from a disk `problem-statement.md`
+  // that is no longer materialized in the active change directory. The
+  // response must also not advertise a markdown artifact path (AC1).
+  test("reports problem-statement presence from the projection without advertising a markdown path", async () => {
+    const store = createMockStore({
+      documents: { problemStatement: "Confirmed problem statement text." },
+    } as Partial<Change>);
+
+    const result = await changeTools.adv_change_show.execute(
+      { changeId: "test-change" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.problemStatementExists).toBe(true);
+    expect(parsed.problemStatementPath).toBeUndefined();
+    assertNoWorkflowCalls(store);
+  });
+
+  test("reports problem-statement absence when no source carries content", async () => {
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_show.execute(
+      { changeId: "test-change" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.problemStatementExists).toBe(false);
+    expect(parsed.problemStatementPath).toBeUndefined();
   });
 });

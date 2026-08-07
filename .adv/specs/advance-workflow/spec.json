@@ -4256,7 +4256,7 @@
           "title": "Executive summary proof uses workflow-visible hash metadata",
           "given": [
             "A new contract-era change reaches acceptance",
-            "executive-summary.md is required acceptance proof"
+            "change.documents.executiveSummary is required acceptance proof"
           ],
           "when": "The workflow validates acceptance readiness",
           "then": [
@@ -4270,7 +4270,7 @@
     {
       "id": "rq-acceptanceProjection01",
       "title": "Acceptance Projection from Typed Contract Review State",
-      "body": "Acceptance gate completion MUST use typed contract, review matrix state, generated acceptance.md, and workflow-visible executive-summary.md evidence as the source of truth for acceptance proof. For new contract-era changes, the workflow MUST generate a durable acceptance.md projection from ChangeContract items and the contract review matrix before marking acceptance done. Manually edited markdown must not be treated as the authoritative acceptance proof.",
+      "body": "Acceptance gate completion MUST use typed contract, review matrix state, change.documents.acceptance, and workflow-visible change.documents.executiveSummary evidence as the source of truth for acceptance proof. For new contract-era changes, the workflow MUST persist a durable change.documents.acceptance projection from ChangeContract items and the contract review matrix before marking acceptance done. Manually edited markdown must not be treated as the authoritative acceptance proof.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -4311,7 +4311,7 @@
           ],
           "when": "The acceptance gate is completed",
           "then": [
-            "The workflow writes acceptance.md through an activity or storage boundary",
+            "The workflow persists change.documents.acceptance through an activity or storage boundary",
             "The workflow records acceptance artifact evidence",
             "The acceptance gate may be marked done"
           ]
@@ -4323,7 +4323,7 @@
             "A new contract-era change reaches acceptance gate completion",
             "The contract and review matrix pass"
           ],
-          "when": "executive-summary.md is missing, unreadable, undersized, lacks workflow-visible metadata, or its content hash is stale",
+          "when": "change.documents.executiveSummary is missing, unreadable, undersized, lacks workflow-visible metadata, or its content hash is stale",
           "then": [
             "The workflow refuses acceptance completion",
             "The blocker identifies executive-summary evidence as missing or stale",
@@ -4335,7 +4335,7 @@
     {
       "id": "rq-acceptanceEvidenceTiming01",
       "title": "Acceptance Proof Exists Before Approval Prompt",
-      "body": "/adv-review MUST persist and verify all required acceptance proof before presenting the acceptance approval prompt. Required proof includes contract.reviewMatrix, generated or generatable acceptance.md from typed contract state, and workflow-visible executive-summary.md evidence. If any required proof cannot be persisted, verified, or made workflow-visible, /adv-review MUST stop before asking for acceptance and the acceptance gate MUST remain pending or stuck with deterministic blockers. This is the no-late-homework rule: evidence required to justify acceptance cannot be submitted only after user approval.",
+      "body": "/adv-review MUST persist and verify all required acceptance proof before presenting the acceptance approval prompt. Required proof includes contract.reviewMatrix, generated or generatable change.documents.acceptance from typed contract state, and workflow-visible change.documents.executiveSummary evidence. If any required proof cannot be persisted, verified, or made workflow-visible, /adv-review MUST stop before asking for acceptance and the acceptance gate MUST remain pending or stuck with deterministic blockers. This is the no-late-homework rule: evidence required to justify acceptance cannot be submitted only after user approval.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -4542,10 +4542,10 @@
           "given": [
             "A change reaches /adv-design with approved discovery criteria"
           ],
-          "when": "/adv-design writes design.md",
+          "when": "/adv-design writes change.documents.design",
           "then": [
-            "design.md may include a Design-Derived Criteria section for technical budgets and constraints",
-            "design.md does not add new user-facing acceptance criteria as if they were approved agreement items",
+            "change.documents.design may include a Design-Derived Criteria section for technical budgets and constraints",
+            "change.documents.design does not add new user-facing acceptance criteria as if they were approved agreement items",
             "The design explains how approved discovery criteria will be delivered"
           ]
         },
@@ -4567,7 +4567,7 @@
     {
       "id": "rq-stageCriteriaEnforcementRetarget01",
       "title": "Criteria Enforcement Anchors After Discovery",
-      "body": "Workflow enforcement MUST NOT require proposal.md to contain testable success criteria. Proposal `## User Outcomes` are alignment inputs. Criteria-presence enforcement for full changes MUST anchor to discovery's agreement artifact and the minted ChangeContract. Planning, execution, acceptance, and release MUST continue to use the approved ChangeContract review matrix and evidence policies without reading proposal-level success criteria as contract law.",
+      "body": "Workflow enforcement MUST NOT require change.documents.proposal to contain testable success criteria. Proposal `## User Outcomes` are alignment inputs. Criteria-presence enforcement for full changes MUST anchor to discovery's change.documents.agreement artifact and the minted ChangeContract. Planning, execution, acceptance, and release MUST continue to use the approved ChangeContract review matrix and evidence policies without reading proposal-level success criteria as contract law.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -4581,13 +4581,13 @@
           "id": "rq-stageCriteriaEnforcementRetarget01.1",
           "title": "Proposal without success criteria reaches planning",
           "given": [
-            "proposal.md contains `## User Outcomes` and no proposal-level `## Success Criteria` section"
+            "change.documents.proposal contains `## User Outcomes` and no proposal-level `## Success Criteria` section"
           ],
           "when": "The change reaches planning-gate readiness checks",
           "then": [
             "No clarify-readiness finding fires solely because proposal success criteria are absent",
             "The planning gate is not blocked on that basis",
-            "Criteria checks use agreement.md and the ChangeContract instead"
+            "Criteria checks use change.documents.agreement and the ChangeContract instead"
           ]
         },
         {
@@ -4774,8 +4774,8 @@
           "id": "rq-artifactPathTruth01.1",
           "title": "disk-only artifact content does not expose fake readable path",
           "given": [
-            "An active change has state.documents.design populated",
-            "No active design.md file exists on disk for the change"
+            "An active change has change.documents.design populated",
+            "The design is not materialized as an active-directory .md file for the change"
           ],
           "when": "adv_change_show is called with include.design true",
           "then": [

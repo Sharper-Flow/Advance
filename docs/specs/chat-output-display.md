@@ -13,7 +13,7 @@ Unified formatting for the chat-output surface — context snapshots (full box),
 
 **ID:** `rq-ctxsnap1` | **Priority:** **[MUST]**
 
-The Context Snapshot (full box) MUST display: change ID and title, user outcome count from proposal.md, gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning. When a `resumeFreshness` value is present (per rq-resumeFreshness01 in advance-workflow), the snapshot renders an optional `Freshness:` line itemizing finding count and top code; the line participates in the staged budget-shed rule (Outcomes sheds first at ≥2 optionals, Current sheds at ≥3, blank spacer or Wisdom sheds at ≥4 so Freshness is always retained as the last-shed row).
+The Context Snapshot (full box) MUST display: change ID and title, user outcome count from change.documents.proposal (projection read path), gate progress (inline visual), task counts by status, and current workdir. The snapshot MUST fit within 10 lines for quick scanning. When a `resumeFreshness` value is present (per rq-resumeFreshness01 in advance-workflow), the snapshot renders an optional `Freshness:` line itemizing finding count and top code; the line participates in the staged budget-shed rule (Outcomes sheds first at ≥2 optionals, Current sheds at ≥3, blank spacer or Wisdom sheds at ≥4 so Freshness is always retained as the last-shed row).
 
 **Tags:** `chat-output-display`, `snapshot`, `resume`, `freshness`
 

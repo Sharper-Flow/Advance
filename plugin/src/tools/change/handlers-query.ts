@@ -1,6 +1,5 @@
 /** Handler definitions for query change tools. */
 import { z } from "zod";
-import { join } from "path";
 import {
   ChangeListStatusFilterSchema,
   BriefingPacketLaneSchema,
@@ -22,6 +21,7 @@ import {
   normalizeArtifactMetadataForReadback,
   normalizeGateArtifactEvidenceForReadback,
   loadProposalForContext,
+  readArtifact,
   readArtifacts,
 } from "./artifacts";
 import {
@@ -31,7 +31,6 @@ import {
   loadValidationContext,
 } from "./create-clarify";
 import { reconcileRecoveredGates } from "../gate";
-import { fileExists } from "../../storage/json";
 import {
   DEFAULT_MAX_CHARS,
   formatToolOutput,
@@ -184,13 +183,18 @@ export const advChangeShowHandler = async (
     // downstream formatters would otherwise drop undefined keys.
     output.ops_followup = change.ops_followup ?? null;
     output.ops_followup_links = change.ops_followup_links ?? [];
-    const changeDir = join(activeStore.paths.changes, changeId);
-    const problemStatementPath = join(changeDir, "problem-statement.md");
-    const problemStatementExists = await fileExists(problemStatementPath);
-    output.problemStatementExists = problemStatementExists;
-    if (problemStatementExists) {
-      output.problemStatementPath = problemStatementPath;
-    }
+    // Presence follows the artifact authority chain (projection → disk →
+    // archive bundle), not a disk `problem-statement.md` that is no longer
+    // materialized in the active change directory. No `*Path` is advertised:
+    // the projection is the authority, and `include.problemStatement` is the
+    // supported way to read the content.
+    const projectedProblemStatement = change.documents?.problemStatement;
+    output.problemStatementExists =
+      typeof projectedProblemStatement === "string" &&
+      projectedProblemStatement.trim().length > 0
+        ? true
+        : (await readArtifact(activeStore, changeId, "problemStatement")) !==
+          null;
     const clarifyRead = await subread.run("clarify", () =>
       applyClarifyReadinessToChangeOutput({
         output,

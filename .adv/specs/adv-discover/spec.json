@@ -296,7 +296,7 @@
     {
       "id": "rq-disc11",
       "title": "Discovery-Owned Agreement Sign-Off",
-      "body": "When /adv-discover absorbs the user-facing agreement flow, the command MUST present objectives and constraints for user sign-off before completing the discovery gate, and MUST persist agreement.md as part of the same command contract. This prevents discovery findings from being marked complete before the user-facing sign-off step occurs.",
+      "body": "When /adv-discover absorbs the user-facing agreement flow, the command MUST present objectives and constraints for user sign-off before completing the discovery gate, and MUST persist change.documents.agreement as the sole live authority via the agreement parameter to adv_change_update; agreement.md is materialized only at archive time via writeArchiveBundleFiles. This prevents discovery findings from being marked complete before the user-facing sign-off step occurs.",
       "priority": "must",
       "tags": ["discover", "agreement", "sign-off", "gate-ownership"],
       "scenarios": [
@@ -309,7 +309,7 @@
           "when": "/adv-discover reaches the end of its agreement presentation flow",
           "then": [
             "The command presents objectives and constraints as inline handoff text for user sign-off per docs/command-voice-standard.md \u00a7 Inline Approval Voice (Tier A)",
-            "agreement.md is persisted via adv_change_update",
+            "change.documents.agreement is persisted via the agreement parameter to adv_change_update; no agreement.md is written to the active change directory",
             "adv_gate_complete gateId: discovery occurs only after the sign-off flow completes"
           ]
         }
@@ -318,7 +318,7 @@
     {
       "id": "rq-disc12",
       "title": "Explicit Acceptance Criteria Checkpoint",
-      "body": "/adv-discover MUST present draft acceptance criteria and success criteria as a dedicated checkpoint before agreement.md persistence and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user choices for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria and success criteria are approved.",
+      "body": "/adv-discover MUST present draft acceptance criteria and success criteria as a dedicated checkpoint before change.documents.agreement is persisted and before adv_gate_complete gateId: discovery. The checkpoint MUST offer explicit user choices for approval, /adv-clarify handoff, or write-in edits, and MUST NOT complete discovery until acceptance criteria and success criteria are approved.",
       "priority": "must",
       "tags": ["discover", "acceptance-criteria", "checkpoint", "agreement"],
       "scenarios": [
@@ -332,7 +332,7 @@
           "then": [
             "The command presents Acceptance Criteria and Success Criteria as a focused checkpoint",
             "The inline handoff offers approve, start /adv-clarify, and add/clarify outcomes per docs/command-voice-standard.md \u00a7 Inline Approval Voice",
-            "agreement.md is persisted only after acceptance criteria and success criteria are approved",
+            "change.documents.agreement is persisted only after acceptance criteria and success criteria are approved",
             "adv_gate_complete gateId: discovery occurs only after approval"
           ]
         },
@@ -344,7 +344,7 @@
           ],
           "when": "/adv-discover detects the literal /adv-clarify reply",
           "then": [
-            "/adv-discover stops immediately without persisting agreement.md",
+            "/adv-discover stops immediately without persisting change.documents.agreement",
             "/adv-discover does not call adv_gate_complete",
             "The command instructs the user to run /adv-clarify {change-id} and rerun /adv-discover {change-id} afterward",
             "Non-literal clarification intent (e.g. 'I want to clarify X') is treated as revision text per Tier A LLM fallback, not as the /adv-clarify branch"
@@ -446,7 +446,7 @@
           "id": "rq-disc-tax3.1",
           "title": "Post-clarify rerun shows clean coverage",
           "given": [
-            "/adv-clarify has written resolutions to proposal.md",
+            "/adv-clarify has persisted resolutions to change.documents.proposal",
             "## Clarify Resolution Log contains resolved entries"
           ],
           "when": "/adv-discover is rerun",
@@ -674,7 +674,7 @@
     {
       "id": "rq-stageDiscoveryFirmCriteria01",
       "title": "Discovery Firms Design-Independent Criteria",
-      "body": "/adv-discover MUST firm and user-confirm design-independent behavioral acceptance criteria and success criteria in agreement.md before completing the discovery gate. These criteria are the authoritative source for ChangeContract `AC*` and `SC*` items. Proposal-level User Outcomes may inform the criteria, but engineering acceptance criteria and success criteria are discovery-owned and must not be treated as already final at proposal time.",
+      "body": "/adv-discover MUST firm and user-confirm design-independent behavioral acceptance criteria and success criteria in change.documents.agreement before completing the discovery gate. These criteria are the authoritative source for ChangeContract `AC*` and `SC*` items. Proposal-level User Outcomes may inform the criteria, but engineering acceptance criteria and success criteria are discovery-owned and must not be treated as already final at proposal time.",
       "priority": "must",
       "tags": ["discover", "agreement", "criteria", "stage-boundary"],
       "scenarios": [
@@ -682,9 +682,9 @@
           "id": "rq-stageDiscoveryFirmCriteria01.1",
           "title": "Agreement contains user-confirmed behavioral criteria",
           "given": ["A change reaches the discovery agreement flow"],
-          "when": "/adv-discover persists agreement.md and completes discovery",
+          "when": "/adv-discover persists change.documents.agreement and completes discovery",
           "then": [
-            "agreement.md contains user-confirmed acceptance criteria and success criteria",
+            "change.documents.agreement contains user-confirmed acceptance criteria and success criteria",
             "The criteria describe externally observable behavior or completion signals, not implementation mechanisms",
             "adv_gate_complete gateId: discovery occurs only after criteria approval"
           ]
@@ -692,7 +692,7 @@
         {
           "id": "rq-stageDiscoveryFirmCriteria01.2",
           "title": "Discovery criteria mint into ChangeContract",
-          "given": ["agreement.md contains approved criteria"],
+          "given": ["change.documents.agreement contains approved criteria"],
           "when": "The ChangeContract is minted from the agreement",
           "then": [
             "Acceptance Criteria become `AC*` contract items",

@@ -195,26 +195,17 @@ export interface ChangePortfolioState {
 
 export interface ChangeCreateResult {
   changeId: string;
-  path: string;
-  problemStatementPath?: string;
-  agreementPath?: string;
-  designPath?: string;
-  executiveSummaryPath?: string;
-  acceptancePath?: string;
   duplicateWarning?: string;
   /** Attached by the adv_change_create tool layer (tools/portfolio-state.ts). */
   portfolioState?: ChangePortfolioState;
 }
 
-export interface UpdateArtifactsResult {
-  success: boolean;
-  proposalPath?: string;
-  problemStatementPath?: string;
-  agreementPath?: string;
-  designPath?: string;
-  executiveSummaryPath?: string;
-  acceptancePath?: string;
-  error?: string;
+/**
+ * Storage-only create result. The projection path is retained for internal
+ * follow-up linkage; narrative artifact paths are no longer created.
+ */
+export interface ChangeCreateStorageResult extends ChangeCreateResult {
+  path: string;
 }
 
 // Inlined from former ./sqlite module (deleted in P2.7).
@@ -374,12 +365,8 @@ export interface CommandStore extends StoreBase {
     create: (
       summary: string,
       options?: ChangeCreateOptionsBag,
-    ) => Promise<ChangeCreateResult>;
+    ) => Promise<ChangeCreateStorageResult>;
     save: (change: Change) => Promise<void>;
-    updateArtifacts: (
-      changeId: string,
-      artifacts: ArtifactPayload,
-    ) => Promise<UpdateArtifactsResult>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
     closeBatch: (
       changeIds: string[],
@@ -708,24 +695,8 @@ export interface Store extends ReadStore, CommandStore {
     create: (
       summary: string,
       options?: ChangeCreateOptionsBag,
-    ) => Promise<ChangeCreateResult>;
+    ) => Promise<ChangeCreateStorageResult>;
     save: (change: Change) => Promise<void>;
-    /**
-     * Update narrative artifact files for an existing change. Options-object
-     * API — single typed call shape:
-     *
-     *   store.changes.updateArtifacts(id, {
-     *     proposal: "…",
-     *     design: "…",
-     *     ...
-     *   })
-     *
-     * Only defined fields are written; undefined fields are no-ops.
-     */
-    updateArtifacts: (
-      changeId: string,
-      artifacts: ArtifactPayload,
-    ) => Promise<UpdateArtifactsResult>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
     closeBatch: (
       changeIds: string[],

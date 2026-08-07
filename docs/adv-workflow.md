@@ -17,17 +17,18 @@ See also:
 │       │                                                               │
 │       ▼                                                               │
 │  ┌─────────────┐                                                      │
-│  │ 1. proposal │  problem-statement.md + proposal.md                  │
+│  │ 1. proposal │  change.documents.problemStatement +                │
+│  │             │  change.documents.proposal                           │
 │  └──────┬──────┘                                                      │
 │         │ /adv-discover                                               │
 │         ▼                                                             │
 │  ┌─────────────┐                                                      │
-│  │ 2. discovery│  context analysis → agreement.md                     │
+│  │ 2. discovery│  context analysis → change.documents.agreement       │
 │  └──────┬──────┘                                                      │
 │         │ /adv-design                                                 │
 │         ▼                                                             │
 │  ┌─────────────┐                                                      │
-│  │ 3. design   │  architecture → design.md                            │
+│  │ 3. design   │  architecture → change.documents.design              │
 │  └──────┬──────┘                                                      │
 │         │ /adv-prep                                                   │
 │         ▼                                                             │
@@ -42,7 +43,8 @@ See also:
 │         │ /adv-review                                                 │
 │         ▼                                                             │
 │  ┌─────────────┐                                                      │
-│  │ 6. acceptance│ user sign-off against agreement.md                  │
+│  │ 6. acceptance│ user sign-off against change.documents.acceptance    │
+│  │             │ + change.documents.executiveSummary                 │
 │  └──────┬──────┘                                                      │
 │         │ /adv-harden                                                 │
 │         ▼                                                             │
@@ -58,16 +60,18 @@ See also:
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
+Narrative artifacts persist only in `change.documents.{kind}` inside the active change projection. Markdown files materialize only in archive bundles through `writeArchiveBundleFiles`.
+
 ## Gate Ownership
 
 | Gate       | Owning command        | Produces                     |
 |------------|-----------------------|------------------------------|
-| proposal   | `/adv-proposal`         | `problem-statement.md`, `proposal.md` |
-| discovery  | `/adv-discover`         | `agreement.md`                 |
-| design     | `/adv-design`           | `design.md`                    |
+| proposal   | `/adv-proposal`         | `change.documents.problemStatement`, `change.documents.proposal` |
+| discovery  | `/adv-discover`         | `change.documents.agreement`                 |
+| design     | `/adv-design`           | `change.documents.design`                    |
 | planning   | `/adv-prep`             | Task graph in `change.json`    |
 | execution  | `/adv-apply`            | Code / docs / ops deliverables |
-| acceptance | `/adv-review` | User sign-off                |
+| acceptance | `/adv-review` | `change.documents.acceptance`, `change.documents.executiveSummary`, `contract.reviewMatrix` |
 | release    | `/adv-harden` + `/adv-archive`| Spec deltas applied, git finalized |
 
 Gates are sequential — `/adv-harden` is blocked until `acceptance` is done, `/adv-archive` is blocked until all 7 are satisfied. See [docs/adv-gates.md](adv-gates.md) for the full gate contract.

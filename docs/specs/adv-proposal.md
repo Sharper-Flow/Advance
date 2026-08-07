@@ -258,7 +258,7 @@ Every ambiguity finding emitted by /adv-proposal MUST include either a verbatim 
 
 **ID:** `rq-prop-context1` | **Priority:** **[MUST]**
 
-After Quick Contract confirmation, /adv-task must always persist contract context to proposal.md, and downstream workflows must tolerate missing or empty legacy proposal files via scaffold fallback warnings.
+After Quick Contract confirmation, /adv-task must always persist contract context to change.documents.proposal as the sole live authority via the proposal parameter; proposal.md is materialized only at archive time via writeArchiveBundleFiles, and downstream workflows must tolerate missing or empty legacy proposal files via scaffold fallback warnings.
 
 **Tags:** `proposal`, `adv-task`, `context`
 
@@ -276,8 +276,8 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **Then:**
 
-- proposal.md is written in the change directory
-- The file includes intent, scope, and user outcomes
+- change.documents.proposal is persisted via the proposal parameter; no proposal.md is written to the active change directory
+- The persisted proposal includes intent, scope, and user outcomes
 
 **Legacy missing proposal is non-blocking** (`rq-prop-context1.2`)
 
@@ -298,7 +298,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 
 **ID:** `rq-prop-context2` | **Priority:** **[MUST]**
 
-/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via inline approval voice before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of proposal.md via the proposal parameter and as a standalone problem-statement.md artifact via the problemStatement parameter in adv_change_create. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.
+/adv-proposal must extract prior discussion context (decisions, rejected approaches, constraints, open questions) from the conversation before synthesizing a problem statement, confirm it via inline approval voice before creating any change artifacts, and persist the confirmed text (including prior decisions and rejected approaches) as the opening section of the proposal artifact via the proposal parameter and as a standalone problem-statement artifact via the problemStatement parameter in adv_change_create. Narrative artifacts are persisted to the change's durable projection (change.documents) as the sole live authority and are materialized as .md files only in the archive bundle. The problem statement must not contradict, omit, or reinterpret any prior decision or constraint from the conversation.
 
 **Tags:** `proposal`, `context-agreement`, `transcript-grounding`
 
@@ -349,7 +349,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 - A 'Drift detected' reply path is documented for the user to flag discrepancies (free-form revise reply or explicit drift wording)
 - If drift is detected, the agent re-extracts and re-synthesizes before proceeding
 
-**Confirmed problem statement persisted in proposal.md** (`rq-prop-context2.4`)
+**Confirmed problem statement persisted in the proposal artifact** (`rq-prop-context2.4`)
 
 **Given:**
 
@@ -360,8 +360,8 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 **Then:**
 
 - adv_change_create is called with the proposal parameter containing the confirmed text
-- proposal.md includes the confirmed problem statement as the Why section
-- proposal.md includes a Constraints from Discussion section with prior decisions and rejected approaches
+- The persisted proposal artifact includes the confirmed problem statement as the Why section
+- The persisted proposal artifact includes a Constraints from Discussion section with prior decisions and rejected approaches
 
 **Abort path creates no artifacts** (`rq-prop-context2.5`)
 
@@ -374,7 +374,7 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 **Then:**
 
 - No change.json is created
-- No proposal.md is created
+- No proposal artifact is persisted
 - No tasks are added
 
 **Confirmed problem statement persisted as standalone artifact** (`rq-prop-context2.6`)
@@ -388,9 +388,9 @@ After Quick Contract confirmation, /adv-task must always persist contract contex
 **Then:**
 
 - adv_change_create is called with the problemStatement parameter containing the confirmed problem statement text
-- A problem-statement.md file is written to the change directory as a sibling of proposal.md
-- The problem-statement.md content exactly matches the confirmed text (no template wrapping)
-- The tool output includes problemStatementPath pointing to the artifact
-- When the change is archived, problem-statement.md is preserved in the archive directory
+- The confirmed text is persisted to the change's durable projection (change.documents.problemStatement) as the sole live authority; no problem-statement.md is written to the active change directory
+- The persisted problem statement content exactly matches the confirmed text (no template wrapping)
+- The tool output names the projection as the artifact authority (artifactAuthority: "change.documents") rather than a problem-statement.md path
+- When the change is archived, problem-statement.md is produced in the archive bundle from the projection
 
 ---

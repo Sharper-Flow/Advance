@@ -10,7 +10,6 @@
 
 import { mkdir, readFile, stat } from "fs/promises";
 import { join, normalize, isAbsolute, resolve, dirname, sep } from "path";
-import { createHash } from "crypto";
 
 import { atomicWriteFile } from "../utils/fs";
 import {
@@ -40,7 +39,7 @@ import {
  * Per-change artifact kinds. Stored as `{kind}.md` next to `change.json`.
  *
  * Canonical source: `plugin/src/types/artifacts.ts`. Kept in lockstep with
- * the artifact set in `createChangeScaffold` / `updateChangeArtifacts`
+ * the artifact set in `createChangeScaffold`
  * (`storage/json.ts`). Naming standard: camelCase at the type/signal layer;
  * kebab-case appears only at this filesystem boundary through
  * `ARTIFACT_FILENAME` from the canonical artifact type module.
@@ -78,176 +77,6 @@ export async function readArtifact(
     };
   }
 }
-
-export interface InspectArtifactInput {
-  changesDir: string;
-  changeId: string;
-  kind: ArtifactKind;
-}
-
-export type InspectArtifactResult =
-  | {
-      ok: true;
-      kind: ArtifactKind;
-      path: string;
-      contentHash: string;
-      nonWhitespaceChars: number;
-      checkedAt: string;
-    }
-  | {
-      ok: false;
-      kind: ArtifactKind;
-      path: string;
-      code: "missing" | "unreadable";
-      error: string;
-      checkedAt: string;
-    };
-
-export async function inspectArtifact(
-  input: InspectArtifactInput,
-): Promise<InspectArtifactResult> {
-  const filename = ARTIFACT_FILENAME[input.kind];
-  const path = join(input.changesDir, input.changeId, filename);
-  const checkedAt = new Date().toISOString();
-  try {
-    const content = await readFile(path, "utf-8");
-    return {
-      ok: true,
-      kind: input.kind,
-      path,
-      contentHash: createHash("sha256").update(content).digest("hex"),
-      nonWhitespaceChars: content.replace(/\s/g, "").length,
-      checkedAt,
-    };
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      ok: false,
-      kind: input.kind,
-      path,
-      code: code === "ENOENT" ? "missing" : "unreadable",
-      error:
-        code === "ENOENT"
-          ? `Artifact not found: ${path}`
-          : `Inspect failed (${code ?? "unknown"}): ${message}`,
-      checkedAt,
-    };
-  }
-}
-
-export interface WriteArtifactInput {
-  changesDir: string;
-  changeId: string;
-  kind: ArtifactKind;
-  content: string;
-}
-
-export type WriteArtifactResult =
-  | { ok: true; path: string }
-  | { ok: false; error: string; path?: undefined };
-
-export async function writeArtifact(
-  input: WriteArtifactInput,
-): Promise<WriteArtifactResult> {
-  const filename = ARTIFACT_FILENAME[input.kind];
-  const changeDir = join(input.changesDir, input.changeId);
-  const path = join(changeDir, filename);
-  try {
-    await mkdir(changeDir, { recursive: true });
-    await atomicWriteFile(path, input.content);
-    return { ok: true, path };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `Write failed: ${message}` };
-  }
-}
-
-// =============================================================================
-// T13 / KD-13 — materializeBundleArtifacts
-//
-// Reads `state.documents` from the workflow at archive time and writes the
-// six markdown files into the bundle directory for the git commit. This is
-// the SOLE production point where artifact content touches disk (AC8).
-//
-// Bundle layout, filenames, and git commit semantics unchanged (C2) — the
-// activity writes each kind's content to its canonical kebab-case filename
-// in the bundle dir; everything else (manifest, etc.) is unchanged.
-// =============================================================================
-
-export interface MaterializeBundleArtifactsInput {
-  /** Absolute path to the bundle dir (`.adv/archive/{cid}-{ts}/`). */
-  bundleDir: string;
-  /** Workflow state.documents — kind→content map. Undefined kinds skipped. */
-  documents: Partial<Record<ArtifactKind, string | undefined>> | undefined;
-}
-
-export interface MaterializeBundleArtifactsResult {
-  /** Kinds successfully written into the bundle. */
-  written: ArtifactKind[];
-  /** Kinds skipped because no content was available in state.documents. */
-  skipped: ArtifactKind[];
-  /** Per-kind error messages when a write failed for an otherwise-present kind. */
-  errors: Array<{ kind: ArtifactKind; error: string }>;
-}
-
-export async function materializeBundleArtifacts(
-  input: MaterializeBundleArtifactsInput,
-): Promise<MaterializeBundleArtifactsResult> {
-  const written: ArtifactKind[] = [];
-  const skipped: ArtifactKind[] = [];
-  const errors: Array<{ kind: ArtifactKind; error: string }> = [];
-
-  // mkdir the bundle dir if it doesn't exist; activity is called as part of
-  // bundle materialization where the dir is expected to already be created
-  // by the archive workflow, but make it idempotent.
-  try {
-    await mkdir(input.bundleDir, { recursive: true });
-  } catch (err) {
-    return {
-      written,
-      skipped: ARTIFACT_KIND_ORDER.slice(),
-      errors: [
-        {
-          kind: "proposal" as ArtifactKind,
-          error: `Bundle dir mkdir failed: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        },
-      ],
-    };
-  }
-
-  for (const kind of ARTIFACT_KIND_ORDER) {
-    const content = input.documents?.[kind];
-    if (content === undefined || content === null || content === "") {
-      skipped.push(kind);
-      continue;
-    }
-    const filename = ARTIFACT_FILENAME[kind];
-    const path = join(input.bundleDir, filename);
-    try {
-      await atomicWriteFile(path, content);
-      written.push(kind);
-    } catch (err) {
-      errors.push({
-        kind,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  return { written, skipped, errors };
-}
-
-const ARTIFACT_KIND_ORDER: ReadonlyArray<ArtifactKind> = [
-  "proposal",
-  "problemStatement",
-  "agreement",
-  "design",
-  "executiveSummary",
-  "acceptance",
-];
 
 export async function listSpecs(
   input: ListSpecsInput,

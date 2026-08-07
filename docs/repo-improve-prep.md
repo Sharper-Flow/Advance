@@ -92,7 +92,7 @@ Scan note: `lgrep_search_semantic` timed out twice; code evidence came from `lgr
 - Severity: MEDIUM
   Category: Code Quality
   Evidence: `plugin/src/tools/change.ts:1875-1915`, `plugin/src/tools/change.ts:1951-2023`
-  Impact: `adv_change_show` always loads proposal fallback, checks `problem-statement.md`, and applies clarify readiness before optional include flags. Useful defaults, but phase-start flows that only need task/gate summaries still pay artifact I/O and checks.
+  Impact: `adv_change_show` always loads the proposal/problemStatement projections from `change.documents` and applies clarify readiness before optional include flags. Useful defaults, but phase-start flows that only need task/gate summaries still pay artifact I/O and checks.
   Recommendation: Add a lightweight mode or shift artifact/clarify enrichment behind include flags while preserving current default through compatibility tests.
   Follow-up: `/adv-proposal Add lightweight change show`
 

@@ -10,7 +10,7 @@ Validate architectural decisions via sub-agents using Context7 and web search. S
 
 ## Command Boundary
 
-**Produces:** Research report, architecture health assessment (SOUND/DRIFTED/ANTI-PATTERN), Architecture Judgement surfaced from the `adv-researcher` typed report, simplification opportunities, `## Research Validation` in proposal.md.
+**Produces:** Research report, architecture health assessment (SOUND/DRIFTED/ANTI-PATTERN), Architecture Judgement surfaced from the `adv-researcher` typed report, simplification opportunities, and `## Research Validation` in the proposal artifact (`change.documents.proposal`).
 
 **Verdict crosswalk (display only, source-of-truth remains `validation.status`):**
 
@@ -336,7 +336,7 @@ If user declines, return the research report only and do not create/update chang
 
 Build `## Research Validation` section → `adv_change_update changeId: "<id>" proposal: "<updated>"`.
 
-× Do NOT call `adv_task_add` — findings go in proposal.md for `/adv-prep`.
+× Do NOT call `adv_task_add` — findings go in the proposal projection via `adv_change_update proposal` for `/adv-prep`.
 × Do NOT call `adv_change_create` — change already exists.
 
 ---

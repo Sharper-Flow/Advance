@@ -346,85 +346,6 @@ export async function saveChange(
   return changePath;
 }
 
-/**
- * Load proposal.md from a change directory with graceful fallback.
- *
- * Returns the proposal content and an optional warning if the file was
- * missing or empty. Never throws — downstream commands can always proceed.
- *
- * @param changeDir - Absolute path to the change directory (e.g. .adv/changes/myChange)
- * @param changeTitle - Used to generate the scaffold title if proposal.md is absent
- */
-export interface LoadProposalOptions {
-  archiveDir?: string;
-  changeId?: string;
-}
-
-export async function loadProposalWithFallback(
-  changeDir: string,
-  changeTitle: string,
-  options?: LoadProposalOptions,
-): Promise<{ content: string; warning?: string }> {
-  const proposalPath = join(changeDir, "proposal.md");
-
-  try {
-    const raw = await readFile(proposalPath, "utf-8");
-    if (raw.trim().length > 0) {
-      return { content: raw };
-    }
-    // File exists but is empty — fall through to archive / scaffold
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      logger.warn(
-        `Unexpected error reading proposal: ${(err as Error).message}`,
-      );
-    }
-    // File missing or unreadable — fall through to archive / scaffold
-  }
-
-  // Archive bundle fallback — read proposal.md from the latest bundle
-  // when active dir is missing (archived changes are cleaned up).
-  if (options?.archiveDir && options?.changeId) {
-    try {
-      const { findArchiveBundle } = await import("../archive/archive");
-      const bundleDir = await findArchiveBundle(
-        options.archiveDir,
-        options.changeId,
-      );
-      if (bundleDir) {
-        const raw = await readFile(join(bundleDir, "proposal.md"), "utf-8");
-        if (raw.trim().length > 0) {
-          return { content: raw };
-        }
-      }
-    } catch {
-      // Archive bundle missing or unreadable — fall through to scaffold
-    }
-  }
-
-  const scaffold = `# ${changeTitle}
-
-## Intent
-
-<!-- Auto-generated scaffold: proposal.md was missing or empty. -->
-<!-- Update this file with the actual intent, scope, and user outcomes. -->
-
-## Scope
-
-- (unknown — proposal.md not found)
-
-## User Outcomes
-
-- [ ] Users can see what outcome this change is meant to deliver
-- [ ] Discovery firms acceptance criteria and success criteria downstream
-`;
-
-  return {
-    content: scaffold,
-    warning: `⚠️  proposal.md not found or empty at ${proposalPath}. Using auto-generated scaffold. Run /adv-proposal to create a proper proposal.`,
-  };
-}
-
 export async function createChangeScaffold(
   changesDir: string,
   changeId: string,
@@ -432,11 +353,7 @@ export async function createChangeScaffold(
   artifacts?: import("../types").ArtifactPayload,
 ): Promise<{
   changePath: string;
-  proposalPath: string;
-  problemStatementPath?: string;
-  agreementPath?: string;
-  designPath?: string;
-  executiveSummaryPath?: string;
+  documents: import("../types").ArtifactPayload;
 }> {
   const proposalContent = artifacts?.proposal;
   const problemStatementContent = artifacts?.problemStatement;
@@ -445,7 +362,6 @@ export async function createChangeScaffold(
   const executiveSummaryContent = artifacts?.executiveSummary;
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
-  const proposalPath = join(changeDir, "proposal.md");
 
   // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
   // before any partial scaffold write so tool-layer bypasses cannot create
@@ -472,7 +388,9 @@ export async function createChangeScaffold(
 
   await mkdir(changeDir, { recursive: true });
 
-  // Create proposal.md template with structured sections
+  // Build the initial projection documents. Narrative markdown is a legacy
+  // read fallback; the projection is the active record for newly-created
+  // changes.
   const defaultProposalContent = `# ${title}
 
 ## Why
@@ -519,168 +437,22 @@ export async function createChangeScaffold(
 - Run full test suite to verify no regressions
 `;
 
-  await atomicWriteFile(
-    proposalPath,
-    proposalContent ?? defaultProposalContent,
-  );
-
-  // Optional narrative artifacts — table-driven so adding a new artifact
-  // is a single descriptor entry rather than four hand-coded if-blocks.
-  // Mirror of the artifact array in updateChangeArtifacts() — keep in sync.
-  const optionalArtifacts = [
-    {
-      key: "problemStatementPath",
-      content: problemStatementContent,
-      filename: "problem-statement.md",
-    },
-    {
-      key: "agreementPath",
-      content: agreementContent,
-      filename: "agreement.md",
-    },
-    { key: "designPath", content: designContent, filename: "design.md" },
-    {
-      key: "executiveSummaryPath",
-      content: executiveSummaryContent,
-      filename: "executive-summary.md",
-    },
-  ] as const;
-
-  const optionalPaths: {
-    problemStatementPath?: string;
-    agreementPath?: string;
-    designPath?: string;
-    executiveSummaryPath?: string;
-  } = {};
-
-  for (const { key, content, filename } of optionalArtifacts) {
-    if (!content) continue;
-    const filePath = join(changeDir, filename);
-    await atomicWriteFile(filePath, content);
-    optionalPaths[key] = filePath;
-  }
-
   return {
     changePath,
-    proposalPath,
-    ...optionalPaths,
+    documents: {
+      proposal: proposalContent ?? defaultProposalContent,
+      ...(problemStatementContent !== undefined
+        ? { problemStatement: problemStatementContent }
+        : {}),
+      ...(agreementContent !== undefined
+        ? { agreement: agreementContent }
+        : {}),
+      ...(designContent !== undefined ? { design: designContent } : {}),
+      ...(executiveSummaryContent !== undefined
+        ? { executiveSummary: executiveSummaryContent }
+        : {}),
+    },
   };
-}
-
-/**
- * Update any narrative artifact file (proposal.md, problem-statement.md,
- * agreement.md, design.md, executive-summary.md) for an existing change.
- * Does NOT modify change.json — artifact-only update.
- *
- * Content params are optional — only provided files are written; omitted
- * files are left unchanged. Returns file paths for written files on
- * success, or an error message if the change directory does not exist or
- * a write fails.
- */
-export async function updateChangeArtifacts(
-  changesDir: string,
-  changeId: string,
-  artifacts: import("../types").ArtifactPayload,
-): Promise<{
-  proposalPath?: string;
-  problemStatementPath?: string;
-  agreementPath?: string;
-  designPath?: string;
-  executiveSummaryPath?: string;
-  error?: string;
-}> {
-  const proposalContent = artifacts.proposal;
-  const problemStatementContent = artifacts.problemStatement;
-  const agreementContent = artifacts.agreement;
-  const designContent = artifacts.design;
-  const executiveSummaryContent = artifacts.executiveSummary;
-  const changeDir = join(changesDir, changeId);
-
-  // Validate the change directory exists
-  try {
-    await access(changeDir);
-  } catch {
-    return {
-      error: `Change not found: "${changeId}". Cannot update artifacts for a change that does not exist.`,
-    };
-  }
-
-  // Table-driven artifact writes — each entry maps a content param to its
-  // filename and the result-shape key. Mirror of createChangeScaffold's
-  // optionalArtifacts table (plus a proposal entry); keep in sync.
-  const artifactEntries = [
-    {
-      key: "proposalPath",
-      field: "proposal",
-      content: proposalContent,
-      filename: "proposal.md",
-    },
-    {
-      key: "problemStatementPath",
-      field: "problemStatement",
-      content: problemStatementContent,
-      filename: "problem-statement.md",
-    },
-    {
-      key: "agreementPath",
-      field: "agreement",
-      content: agreementContent,
-      filename: "agreement.md",
-    },
-    {
-      key: "designPath",
-      field: "design",
-      content: designContent,
-      filename: "design.md",
-    },
-    {
-      key: "executiveSummaryPath",
-      field: "executiveSummary",
-      content: executiveSummaryContent,
-      filename: "executive-summary.md",
-    },
-  ] as const;
-
-  // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
-  // before any partial write so tool-layer bypasses cannot erase content.
-  const blankFields = artifactEntries
-    .filter(
-      ({ content }) =>
-        content !== undefined &&
-        typeof content === "string" &&
-        content.trim().length === 0,
-    )
-    .map(({ field }) => field);
-  if (blankFields.length > 0) {
-    return {
-      error: `Blank artifact fields are not allowed: ${blankFields.join(", ")}. Omit fields you do not intend to change.`,
-    };
-  }
-
-  const result: {
-    proposalPath?: string;
-    problemStatementPath?: string;
-    agreementPath?: string;
-    designPath?: string;
-    executiveSummaryPath?: string;
-    error?: string;
-  } = {};
-
-  for (const { key, content, filename } of artifactEntries) {
-    if (content === undefined) continue;
-    const filePath = join(changeDir, filename);
-    try {
-      await atomicWriteFile(filePath, content);
-      (result as Record<string, string>)[key] = filePath;
-    } catch (err) {
-      return {
-        ...result,
-        error: `Failed to write ${filename}: ${err instanceof Error ? err.message : String(err)}`,
-      };
-    }
-  }
-
-  return result;
 }
 
 // =============================================================================

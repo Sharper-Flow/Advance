@@ -9,7 +9,7 @@ Gather current-state evidence needed to move from proposal into a shared agreeme
 
 ## Command Boundary
 
-**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives, approved acceptance criteria + success criteria, `agreement.md`, and the typed `ChangeContract` spine minted from approved agreement items.
+**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives, approved acceptance criteria + success criteria, the agreement artifact in `change.documents.agreement`, and the typed `ChangeContract` spine minted from approved agreement items.
 
 **× MUST NOT:** Create tasks, complete non-discovery gates, skip LBP validation when multiple viable directions exist.
 
@@ -286,7 +286,7 @@ Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § 
 
 **Coverage report format:** `Coverage: B:C F:P S:M M:C` (C=Clear, P=Partial, M=Missing, N/A=Not applicable)
 
-**Anti-hallucination rule:** × MUST NOT fabricate evidence quotes — every finding cites verbatim text from proposal.md or `(no {section} section)`.
+**Anti-hallucination rule:** × MUST NOT fabricate evidence quotes — every finding cites verbatim text from the proposal content returned as `_proposal` or `(no {section} section)`.
 
 If scan is clean: emit `### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C`
 
@@ -303,7 +303,7 @@ Search these locations for prior artifacts:
 - Cite each found artifact in the "Extends" section
 - For `/adv-improve`-style research packs, explicitly cite the `Competitors & Alternatives`, `Emerging Patterns`, and `Applicability to This Repo` sections when they are relevant to the discovery's open design questions
 - Add ≥1 new finding not present in the cited artifact
-- Do NOT count change's own `proposal.md` as "prior research" (self-referential)
+- Do NOT count the change's own proposal artifact as "prior research" (self-referential)
 - No prior artifacts → report "No prior research found" (non-blocking). If the discovery agenda includes ecosystem unknowns or viable external alternatives, note that running `/adv-improve {target}` first would produce a reusable research pack.
 
 ### Edge Case Investigation
@@ -348,7 +348,7 @@ Skip this step for purely internal changes (refactors, bug fixes, local doc/test
 After producing the AMBIGUITY ANALYSIS, evaluate findings before proceeding to Phase 3:
 
 1. **Count findings** — count CRITICAL findings + count HIGH findings across all categories (required AND optional)
-2. **Resolution log check** — read `## Clarify Resolution Log` section from proposal.md if present; previously-resolved findings are excluded from current trigger count
+2. **Resolution log check** — read `## Clarify Resolution Log` from proposal content via `adv_change_show include.proposal` if present; previously-resolved findings are excluded from current trigger count
 3. **Classify output noise:**
 
 | Class                  | Condition              | Action                                                                                                                                           |
@@ -369,7 +369,7 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 
 - Use `adv_change_update` to refine proposal content
 - Keep findings concise and decision-oriented
-- Do not create `agreement.md` here
+- Do not persist the agreement projection here
 
 ---
 
@@ -431,7 +431,7 @@ EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit 
 
 ### Phase 4.5: Open Question Resolution Loop
 
-**× MUST NOT skip this phase.** Open questions that require user input must be resolved before `agreement.md` is finalized.
+**× MUST NOT skip this phase.** Open questions that require user input must be resolved before the agreement projection (`change.documents.agreement`) is finalized.
 
 #### Question Triage
 
@@ -510,7 +510,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 ### Phase 4.5.1: Acceptance Criteria Checkpoint (Inline)
 
-**Purpose:** Dedicated checkpoint for acceptance-criteria and success-criteria agreement before `agreement.md` persistence and before the `discovery` gate completes. This separates criteria approval from the broader agreement sign-off that follows in Phase 4.6.
+**Purpose:** Dedicated checkpoint for acceptance-criteria and success-criteria agreement before agreement projection persistence and before the `discovery` gate completes. This separates criteria approval from the broader agreement sign-off that follows in Phase 4.6.
 
 **Requirements:** `rq-disc12` (Explicit Acceptance Criteria Checkpoint), `rq-stageDiscoveryFirmCriteria01` (Discovery Firms Design-Independent Criteria), `rq-stageDiscoveryImplFreeGuard01` (Discovery Criteria Implementation-Free Guard Is Advisory), `rq-inlineApproval01` (Inline Approval at Named Human Checkpoints).
 
@@ -553,7 +553,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
    | Reply                                                  | Action                                                                                                                                                           |
    | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | Trimmed = `/adv-clarify` or `/adv-clarify {change-id}` | Halt cleanly: no `agreement.md` write, no `adv_gate_complete`, return control to user with instruction to rerun `/adv-discover {change-id}` after `/adv-clarify` |
+   | Trimmed = `/adv-clarify` or `/adv-clarify {change-id}` | Halt cleanly: no agreement projection write, no `adv_gate_complete`, return control to user with instruction to rerun `/adv-discover {change-id}` after `/adv-clarify` |
    | Trimmed first token = `/adv-clarify`                   | Same halt branch                                                                                                                                                 |
    | Tier A whitelist match                                 | Approve criteria, proceed to Phase 4.6                                                                                                                           |
    | Anything else                                          | Treat as revision text; normalize into revised criteria bullets and re-run this checkpoint                                                                       |
@@ -600,7 +600,7 @@ Examples:
 
 ### Phase 4.6: Persist Agreement (Inline)
 
-Once criteria are approved at Phase 4.5.1 and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`. The Phase 4.5.1 inline approval is the sign-off — no additional `question` tool prompt.
+Once criteria are approved at Phase 4.5.1 and all open questions are resolved (or explicitly deferred), persist agreement content via `adv_change_update agreement` (`change.documents.agreement`). The Phase 4.5.1 inline approval is the sign-off — no additional `question` tool prompt.
 
 Suggested structure:
 
@@ -638,7 +638,7 @@ Suggested structure:
 
 ### Contract Minting
 
-After Phase 4.5.1 criteria approval and before `discovery` gate completion: call `adv_contract_mint`. Tool parses approved `agreement.md`, validates `ChangeContract`, persists via `contractSetSignal`.
+After Phase 4.5.1 criteria approval and before `discovery` gate completion: call `adv_contract_mint`. Tool parses approved agreement content, validates `ChangeContract`, persists via `contractSetSignal`.
 
 Contract rules:
 
@@ -681,7 +681,7 @@ Agreed objectives + constraints + user decisions.
 
 ## Delivered
 - Discovery findings recorded
-- agreement.md captured
+- Agreement artifact captured
 - Open design questions for /adv-design
 
 ---

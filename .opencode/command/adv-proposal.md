@@ -38,7 +38,7 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
    - **Defect triggers** (route to `/adv-problem` first OR attach RCA inline): "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X"
    - **Non-defect triggers** (proceed normally): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X"
    - **Fallback rule:** unintended behavior → defect; desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3)
-   - **If origin = defect:** the proposal MUST carry a `## Root Cause Analysis` section in proposal.md before the proposal gate completes. RCA shape (reuses `/adv-problem` output):
+   - **If origin = defect:** the proposal MUST carry a `## Root Cause Analysis` section in the proposal artifact (`change.documents.proposal`) before the proposal gate completes. Persist it with `adv_change_update proposal`. RCA shape (reuses `/adv-problem` output):
      ```md
      ## Root Cause Analysis
 
@@ -108,14 +108,14 @@ After confirmation:
    - × Do NOT write engineering acceptance criteria or testable success criteria here. Defer AC/SC firming to `/adv-discover`.
 5. Determine cross-repo scope autonomously from code paths/interfaces/config; ask only if boundary ambiguity changes the intended outcome
 6. Run proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
-7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope`, `### Out of Scope`, and `### Must Not` subsections. Must Not captures negative constraints — things the implementation must actively avoid even within scope. `"None identified"` is valid content. Surface to user inline if In Scope or Out of Scope are empty or missing — block gate completion until populated. Missing Must Not produces HIGH finding but does NOT block gate. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
-8. **Phase 2.6: Run B/F/S Ambiguity Scan** — Read full proposal.md content. Apply 3-category scan per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
+7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in the proposal artifact (`change.documents.proposal`) with `### In Scope`, `### Out of Scope`, and `### Must Not` subsections, persisting via `adv_change_update proposal`. Must Not captures negative constraints — things the implementation must actively avoid even within scope. `"None identified"` is valid content. Surface to user inline if In Scope or Out of Scope are empty or missing — block gate completion until populated. Missing Must Not produces HIGH finding but does NOT block gate. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
+8. **Phase 2.6: Run B/F/S Ambiguity Scan** — Read full proposal content via `adv_change_show include.proposal`. Apply 3-category scan per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
    - B (Boundaries) — check for `### Out of Scope` content and `### Must Not` subsection. Missing Must Not → HIGH finding (does NOT block gate). `"None identified"` accepted as valid content.
    - F (Functional Scope) — check that `## User Outcomes` exists and is implementation-free; this does NOT require testable success criteria
    - S (Completion Signals) — check for vague/unmeasurable language in the proposal and Discovery Agenda
    - Emit findings inline in proposal output (not persisted as section unless any CRITICAL)
    - × MUST NOT call `adv_gate_complete gateId: 'proposal'` if any CRITICAL B/F/S finding exists (agent honor-system rule per KD1; v2 may add machine enforcement)
-   - × MUST NOT fabricate evidence quotes — every finding cites verbatim text from proposal.md or `(no {section} section)`
+   - × MUST NOT fabricate evidence quotes — every finding cites verbatim text from the proposal content returned as `_proposal` or `(no {section} section)`
    - Skip scan if `clarify_enforcement: 'off'`
 
    See `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy` for finding shape, severity rules, and trigger threshold.
@@ -131,7 +131,7 @@ When creating change in a **different project** (e.g. example-product backend cr
 2. Optionally pass `source_project` (auto-detected from current store if omitted) and `source_change_id` to link back to the originating change
 3. The tool automatically:
    - Opens a temporary store for target project
-   - Creates change there with a `## Cross-Project Origin` section in proposal.md
+   - Creates change there with a `## Cross-Project Origin` section in the proposal artifact (`change.documents.proposal`)
    - Persists `cross_project_origin` metadata on change for traceability
 4. Change is created in target project's ADV state — not current project's
 5. Target project's agent picks it up via `/adv-discover` and validates the origin before proceeding

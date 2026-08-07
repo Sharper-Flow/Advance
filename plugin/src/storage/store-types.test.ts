@@ -1,6 +1,5 @@
 /**
- * Type-level tests for `Store.changes.create()` and
- * `Store.changes.updateArtifacts()` post-positional-removal (T20).
+ * Type-level tests for `Store.changes.create()` post-positional-removal (T20).
  *
  * These tests confirm the options-object call shapes typecheck cleanly.
  * Runtime behavior is tested by the disk-store and temporal-store
@@ -52,34 +51,5 @@ describe("Store.changes.create — options-object API", () => {
       },
     ];
     expect(_withMetadata[0]).toBe("title");
-  });
-});
-
-describe("Store.changes.updateArtifacts — options-object API", () => {
-  it("accepts the ArtifactPayload call shape (compile-time)", () => {
-    type UpdateFn = Store["changes"]["updateArtifacts"];
-
-    const _full: Parameters<UpdateFn> = [
-      "change-id",
-      {
-        proposal: "p",
-        problemStatement: "ps",
-        agreement: "a",
-        design: "d",
-        executiveSummary: "es",
-        acceptance: "ac",
-      },
-    ];
-
-    const _partial: Parameters<UpdateFn> = [
-      "change-id",
-      { proposal: "p", executiveSummary: "es" },
-    ];
-
-    const _empty: Parameters<UpdateFn> = ["change-id", {}];
-
-    expect(_full[0]).toBe("change-id");
-    expect(_partial[0]).toBe("change-id");
-    expect(_empty[0]).toBe("change-id");
   });
 });

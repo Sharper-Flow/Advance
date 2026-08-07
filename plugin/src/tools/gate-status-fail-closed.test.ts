@@ -152,7 +152,6 @@ function createMockStore(
       get: vi.fn(async () => ({ success: true, data: change })),
       create: vi.fn(),
       save: vi.fn(),
-      updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
       refresh: vi.fn(async () => undefined),

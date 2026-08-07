@@ -19,7 +19,7 @@ Investigate a bug, failure, or confusing behavior before deciding whether it is 
 
 **Creates nothing.** Does not mutate ADV state.
 
-**Persistence:** Conversational triage; RCA carries forward via `## Root Cause Analysis` in proposal.md when defect path taken, otherwise ephemeral.
+**Persistence:** Conversational triage; RCA carries forward via `## Root Cause Analysis` in the proposal projection (`change.documents.proposal`) through `adv_change_update proposal` when defect path taken, otherwise ephemeral.
 
 **× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation. This command does not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly.
 

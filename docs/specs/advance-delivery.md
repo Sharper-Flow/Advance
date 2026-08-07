@@ -1092,7 +1092,7 @@ When a change carries release_notes data, the authoritative archive bundle write
 **Then:**
 - The bundle contains release-notes.json with schema_version, change_id, title, and release_notes
 - The envelope validates against the published release-notes schema
-- Existing change.json and executive-summary.md content is unchanged
+- Existing change.json and change.documents.executiveSummary content is unchanged
 
 **Absent data emits no sidecar** (`rq-releaseNotesSidecar01.2`)
 

@@ -1,6 +1,5 @@
-import { join } from "node:path";
 import type { Store } from "./store";
-import { loadProposalWithFallback } from "./json";
+import { loadProposalForSnapshot } from "./proposal-read";
 import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
@@ -10,28 +9,6 @@ import {
 import { resolveResumeFreshness } from "./resume-freshness-resolver";
 import { RESUME_FRESHNESS_TRIGGER_MINUTES } from "./resume-freshness-resolver";
 import type { Change } from "../types";
-
-/**
- * Resolve proposal content for a change from its persisted documents before
- * falling back to disk + scaffold via `loadProposalWithFallback`.
- *
- * Keeps the context-snapshot helpers free from a tool-layer import while
- * still keeping context-snapshot helpers free from tool-layer imports.
- */
-async function loadProposalForSnapshot(
-  store: Store,
-  change: Change,
-): Promise<{ content: string; warning?: string }> {
-  const persistedContent = change.documents?.proposal;
-  if (typeof persistedContent === "string" && persistedContent.length > 0) {
-    return { content: persistedContent };
-  }
-  const changeDir = join(store.paths.changes, change.id);
-  return loadProposalWithFallback(changeDir, change.title, {
-    archiveDir: join(store.paths.root, ".adv", "archive"),
-    changeId: change.id,
-  });
-}
 
 export async function fetchChangeContextSnapshot(
   store: Store,

@@ -520,6 +520,83 @@ describe("contract archive traceability", () => {
     });
   });
 
+  // KD1 (#403): archive sources narrative .md from the projection; the
+  // sourceChangeDir copy only fills kinds absent from the projection (legacy).
+  describe("projection-sourced narrative archive (KD1, #403)", () => {
+    test("writes agreement.md from change.documents when no source dir is provided", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const change = changeWithContract({
+        id: "projection-only",
+        status: "active",
+        documents: { agreement: "# Agreement\n\nFrom the projection." },
+      });
+
+      const archivePath = await createInRepoArchive(change, archiveDir);
+
+      expect(existsSync(join(archivePath, "agreement.md"))).toBe(true);
+      await expect(
+        readFile(join(archivePath, "agreement.md"), "utf-8"),
+      ).resolves.toContain("From the projection.");
+    });
+
+    test("projection content wins over stale active-dir .md for a transitional change", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const sourceChangeDir = join(root, "changes", "transitional");
+      await mkdir(sourceChangeDir, { recursive: true });
+      // Stale on-disk agreement from before the projection-canonical update.
+      await writeFile(
+        join(sourceChangeDir, "agreement.md"),
+        "# Agreement\n\nSTALE disk content.",
+      );
+      const change = changeWithContract({
+        id: "transitional",
+        status: "active",
+        documents: { agreement: "# Agreement\n\nCURRENT projection content." },
+      });
+
+      const archivePath = await createInRepoArchive(
+        change,
+        archiveDir,
+        sourceChangeDir,
+      );
+
+      const bundled = await readFile(
+        join(archivePath, "agreement.md"),
+        "utf-8",
+      );
+      expect(bundled).toContain("CURRENT projection content.");
+      expect(bundled).not.toContain("STALE disk content.");
+    });
+
+    test("legacy change with on-disk .md and empty projection still archives the disk content", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const sourceChangeDir = join(root, "changes", "legacy-disk");
+      await mkdir(sourceChangeDir, { recursive: true });
+      await writeFile(
+        join(sourceChangeDir, "agreement.md"),
+        "# Agreement\n\nLegacy on-disk only.",
+      );
+      // No documents in projection (pre-cutover legacy change).
+      const change = changeWithContract({
+        id: "legacy-disk",
+        status: "active",
+      });
+
+      const archivePath = await createInRepoArchive(
+        change,
+        archiveDir,
+        sourceChangeDir,
+      );
+
+      await expect(
+        readFile(join(archivePath, "agreement.md"), "utf-8"),
+      ).resolves.toContain("Legacy on-disk only.");
+    });
+  });
+
   describe("release-notes archive sidecar", () => {
     const releaseNotes = {
       audience: "external" as const,
