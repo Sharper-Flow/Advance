@@ -73,6 +73,7 @@ import {
   normalizeProjectionDocument,
   readBoundedProjectionDocument,
 } from "./change-projection-reader";
+import { publishSummaryForChange } from "./change-summary-shard";
 import {
   listActiveEpicProjections,
   listRetiredEpicProjections,
@@ -96,6 +97,19 @@ import { createEpicDiskOps } from "./epics-disk";
 import { migrateArtifactMetadataProjections } from "./artifact-metadata-migration";
 
 const logger = createLogger("store-disk");
+
+async function persistChangeProjection(
+  paths: { changes: string; summariesDir: string },
+  change: Change,
+  operationId?: string,
+): Promise<void> {
+  await saveChange(paths.changes, change);
+  await publishSummaryForChange(
+    { changesDir: paths.changes, summariesDir: paths.summariesDir },
+    change,
+    operationId,
+  );
+}
 
 let lastMonotonicTs = 0;
 let monotonicSeq = 0;
@@ -550,7 +564,7 @@ export async function createDiskStore(
             ? { epic_membership: initialMetadata.epic_membership }
             : {}),
         } as Change;
-        await saveChange(paths.changes, change);
+        await persistChangeProjection(paths, change, `create:${changeId}`);
 
         return {
           changeId,
@@ -564,7 +578,7 @@ export async function createDiskStore(
       },
 
       save: async (change: Change) => {
-        await saveChange(paths.changes, change);
+        await persistChangeProjection(paths, change);
       },
 
       updateArtifacts: async (changeId, artifacts) => {
@@ -608,7 +622,7 @@ export async function createDiskStore(
         }
         result.data.status = "closed";
         result.data.closure = closure;
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return result.data;
       },
 
@@ -665,7 +679,7 @@ export async function createDiskStore(
             }
             result.data.status = "closed";
             result.data.closure = closure;
-            await saveChange(paths.changes, result.data);
+            await persistChangeProjection(paths, result.data);
             results.push({ changeId: id, success: true });
             closed++;
           } catch (e) {
@@ -700,7 +714,7 @@ export async function createDiskStore(
         const result = await loadChange(paths.changes, changeId);
         if (!result.success || !result.data) return null;
         result.data.epic_membership = membership;
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return result.data;
       },
       clearEpicMembership: async (changeId, { expected }) => {
@@ -717,14 +731,14 @@ export async function createDiskStore(
           );
         }
         delete result.data.epic_membership;
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return result.data;
       },
       setReleaseNotes: async (changeId, { release_notes }) => {
         const result = await loadChange(paths.changes, changeId);
         if (!result.success || !result.data) return null;
         result.data.release_notes = release_notes;
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return result.data;
       },
     },
@@ -832,7 +846,7 @@ export async function createDiskStore(
           if (typeof touchedFiles !== "undefined") {
             task.touched_files = touchedFiles;
           }
-          await saveChange(paths.changes, result.data);
+          await persistChangeProjection(paths, result.data);
           return task;
         }
         return null;
@@ -861,7 +875,7 @@ export async function createDiskStore(
             : {}),
         } as Task;
         result.data.tasks.push(task);
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return task;
       },
       get: async (taskId) => {
@@ -894,7 +908,7 @@ export async function createDiskStore(
           task.status = "cancelled";
           task.cancellation = cancellation;
           task.completed_at = new Date().toISOString();
-          await saveChange(paths.changes, result.data);
+          await persistChangeProjection(paths, result.data);
           return task;
         }
         return null;
@@ -911,7 +925,7 @@ export async function createDiskStore(
             tdd_intent: reclassification.to_intent,
           };
           task.tdd_reclassification = reclassification;
-          await saveChange(paths.changes, result.data);
+          await persistChangeProjection(paths, result.data);
           return task;
         }
         return null;
@@ -936,7 +950,7 @@ export async function createDiskStore(
           ...origin,
         });
         result.data.wisdom = [...(result.data.wisdom ?? []), entry];
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return entry;
       },
       list: async (changeId) => {
@@ -1067,7 +1081,7 @@ export async function createDiskStore(
           ...deltas,
           [capability]: [...(deltas[capability] ?? []), delta],
         };
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return delta;
       },
       modify: async (changeId, capability, delta: DeltaModify, _options) => {
@@ -1103,7 +1117,7 @@ export async function createDiskStore(
           ...deltas,
           [capability]: [...(deltas[capability] ?? []), delta],
         };
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return delta;
       },
       amend: async (changeId, capability, deltaId, delta: Delta, _options) => {
@@ -1134,7 +1148,7 @@ export async function createDiskStore(
         const nextEntries = [...capabilityEntries];
         nextEntries[index] = delta;
         result.data.deltas = { ...deltas, [capability]: nextEntries };
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return delta;
       },
       retract: async (changeId, capability, deltaId, _options) => {
@@ -1162,7 +1176,7 @@ export async function createDiskStore(
           ...capabilityEntries.slice(index + 1),
         ];
         result.data.deltas = { ...deltas, [capability]: nextEntries };
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
       },
       remove: async (changeId, capability, delta: DeltaRemove, _options) => {
         if (!CAPABILITY_KEY_PATTERN.test(capability)) {
@@ -1197,7 +1211,7 @@ export async function createDiskStore(
           ...deltas,
           [capability]: [...(deltas[capability] ?? []), delta],
         };
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return delta;
       },
       rename: async (changeId, capability, delta: DeltaRename, _options) => {
@@ -1224,7 +1238,7 @@ export async function createDiskStore(
           ...deltas,
           [capability]: [...(deltas[capability] ?? []), delta],
         };
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
         return delta;
       },
     },
@@ -1249,7 +1263,7 @@ export async function createDiskStore(
           ...(notes ? { notes } : {}),
         } as NonNullable<Change["gates"]>[typeof gateId];
         result.data.gates = gates;
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
       },
       reopenFrom: async (
         changeId,
@@ -1311,7 +1325,7 @@ export async function createDiskStore(
             gates_reset: resetGates,
           },
         ];
-        await saveChange(paths.changes, result.data);
+        await persistChangeProjection(paths, result.data);
       },
     },
 

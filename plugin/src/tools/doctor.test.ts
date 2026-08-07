@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { doctorTools, setDoctorPointerRepairProvider } from "./doctor";
 import type { Store } from "../storage/store";
+import { ChangeSchema } from "../types";
+import { SAMPLE_CHANGE } from "../__tests__/setup";
 
 const mockGetWorktreeCensus = vi.hoisted(() => vi.fn());
 const mockScanSnapshotHealth = vi.hoisted(() => vi.fn());
@@ -107,6 +109,70 @@ describe("adv_doctor disk diagnostics", () => {
         }),
       ]),
     );
+  });
+
+  test("canonical revision/task count ahead of legacy state is unhealthy", async () => {
+    const changeId = "promotePptPricesCanonical";
+    const canonical = ChangeSchema.parse({
+      ...SAMPLE_CHANGE,
+      id: changeId,
+      status: "draft",
+      lifecycleState: "open",
+      projection_revision: 21,
+      state_revision: 21,
+      tasks: Array.from({ length: 12 }, (_, i) => ({
+        id: `tk-${i}`,
+        title: `Task ${i}`,
+        type: "code",
+        status: "pending",
+        priority: i,
+        created_at: "2026-07-23T10:00:00.000Z",
+      })),
+    });
+    await mkdir(join(root, "changes", changeId), { recursive: true });
+    await writeFile(
+      join(root, "changes", changeId, "change.json"),
+      JSON.stringify(canonical),
+    );
+    await writeFile(
+      join(root, "changes", `${changeId}.json`),
+      JSON.stringify({
+        state: { tasks: [], projection_revision: 0, state_revision: 0 },
+      }),
+    );
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
+    );
+    expect(parsed.success).toBe(false);
+    expect(parsed.verification.healthy).toBe(false);
+    expect(parsed.verification.canonical_projection_consistent).toBe(false);
+    expect(parsed.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          finding: "canonical_projection_divergence",
+        }),
+      ]),
+    );
+  });
+
+  test("reclaims a retired worker.lock only when its PID is dead", async () => {
+    const lockDir = join(root, "external", "project-id");
+    await mkdir(lockDir, { recursive: true });
+    const lockPath = join(lockDir, "worker.lock");
+    await writeFile(lockPath, JSON.stringify({ pid: 999999999 }));
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
+    );
+    expect(parsed.fixes_applied).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "remove_dead_worker_lock" }),
+      ]),
+    );
+    await expect(
+      import("fs/promises").then((m) => m.access(lockPath)),
+    ).rejects.toThrow();
   });
 
   test("confirmed-absent active pointer is cleared and verified", async () => {

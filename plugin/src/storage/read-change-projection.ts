@@ -14,26 +14,29 @@ export function readChangeProjectionState(
   changesDir: string,
   changeId: string,
 ): ChangeState | null {
-  // Current projections live at <changesDir>/<changeId>/change.json. Retain
-  // the former flat-file location solely for historical projections. Reading
-  // only the legacy path made a just-verified checkpoint appear unreadable,
-  // even though the transaction had committed the canonical projection.
-  const projectionPaths = [
-    join(changesDir, changeId, "change.json"),
-    join(changesDir, `${changeId}.json`),
-  ];
-  for (const projectionPath of projectionPaths) {
-    try {
-      const raw = JSON.parse(readFileSync(projectionPath, "utf8")) as {
-        state?: unknown;
-      } | null;
-      if (!raw || typeof raw !== "object") continue;
-      return (raw.state ?? raw) as ChangeState;
-    } catch {
-      // Try the legacy projection location only when the canonical path cannot
-      // be read. A caller receives null only after neither durable path yields
-      // a usable object.
-    }
+  const canonicalPath = join(changesDir, changeId, "change.json");
+
+  // Canonical state is authoritative. A present-but-invalid canonical file is
+  // a degraded read, not permission to resurrect a stale flat envelope.
+  try {
+    const raw = JSON.parse(readFileSync(canonicalPath, "utf8")) as {
+      state?: unknown;
+    } | null;
+    if (!raw || typeof raw !== "object") return null;
+    return (raw.state ?? raw) as ChangeState;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") return null;
   }
-  return null;
+
+  // Flat envelopes are historical read compatibility only and are consulted
+  // when the canonical projection does not exist.
+  try {
+    const raw = JSON.parse(
+      readFileSync(join(changesDir, `${changeId}.json`), "utf8"),
+    ) as { state?: unknown } | null;
+    if (!raw || typeof raw !== "object") return null;
+    return (raw.state ?? raw) as ChangeState;
+  } catch {
+    return null;
+  }
 }

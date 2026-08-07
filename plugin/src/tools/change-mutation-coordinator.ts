@@ -6,11 +6,10 @@
  * then verified from the durable readback before the result is returned.
  */
 
-import {
-  commitChangeProjection,
-  type ProjectionCommitOutcome,
-  type ProjectionCommitVerifyResult,
-} from "../storage/change-projection-transaction";
+import { commitChangeProjectionWithSummary } from "../storage/change-summary-shard";
+import type { ProjectionCommitVerifyResult } from "../storage/change-projection-transaction";
+import { createHash, randomUUID } from "node:crypto";
+import { dirname, join } from "node:path";
 import type { Change, ProjectionCommitAuditEntry } from "../types";
 
 export interface DiskMutationAuthorization {
@@ -82,10 +81,19 @@ async function executeDiskPath<T>({
     };
   }
 
-  const commit = await commitChangeProjection({
-    changesDir,
+  const operationId = `mutation:${intent.mutationKind}:${intent.changeId}:${randomUUID()}`;
+  const payloadHash = createHash("sha256")
+    .update(`${operationId}:${authority.reason}:${authority.evidence}`)
+    .digest("hex");
+  const commit = await commitChangeProjectionWithSummary({
+    paths: {
+      changesDir,
+      summariesDir: join(dirname(changesDir), "summaries"),
+    },
     changeId: intent.changeId,
     expectedRevision,
+    operationId,
+    payloadHash,
     authority: {
       kind: authority.kind ?? "mutation",
       reason: authority.reason,
@@ -96,74 +104,34 @@ async function executeDiskPath<T>({
     verify: ({ readback }) => intent.verifyProjection(readback),
   });
 
-  return mapCommitOutcome(commit) as MutationOutcome<T>;
-}
-
-type CommitMappedOutcome =
-  | Extract<MutationOutcome<unknown>, { kind: "verified" }>
-  | Extract<MutationOutcome<unknown>, { kind: "unverified" }>
-  | Extract<MutationOutcome<unknown>, { kind: "stale_revision" }>
-  | Extract<MutationOutcome<unknown>, { kind: "operator_required" }>;
-
-function mapCommitOutcome(
-  commit: ProjectionCommitOutcome,
-): CommitMappedOutcome {
-  switch (commit.kind) {
-    case "committed":
-      return {
-        kind: "verified",
-        value: commit.readback,
-        revision: commit.revision,
-        audit: commit.audit,
-      };
-    case "committed_unverified":
-      return {
-        kind: "unverified",
-        reason: commit.postconditionError,
-        audit: commit.audit,
-      };
-    case "stale_revision":
-      return {
-        kind: "stale_revision",
-        expected: commit.expected,
-        actual: commit.actual,
-      };
-    case "lock_timeout":
-      return {
-        kind: "operator_required",
-        reason: `Projection lock timeout at ${commit.lockPath} (${commit.timeoutMs}ms).`,
-      };
-    case "schema_error":
-      return {
-        kind: "operator_required",
-        reason: `Projection schema error: ${commit.error}`,
-      };
-    case "write_error":
-      return {
-        kind: "operator_required",
-        reason: `Projection write error: ${commit.error}`,
-      };
-    case "state_regression":
-      return {
-        kind: "operator_required",
-        reason: `Projection state regression: expected ${commit.expected}, actual ${commit.actual}.`,
-      };
-    case "state_revision_conflict":
-      return {
-        kind: "operator_required",
-        reason: `Projection state revision conflict at ${commit.stateRevision}: ${commit.reason}`,
-      };
-    case "operation_conflict":
-      return {
-        kind: "operator_required",
-        reason: `Projection operation conflict for ${commit.operationId}: payload hash differs.`,
-      };
-    case "operator_required":
-      return { kind: "operator_required", reason: commit.reason };
-    default:
-      return {
-        kind: "operator_required",
-        reason: `Projection commit returned unhandled outcome kind ${(commit as { kind: string }).kind}.`,
-      };
+  if (
+    (commit.kind === "committed" || commit.kind === "idempotent") &&
+    commit.value &&
+    commit.audit &&
+    commit.revision !== undefined
+  ) {
+    return {
+      kind: "verified",
+      value: commit.value as T,
+      revision: commit.revision,
+      audit: commit.audit,
+    };
   }
+  if (commit.kind === "error" && commit.value && commit.audit) {
+    return {
+      kind: "unverified",
+      reason: commit.error ?? "Summary projection publication failed.",
+      audit: commit.audit,
+    };
+  }
+  if (commit.kind === "conflict") {
+    return {
+      kind: "operator_required",
+      reason: commit.error ?? "Projection summary commit conflicted.",
+    };
+  }
+  return {
+    kind: "operator_required",
+    reason: commit.error ?? "Projection summary commit failed.",
+  };
 }

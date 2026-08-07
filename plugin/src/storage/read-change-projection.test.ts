@@ -47,4 +47,37 @@ describe("readChangeProjectionState", () => {
       tasks: [{ id: "tk-legacy" }],
     });
   });
+
+  it("prefers canonical state over a stale flat envelope", async () => {
+    const changesDir = await makeChangesDir();
+    const changeId = "canonical-wins";
+    await mkdir(join(changesDir, changeId), { recursive: true });
+    await writeFile(
+      join(changesDir, changeId, "change.json"),
+      JSON.stringify({
+        tasks: Array.from({ length: 12 }, (_, i) => ({ id: `tk-${i}` })),
+      }),
+    );
+    await writeFile(
+      join(changesDir, `${changeId}.json`),
+      JSON.stringify({ state: { tasks: [] } }),
+    );
+
+    expect(readChangeProjectionState(changesDir, changeId)?.tasks).toHaveLength(
+      12,
+    );
+  });
+
+  it("does not fall back to a stale flat envelope when canonical JSON is degraded", async () => {
+    const changesDir = await makeChangesDir();
+    const changeId = "canonical-degraded";
+    await mkdir(join(changesDir, changeId), { recursive: true });
+    await writeFile(join(changesDir, changeId, "change.json"), "not-json");
+    await writeFile(
+      join(changesDir, `${changeId}.json`),
+      JSON.stringify({ state: { tasks: [{ id: "stale" }] } }),
+    );
+
+    expect(readChangeProjectionState(changesDir, changeId)).toBeNull();
+  });
 });

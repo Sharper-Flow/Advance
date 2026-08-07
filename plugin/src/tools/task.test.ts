@@ -1,11 +1,14 @@
 /** Task read and filter semantics against the disk projection. */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { taskTools } from "./task";
 import type { Store, Task } from "../types";
+import { ChangeSchema } from "../types";
+import { SAMPLE_CHANGE } from "../__tests__/setup";
+import { loadChange } from "../storage/change-projection-reader";
 
 const tasks: Task[] = [
   {
@@ -116,6 +119,108 @@ describe("task tools — disk projection", () => {
         await taskTools.adv_task_show.execute({ taskId: "tk-missing" }, store),
       );
       expect(parsed.error).toBe("Task not found: tk-missing");
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("task add/list/show and blockedBy use canonical state despite stale flat data", async () => {
+    const root = await createTempDir("adv-task-canonical-");
+    const changeDir = join(root, "changes");
+    const changeId = "canonical-task-change";
+    const canonical = ChangeSchema.parse({
+      ...SAMPLE_CHANGE,
+      id: changeId,
+      title: "Canonical task change",
+      status: "draft",
+      lifecycleState: "open",
+      gates: {
+        proposal: { status: "pending" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      },
+      tasks: [
+        {
+          id: "tk-canonical",
+          title: "Canonical blocker",
+          type: "code",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      projection_revision: 0,
+      state_revision: 0,
+    });
+    try {
+      await mkdir(join(changeDir, changeId), { recursive: true });
+      await writeFile(
+        join(changeDir, changeId, "change.json"),
+        JSON.stringify(canonical),
+      );
+      await writeFile(
+        join(changeDir, `${changeId}.json`),
+        JSON.stringify({ state: { tasks: [] } }),
+      );
+      const store = {
+        paths: { root, changes: changeDir },
+        config: null,
+        changes: {
+          get: async () => loadChange(changeDir, changeId),
+          list: async () => ({
+            changes: [
+              { id: changeId, title: canonical.title, status: "draft" },
+            ],
+          }),
+        },
+        gates: {
+          get: async () => canonical.gates,
+        },
+        wisdom: { search: async () => [] },
+      } as unknown as Store;
+
+      const add = JSON.parse(
+        await taskTools.adv_task_add.execute(
+          {
+            changeId,
+            content: "Canonical dependent task",
+            type: "docs",
+            blockedBy: ["tk-canonical"],
+          },
+          store,
+        ),
+      );
+      expect(add.error).toBeUndefined();
+      expect(add.task.deps).toEqual([
+        { type: "blocked_by", target: "tk-canonical" },
+      ]);
+      const summaryPointer = JSON.parse(
+        await readFile(
+          join(root, "summaries", changeId, "current.json"),
+          "utf8",
+        ),
+      );
+      const summaryShard = JSON.parse(
+        await readFile(summaryPointer.shard_path, "utf8"),
+      );
+      expect(summaryPointer.projection_revision).toBe(1);
+      expect(summaryShard.task_count).toBe(2);
+
+      const listed = JSON.parse(
+        await taskTools.adv_task_list.execute({ changeId }, store),
+      );
+      expect(listed.tasks).toHaveLength(2);
+      const shown = JSON.parse(
+        await taskTools.adv_task_show.execute(
+          { taskId: "tk-canonical" },
+          store,
+        ),
+      );
+      expect(shown.task.id).toBe("tk-canonical");
     } finally {
       await cleanupTempDir(root);
     }

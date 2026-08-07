@@ -1,24 +1,13 @@
 #!/usr/bin/env bun
-/**
- * Generate the ten-agent concurrency evidence report.
- *
- * Usage:
- *   bun scripts/generate-concurrency-evidence-report.ts [--out <path>]
- *
- * Defaults to docs/ten-agent-concurrency-evidence.md.
- *
- * This script is read-only: it samples existing session DBs, process metadata,
- * and (optionally) Temporal workflow visibility. It does not start sessions,
- * workflows, or synthetic load.
- */
+/** Generate current disk-only ten-agent concurrency evidence. */
 
-import { writeFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
-  collectConcurrencyEvidence,
-  renderMarkdownReport,
-} from "../plugin/src/utils/concurrency-evidence-collector";
+  renderDiskStressReport,
+  runDiskConcurrencyStress,
+} from "./disk-concurrency-stress";
 
 async function main() {
   const outFlag = process.argv.findIndex((a) => a === "--out");
@@ -27,9 +16,9 @@ async function main() {
       ? resolve(process.argv[outFlag + 1])
       : resolve(process.cwd(), "docs", "ten-agent-concurrency-evidence.md");
 
-  const report = await collectConcurrencyEvidence();
-  const markdown = renderMarkdownReport(report);
-  writeFileSync(outPath, markdown, "utf8");
+  const report = await runDiskConcurrencyStress();
+  const markdown = renderDiskStressReport(report);
+  await writeFile(outPath, markdown, "utf8");
   console.log(JSON.stringify({ outPath, checkedAt: report.checkedAt }));
 }
 

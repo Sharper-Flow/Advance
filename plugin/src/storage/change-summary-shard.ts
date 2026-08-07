@@ -143,12 +143,15 @@ export interface CommitChangeSummaryOptions extends Omit<
   paths: SummaryIndexPaths;
   operationId: string;
   payloadHash: string;
-  stateRevision: number;
+  stateRevision?: number;
 }
 
 export interface CommitChangeSummaryOutcome {
   kind: "committed" | "idempotent" | "conflict" | "error";
   snapshotRevision?: number;
+  value?: Change;
+  revision?: number;
+  audit?: import("../types").ProjectionCommitAuditEntry;
   shard?: ChangeSummaryShard;
   pointer?: ChangeSummaryPointer;
   error?: string;
@@ -231,6 +234,42 @@ export function summaryPaths(paths: SummaryIndexPaths, changeId: string) {
   };
 }
 
+/**
+ * Publish one summary shard and pointer from an already-written canonical
+ * change projection. This is the sole summary materializer used by commits,
+ * creation bootstrap, and bounded rebuild; it never reads a flat envelope.
+ */
+export async function publishSummaryForChange(
+  paths: SummaryIndexPaths,
+  change: Change,
+  operationId?: string,
+): Promise<{ shard: ChangeSummaryShard; pointer: ChangeSummaryPointer }> {
+  const summary = summaryPaths(paths, change.id);
+  const projectionRevision = change.projection_revision ?? 0;
+  const resolvedOperationId =
+    operationId ?? change.projection_commits?.at(-1)?.operation_id ?? "rebuild";
+  const shard = deriveSummaryShard(
+    change,
+    resolvedOperationId,
+    projectionRevision,
+  );
+  const shardPath = join(summary.revDir, `${projectionRevision}.json`);
+  const pointer: ChangeSummaryPointer = {
+    schema_version: 1,
+    change_id: change.id,
+    state_revision: shard.state_revision,
+    projection_revision: projectionRevision,
+    operation_id: resolvedOperationId,
+    shard_path: shardPath,
+    snapshot_path: summary.snapshotPath,
+    committed_at: new Date().toISOString(),
+  };
+
+  await atomicWriteFile(shardPath, JSON.stringify(shard, null, 2));
+  await atomicWriteFile(summary.pointerPath, JSON.stringify(pointer, null, 2));
+  return { shard, pointer };
+}
+
 function isPathUnder(base: string, target: string): boolean {
   const normalizedBase = base.endsWith("/") ? base : `${base}/`;
   return target.startsWith(normalizedBase);
@@ -255,26 +294,12 @@ export async function commitChangeProjectionWithSummary(
 
   const afterCommit: ProjectionCommitAfterCommit = async ({ readback }) => {
     const projectionRevision = readback.projection_revision ?? 0;
-    // Shard is keyed by projection revision so every accepted mutation gets a
-    // distinct immutable file while staying aligned with the snapshot revision.
-    const shardPath = join(summary.revDir, `${projectionRevision}.json`);
-    const shard = deriveSummaryShard(readback, operationId, projectionRevision);
-    const pointer: ChangeSummaryPointer = {
-      schema_version: 1,
-      change_id: changeId,
-      state_revision: shard.state_revision,
-      projection_revision: projectionRevision,
-      operation_id: operationId,
-      shard_path: shardPath,
-      snapshot_path: summary.snapshotPath,
-      committed_at: new Date().toISOString(),
-    };
-
-    await atomicWriteFile(shardPath, JSON.stringify(shard, null, 2));
-    await atomicWriteFile(
-      summary.pointerPath,
-      JSON.stringify(pointer, null, 2),
+    const { shard, pointer } = await publishSummaryForChange(
+      paths,
+      readback,
+      operationId,
     );
+    const shardPath = pointer.shard_path;
 
     // Readback proof: confirm shard and pointer are durable and consistent.
     const pointerReadback = await readBoundedSummaryJson(
@@ -385,6 +410,9 @@ export async function commitChangeProjectionWithSummary(
       return {
         kind: outcome.idempotent ? "idempotent" : "committed",
         snapshotRevision: outcome.revision,
+        value: outcome.value,
+        revision: outcome.revision,
+        audit: outcome.audit,
         shard: shardRead.data,
         pointer: pointerRead.data,
       };
@@ -392,6 +420,9 @@ export async function commitChangeProjectionWithSummary(
     case "committed_unverified":
       return {
         kind: "error",
+        value: outcome.value,
+        revision: outcome.revision,
+        audit: outcome.audit,
         error: `Snapshot committed but summary shard/pointer unverified: ${outcome.postconditionError}`,
       };
     case "stale_revision":
@@ -621,28 +652,7 @@ export async function rebuildSummaryIndex(paths: SummaryIndexPaths): Promise<
       continue;
     }
     const change = loaded.data;
-    const operationId =
-      change.projection_commits?.at(-1)?.operation_id ?? "rebuild";
-    const projectionRevision = change.projection_revision ?? 0;
-    const shard = deriveSummaryShard(change, operationId, projectionRevision);
-    const summary = summaryPaths(paths, changeId);
-    const shardPath = join(summary.revDir, `${projectionRevision}.json`);
-    const pointer: ChangeSummaryPointer = {
-      schema_version: 1,
-      change_id: changeId,
-      state_revision: shard.state_revision,
-      projection_revision: projectionRevision,
-      operation_id: operationId,
-      shard_path: shardPath,
-      snapshot_path: summary.snapshotPath,
-      committed_at: new Date().toISOString(),
-    };
-
-    await atomicWriteFile(shardPath, JSON.stringify(shard, null, 2));
-    await atomicWriteFile(
-      summary.pointerPath,
-      JSON.stringify(pointer, null, 2),
-    );
+    await publishSummaryForChange(paths, change);
     rebuilt++;
   }
 

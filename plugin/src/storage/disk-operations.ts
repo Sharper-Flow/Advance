@@ -8,13 +8,11 @@
  * operation-specific exception.
  */
 
-import { mkdir, readFile, stat, unlink } from "fs/promises";
+import { mkdir, readFile, stat } from "fs/promises";
 import { join, normalize, isAbsolute, resolve, dirname, sep } from "path";
 import { createHash } from "crypto";
 
 import { atomicWriteFile } from "../utils/fs";
-import { createLogger } from "../utils/debug-log";
-import { buildLauncherProjection } from "../storage/launcher-projection";
 import {
   listSpecsFilesystem,
   readSpecFilesystem,
@@ -23,18 +21,8 @@ import {
   type ShowSpecInput,
   type ShowSpecResult,
 } from "../storage/spec-filesystem";
-import {
-  deriveSummaryShard,
-  summaryPaths,
-  type SummaryIndexPaths,
-} from "../storage/change-summary-shard-reader";
 import type { ChangeState } from "../types/change-state";
 import { CHANGE_BRANCH_PREFIX } from "../types";
-import {
-  ChangeStatusSchema,
-  normalizeLegacyChangeStatus,
-  type Change,
-} from "../types";
 import { renderBriefSummary } from "../utils/archive-summary";
 import { applySpecDelta } from "../utils/spec-deltas";
 import { appendWisdom } from "../utils/wisdom-append";
@@ -43,8 +31,6 @@ import {
   ArchiveProjectionProofReceiptSchema,
   type ArchiveProjectionProofReceipt,
 } from "../types";
-
-const logger = createLogger("disk-operations");
 
 // =============================================================================
 // Disk artifact operations
@@ -409,160 +395,6 @@ export async function crossRepoArtifact(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `Write failed: ${message}` };
-  }
-}
-
-// =============================================================================
-// Change projection operations
-// =============================================================================
-
-export interface WriteChangeProjectionInput {
-  /** External mutable-state changes dir: `$stateRoot/{projectId}/changes`. */
-  projectionChangesDir: string;
-  /** Full in-memory workflow state to expose to external readers. */
-  state: ChangeState;
-  /** Deterministic workflow timestamp for idempotent payload rendering. */
-  projectedAt: string;
-}
-
-export type WriteChangeProjectionResult =
-  | { ok: true; path: string }
-  | { ok: false; error: string; path?: undefined };
-
-export interface DeleteActiveProjectionInput {
-  projectionChangesDir: string;
-  changeId: string;
-}
-
-export type DeleteActiveProjectionResult =
-  | { ok: true; path: string; deleted: boolean }
-  | { ok: false; error: string; path?: undefined; deleted?: undefined };
-
-function projectionPath(
-  projectionChangesDir: string,
-  changeId: string,
-): string {
-  return join(projectionChangesDir, `${changeId}.json`);
-}
-
-/**
- * Write the external-reader projection for a signal-driven change workflow.
- *
- * Workflow history remains authoritative; this JSON file is a downstream cache
- * for humans, conformance CI, and migration tooling. Shape is intentionally
- * wrapper-first (`schemaVersion: 2`) so future projection changes can evolve
- * without pretending this is the workflow state contract itself.
- */
-export async function writeChangeProjection(
-  input: WriteChangeProjectionInput,
-): Promise<WriteChangeProjectionResult> {
-  const path = projectionPath(input.projectionChangesDir, input.state.changeId);
-  try {
-    await atomicWriteFile(
-      path,
-      `${JSON.stringify(
-        {
-          schemaVersion: 2,
-          projectId: input.state.projectId,
-          changeId: input.state.changeId,
-          projectedAt: input.projectedAt,
-          state: input.state,
-        },
-        null,
-        2,
-      )}\n`,
-    );
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `Projection write failed: ${message}` };
-  }
-
-  // Canonical post-pointer aggregate producer: publish an immutable summary
-  // shard and atomic per-change pointer, then rebuild the launcher aggregate
-  // solely from the durable summary pointers. The per-change wrapper projection
-  // remains authoritative; the aggregate and pointer are downstream caches and
-  // must not fail the activity or change the return value.
-  try {
-    const externalRoot = dirname(input.projectionChangesDir);
-    const summariesDir = join(externalRoot, "summaries");
-    const paths: SummaryIndexPaths = {
-      changesDir: input.projectionChangesDir,
-      summariesDir,
-    };
-    const summary = summaryPaths(paths, input.state.changeId);
-    await mkdir(summary.changeDir, { recursive: true });
-    await mkdir(summary.revDir, { recursive: true });
-
-    const projectionRevision = input.state.state_revision ?? 0;
-    const stateRevision = input.state.state_revision ?? 0;
-    const operationId = `projection:${input.state.changeId}:${input.state.lastSignalAt ?? input.projectedAt}`;
-
-    const normalizedStatus = ChangeStatusSchema.parse(
-      normalizeLegacyChangeStatus(input.state.status),
-    );
-    const shard = deriveSummaryShard(
-      {
-        ...input.state,
-        created_at: input.state.createdAt,
-        status: normalizedStatus,
-      } as Change,
-      operationId,
-      projectionRevision,
-    );
-    const shardPath = join(summary.revDir, `${projectionRevision}.json`);
-    await atomicWriteFile(shardPath, `${JSON.stringify(shard, null, 2)}\n`);
-
-    const pointer = {
-      schema_version: 1 as const,
-      change_id: input.state.changeId,
-      state_revision: stateRevision,
-      projection_revision: projectionRevision,
-      operation_id: operationId,
-      shard_path: shardPath,
-      snapshot_path: path,
-      committed_at: input.projectedAt,
-    };
-    await atomicWriteFile(
-      summary.pointerPath,
-      `${JSON.stringify(pointer, null, 2)}\n`,
-    );
-
-    const projection = await buildLauncherProjection({
-      changesDir: input.projectionChangesDir,
-      summariesDir,
-      archiveDir: join(externalRoot, "archive"),
-      generatedAt: input.state.lastSignalAt ?? input.projectedAt,
-      degradedThresholdMs: 300_000,
-    });
-    await atomicWriteFile(
-      join(externalRoot, "active-launcher-state.json"),
-      `${JSON.stringify(projection, null, 2)}\n`,
-    );
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.warn("launcher-projection-aggregate-failed", {
-      changeId: input.state.changeId,
-      projectionChangesDir: input.projectionChangesDir,
-      error: message,
-    });
-  }
-
-  return { ok: true, path };
-}
-
-/** Remove the active projection after archive promotion consumes it. */
-export async function deleteActiveProjection(
-  input: DeleteActiveProjectionInput,
-): Promise<DeleteActiveProjectionResult> {
-  const path = projectionPath(input.projectionChangesDir, input.changeId);
-  try {
-    await unlink(path);
-    return { ok: true, path, deleted: true };
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") return { ok: true, path, deleted: false };
-    const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `Projection delete failed: ${message}` };
   }
 }
 
