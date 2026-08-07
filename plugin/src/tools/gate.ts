@@ -758,17 +758,33 @@ async function persistAcceptanceProjection(
   content: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const result = await store.changes.get(changeId);
-    if (!result.success || !result.data) {
-      return {
-        ok: false,
-        error: `Change ${changeId} could not be loaded for acceptance projection persistence`,
-      };
-    }
-    const change = result.data;
-    change.documents = { ...change.documents, acceptance: content };
-    await store.changes.save(change);
-    return { ok: true };
+    const outcome = await coordinateChangeMutation<Change>({
+      authority: {
+        kind: "recovery",
+        reason:
+          "persist acceptance recovery artifact in the durable projection",
+        evidence: `acceptance-recovery:${changeId}`,
+      },
+      changesDir: store.paths.changes,
+      intent: {
+        changeId,
+        mutationKind: "acceptance_projection_persist",
+        mutateLatestProjection: (latest) => ({
+          ...latest,
+          documents: { ...latest.documents, acceptance: content },
+        }),
+        verifyProjection: (readback) =>
+          readback.documents?.acceptance === content,
+      },
+    });
+    if (outcome.kind === "verified") return { ok: true };
+    const error =
+      outcome.kind === "stale_revision"
+        ? `Acceptance projection revision was stale: expected ${outcome.expected}, actual ${outcome.actual}`
+        : outcome.kind === "unverified"
+          ? `Acceptance projection persistence could not be verified: ${outcome.reason}`
+          : outcome.reason;
+    return { ok: false, error };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {

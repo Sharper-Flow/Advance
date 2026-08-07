@@ -178,10 +178,13 @@ function baseContract(
 
 describe("adv_gate_complete acceptance reconciliation", () => {
   test("blocks recovery when the persisted acceptance projection cannot be read back", async () => {
+    const changesDir = await createTempDir("adv-gate-acceptance-missing-");
+    const change = baseChange();
+    await seedProjection(changesDir, change);
     const { resolveAcceptanceRecoveryArtifactEvidence } =
       await import("./gate");
     const result = await resolveAcceptanceRecoveryArtifactEvidence({
-      store: createStore("/tmp/changes", baseChange()),
+      store: createStore(changesDir, change),
       changeId: "test-change",
       recoveryState: {
         contract: {
@@ -229,12 +232,6 @@ describe("adv_gate_complete acceptance reconciliation", () => {
     } as Partial<Change>);
     await seedProjection(changesDir, change);
     const store = createStore(changesDir, change);
-    // The disk store persists the projection on save; the shared mock is a
-    // no-op stub, so make it write so the recovery readback is exercised.
-    store.changes.save = vi.fn(async (saved: Change) => {
-      await seedProjection(changesDir, saved);
-    }) as Store["changes"]["save"];
-
     const { resolveAcceptanceRecoveryArtifactEvidence } =
       await import("./gate");
     const result = await resolveAcceptanceRecoveryArtifactEvidence({
@@ -269,9 +266,10 @@ describe("adv_gate_complete acceptance reconciliation", () => {
       kind: "acceptance",
     });
     expect(result.artifactEvidence?.path).toBeUndefined();
-    // The acceptance projection is persisted through the change record, and no
-    // acceptance.md is materialized in the active change directory.
-    expect(store.changes.save).toHaveBeenCalled();
+    // The acceptance projection is persisted through the locked projection
+    // transaction, and no acceptance.md is materialized in the active change
+    // directory.
+    expect(store.changes.save).not.toHaveBeenCalled();
     const persisted = await loadChange(changesDir, change.id);
     expect(
       (persisted.data as Change | undefined)?.documents?.acceptance,
