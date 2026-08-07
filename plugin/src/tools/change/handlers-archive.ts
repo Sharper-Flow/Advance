@@ -42,7 +42,6 @@ import {
 import { formatToolOutput } from "../../utils/tool-output";
 import {
   withTargetPathStore,
-  targetPathSchema,
   appendTargetProjectContextOutput,
 } from "../target-project";
 import {
