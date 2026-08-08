@@ -51,9 +51,8 @@ import {
  * Safe timeout budget for worktree tool wrappers (cleanup and delete).
  *
  * Must be strictly below the SDK's `DEFAULT_TOOL_TIMEOUT_MS` (10 000 ms)
- * so that the tool-level `Promise.race` resolves *before* the SDK's
- * `safeExecute` wrapper rejects — giving the agent a typed, actionable
- * timeout response instead of an opaque `ToolExecutionTimeout` error.
+ * so the shared operation deadline can cancel and settle every destructive
+ * stage before the SDK's `safeExecute` wrapper rejects.
  *
  * rq-worktreeBoundedCleanup02 AC1.
  */
@@ -255,7 +254,6 @@ async function executeWorktreeDelete(
   } = {},
   context?: TargetProjectContext,
 ): Promise<string> {
-  const projectRoot = store.paths.root;
   const ownsOperation = !options.operation;
   const operation =
     options.operation ??
@@ -263,6 +261,17 @@ async function executeWorktreeDelete(
       budgetMs: WORKTREE_TOOL_SAFE_TIMEOUT_MS,
       responseReserveMs: WORKTREE_TOOL_RETURN_RESERVE_MS,
     });
+  if (targetDeleteRoutingExpired(operation)) {
+    const timeout = targetDeleteRoutingTimeout(
+      Math.max(1, operation.remainingMs()),
+    );
+    if (ownsOperation) {
+      await operation.abort("deadline");
+      operation.dispose();
+    }
+    return formatMaybeTargetOutput(timeout, context);
+  }
+  const projectRoot = store.paths.root;
   const database = await initWorktreeDb(projectRoot);
   const log = createLogger();
   const warpDeps = buildWarpDeps({
@@ -277,10 +286,6 @@ async function executeWorktreeDelete(
     // the child budget; the planner and executor then share the same remaining
     // end-to-end budget instead of resetting their clocks after routing.
     const effectiveTimeoutMs = Math.max(1, operation.remainingMs());
-    const operationTimeoutMs = Math.max(
-      1,
-      Math.floor(effectiveTimeoutMs - operation.responseReserveMs),
-    );
     if (
       operation.signal.aborted ||
       operation.remainingMs() <= operation.responseReserveMs
@@ -300,7 +305,7 @@ async function executeWorktreeDelete(
       );
     }
 
-    const deletePromise = advWorktreeDelete(
+    const result = await advWorktreeDelete(
       args.branch,
       {
         ...(args.force !== undefined ? { force: args.force } : {}),
@@ -316,35 +321,15 @@ async function executeWorktreeDelete(
         log,
         store,
         warpDeps,
-        operationTimeoutMs,
+        // Compatibility telemetry only; the shared operation is authoritative
+        // and prevents this value from creating a second deadline.
+        operationTimeoutMs: Math.max(
+          1,
+          Math.floor(operation.remainingMs() - operation.responseReserveMs),
+        ),
+        operation,
       },
     );
-
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-    const timeoutRace = new Promise<{ _timedOut: true }>((resolve) => {
-      timeoutHandle = setTimeout(
-        () => resolve({ _timedOut: true }),
-        Math.max(1, effectiveTimeoutMs),
-      );
-    });
-    const result = await Promise.race([deletePromise, timeoutRace]);
-    if (timeoutHandle) clearTimeout(timeoutHandle);
-    if ("_timedOut" in result && result._timedOut) {
-      await operation.abort("deadline");
-      return formatMaybeTargetOutput(
-        formatToolOutput({
-          ok: false,
-          timedOut: true,
-          error: `DEADLINE_EXCEEDED: adv_worktree_delete timed out after ${effectiveTimeoutMs}ms`,
-          status: "deadline_exceeded",
-          stage: "handler",
-          effectiveTimeoutMs,
-          remediation:
-            "Retry with a fresh dry-run plan; the shared executor owns cancellation and revalidation.",
-        }),
-        context,
-      );
-    }
     return formatMaybeTargetOutput(
       formatToolOutput(result as Awaited<ReturnType<typeof advWorktreeDelete>>),
       context,
@@ -398,6 +383,7 @@ async function executeTargetWorktreeDelete(
       // The store is only a lightweight terminal-proof input. Git census and
       // the executor own all deletion effects, including apply.
       stateRequirement: "snapshot-ok",
+      operation,
       // Keep the mutation trust gate for apply even though the store itself is
       // deliberately not initialized or migrated.
       mutation: !args.dryRun,
@@ -447,6 +433,7 @@ async function executeTargetWorktreeDelete(
         () => operation.dispose(),
       );
     } else {
+      await operation.abort("operation_complete");
       operation.dispose();
     }
   }

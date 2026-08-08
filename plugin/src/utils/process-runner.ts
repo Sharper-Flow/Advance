@@ -51,6 +51,17 @@ export async function runAbortableProcess(
   if (input.destructiveSubtree && platform === "win32") {
     throw new UnsupportedDestructiveProcessPlatformError(platform);
   }
+  if (input.signal?.aborted || input.operation?.signal.aborted) {
+    return {
+      stdout: "",
+      stderr: "",
+      exitCode: null,
+      signal: null,
+      timedOut: false,
+      aborted: true,
+      closed: true,
+    };
+  }
 
   const child = (input.spawnProcess ?? spawn)(
     input.command,

@@ -1333,7 +1333,22 @@ describe("advWorktreeTools", () => {
     };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDelete.mockImplementation(
-      () => new Promise(() => {}),
+      (_branch, _opts, deps) =>
+        new Promise((resolve) => {
+          deps.operation?.signal.addEventListener(
+            "abort",
+            () =>
+              resolve({
+                ok: false,
+                timedOut: true,
+                status: "deadline_exceeded",
+                error: "DEADLINE_EXCEEDED: timed out after shared cancellation",
+                effectiveTimeoutMs: 7_500,
+                remediation: "retry with a fresh plan",
+              }),
+            { once: true },
+          );
+        }),
     );
 
     // The delete tool currently hardcodes the safe budget (8s) internally
@@ -1539,7 +1554,22 @@ describe("advWorktreeTools", () => {
     };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDelete.mockImplementation(
-      () => new Promise(() => {}),
+      (_branch, _opts, deps) =>
+        new Promise((resolve) => {
+          deps.operation?.signal.addEventListener(
+            "abort",
+            () =>
+              resolve({
+                ok: false,
+                timedOut: true,
+                status: "deadline_exceeded",
+                error: "DEADLINE_EXCEEDED: timed out after shared cancellation",
+                effectiveTimeoutMs: 7_500,
+                remediation: "retry with a fresh plan",
+              }),
+            { once: true },
+          );
+        }),
     );
 
     const out = await advWorktreeTools.adv_worktree_delete.execute(

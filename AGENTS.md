@@ -27,7 +27,7 @@ bin/oc-test smoke
 bin/oc-test full
 ```
 
-- CI uses Node 24 and pnpm 11. CI order: schemas:check → typecheck → lint → format:check → test → build. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI separately runs `bun test bin/` from the repo root.
+- CI uses Node 24 and pnpm 11. CI order: schemas:check → typecheck → lint → format:check → test → build. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI builds the emitted plugin bundle before separately running `bun test bin/` from the repo root because CLI parity tests execute `plugin/dist/reconcile-cli.js`.
 - `pnpm` owns dependencies. Never add `bun.lock` or `bun.lockb` beside `plugin/pnpm-lock.yaml`.
 - `bin/adv` is a Bun-powered standalone CLI (`adv status`, `adv roadmap`, `adv epic list --json`); requires Bun 1.3+ on PATH. `bun test bin/` covers it as a separate CI job — do not put bin/ tests under Vitest.
 

@@ -5,6 +5,7 @@ import * as path from "node:path";
 
 import {
   acquireGitWorktreeFlock,
+  acquireGitWorktreeProcessLease,
   releaseGitWorktreeFlock,
 } from "./git-worktree-flock";
 
@@ -59,5 +60,28 @@ describe("git worktree repository lease", () => {
     expect(fs.existsSync(path.join(dir, "git-worktree.lock"))).toBe(true);
     await releaseGitWorktreeFlock(dir, first.ownerToken);
     expect(fs.existsSync(path.join(dir, "git-worktree.lock"))).toBe(false);
+  });
+
+  it("holds a kernel flock until the dedicated process group exits", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "adv-process-flock-"));
+    dirs.push(dir);
+
+    const first = await acquireGitWorktreeProcessLease(dir);
+    expect(first.owned).toBe(true);
+    if (!first.owned) return;
+
+    const second = await acquireGitWorktreeProcessLease(dir);
+    expect(second).toMatchObject({ owned: false });
+
+    const legacyWhileHeld = await acquireGitWorktreeFlock(dir);
+    expect(legacyWhileHeld).toMatchObject({ owned: false });
+
+    const holderPid = first.ownerPid;
+    await first.terminate("test");
+    await first.settled;
+    expect(() => process.kill(-holderPid, 0)).toThrow();
+    const third = await acquireGitWorktreeProcessLease(dir);
+    expect(third.owned).toBe(true);
+    if (third.owned) await third.terminate("test");
   });
 });
