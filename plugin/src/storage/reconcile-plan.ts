@@ -211,5 +211,3 @@ export function buildReconcilePlan(scan: StoreResidueScan): ReconcilePlan {
   const withoutHash = { schema_version: 1 as const, records };
   return { ...withoutHash, plan_hash: hashPlan(withoutHash) };
 }
-
-export const createReconcilePlan = buildReconcilePlan;

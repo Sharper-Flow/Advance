@@ -246,5 +246,3 @@ export async function computeReconcileCompletionProof({
     documented_whitelist: [...whitelist],
   };
 }
-
-export const runReconcileCompletionProof = computeReconcileCompletionProof;

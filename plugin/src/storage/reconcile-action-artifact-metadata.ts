@@ -471,9 +471,6 @@ export const migrateRecordExecutor: ActionExecutor = async (
   return persistArtifactMigration(record, source, ctx);
 };
 
-/** Descriptive alias used by callers that name the residue class, not action. */
-export const migrateArtifactMetadataExecutor = migrateRecordExecutor;
-
 export const classifyTerminalNoopExecutor: ActionExecutor = async (
   record,
   action,
@@ -634,5 +631,3 @@ export const setMarkerLegacyExecutor: ActionExecutor = async (
   }
   return setMarker(record, ctx, false, false);
 };
-
-export const normalizeWorktreeMarkerExecutor = setMarkerAutoExecutor;

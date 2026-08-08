@@ -565,10 +565,3 @@ export const clearDanglingMembershipExecutor: ActionExecutor = async (
     evidence: { epic_id: membership.epic_id, fragment_count: fragments.length },
   };
 };
-
-/** Explicit aliases make the action-to-export wiring unambiguous. */
-export const reconstructEpicOwnerExecutor =
-  reconstructFromChildFragmentsExecutor;
-export const formallyLostEpicExecutor = formallyLostReportExecutor;
-export const clearEpicDanglingMembershipExecutor =
-  clearDanglingMembershipExecutor;

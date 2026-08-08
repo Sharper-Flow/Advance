@@ -4,13 +4,15 @@ import { z } from "zod";
 
 import {
   buildReconcilePlan,
-  runStoreResidueScan,
-  runReconcileApply,
-  readReconcileProgress,
-  reconcileExitCode,
-  ReconcileRefusalError,
   type ReconcilePlan,
-} from "../storage";
+} from "../storage/reconcile-plan";
+import {
+  runReconcileApply,
+  ReconcileRefusalError,
+  reconcileExitCode,
+} from "../storage/reconcile-apply";
+import { readReconcileProgress } from "../storage/reconcile-report";
+import { runStoreResidueScan } from "../storage/store-residue-scan";
 import type { Store } from "../storage/store-types";
 import { formatToolOutput } from "../utils/tool-output";
 import { TargetProjectError, withTargetPathStore } from "./target-project";

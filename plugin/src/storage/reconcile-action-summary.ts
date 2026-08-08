@@ -183,9 +183,6 @@ export async function rebuildSummaryBatchExecutor(
   };
 }
 
-/** Descriptive alias for callers that select the whole-store tail by name. */
-export const rebuildSummaryIndexBatch = rebuildSummaryBatchExecutor;
-
 export type SummaryActionName = Extract<
   ReconcileAction["action"],
   "rebuild_summary_shard" | "rebuild_from_changes"
