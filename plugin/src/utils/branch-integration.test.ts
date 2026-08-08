@@ -4,11 +4,14 @@
  * Pure unit tests — all external dependencies (Temporal, git) are injected.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  LocalBranchIntegrationDeadline,
+  proveLocalBranchIntegration,
   verifyBranchIntegration,
   type BranchIntegrationDeps,
 } from "./branch-integration";
+import { createWorktreeOperationContext } from "./worktree-operation";
 
 function makeDeps(
   overrides: Partial<BranchIntegrationDeps> = {},
@@ -288,5 +291,103 @@ describe("verifyBranchIntegration (T29)", () => {
       ok: false,
       reason: "git_failed",
     });
+  });
+});
+
+describe("proveLocalBranchIntegration", () => {
+  const head = "0123456789abcdef0123456789abcdef01234567";
+  const minus = `- ${head} equivalent patch`;
+
+  async function prove(
+    cherryOutput: string,
+    cherryError?: unknown,
+  ): Promise<Awaited<ReturnType<typeof proveLocalBranchIntegration>>> {
+    const operation = createWorktreeOperationContext({ budgetMs: 1_000 });
+    try {
+      return await proveLocalBranchIntegration(
+        "release/fixPostRemovalRelease",
+        head,
+        "trunk",
+        "/repo",
+        operation,
+        {
+          runGit: async (args) => {
+            if (args[0] === "merge-base")
+              throw Object.assign(new Error("not an ancestor"), { code: 1 });
+            if (cherryError) throw cherryError;
+            return { stdout: cherryOutput, stderr: "" };
+          },
+        },
+      );
+    } finally {
+      operation.dispose();
+    }
+  }
+
+  it("accepts the live squash-equivalent shape with two minus lines", async () => {
+    await expect(prove(`${minus}\n${minus}\n`)).resolves.toMatchObject({
+      kind: "patch_equivalent",
+      branch: "release/fixPostRemovalRelease",
+      defaultBranch: "trunk",
+      head,
+    });
+  });
+
+  it.each([
+    ["one plus line", `${minus}\n+ ${head} unique patch\n`],
+    ["mixed plus and minus", `+ ${head} unique patch\n${minus}\n`],
+    ["malformed line", `${minus}\nnot git cherry output\n`],
+  ])("rejects %s", async (_label, output) => {
+    await expect(prove(output)).resolves.toBeUndefined();
+  });
+
+  it("rejects a nonzero cherry command", async () => {
+    await expect(
+      prove("", Object.assign(new Error("git failed"), { code: 2 })),
+    ).resolves.toBeUndefined();
+  });
+
+  it("returns a typed deadline for a timed-out child", async () => {
+    const operation = createWorktreeOperationContext({ budgetMs: 1_000 });
+    try {
+      await expect(
+        proveLocalBranchIntegration(
+          "release/v1",
+          head,
+          "trunk",
+          "/repo",
+          operation,
+          {
+            runGit: async () => {
+              throw Object.assign(new Error("timed out"), {
+                name: "AbortError",
+              });
+            },
+          },
+        ),
+      ).rejects.toBeInstanceOf(LocalBranchIntegrationDeadline);
+    } finally {
+      operation.dispose();
+    }
+  });
+
+  it("rejects invalid refs before constructing a Git command", async () => {
+    const runGit = vi.fn(async () => ({ stdout: "", stderr: "" }));
+    const operation = createWorktreeOperationContext({ budgetMs: 1_000 });
+    try {
+      await expect(
+        proveLocalBranchIntegration(
+          "release/v1..trunk",
+          head,
+          "trunk",
+          "/repo",
+          operation,
+          { runGit },
+        ),
+      ).resolves.toBeUndefined();
+      expect(runGit).not.toHaveBeenCalled();
+    } finally {
+      operation.dispose();
+    }
   });
 });

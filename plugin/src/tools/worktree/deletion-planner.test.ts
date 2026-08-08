@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   WorktreeDeletionPlanner,
@@ -67,6 +67,53 @@ describe("WorktreeDeletionPlanner", () => {
       }
     } finally {
       fixture.cleanup();
+    }
+  });
+
+  it("plans a squash-equivalent release branch from two all-minus cherry lines", async () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-deletion-planner-squash-"));
+    const worktree = `${root}-linked`;
+    try {
+      git(root, "init", "-b", "trunk");
+      git(root, "config", "user.email", "test@example.invalid");
+      git(root, "config", "user.name", "ADV test");
+      execFileSync("touch", [join(root, "README.md")]);
+      git(root, "add", ".");
+      git(root, "commit", "-m", "initial");
+      git(
+        root,
+        "worktree",
+        "add",
+        "-b",
+        "release/fixPostRemovalRelease",
+        worktree,
+      );
+      writeFileSync(join(worktree, "one.txt"), "one\n");
+      git(worktree, "add", ".");
+      git(worktree, "commit", "-m", "first release change");
+      writeFileSync(join(worktree, "two.txt"), "two\n");
+      git(worktree, "add", ".");
+      git(worktree, "commit", "-m", "second release change");
+      const first = git(worktree, "rev-parse", "HEAD~1");
+      const second = git(worktree, "rev-parse", "HEAD");
+      git(root, "cherry-pick", "--no-commit", first);
+      git(root, "commit", "-m", "squash first release change");
+      git(root, "cherry-pick", "--no-commit", second);
+      git(root, "commit", "-m", "squash second release change");
+
+      const result = await new WorktreeDeletionPlanner().plan({
+        repository: root,
+        branch: "release/fixPostRemovalRelease",
+        defaultBranch: "trunk",
+        cwd: root,
+        registry: [],
+      });
+
+      expect(result.kind).toBe("planned");
+      if (result.kind === "planned")
+        expect(result.plan.integration?.kind).toBe("patch_equivalent");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 
@@ -169,6 +216,27 @@ describe("WorktreeDeletionPlanner", () => {
       kind: "refused",
       reason: "terminal_proof_required",
     });
+  });
+
+  it("rejects invalid branch and default refs before the Git census", async () => {
+    const census = vi.fn(async () => ({ branches: [], worktrees: [] }));
+    const planner = new WorktreeDeletionPlanner({ census });
+
+    await expect(
+      planner.plan({
+        repository: "/repo",
+        branch: "release/v1..trunk",
+        defaultBranch: "trunk",
+      }),
+    ).resolves.toMatchObject({ kind: "refused", reason: "invalid_ref" });
+    await expect(
+      planner.plan({
+        repository: "/repo",
+        branch: "release/v1",
+        defaultBranch: "--upload-pack=evil",
+      }),
+    ).resolves.toMatchObject({ kind: "refused", reason: "invalid_ref" });
+    expect(census).not.toHaveBeenCalled();
   });
 
   it("returns a deadline result when target resolution consumes the budget", async () => {

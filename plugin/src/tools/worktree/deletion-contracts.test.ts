@@ -102,4 +102,41 @@ describe("worktree deletion contracts", () => {
       }),
     ).toMatchObject({ status: "drifted" });
   });
+
+  it("binds the integration proof kind and evidence into the plan token", () => {
+    const integration = {
+      kind: "patch_equivalent" as const,
+      branch: "release/v1",
+      defaultBranch: "trunk",
+      head: facts.head,
+      evidence: "git cherry -v trunk release/v1 (all patches equivalent)",
+    };
+    const expiresAt = 1_800_000_000_000;
+    const token = encodeWorktreeDeletionToken({
+      facts,
+      expiresAt,
+      integration,
+    });
+    const plan = {
+      version: "wdp1" as const,
+      repository: facts.repository,
+      facts,
+      expiresAt,
+      token,
+      integration,
+    };
+
+    expect(WorktreeDeletionPlanSchema.parse(plan)).toEqual(plan);
+    expect(() =>
+      WorktreeDeletionPlanSchema.parse({
+        ...plan,
+        integration: { ...integration, kind: "merged_to_default" },
+      }),
+    ).toThrow(/token must bind/);
+    expect(
+      validateWorktreeDeletionToken(token, {
+        integration: { ...integration, evidence: "changed" },
+      }),
+    ).toEqual({ ok: false, reason: "facts_changed" });
+  });
 });

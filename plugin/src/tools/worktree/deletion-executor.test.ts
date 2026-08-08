@@ -167,6 +167,33 @@ describe("WorktreeDeletionExecutor", () => {
     }
   });
 
+  it("refuses when the planned patch-equivalence proof changes at apply time", async () => {
+    const fx = fixture();
+    try {
+      const plan = makePlan(fx, {
+        integration: { kind: "patch_equivalent" },
+      });
+      const deps = depsFor(fx, plan, {
+        integrationProof: vi.fn(async () => ({
+          kind: "merged_to_default" as const,
+          branch: "release/v1",
+          defaultBranch: "trunk",
+          head: sha,
+          evidence: "ancestry proof after plan",
+        })),
+      });
+      const result = await executeWorktreeDeletion({ plan }, deps);
+      expect(result).toMatchObject({
+        ok: false,
+        status: "drifted",
+        reason: "integration_proof_changed",
+      });
+      expect(deps.runProcess).not.toHaveBeenCalled();
+    } finally {
+      fx.cleanup();
+    }
+  });
+
   it.each([
     ["head", { head: "fedcba9876543210fedcba9876543210fedcba98" }],
     ["dirty", { dirty: true }],

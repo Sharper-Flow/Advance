@@ -14,8 +14,10 @@
  * requirements stay intact: closed ≠ unmerged-OK.
  */
 
-import { execFileGitCb } from "./git-binary";
+import { execFileGitAsync, execFileGitCb } from "./git-binary";
+import { isValidGitBranchRef } from "./git-ref";
 import { getDefaultBranch } from "./git";
+import type { WorktreeOperationContext } from "./worktree-operation";
 import {
   getWorktreeRegistrySnapshot,
   getWorktreePath,
@@ -54,6 +56,177 @@ export interface BranchIntegrationDeps {
   ) => Promise<string[]>;
   worktreeStatus?: (worktreePath: string) => Promise<string>;
   registry?: { branch: string; changeId?: string; path: string }[];
+}
+
+export type LocalBranchIntegrationProof =
+  | {
+      kind: "merged_to_default";
+      branch: string;
+      defaultBranch: string;
+      head: string;
+      evidence: string;
+    }
+  | {
+      kind: "patch_equivalent";
+      branch: string;
+      defaultBranch: string;
+      head: string;
+      evidence: string;
+    };
+
+export class LocalBranchIntegrationDeadline extends Error {
+  constructor(stage: "merge-base" | "cherry") {
+    super(`Local branch integration ${stage} exceeded the operation budget.`);
+    this.name = "LocalBranchIntegrationDeadline";
+  }
+}
+
+export interface LocalBranchIntegrationGitOptions {
+  cwd: string;
+  timeout: number;
+  remainingMs: number;
+  signal: AbortSignal;
+}
+
+export interface LocalBranchIntegrationOptions {
+  /** Test seam; production always uses the bounded git helper below. */
+  runGit?: (
+    args: readonly string[],
+    options: LocalBranchIntegrationGitOptions,
+  ) => Promise<{ stdout: string; stderr: string }>;
+}
+
+function errorExitCode(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "number" ? code : undefined;
+}
+
+function isProcessDeadline(
+  error: unknown,
+  operation: WorktreeOperationContext,
+) {
+  if (operation.signal.aborted) return true;
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as {
+    name?: unknown;
+    killed?: unknown;
+    signal?: unknown;
+    message?: unknown;
+  };
+  return (
+    candidate.name === "AbortError" ||
+    candidate.killed === true ||
+    typeof candidate.signal === "string" ||
+    (typeof candidate.message === "string" &&
+      /timeout|timed out|deadline|abort/i.test(candidate.message))
+  );
+}
+
+function validPatchEquivalentCherryLine(line: string): boolean {
+  return /^-[ \t]+[0-9a-f]{4,64}(?:[ \t]+.*)?$/i.test(line);
+}
+
+/**
+ * Prove a local branch is integrated without relying on remote PR state.
+ *
+ * The ancestry check is authoritative when it succeeds. A non-ancestor may
+ * still be safely deletable after a squash merge, but only when `git cherry`
+ * exits successfully and every emitted patch is a well-formed `-` line.
+ * Every child receives the remaining operation budget and cancellation signal.
+ */
+export async function proveLocalBranchIntegration(
+  branch: string,
+  head: string,
+  defaultBranch: string,
+  repoRoot: string,
+  operation: WorktreeOperationContext,
+  options: LocalBranchIntegrationOptions = {},
+): Promise<LocalBranchIntegrationProof | undefined> {
+  if (
+    !isValidGitBranchRef(branch) ||
+    !isValidGitBranchRef(defaultBranch) ||
+    branch === defaultBranch ||
+    branch.startsWith("-") ||
+    defaultBranch.startsWith("-")
+  )
+    return undefined;
+
+  const runGit =
+    options.runGit ??
+    ((args: readonly string[], gitOptions: LocalBranchIntegrationGitOptions) =>
+      execFileGitAsync(args, gitOptions));
+  const runBoundedGit = async (
+    stage: "merge-base" | "cherry",
+    args: readonly string[],
+  ): Promise<{ stdout: string; stderr: string } | undefined> => {
+    const remainingMs = operation.remainingMs();
+    if (remainingMs <= 0 || operation.signal.aborted)
+      throw new LocalBranchIntegrationDeadline(stage);
+    try {
+      return await runGit(args, {
+        cwd: repoRoot,
+        timeout: Math.max(1, remainingMs),
+        remainingMs: Math.max(1, remainingMs),
+        signal: operation.signal,
+      });
+    } catch (error) {
+      if (isProcessDeadline(error, operation))
+        throw new LocalBranchIntegrationDeadline(stage);
+      throw error;
+    }
+  };
+
+  let ancestry: { stdout: string; stderr: string } | undefined;
+  try {
+    ancestry = await runBoundedGit("merge-base", [
+      "merge-base",
+      "--is-ancestor",
+      branch,
+      defaultBranch,
+    ]);
+  } catch (error) {
+    // Exit 1 is Git's explicit "not an ancestor" result. Any other exit
+    // code means the refs/repository were not safely interpretable.
+    if (error instanceof LocalBranchIntegrationDeadline) throw error;
+    if (errorExitCode(error) !== 1) return undefined;
+  }
+  if (ancestry) {
+    return {
+      kind: "merged_to_default",
+      branch,
+      defaultBranch,
+      head,
+      evidence: `git merge-base --is-ancestor ${branch} ${defaultBranch}`,
+    };
+  }
+
+  let cherry: { stdout: string; stderr: string } | undefined;
+  try {
+    cherry = await runBoundedGit("cherry", [
+      "cherry",
+      "-v",
+      defaultBranch,
+      branch,
+    ]);
+  } catch (error) {
+    if (error instanceof LocalBranchIntegrationDeadline) throw error;
+    return undefined;
+  }
+  if (!cherry) return undefined;
+  const lines = cherry.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.every(validPatchEquivalentCherryLine)) return undefined;
+
+  return {
+    kind: "patch_equivalent",
+    branch,
+    defaultBranch,
+    head,
+    evidence: `git cherry -v ${defaultBranch} ${branch} (all patches equivalent)`,
+  };
 }
 
 // =============================================================================
