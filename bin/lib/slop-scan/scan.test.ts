@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-import { runSlopScan } from "./scan";
+import { partitionEslintTargets, runSlopScan } from "./scan";
 import type {
   ToolRunRequest,
   ToolRunResult,
@@ -95,6 +95,10 @@ describe("slop-scan detector dispatch", () => {
       join(repoRoot, "plugin", "src", "a.ts"),
       "export const a = 1;\n",
     );
+    await writeFile(
+      join(repoRoot, "plugin", "eslint.config.js"),
+      "export default [];\n",
+    );
   });
 
   afterEach(async () => {
@@ -122,6 +126,7 @@ describe("slop-scan detector dispatch", () => {
     ]);
     // Package-local detectors already share the package root cwd.
     expect(byId["eslint"].cwd).toBe(packageRoot);
+    expect(byId["eslint"].command.at(-1)).toBe(join(repoRoot, "plugin", "src", "a.ts"));
     expect(byId["knip"].cwd).toBe(packageRoot);
   });
 
@@ -173,6 +178,28 @@ describe("slop-scan detector dispatch", () => {
     expect(byId["jscpd"].cwd).toBe(packageRoot);
     // All detectors succeeded via the fake runner; no SLOP_SCAN_DEGRADED.
     expect(report.failure).toBeUndefined();
+  });
+
+  test("partitions a repo-root target before invoking eslint", async () => {
+    await mkdir(join(repoRoot, "bin", "src"), { recursive: true });
+    await writeFile(
+      join(repoRoot, "bin", "src", "b.ts"),
+      "export const b = 2;\n",
+    );
+
+    const partition = await partitionEslintTargets(repoRoot, repoRoot);
+    expect(partition).toEqual({
+      covered: [{ configRoot: join(repoRoot, "plugin"), target: join(repoRoot, "plugin") }],
+      uncovered: [join(repoRoot, "bin")],
+    });
+
+    const { runner, calls } = makeFakeRunner();
+    const report = await runSlopScan({ repoRoot, requestedPath: ".", runner });
+    const eslintCalls = calls.filter((call) => call.detectorId === "eslint");
+
+    expect(eslintCalls).toHaveLength(1);
+    expect(eslintCalls[0]?.command.at(-1)).toBe(join(repoRoot, "plugin"));
+    expect(report.coverage.detectors.find((detector) => detector.id === "eslint")?.state).toBe("run");
   });
 
   test("fails with actionable error when multiple nested package.json roots exist", async () => {

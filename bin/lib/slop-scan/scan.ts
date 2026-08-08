@@ -2,7 +2,7 @@
 
 import { mkdir, readFile, readdir, stat } from "fs/promises";
 import { readFileSync } from "fs";
-import { basename, dirname, isAbsolute, join, resolve } from "path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "path";
 import { tmpdir } from "os";
 
 import { buildEslintCommand, normalizeEslintJson } from "./adapters/eslint";
@@ -216,6 +216,98 @@ export async function nearestPackageRoot(
   return { kind: "ambiguous", candidates };
 }
 
+export type EslintTargetPartition = {
+  covered: { configRoot: string; target: string }[];
+  uncovered: string[];
+};
+
+async function reachableEslintConfigRoot(
+  repoRoot: string,
+  target: string,
+): Promise<string | null> {
+  const root = resolve(repoRoot);
+  const absoluteTarget = resolve(target);
+  const relativeTarget = relative(root, absoluteTarget);
+  if (relativeTarget.startsWith("..") || isAbsolute(relativeTarget)) return null;
+
+  const targetInfo = await stat(absoluteTarget).catch(() => null);
+  let current = targetInfo?.isFile() ? dirname(absoluteTarget) : absoluteTarget;
+
+  while (true) {
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch {
+      entries = [];
+    }
+    for (const entry of entries) {
+      if (!entry.name.startsWith("eslint.config.")) continue;
+      const configPath = join(current, entry.name);
+      if (entry.isFile() || (await stat(configPath).catch(() => null))?.isFile()) {
+        return current;
+      }
+    }
+
+    if (current === root) break;
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return null;
+}
+
+/**
+ * Partition an ESLint target into regions whose config lookup succeeds.
+ * ESLint v10 resolves config from each target path, not from the process cwd.
+ */
+export async function partitionEslintTargets(
+  repoRoot: string,
+  absoluteTarget: string,
+): Promise<EslintTargetPartition> {
+  const root = resolve(repoRoot);
+  const target = resolve(absoluteTarget);
+  const configRoot = await reachableEslintConfigRoot(root, target);
+  if (configRoot) {
+    return { covered: [{ configRoot, target }], uncovered: [] };
+  }
+
+  const targetInfo = await stat(target).catch(() => null);
+  if (!targetInfo?.isDirectory()) {
+    return { covered: [], uncovered: targetInfo?.isFile() ? [target] : [] };
+  }
+
+  let entries;
+  try {
+    entries = await readdir(target, { withFileTypes: true });
+  } catch {
+    return { covered: [], uncovered: [] };
+  }
+
+  const grouped = new Map<string, string>();
+  const uncovered: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || SKIP_DIRS.has(entry.name)) continue;
+    const child = join(target, entry.name);
+    if (!(await directoryContainsSource(child))) continue;
+
+    const childConfigRoot = await reachableEslintConfigRoot(root, child);
+    if (!childConfigRoot) {
+      uncovered.push(child);
+      continue;
+    }
+    if (!grouped.has(childConfigRoot)) grouped.set(childConfigRoot, child);
+  }
+
+  const covered = [...grouped.entries()]
+    .map(([childConfigRoot, child]) => ({
+      configRoot: childConfigRoot,
+      target: child,
+    }))
+    .sort((left, right) => left.target.localeCompare(right.target));
+  uncovered.sort();
+  return { covered, uncovered };
+}
+
 function coverageFailed(
   detector: DetectorDefinition,
   command: string[],
@@ -375,23 +467,29 @@ export async function runSlopScan(
   for (const detector of detectors) {
     switch (detector.id) {
       case "eslint": {
-        const result = await runner.run({
-          detectorId: detector.id,
-          command: buildEslintCommand(absoluteTarget, {
-            complexity: config.complexity_threshold,
-            maxDepth: config.nesting_depth_threshold,
-          }),
-          cwd: packageRoot,
-          timeoutMs: config.ast_timeout_ms,
-          findingsExitCodes: [1],
-        });
-        appendParsed(
-          detector,
-          result,
-          () => normalizeEslintJson(result.stdout, options.repoRoot),
-          findings,
-          coverage,
+        const targets = await partitionEslintTargets(
+          options.repoRoot,
+          absoluteTarget,
         );
+        for (const { target } of targets.covered) {
+          const result = await runner.run({
+            detectorId: detector.id,
+            command: buildEslintCommand(target, {
+              complexity: config.complexity_threshold,
+              maxDepth: config.nesting_depth_threshold,
+            }),
+            cwd: packageRoot,
+            timeoutMs: config.ast_timeout_ms,
+            findingsExitCodes: [1],
+          });
+          appendParsed(
+            detector,
+            result,
+            () => normalizeEslintJson(result.stdout, options.repoRoot),
+            findings,
+            coverage,
+          );
+        }
         break;
       }
       case "knip": {
