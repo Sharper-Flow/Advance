@@ -346,6 +346,11 @@ describe("store reconciliation integration", () => {
       const receipts = await readReconcileReceipts(runDir);
       expect(receipts).toHaveLength(report.records.length);
       expect((await deriveRunStatus(runDir)).interrupted).toBe(false);
+      const progress = JSON.parse(
+        await readFile(join(runDir, "progress.json"), "utf8"),
+      ) as { run_id: string; applied: string[] };
+      expect(progress).toMatchObject({ run_id: report.run_id });
+      expect(progress.applied).toHaveLength(receipts.length);
       expect(
         (
           await stat(
@@ -404,6 +409,15 @@ describe("store reconciliation integration", () => {
       for (const epicId of fixture.baselineEpicIds) {
         expect((await fixture.store.epics.get(epicId)).success).toBe(true);
       }
+      const afterScan = await runStoreResidueScan({ paths: fixture.paths });
+      let migrationMarker: Record<string, unknown> | null = null;
+      try {
+        migrationMarker = JSON.parse(
+          await readFile(fixture.paths.artifactMetadataMigrationMarker, "utf8"),
+        ) as Record<string, unknown>;
+      } catch {
+        migrationMarker = null;
+      }
       // The final assertions intentionally remain contract assertions: a
       // failure here is an engine finding, not a test-side fallback.
       const enumReadable = ChangeSchema.safeParse(
@@ -416,11 +430,15 @@ describe("store reconciliation integration", () => {
         reconstructed: Boolean(reconstruction),
         enumReadable,
         proofClean: proof.after_divergence_count === 0 && proof.complete,
+        migrationClean:
+          afterScan.counters.unmigrated_worktree_marker === 0 &&
+          migrationMarker?.version === 1,
         applyFailures,
       }).toEqual({
         reconstructed: true,
         enumReadable: true,
         proofClean: true,
+        migrationClean: true,
         applyFailures: [],
       });
     } finally {
