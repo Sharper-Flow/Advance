@@ -34,6 +34,7 @@ import {
   redactGitOutput,
   resolveReleaseReachability,
   validateChangeWorktree,
+  validateArchiveDeltaRepairWorktree,
   commitArchiveArtifacts,
   verifyChangeBranchReachableFromOrigin,
   detectArchivedUnmergedBranches,
@@ -3634,6 +3635,68 @@ describe("git-finalize helpers", () => {
     });
     expect(detached.valid).toBe(false);
     expect(detached.error).toContain("detached");
+  });
+
+  it("validateArchiveDeltaRepairWorktree requires a clean exact current-trunk repair basis", async () => {
+    const repo = join(tempRoot, "repair-repo");
+    const origin = join(tempRoot, "repair-origin.git");
+    const repair = join(tempRoot, "repair-wt");
+    const wrong = join(tempRoot, "wrong-wt");
+    await mkdir(repo);
+    await initRepo(repo);
+    git(repo, ["init", "--bare", origin]);
+    git(repo, ["remote", "add", "origin", origin]);
+    git(repo, ["push", "-u", "origin", "trunk"]);
+    git(origin, ["symbolic-ref", "HEAD", "refs/heads/trunk"]);
+    git(repo, ["fetch", "origin", "trunk"]);
+    git(repo, [
+      "worktree",
+      "add",
+      "-b",
+      "repair/archive-example",
+      repair,
+      "trunk",
+    ]);
+    git(repo, ["worktree", "add", "-b", "change/example", wrong, "trunk"]);
+
+    const valid = validateArchiveDeltaRepairWorktree(repair, "example", repo);
+    expect(valid.valid).toBe(true);
+    expect(valid.repairBranch).toBe("repair/archive-example");
+    expect(valid.repairHeadSha).toBe(valid.defaultBranchSha);
+
+    await writeFile(join(repair, "dirty.txt"), "must refuse\n");
+    const dirty = validateArchiveDeltaRepairWorktree(repair, "example", repo);
+    expect(dirty.valid).toBe(false);
+    expect(dirty.error).toContain("uncommitted");
+
+    const wrongBranch = validateArchiveDeltaRepairWorktree(
+      wrong,
+      "example",
+      repo,
+    );
+    expect(wrongBranch.valid).toBe(false);
+    expect(wrongBranch.error).toContain("repair/archive-example");
+
+    const behind = join(tempRoot, "behind-wt");
+    git(repo, [
+      "worktree",
+      "add",
+      "-b",
+      "repair/archive-behind",
+      behind,
+      "trunk",
+    ]);
+    await writeFile(join(repo, "advance.txt"), "trunk advanced\n");
+    git(repo, ["add", "advance.txt"]);
+    git(repo, ["commit", "-m", "advance trunk"]);
+    git(repo, ["push", "origin", "trunk"]);
+    const behindResult = validateArchiveDeltaRepairWorktree(
+      behind,
+      "behind",
+      repo,
+    );
+    expect(behindResult.valid).toBe(false);
+    expect(behindResult.error).toContain("start exactly");
   });
 
   it("commitArchiveArtifacts stages and commits .adv/ changes", async () => {

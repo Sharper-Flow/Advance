@@ -48,11 +48,14 @@ export async function readProjectionManifest(
     join(bundlePath, "spec-projection.json"),
   );
   if (result.kind !== "ok") return null;
-  const parsed = SpecProjectionManifestSchema.safeParse(
-    JSON.parse(result.content),
-  );
-  if (!parsed.success) return null;
-  return parsed.data;
+  try {
+    const parsed = SpecProjectionManifestSchema.safeParse(
+      JSON.parse(result.content),
+    );
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
 }
 
 async function verifyProjection(

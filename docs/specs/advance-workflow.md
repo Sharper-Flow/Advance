@@ -781,6 +781,8 @@ When the spawned “adv-ci-waiter” returns a non-terminal outcome (timeout, bl
 
 When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated by durable release-gate projection proof. Before `adv_change_archive phase9:"run"` reports success or performs archive retirement side effects, the store-backed gate read used by `adv_gate_status` MUST report `gates.release.status === "done"` with Phase 9 evidence in the release completion record. If this proof cannot be established, archive MUST return a blocked/recoverable result and MUST NOT claim shipped success, close linked issues, or run terminal cleanup as a successful retirement. Existing-bundle or completed-workflow retries MAY reconcile release metadata only after structural Phase 9 evidence is re-verified from the main checkout or PR branch state.
 
+An already-archived change with accepted deltas and a missing or invalid projection proof MAY use the bounded `archive_delta_repair` recovery path only with an explicit clean worktree on `repair/archive-{changeId}`. That worktree MUST belong to the exact target repository, start at the fetched `origin/{defaultBranch}`-equal local default HEAD/tree, and carry durable gate approval evidence before any spec, documentation, or in-repository archive write. Recovery MUST reuse the normal archive and Phase 9 paths, verify the manifest against the immutable released commit and exact accepted delta set, and record typed repair evidence. Active archives and normal `change/{changeId}` worktrees MUST NOT use this path.
+
 **Tags:** `workflow`, `archive`, `release`, `projection`, `durability`
 
 #### Scenarios
