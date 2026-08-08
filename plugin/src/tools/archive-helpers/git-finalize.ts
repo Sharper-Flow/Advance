@@ -70,6 +70,8 @@ export interface GitFinalizeDeps {
   };
   /** Project state directory required when `ephemeralWorktreeLock` is provided. */
   projectStateDir?: string;
+  /** Alternate source branch used only by structurally validated archive repair. */
+  sourceBranch?: string;
 }
 
 export type ReleaseFinalizationRouteName =
@@ -271,6 +273,7 @@ export interface ReleaseReachabilityInput {
   repoRoot: string;
   defaultBranch: string;
   changeId: string;
+  sourceBranch?: string;
   route?: FinalizationRoute;
   prNumber?: number;
   /** Optional repo override; falls back to route.repo. */
@@ -888,11 +891,12 @@ export function verifyChangeBranchReachable(
   refUnresolved?: true;
 } {
   const runGit = deps.runGit ?? defaultRunGit;
+  const sourceBranch = deps.sourceBranch ?? `change/${changeId}`;
   const resolved = runGit(repoRoot, [
     "rev-parse",
     "--verify",
     "--quiet",
-    `refs/heads/change/${changeId}`,
+    `refs/heads/${sourceBranch}`,
   ]);
   if (resolved.status !== 0 || !resolved.stdout.trim()) {
     return { reachable: false, unmergedCommits: [], refUnresolved: true };
@@ -901,7 +905,7 @@ export function verifyChangeBranchReachable(
   const result = runGit(repoRoot, [
     "log",
     "--oneline",
-    `${defaultBranch}..change/${changeId}`,
+    `${defaultBranch}..${sourceBranch}`,
   ]);
   if (result.status !== 0) {
     // Ref resolved, so this is an operational git failure, not commit evidence.
@@ -951,6 +955,7 @@ export function verifyChangeBranchReachableFromOrigin(
 
   let tipRef: string;
   let refSource: "persisted" | "refreshed_ref";
+  const sourceBranch = deps.sourceBranch ?? `change/${changeId}`;
   if (deps.changeTipSha?.trim()) {
     tipRef = deps.changeTipSha.trim();
     refSource = "persisted";
@@ -959,7 +964,7 @@ export function verifyChangeBranchReachableFromOrigin(
       "fetch",
       "origin",
       `refs/heads/${defaultBranch}:refs/remotes/origin/${defaultBranch}`,
-      `+refs/heads/change/${changeId}:refs/remotes/origin/change/${changeId}`,
+      `+refs/heads/${sourceBranch}:refs/remotes/origin/${sourceBranch}`,
     ]);
     if (fetch.status !== 0) {
       return {
@@ -972,7 +977,7 @@ export function verifyChangeBranchReachableFromOrigin(
     const resolvedTip = runGit(repoRoot, [
       "rev-parse",
       "--verify",
-      `refs/remotes/origin/change/${changeId}`,
+      `refs/remotes/origin/${sourceBranch}`,
     ]);
     if (resolvedTip.status !== 0 || !resolvedTip.stdout.trim()) {
       return {
@@ -1035,6 +1040,7 @@ export function mergeChangeBranch(
   deps: GitFinalizeDeps = {},
 ): MergeChangeBranchResult {
   const runGit = deps.runGit ?? defaultRunGit;
+  const sourceBranch = deps.sourceBranch ?? `change/${changeId}`;
   // rq-harden-archive-flow AC3: already-reachable branch is a no-op merge.
   // Detect before invoking `git merge` so a previously-merged (FF or no-FF
   // squash) change branch doesn't surface as MERGE_FAILED.
@@ -1051,7 +1057,7 @@ export function mergeChangeBranch(
       mergeMethod: "already-reachable",
     };
   }
-  const merge = runGit(repoRoot, ["merge", "--ff-only", `change/${changeId}`]);
+  const merge = runGit(repoRoot, ["merge", "--ff-only", sourceBranch]);
   if (merge.status === 0) {
     return {
       status: "merged",
@@ -1091,7 +1097,7 @@ export function mergeChangeBranch(
     "--no-edit",
     "-m",
     `merge: archive bundle for ${changeId}`,
-    `change/${changeId}`,
+    sourceBranch,
   ]);
   if (noff.status === 0) {
     return {
@@ -1160,6 +1166,7 @@ export function pushChangeBranch(
     autoPush: boolean;
     skipPush?: boolean;
     runGit?: GitFinalizeDeps["runGit"];
+    branchName?: string;
   },
 ):
   | { status: "pushed"; output: string }
@@ -1170,7 +1177,7 @@ export function pushChangeBranch(
   if (!options.autoPush)
     return { status: "skipped", reason: "auto_push disabled" };
 
-  const branch = `change/${changeId}`;
+  const branch = options.branchName ?? `change/${changeId}`;
   const push = (options.runGit ?? defaultRunGit)(
     workdir,
     ["push", "origin", branch],
@@ -1188,20 +1195,18 @@ export function pushChangeBranch(
 export function verifyChangeBranchPushed(
   repoRoot: string,
   changeId: string,
-  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+  deps: Pick<GitFinalizeDeps, "runGit" | "sourceBranch"> = {},
 ): { pushed: boolean; reason?: string } {
   const runGit = deps.runGit ?? defaultRunGit;
-  const local = runGit(repoRoot, [
-    "rev-parse",
-    `refs/heads/change/${changeId}`,
-  ]);
+  const branch = deps.sourceBranch ?? `change/${changeId}`;
+  const local = runGit(repoRoot, ["rev-parse", `refs/heads/${branch}`]);
   if (local.status !== 0 || !local.stdout.trim()) {
     return {
       pushed: false,
       reason: (
         local.stderr ||
         local.stdout ||
-        `change/${changeId} not found locally`
+        `${branch} not found locally`
       ).trim(),
     };
   }
@@ -1209,7 +1214,7 @@ export function verifyChangeBranchPushed(
   const lsRemote = runGit(repoRoot, [
     "ls-remote",
     "origin",
-    `refs/heads/change/${changeId}`,
+    `refs/heads/${branch}`,
   ]);
   if (
     lsRemote.status === 0 &&
@@ -1222,7 +1227,7 @@ export function verifyChangeBranchPushed(
     reason: (
       lsRemote.stderr ||
       lsRemote.stdout ||
-      `change/${changeId} not found on origin`
+      `${branch} not found on origin`
     ).trim(),
   };
 }
@@ -1360,14 +1365,16 @@ export function verifyDirectMergedPrProof(
     repo?: string;
     defaultBranch: string;
     changeId: string;
+    branchName?: string;
     changeTipSha?: string;
+    sourceBranch?: string;
   },
   deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
 ): DirectMergedPrProof {
   if (!input.repo) return { kind: "none" };
 
   const runGh = deps.runGh ?? defaultRunGh;
-  const branch = `change/${input.changeId}`;
+  const branch = input.branchName ?? `change/${input.changeId}`;
   const result = runGh(input.repoRoot, [
     "pr",
     "list",
@@ -1566,6 +1573,7 @@ export function discoverMergedPr(
   repo: string | undefined,
   changeId: string,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
+  branchName?: string,
 ):
   | { prNumber: number; mergeCommitOid?: string }
   | { error: string; details?: string[] } {
@@ -1576,7 +1584,7 @@ export function discoverMergedPr(
     "--state",
     "merged",
     "--head",
-    `change/${changeId}`,
+    branchName ?? `change/${changeId}`,
     "--json",
     "number,mergeCommit",
     "--limit",
@@ -1628,13 +1636,14 @@ export function detectSquashMergeByTree(
     // content-addressed tip instead of the live change/{id} ref so
     // detection survives branch deletion.
     changeTipSha?: string;
+    sourceBranch?: string;
   } = {},
 ): { reachable: boolean; mergeCommitOid?: string } {
   const runGit = deps.runGit ?? defaultRunGit;
 
   // Get tree SHA of change branch HEAD. Prefer the persisted tip SHA when
   // available (survives branch deletion); fall back to the live branch ref.
-  const tipRef = deps.changeTipSha ?? `change/${changeId}`;
+  const tipRef = deps.changeTipSha ?? deps.sourceBranch ?? `change/${changeId}`;
   const changeTree = runGit(repoRoot, ["rev-parse", `${tipRef}^{tree}`]);
   if (changeTree.status !== 0) {
     return { reachable: false };
@@ -2000,12 +2009,14 @@ export function executePullRequestHandoff(
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
     changeTipSha?: string;
+    sourceBranch?: string;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
   const branchPush = pushChangeBranch(input.workdir, input.changeId, {
     autoPush: true,
     runGit: deps.runGit,
+    branchName: input.branch,
   });
   if (branchPush.status !== "pushed") {
     return {
@@ -2093,6 +2104,7 @@ export function executePullRequestHandoff(
       changeId: input.changeId,
       route: input.route,
       prNumber: pr.number,
+      sourceBranch: input.sourceBranch,
     },
     deps,
   );
@@ -2159,10 +2171,11 @@ export function completeMergeQueueHandoff(
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
     changeTipSha?: string;
+    sourceBranch?: string;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
-  const branch = `change/${input.changeId}`;
+  const branch = input.sourceBranch ?? `change/${input.changeId}`;
   if (!input.route.repo) {
     return {
       status: "blocked",
@@ -2194,6 +2207,7 @@ export function completeMergeQueueHandoff(
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
       changeTipSha: input.changeTipSha,
+      sourceBranch: input.sourceBranch,
     },
     deps,
   );
@@ -2211,10 +2225,11 @@ function completeProtectedBranchViaPullRequest(
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
     changeTipSha?: string;
+    sourceBranch?: string;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
-  const branch = `change/${input.changeId}`;
+  const branch = input.sourceBranch ?? `change/${input.changeId}`;
   if (!input.route.repo) {
     return {
       status: "blocked",
@@ -2270,6 +2285,7 @@ function completeProtectedBranchViaPullRequest(
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
       changeTipSha: input.changeTipSha,
+      sourceBranch: input.sourceBranch,
     },
     deps,
   );
@@ -2793,7 +2809,11 @@ export function resolveReleaseReachability(
       input.repoRoot,
       input.defaultBranch,
       input.changeId,
-      { ...deps, changeTipSha: input.changeTipSha },
+      {
+        ...deps,
+        changeTipSha: input.changeTipSha,
+        sourceBranch: input.sourceBranch,
+      },
     );
     if (originReachability.reachable) {
       return {
@@ -2812,6 +2832,7 @@ export function resolveReleaseReachability(
         directRepo,
         input.changeId,
         deps,
+        input.sourceBranch,
       );
       if (!("error" in discovered)) {
         effectivePrNumber = discovered.prNumber;
@@ -2829,6 +2850,7 @@ export function resolveReleaseReachability(
           defaultBranch: input.defaultBranch,
           changeId: input.changeId,
           changeTipSha: input.changeTipSha,
+          branchName: input.sourceBranch,
         },
         deps,
       );
@@ -2894,7 +2916,11 @@ export function resolveReleaseReachability(
       input.repoRoot,
       `origin/${input.defaultBranch}`,
       input.changeId,
-      { ...deps, changeTipSha: input.changeTipSha },
+      {
+        ...deps,
+        changeTipSha: input.changeTipSha,
+        sourceBranch: input.sourceBranch,
+      },
     );
     if (treeMatch.reachable && treeMatch.mergeCommitOid) {
       return {
@@ -2925,6 +2951,7 @@ export function resolveReleaseReachability(
       repo,
       input.changeId,
       deps,
+      input.sourceBranch,
     );
     if ("error" in discovered) {
       discoveryError = discovered.error;
@@ -2977,7 +3004,11 @@ export function resolveReleaseReachability(
       input.repoRoot,
       `origin/${input.defaultBranch}`,
       input.changeId,
-      { ...deps, changeTipSha: input.changeTipSha },
+      {
+        ...deps,
+        changeTipSha: input.changeTipSha,
+        sourceBranch: input.sourceBranch,
+      },
     );
     if (treeMatch.reachable && treeMatch.mergeCommitOid) {
       return {
@@ -3041,7 +3072,7 @@ export function validateChangeWorktree(
   // 2. Must be on change/{changeId} branch
   const branchResult = runGit(workdir, ["branch", "--show-current"]);
   const currentBranch = branchResult.stdout.trim();
-  const expectedBranch = `change/${changeId}`;
+  const expectedBranch = deps.sourceBranch ?? `change/${changeId}`;
   if (currentBranch !== expectedBranch) {
     return {
       valid: false,
@@ -3092,6 +3123,188 @@ export function validateChangeWorktree(
   }
 
   return { valid: true, repoRoot, currentBranch };
+}
+
+export interface ArchiveDeltaRepairValidation {
+  valid: boolean;
+  repoRoot: string;
+  repairBranch?: string;
+  repairHeadSha?: string;
+  defaultBranch?: string;
+  defaultBranchSha?: string;
+  defaultTreeSha?: string;
+  error?: string;
+}
+
+/**
+ * Validate the only worktree allowed to repair an archived delta projection.
+ * The fetch and equality checks happen before archiveChange can write any
+ * tracked projection, making an old or diverged repair basis fail closed.
+ */
+export function validateArchiveDeltaRepairWorktree(
+  workdir: string,
+  changeId: string,
+  expectedRepoRoot: string,
+  deps: GitFinalizeDeps = {},
+): ArchiveDeltaRepairValidation {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const repairBranch = `repair/archive-${changeId}`;
+  let repoRoot: string;
+  try {
+    repoRoot = resolveRepoRoot(workdir, deps);
+    if (realpathSync(repoRoot) !== realpathSync(expectedRepoRoot)) {
+      return {
+        valid: false,
+        repoRoot,
+        error: `Repair worktree belongs to ${repoRoot}, expected ${expectedRepoRoot}`,
+      };
+    }
+  } catch (error) {
+    return {
+      valid: false,
+      repoRoot: "",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  const branch = runGit(workdir, ["branch", "--show-current"]).stdout.trim();
+  if (branch !== repairBranch) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      error: `Repair worktree is on ${branch || "(detached)"}, expected ${repairBranch}`,
+    };
+  }
+  const topLevel = runGit(workdir, ["rev-parse", "--show-toplevel"]);
+  if (topLevel.status !== 0 || !topLevel.stdout.trim()) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      error: `Unable to resolve repair worktree root for ${workdir}`,
+    };
+  }
+  try {
+    if (realpathSync(workdir) !== realpathSync(topLevel.stdout.trim())) {
+      return {
+        valid: false,
+        repoRoot,
+        repairBranch: branch,
+        error: `Repair worktree path ${workdir} is not its repository root`,
+      };
+    }
+  } catch (error) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  const dirty = splitLines(runGit(workdir, ["status", "--porcelain"]).stdout);
+  if (dirty.length > 0) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      error: `Repair worktree has uncommitted changes: ${dirty.join(", ")}`,
+    };
+  }
+
+  let defaultBranch: string;
+  try {
+    defaultBranch = detectDefaultBranch(repoRoot, deps).branch;
+  } catch (error) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+  const fetch = runGit(repoRoot, ["fetch", "origin", defaultBranch]);
+  if (fetch.status !== 0) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      defaultBranch,
+      error: `Unable to refresh origin/${defaultBranch}: ${fetch.stderr || fetch.stdout}`,
+    };
+  }
+
+  const localDefault = runGit(repoRoot, [
+    "rev-parse",
+    `refs/heads/${defaultBranch}`,
+  ]);
+  const originDefault = runGit(repoRoot, [
+    "rev-parse",
+    `refs/remotes/origin/${defaultBranch}`,
+  ]);
+  const repairHead = runGit(workdir, ["rev-parse", "HEAD"]);
+  const repairTree = runGit(workdir, ["rev-parse", "HEAD^{tree}"]);
+  const defaultTree = runGit(repoRoot, [
+    "rev-parse",
+    `refs/heads/${defaultBranch}^{tree}`,
+  ]);
+  const values = [
+    localDefault.stdout.trim(),
+    originDefault.stdout.trim(),
+    repairHead.stdout.trim(),
+    repairTree.stdout.trim(),
+    defaultTree.stdout.trim(),
+  ];
+  if (
+    [localDefault, originDefault, repairHead, repairTree, defaultTree].some(
+      (result) => result.status !== 0,
+    ) ||
+    values.some((value) => value.length === 0)
+  ) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      defaultBranch,
+      error: `Unable to resolve repair/default branch identity before archive writes`,
+    };
+  }
+  const [localSha, originSha, repairSha, repairTreeSha, defaultTreeSha] =
+    values;
+  if (localSha !== originSha) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      repairHeadSha: repairSha,
+      defaultBranch,
+      defaultBranchSha: localSha,
+      defaultTreeSha,
+      error: `Local ${defaultBranch} ${localSha} differs from fetched origin/${defaultBranch} ${originSha}`,
+    };
+  }
+  if (repairSha !== localSha || repairTreeSha !== defaultTreeSha) {
+    return {
+      valid: false,
+      repoRoot,
+      repairBranch: branch,
+      repairHeadSha: repairSha,
+      defaultBranch,
+      defaultBranchSha: localSha,
+      defaultTreeSha,
+      error: `Repair branch must start exactly at current ${defaultBranch} HEAD/tree`,
+    };
+  }
+  return {
+    valid: true,
+    repoRoot,
+    repairBranch: branch,
+    repairHeadSha: repairSha,
+    defaultBranch,
+    defaultBranchSha: localSha,
+    defaultTreeSha,
+  };
 }
 
 export function commitArchiveArtifacts(
@@ -3158,6 +3371,8 @@ export function commitArchiveArtifacts(
 export interface GitFinalizeContext {
   changeId: string;
   workdir: string;
+  /** Source branch; normal archives use change/{changeId}. */
+  sourceBranch?: string;
   expectedRepoRoot?: string;
   archiveMode: ArchiveMode;
   autoPush: boolean;
@@ -3318,11 +3533,15 @@ export async function finalizeRelease(
   ctx: GitFinalizeContext,
   deps: GitFinalizeDeps = {},
 ): Promise<GitFinalizeOutcome> {
+  const sourceBranch = ctx.sourceBranch ?? `change/${ctx.changeId}`;
+  const finalizationDeps = ctx.sourceBranch
+    ? { ...deps, sourceBranch: ctx.sourceBranch }
+    : deps;
   // Validate worktree before any mutation
   const worktreeValidation = validateChangeWorktree(
     ctx.workdir,
     ctx.changeId,
-    deps,
+    finalizationDeps,
   );
   if (!worktreeValidation.valid) {
     return {
@@ -3332,7 +3551,7 @@ export async function finalizeRelease(
       pushStatus: "not_attempted",
       blocked: {
         reason: "INVALID_WORKTREE",
-        remediation: `${worktreeValidation.error}. rq-releaseFinalization01 requires a validated change worktree on branch change/${ctx.changeId}.`,
+        remediation: `${worktreeValidation.error}. rq-releaseFinalization01 requires a validated archive worktree on branch ${sourceBranch}.`,
       },
     };
   }
@@ -3351,17 +3570,20 @@ export async function finalizeRelease(
     };
   }
 
-  const { branch: defaultBranch } = detectDefaultBranch(repoRoot, deps);
+  const { branch: defaultBranch } = detectDefaultBranch(
+    repoRoot,
+    finalizationDeps,
+  );
 
   // Per-invocation accumulator: caches idempotent git queries and tracks
   // fetch dedup. Mutations call invalidate(state, kind) to drop stale entries.
-  const state = createState(repoRoot, defaultBranch, deps);
+  const state = createState(repoRoot, defaultBranch, finalizationDeps);
 
   // Commit in-repo archive artifacts before merge
   const commitResult = commitArchiveArtifacts(
     ctx.workdir,
     ctx.changeId,
-    deps,
+    finalizationDeps,
     ctx.artifactPaths,
   );
   invalidate(state, "commit-archive-artifacts");
@@ -3385,8 +3607,8 @@ export async function finalizeRelease(
   try {
     changeTipSha = runGitOrThrow(
       repoRoot,
-      ["rev-parse", `change/${ctx.changeId}`],
-      deps,
+      ["rev-parse", sourceBranch],
+      finalizationDeps,
     );
   } catch {
     changeTipSha = undefined;
@@ -3400,7 +3622,7 @@ export async function finalizeRelease(
         repoRoot,
         defaultBranch,
         route: route.route,
-        prBranch: `change/${ctx.changeId}`,
+        prBranch: sourceBranch,
         pushStatus: "not_attempted",
         blocked: {
           reason:
@@ -3425,8 +3647,9 @@ export async function finalizeRelease(
           prTitleType: ctx.prTitleType,
           prTitlePolicy: ctx.prTitlePolicy,
           changeTipSha,
+          sourceBranch,
         },
-        deps,
+        finalizationDeps,
       );
     }
 
@@ -3442,8 +3665,9 @@ export async function finalizeRelease(
         prTitleType: ctx.prTitleType,
         prTitlePolicy: ctx.prTitlePolicy,
         changeTipSha,
+        sourceBranch,
       },
-      deps,
+      finalizationDeps,
     );
   }
   // Direct / no_remote path: perform merge+push inside an ephemeral detached
@@ -3509,9 +3733,10 @@ export async function finalizeRelease(
         repo: route.repo,
         defaultBranch,
         changeId: ctx.changeId,
+        branchName: sourceBranch,
         changeTipSha,
       },
-      deps,
+      finalizationDeps,
     );
     if (mergedPrProof.kind === "invalid") {
       return {
@@ -3520,7 +3745,7 @@ export async function finalizeRelease(
         defaultBranch,
         route: route.route,
         pushStatus: "not_attempted",
-        prBranch: `change/${ctx.changeId}`,
+        prBranch: sourceBranch,
         blocked: {
           reason: mergedPrProof.reason,
           remediation:
@@ -3539,7 +3764,7 @@ export async function finalizeRelease(
         mergeCommitSha: mergedPrProof.mergeCommitOid,
         changeTipSha,
         pushStatus: "pushed",
-        prBranch: `change/${ctx.changeId}`,
+        prBranch: sourceBranch,
         repo: route.repo,
         prNumber: mergedPrProof.prNumber,
         prUrl: mergedPrProof.prUrl,
@@ -3562,14 +3787,14 @@ export async function finalizeRelease(
     return await withEphemeralDefaultBranchWorktree(
       repoRoot,
       baseRef,
-      deps,
+      finalizationDeps,
       async (ephemeral) => {
         // Merge the change branch into the detached default-branch HEAD.
         const merge = mergeToTrunk(
           ephemeral,
           defaultBranch,
           ctx.changeId,
-          deps,
+          finalizationDeps,
         );
         invalidate(state, "merge-change-branch");
         if (merge.status === "blocked") {
@@ -3591,7 +3816,7 @@ export async function finalizeRelease(
         const push = pushToOrigin(ephemeral, defaultBranch, {
           autoPush: ctx.autoPush,
           skipPush: ctx.skipPush,
-          runGit: deps.runGit,
+          runGit: finalizationDeps.runGit,
         });
         invalidate(state, "push-to-origin");
 
@@ -3599,7 +3824,7 @@ export async function finalizeRelease(
           const remoteDefault = verifyDefaultBranchPushed(
             ephemeral,
             defaultBranch,
-            deps,
+            finalizationDeps,
           );
           if (!remoteDefault.pushed) {
             return {
@@ -3644,8 +3869,9 @@ export async function finalizeRelease(
                 prTitleType: ctx.prTitleType,
                 prTitlePolicy: ctx.prTitlePolicy,
                 changeTipSha,
+                sourceBranch,
               },
-              deps,
+              finalizationDeps,
             );
           }
           if (route.route === "pr_auto_merge") {
@@ -3661,8 +3887,9 @@ export async function finalizeRelease(
                 prTitleType: ctx.prTitleType,
                 prTitlePolicy: ctx.prTitlePolicy,
                 changeTipSha,
+                sourceBranch,
               },
-              deps,
+              finalizationDeps,
             );
           }
           if (route.route === "pr_manual") {
@@ -3674,10 +3901,10 @@ export async function finalizeRelease(
               mergeCommitSha: merge.mergeCommitSha,
               pushStatus: push.status,
               pushFailureReason: push.reason,
-              prBranch: `change/${ctx.changeId}`,
+              prBranch: sourceBranch,
               blocked: {
                 reason: route.reason ?? "PR_MANUAL_REQUIRED",
-                remediation: `Default branch push failed and ADV could not arm auto-merge. Manually open or merge PR for change/${ctx.changeId}, then rerun archive finalization (rq-releaseFinalization01).`,
+                remediation: `Default branch push failed and ADV could not arm auto-merge. Manually open or merge PR for ${sourceBranch}, then rerun archive finalization (rq-releaseFinalization01).`,
                 details: [push.reason, ...(route.details ?? [])],
               },
             };

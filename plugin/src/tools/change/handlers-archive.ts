@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { rm } from "fs/promises";
 import { basename, join, relative } from "path";
-import type { Change, ProjectConfig } from "../../types";
+import { GATE_ORDER, type Change, type ProjectConfig } from "../../types";
 import type { Store } from "../../storage/store";
 import { loadAllSpecs, removeChangeDir } from "../../storage/json";
 import { validateChange } from "../../validator";
@@ -55,7 +55,9 @@ import {
   deleteChangeBranch,
   finalizeRelease,
   validateChangeWorktree,
+  validateArchiveDeltaRepairWorktree,
   type GitFinalizeOutcome,
+  type ArchiveDeltaRepairValidation,
 } from "../archive-helpers/git-finalize";
 import { logger } from "./helpers";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
@@ -73,6 +75,18 @@ function outputSpecs(archiveResult: {
     version: `${spec.originalVersion} → ${spec.newVersion}`,
     deltas: spec.deltaResults.length,
   }));
+}
+
+function getArchiveDeltaRepairApprovalBlockers(
+  gates: Change["gates"],
+): string[] {
+  if (!gates) return [...GATE_ORDER];
+  return GATE_ORDER.filter((gateId) => {
+    const gate = gates[gateId];
+    const approval = gate.approval_evidence?.trim();
+    const recovery = gate.recovery_audit?.evidence?.trim();
+    return gate.status !== "done" || (!approval && !recovery);
+  });
 }
 
 export const advChangeArchiveHandler = async (
@@ -278,10 +292,15 @@ export const advChangeArchiveHandler = async (
     const existingBundlePath = !dryRun
       ? await findArchiveBundle(archivePaths.archive, changeId)
       : null;
+    const hasAcceptedDeltas = Object.values(change.deltas).some(
+      (deltas) => deltas.length > 0,
+    );
+    let archiveDeltaRepair: ArchiveDeltaRepairValidation | undefined;
     if (
       !dryRun &&
       !worktreePath &&
-      Object.values(change.deltas).some((deltas) => deltas.length > 0)
+      hasAcceptedDeltas &&
+      !(change.status === "archived" && existingBundlePath)
     )
       return formatToolOutput({
         success: false,
@@ -303,7 +322,113 @@ export const advChangeArchiveHandler = async (
         requirement: "rq-releaseFinalization01",
         changeId,
       });
-    if (!dryRun && worktreePath) {
+    if (
+      !dryRun &&
+      change.status === "archived" &&
+      existingBundlePath &&
+      hasAcceptedDeltas
+    ) {
+      const manifest = await readProjectionManifest(existingBundlePath);
+      const release = verifyReleaseEvidenceFromMain({
+        store: activeStore,
+        changeId,
+        archiveMode,
+        change,
+      });
+      let projectionFailure: unknown;
+      if (
+        !manifest ||
+        release.status !== "shipped" ||
+        !release.releasedCommitSha
+      ) {
+        projectionFailure = {
+          code: !manifest ? "MANIFEST_UNREADABLE" : "RELEASE_PROOF_MISSING",
+          message: !manifest
+            ? "Archive bundle has no valid projection manifest"
+            : "Archive has no immutable released commit proof",
+        };
+      } else {
+        const proof = await verifyProjectionAtGitCommit({
+          manifest,
+          repo: release.repoRoot,
+          releasedCommitSha: release.releasedCommitSha,
+          manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
+          expectedChangeId: change.id,
+          expectedDeltaSetSha256: canonicalSha256(change.deltas),
+          expectedDeltaIdsByCapability: Object.fromEntries(
+            Object.entries(change.deltas).map(([capability, deltas]) => [
+              capability,
+              deltas.map((delta) => delta.id),
+            ]),
+          ),
+        });
+        if (proof.ok) {
+          return reconcileArchivedBundleRetry({
+            store: activeStore,
+            change,
+            changeId,
+            archiveMode,
+            phase9,
+            existingBundlePath,
+            openOpsObligationsPayload,
+            validationWarnings: validationResult.warnings,
+          });
+        }
+        projectionFailure = proof;
+      }
+
+      if (phase9 !== "run")
+        return formatToolOutput({
+          success: false,
+          error:
+            "Archived delta repair requires phase9=run so the repaired projection is released and re-proven.",
+          requirement: "rq-archiveDeltaReconciliation01",
+          changeId,
+          archivePath: existingBundlePath,
+          projectionFailure,
+        });
+      const approvalBlockers = getArchiveDeltaRepairApprovalBlockers(
+        gateState.effectiveGates,
+      );
+      if (approvalBlockers.length > 0)
+        return formatToolOutput({
+          success: false,
+          error:
+            "Archived delta repair requires durable sign-off and release approval evidence.",
+          requirement: "rq-archiveDeltaReconciliation01",
+          changeId,
+          archivePath: existingBundlePath,
+          approvalBlockers,
+          projectionFailure,
+        });
+      if (!worktreePath)
+        return formatToolOutput({
+          success: false,
+          error:
+            "Archived delta repair requires an explicit trusted repair worktree.",
+          requirement: "rq-archiveDeltaReconciliation01",
+          changeId,
+          archivePath: existingBundlePath,
+          projectionFailure,
+        });
+      const repairValidation = validateArchiveDeltaRepairWorktree(
+        worktreePath,
+        changeId,
+        activeStore.paths.root,
+      );
+      if (!repairValidation.valid)
+        return formatToolOutput({
+          success: false,
+          error: "Archived delta repair refused before writes.",
+          requirement: "rq-archiveDeltaReconciliation01",
+          changeId,
+          archivePath: existingBundlePath,
+          repairValidation,
+          projectionFailure,
+        });
+      archiveDeltaRepair = repairValidation;
+    }
+    if (!dryRun && worktreePath && !archiveDeltaRepair) {
       const worktreeValidation = validateChangeWorktree(
         worktreePath,
         changeId,
@@ -323,54 +448,12 @@ export const advChangeArchiveHandler = async (
             `Worktree belongs to ${worktreeValidation.repoRoot}, expected ${activeStore.paths.root}.`,
         });
     }
-    if (!dryRun && change.status === "archived" && existingBundlePath) {
-      if (Object.values(change.deltas).some((deltas) => deltas.length > 0)) {
-        const manifest = await readProjectionManifest(existingBundlePath);
-        const release = verifyReleaseEvidenceFromMain({
-          store: activeStore,
-          changeId,
-          archiveMode,
-          change,
-        });
-        if (
-          !manifest ||
-          release.status !== "shipped" ||
-          !release.releasedCommitSha
-        ) {
-          return formatToolOutput({
-            success: false,
-            error:
-              "Archived retry cannot prove accepted delta projection; run approved archive delta reconciliation in a trusted repair worktree.",
-            requirement: "rq-archiveDeltaReconciliation01",
-            changeId,
-            archivePath: existingBundlePath,
-          });
-        }
-        const proof = await verifyProjectionAtGitCommit({
-          manifest,
-          repo: release.repoRoot,
-          releasedCommitSha: release.releasedCommitSha,
-          manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
-          expectedChangeId: change.id,
-          expectedDeltaSetSha256: canonicalSha256(change.deltas),
-          expectedDeltaIdsByCapability: Object.fromEntries(
-            Object.entries(change.deltas).map(([capability, deltas]) => [
-              capability,
-              deltas.map((delta) => delta.id),
-            ]),
-          ),
-        });
-        if (!proof.ok) {
-          return formatToolOutput({
-            success: false,
-            error: `Archived retry projection proof failed: ${proof.code}: ${proof.message}`,
-            requirement: "rq-archiveDeltaReconciliation01",
-            changeId,
-            archivePath: existingBundlePath,
-            projectionFailure: proof,
-          });
-        }
-      }
+    if (
+      !dryRun &&
+      change.status === "archived" &&
+      existingBundlePath &&
+      !archiveDeltaRepair
+    ) {
       return reconcileArchivedBundleRetry({
         store: activeStore,
         change,
@@ -460,6 +543,9 @@ export const advChangeArchiveHandler = async (
           ? await finalizeRelease({
               changeId,
               workdir: worktreePath,
+              ...(archiveDeltaRepair?.repairBranch
+                ? { sourceBranch: archiveDeltaRepair.repairBranch }
+                : {}),
               expectedRepoRoot: activeStore.paths.root,
               archiveMode,
               autoPush,
@@ -620,7 +706,36 @@ export const advChangeArchiveHandler = async (
           archivePath: archiveResult.archivePath,
           projectionFailure: projectionProof,
         });
-      change.archive_projection_proof = projectionProof.receipt;
+      change.archive_projection_proof = {
+        ...projectionProof.receipt,
+        ...(archiveDeltaRepair
+          ? {
+              archive_delta_repair: {
+                kind: "archive_delta_repair" as const,
+                repair_branch:
+                  archiveDeltaRepair.repairBranch ??
+                  `repair/archive-${change.id}`,
+                repair_head_sha:
+                  finalization.changeTipSha ??
+                  archiveDeltaRepair.repairHeadSha ??
+                  "",
+                default_branch: finalization.defaultBranch,
+                default_branch_sha:
+                  finalization.defaultBranchSha ??
+                  finalization.releasedCommitSha,
+                released_commit_sha: finalization.releasedCommitSha,
+                delta_set_sha256: canonicalSha256(change.deltas),
+                delta_ids_by_capability: Object.fromEntries(
+                  Object.entries(change.deltas).map(([capability, deltas]) => [
+                    capability,
+                    deltas.map((delta) => delta.id),
+                  ]),
+                ),
+                release_proof: buildReleaseCompletionEvidence(finalization),
+              },
+            }
+          : {}),
+      };
     }
 
     if (!dryRun) {
@@ -708,14 +823,14 @@ export const advChangeArchiveHandler = async (
             worktreePath,
           };
           const deletionPlan = await advWorktreeDelete(
-            `change/${change.id}`,
+            archiveDeltaRepair?.repairBranch ?? `change/${change.id}`,
             { force: false, dryRun: true },
             deletionDeps,
           );
           targetedWorktreeDeleteResult =
             deletionPlan.ok && deletionPlan.planToken
               ? await advWorktreeDelete(
-                  `change/${change.id}`,
+                  archiveDeltaRepair?.repairBranch ?? `change/${change.id}`,
                   {
                     force: false,
                     planToken: deletionPlan.planToken,
@@ -746,7 +861,8 @@ export const advChangeArchiveHandler = async (
           targetedWorktreeDeleteResult?.error === "WORKTREE_NOT_FOUND")
       ) {
         try {
-          deleteChangeBranch(finalization.repoRoot, change.id);
+          if (!archiveDeltaRepair)
+            deleteChangeBranch(finalization.repoRoot, change.id);
         } catch (error) {
           archiveResult.errors.push(
             `Branch cleanup warning: ${error instanceof Error ? error.message : String(error)}`,
@@ -779,6 +895,23 @@ export const advChangeArchiveHandler = async (
             continueFrom: {
               path: finalization.repoRoot,
               branch: finalization.defaultBranch,
+            },
+          }
+        : {}),
+      ...(archiveDeltaRepair
+        ? {
+            archiveDeltaRepair: {
+              kind: "archive_delta_repair" as const,
+              repairBranch: archiveDeltaRepair.repairBranch,
+              repairHeadSha: finalization?.changeTipSha,
+              defaultBranch: finalization?.defaultBranch,
+              defaultBranchSha:
+                finalization?.defaultBranchSha ??
+                finalization?.releasedCommitSha,
+              releasedCommitSha: finalization?.releasedCommitSha,
+              releaseProof: finalization
+                ? buildReleaseCompletionEvidence(finalization)
+                : undefined,
             },
           }
         : {}),

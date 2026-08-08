@@ -83,6 +83,67 @@
     "archive_projection_proof": {
       "additionalProperties": false,
       "properties": {
+        "archive_delta_repair": {
+          "additionalProperties": false,
+          "properties": {
+            "default_branch": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "default_branch_sha": {
+              "pattern": "^[a-f0-9]{40,64}$",
+              "type": "string"
+            },
+            "delta_ids_by_capability": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "delta_set_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "archive_delta_repair",
+              "type": "string"
+            },
+            "release_proof": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "released_commit_sha": {
+              "pattern": "^[a-f0-9]{40,64}$",
+              "type": "string"
+            },
+            "repair_branch": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "repair_head_sha": {
+              "pattern": "^[a-f0-9]{40,64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "repair_branch",
+            "repair_head_sha",
+            "default_branch",
+            "default_branch_sha",
+            "released_commit_sha",
+            "delta_set_sha256",
+            "delta_ids_by_capability",
+            "release_proof"
+          ],
+          "type": "object"
+        },
         "change_id": {
           "minLength": 1,
           "type": "string"
