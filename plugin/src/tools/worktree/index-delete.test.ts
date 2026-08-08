@@ -38,6 +38,7 @@ import {
   advWorktreeCleanup,
   advWorktreeDelete as rawAdvWorktreeDelete,
   drainPendingDeletes,
+  GH_PR_LIST_JSON_FIELDS,
   reapEmptyWorktreeParents,
   type AdvWorktreeDeleteDeps,
 } from "./index";
@@ -159,6 +160,39 @@ function createMockDeps(
     }),
   };
 }
+
+function createPrGhExec(
+  payload: Record<string, unknown>,
+  repository = "owner/repo",
+) {
+  return vi.fn(async (args: string[]) => ({
+    stdout:
+      args[0] === "repo"
+        ? JSON.stringify({ nameWithOwner: repository })
+        : JSON.stringify([payload]),
+    stderr: "",
+    exitCode: 0,
+  }));
+}
+
+// Captured from the live `gh pr list --json` shape for PR #407.
+const LIVE_PR_407_SHAPE = {
+  number: 407,
+  state: "MERGED",
+  mergedAt: "2026-08-08T00:01:44Z",
+  headRefName: "fix/delete-target-routing",
+  headRefOid: "08c7c44e3f243c6dd522bea5d3446b1f7654978f",
+  baseRefName: "trunk",
+  headRepository: {
+    id: "R_kgDOQ-sRJg",
+    name: "Advance",
+    nameWithOwner: "Sharper-Flow/Advance",
+  },
+  headRepositoryOwner: { id: "O_kgDOBrdsJg", login: "Sharper-Flow" },
+  isCrossRepository: false,
+  mergeCommit: { oid: "019de4a97560953acca5f3c425070d6bf3b64985" },
+  url: "https://github.com/Sharper-Flow/Advance/pull/407",
+} as const;
 
 /**
  * Destructive delete tests must exercise the public planner/apply protocol;
@@ -1268,22 +1302,23 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       // Keep local main stale; reachability must use a fresh origin/main fetch.
       git(fixture.root, "reset", "--hard", "HEAD~1");
       const payload = {
-        number: 407,
-        state: "MERGED",
-        mergedAt: "2026-08-08T00:00:00Z",
+        ...LIVE_PR_407_SHAPE,
         headRefName: branch,
         headRefOid: fixture.head,
         baseRefName: "main",
-        headRepository: { nameWithOwner: "owner/repo" },
-        baseRepository: { nameWithOwner: "owner/repo" },
-        isCrossRepository: false,
+        headRepository: {
+          id: LIVE_PR_407_SHAPE.headRepository.id,
+          name: "repo",
+          nameWithOwner: "owner/repo",
+        },
+        headRepositoryOwner: {
+          id: LIVE_PR_407_SHAPE.headRepositoryOwner.id,
+          login: "owner",
+        },
         mergeCommit: { oid: fixture.mergeCommit },
+        url: "https://github.com/owner/repo/pull/407",
       };
-      const ghExec = vi.fn(async () => ({
-        stdout: JSON.stringify([payload]),
-        stderr: "",
-        exitCode: 0,
-      }));
+      const ghExec = createPrGhExec(payload);
       const deps = createMockDeps(fixture.root, fixture.worktree);
       deps.integrationCheck = undefined;
       deps.mergedBranches = async () => [];
@@ -1315,6 +1350,23 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         expect.any(Number),
         expect.any(AbortSignal),
       );
+      expect(ghExec).toHaveBeenCalledWith(
+        ["repo", "view", "--json", "nameWithOwner"],
+        fixture.root,
+        expect.any(Number),
+        expect.any(AbortSignal),
+      );
+      const prListCall = ghExec.mock.calls.find(([args]) => args[0] === "pr");
+      expect(prListCall?.[0]).toContain(GH_PR_LIST_JSON_FIELDS.join(","));
+      expect(prListCall?.[0]).not.toContain("baseRepository");
+      const ghHelp = execFileSync("gh", ["pr", "list", "--help"], {
+        encoding: "utf8",
+        timeout: 10_000,
+      });
+      const jsonFields = ghHelp.split("JSON FIELDS")[1]?.split("EXAMPLES")[0];
+      expect(jsonFields).toBeTruthy();
+      for (const field of GH_PR_LIST_JSON_FIELDS)
+        expect(jsonFields).toContain(field);
 
       const refusal = async (
         patch: Partial<typeof payload>,
@@ -1336,15 +1388,32 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       await refusal(
         {
           headRepository: { nameWithOwner: "other/repo" },
-          baseRepository: { nameWithOwner: "other/repo" },
+          headRepositoryOwner: { login: "other" },
         },
         "pr_evidence_invalid",
       );
       await refusal(
         {
           headRepository: { nameWithOwner: "owner/repo" },
-          baseRepository: { nameWithOwner: "owner/repo" },
+          headRepositoryOwner: { login: "owner" },
           baseRefName: "develop",
+        },
+        "pr_evidence_invalid",
+      );
+      await refusal(
+        {
+          headRepository: { nameWithOwner: "owner/repo" },
+          headRepositoryOwner: null,
+          baseRefName: "main",
+        },
+        "pr_evidence_invalid",
+      );
+      await refusal(
+        {
+          headRepository: { nameWithOwner: "owner/repo" },
+          headRepositoryOwner: { login: "owner" },
+          isCrossRepository: true,
+          baseRefName: "main",
         },
         "pr_evidence_invalid",
       );
@@ -1361,6 +1430,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
           state: "MERGED",
           mergedAt: "2026-08-08T00:00:00Z",
           mergeCommit: { oid: "deadbeef" },
+          isCrossRepository: false,
         },
         "pr_merge_commit_unreachable",
       );
@@ -1371,7 +1441,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         headRefOid: fixture.firstHead,
         baseRefName: "main",
         headRepository: { nameWithOwner: "owner/repo" },
-        baseRepository: { nameWithOwner: "owner/repo" },
+        headRepositoryOwner: { login: "owner" },
         mergeCommit: { oid: fixture.mergeCommit },
       });
       git(
@@ -1402,19 +1472,19 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
           headRefName: branch,
           headRefOid: fixture.head,
           baseRefName: "main",
-          headRepository: { nameWithOwner: "owner/repo" },
-          baseRepository: { nameWithOwner: "owner/repo" },
+          headRepository: {
+            id: "R_kgDOQ-sRJg",
+            name: "repo",
+            nameWithOwner: "owner/repo",
+          },
+          headRepositoryOwner: { id: "O_kgDOBrdsJg", login: "owner" },
           isCrossRepository: false,
           mergeCommit: { oid: fixture.mergeCommit },
         };
         const deps = createMockDeps(fixture.root, fixture.worktree);
         deps.integrationCheck = undefined;
         deps.mergedBranches = async () => [];
-        deps.ghExec = vi.fn(async () => ({
-          stdout: JSON.stringify([payload]),
-          stderr: "",
-          exitCode: 0,
-        }));
+        deps.ghExec = createPrGhExec(payload);
 
         const planned = await rawAdvWorktreeDelete(
           branch,
