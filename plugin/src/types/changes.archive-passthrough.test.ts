@@ -70,4 +70,13 @@ describe("Phase9FinalizationStatusSchema changeTipSha", () => {
       }).success,
     ).toBe(false);
   });
+
+  test("preserves the exact merged PR commit OID", () => {
+    expect(
+      Phase9FinalizationStatusSchema.parse({
+        ...baseStatus,
+        mergeCommitSha: "b".repeat(40),
+      }).mergeCommitSha,
+    ).toBe("b".repeat(40));
+  });
 });

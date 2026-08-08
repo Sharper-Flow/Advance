@@ -315,6 +315,12 @@ export async function saveRecoveredArchiveConvergence(input: {
           ...(input.finalization.mergeCommitSha
             ? { mergeCommitSha: input.finalization.mergeCommitSha }
             : {}),
+          ...(input.finalization.prHeadSha
+            ? { prHeadSha: input.finalization.prHeadSha }
+            : {}),
+          ...(input.finalization.defaultBranchSha
+            ? { defaultBranchSha: input.finalization.defaultBranchSha }
+            : {}),
           ...(input.finalization.changeTipSha
             ? { changeTipSha: input.finalization.changeTipSha }
             : {}),

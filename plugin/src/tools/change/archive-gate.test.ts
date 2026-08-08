@@ -63,6 +63,28 @@ async function writeDiskChange(
 }
 
 describe("archive-gate disk projection", () => {
+  it("records exact PR and current default reachability in durable evidence", () => {
+    const evidence = buildReleaseCompletionEvidence({
+      status: "shipped",
+      repoRoot: "/repo",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      route: "direct",
+      repo: "owner/repo",
+      prNumber: 405,
+      prHeadSha: "pr-head-sha",
+      mergeCommitSha: "merge-commit-sha",
+      defaultBranchSha: "current-default-sha",
+      releasedCommitSha: "current-default-sha",
+    });
+    expect(evidence).toContain("prNumber=405");
+    expect(evidence).toContain("prHeadSha=pr-head-sha");
+    expect(evidence).toContain("mergeCommitSha=merge-commit-sha");
+    expect(evidence).toContain(
+      "defaultBranchReachability=origin/trunk@current-default-sha",
+    );
+  });
+
   it("accepts audited disk release proof with matching finalization evidence", async () => {
     const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-"));
     try {

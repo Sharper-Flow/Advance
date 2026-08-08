@@ -50,6 +50,7 @@ import {
   ensureOriginDefaultFetched,
   discoverMergedPr,
   readPrMergeState,
+  verifyDirectMergedPrProof,
 } from "./git-finalize";
 import type { PrTitlePolicy } from "../../types/project";
 
@@ -577,6 +578,110 @@ describe("git-finalize helpers", () => {
       route: "direct",
       remoteUrl: bareRepo,
       protected: false,
+    });
+  });
+
+  describe("direct-route merged PR proof", () => {
+    const validPayload = {
+      number: 405,
+      url: "https://github.com/owner/repo/pull/405",
+      state: "MERGED",
+      mergedAt: "2026-08-08T00:00:00Z",
+      mergeCommit: { oid: "merge-commit" },
+      headRefName: "change/example",
+      headRefOid: "local-tip",
+      baseRefName: "trunk",
+      headRepositoryOwner: { login: "owner" },
+      headRepository: { name: "repo", nameWithOwner: "owner/repo" },
+      isCrossRepository: false,
+    };
+
+    function proof(overrides: Record<string, unknown> = {}) {
+      return verifyDirectMergedPrProof(
+        {
+          repoRoot: "/repo",
+          repo: "owner/repo",
+          defaultBranch: "trunk",
+          changeId: "example",
+          changeTipSha: "local-tip",
+        },
+        {
+          runGh: () => ({
+            status: 0,
+            stdout: JSON.stringify([{ ...validPayload, ...overrides }]),
+            stderr: "",
+          }),
+          runGit: (_cwd, args) => {
+            if (args[0] === "merge-base")
+              return { status: 0, stdout: "", stderr: "" };
+            if (args[0] === "rev-parse")
+              return { status: 0, stdout: "current-default\n", stderr: "" };
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+    }
+
+    it("accepts exact merged PR proof and records current default reachability", () => {
+      expect(proof()).toEqual({
+        kind: "valid",
+        prNumber: 405,
+        prUrl: "https://github.com/owner/repo/pull/405",
+        prHeadSha: "local-tip",
+        mergeCommitOid: "merge-commit",
+        defaultBranchSha: "current-default",
+      });
+    });
+
+    for (const [label, overrides] of [
+      ["wrong head OID", { headRefOid: "other-tip" }],
+      ["wrong base", { baseRefName: "main" }],
+      ["wrong state", { state: "OPEN", mergedAt: null }],
+    ] as const) {
+      it(`rejects ${label}`, () => {
+        expect(proof(overrides)).toMatchObject({ kind: "invalid" });
+      });
+    }
+
+    it("rejects an unreachable merge commit", () => {
+      const result = verifyDirectMergedPrProof(
+        {
+          repoRoot: "/repo",
+          repo: "owner/repo",
+          defaultBranch: "trunk",
+          changeId: "example",
+          changeTipSha: "local-tip",
+        },
+        {
+          runGh: () => ({
+            status: 0,
+            stdout: JSON.stringify([validPayload]),
+            stderr: "",
+          }),
+          runGit: () => ({ status: 1, stdout: "", stderr: "not reachable" }),
+        },
+      );
+      expect(result).toMatchObject({
+        kind: "invalid",
+        reason: "MERGED_PR_COMMIT_UNREACHABLE",
+      });
+    });
+
+    it("continues direct behavior only when the merged PR list is explicitly empty", () => {
+      expect(
+        verifyDirectMergedPrProof(
+          {
+            repoRoot: "/repo",
+            repo: "owner/repo",
+            defaultBranch: "trunk",
+            changeId: "example",
+            changeTipSha: "local-tip",
+          },
+          {
+            runGh: () => ({ status: 0, stdout: "[]", stderr: "" }),
+          },
+        ),
+      ).toEqual({ kind: "none" });
     });
   });
 
@@ -3329,6 +3434,112 @@ describe("git-finalize helpers", () => {
     expect(git(remote, ["show", `${remoteHead}:feature.txt`])).toBe("feature");
   });
 
+  it("finalizeRelease accepts an exact squash-merged PR on a direct route without invoking merge", async () => {
+    const seed = join(tempRoot, "seed-pr-proof");
+    const remote = join(tempRoot, "remote-pr-proof.git");
+    const main = join(tempRoot, "main-pr-proof");
+    const mergeClone = join(tempRoot, "merge-pr-proof");
+    const worktree = join(tempRoot, "wt-pr-proof");
+    await mkdir(seed);
+    await mkdir(remote);
+    await mkdir(main);
+    await mkdir(mergeClone);
+
+    await initRepo(seed, "trunk");
+    git(tempRoot, ["init", "--bare", "-q", "-b", "trunk", remote]);
+    git(seed, ["remote", "add", "origin", remote]);
+    git(seed, ["push", "origin", "trunk"]);
+    git(tempRoot, ["clone", "-q", remote, main]);
+    git(main, ["config", "user.email", "adv-test@example.invalid"]);
+    git(main, ["config", "user.name", "ADV Test"]);
+    git(tempRoot, ["clone", "-q", remote, mergeClone]);
+    git(mergeClone, ["config", "user.email", "adv-test@example.invalid"]);
+    git(mergeClone, ["config", "user.name", "ADV Test"]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+    const prHeadSha = git(worktree, ["rev-parse", "HEAD"]);
+    git(worktree, ["push", "-u", "origin", "change/example"]);
+
+    // Simulate a squash merge through GitHub, followed by unrelated trunk
+    // commits that make a second direct merge attempt conflict-prone.
+    git(mergeClone, ["fetch", "origin", "change/example"]);
+    git(mergeClone, ["merge", "--squash", "origin/change/example"]);
+    git(mergeClone, ["commit", "-m", "squash merge"]);
+    const mergeCommitOid = git(mergeClone, ["rev-parse", "HEAD"]);
+    await writeFile(join(mergeClone, "later.txt"), "later\n");
+    git(mergeClone, ["add", "later.txt"]);
+    git(mergeClone, ["commit", "-m", "later trunk change"]);
+    git(mergeClone, ["push", "origin", "trunk"]);
+    const defaultBranchSha = git(mergeClone, ["rev-parse", "HEAD"]);
+
+    const gitCalls: string[][] = [];
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          gitCalls.push(args);
+          if (args[0] === "remote" && args[1] === "get-url") {
+            return {
+              status: 0,
+              stdout: "https://github.com/owner/repo.git\n",
+              stderr: "",
+            };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "list") {
+            return {
+              status: 0,
+              stdout: JSON.stringify([
+                {
+                  number: 405,
+                  url: "https://github.com/owner/repo/pull/405",
+                  state: "MERGED",
+                  mergedAt: "2026-08-08T00:00:00Z",
+                  mergeCommit: { oid: mergeCommitOid },
+                  headRefName: "change/example",
+                  headRefOid: prHeadSha,
+                  baseRefName: "trunk",
+                  headRepositoryOwner: { login: "owner" },
+                  headRepository: {
+                    name: "repo",
+                    nameWithOwner: "owner/repo",
+                  },
+                  isCrossRepository: false,
+                },
+              ]),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected gh" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      route: "direct",
+      prNumber: 405,
+      prHeadSha,
+      mergeCommitSha: mergeCommitOid,
+      releasedCommitSha: defaultBranchSha,
+      defaultBranchSha,
+    });
+    expect(gitCalls.filter((args) => args[0] === "merge")).toEqual([]);
+    expect(git(worktree, ["rev-parse", "change/example"])).toBe(prHeadSha);
+  });
+
   it("finalizeRelease in PR mode blocks when origin is missing", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
@@ -3361,6 +3572,18 @@ describe("git-finalize helpers", () => {
         },
       }),
     ).toEqual({ pushed: true, sha: "abc" });
+  });
+
+  it("verifyDefaultBranchPushed fails closed when origin/default cannot be refreshed", () => {
+    expect(
+      verifyDefaultBranchPushed("/repo", "trunk", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch")
+            return { status: 1, stdout: "", stderr: "network unavailable" };
+          return { status: 1, stdout: "", stderr: "must not use stale ref" };
+        },
+      }),
+    ).toEqual({ pushed: false, reason: "network unavailable" });
   });
 
   it("verifyChangeBranchPushed rejects stale remote branch refs", () => {

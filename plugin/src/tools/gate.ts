@@ -497,8 +497,16 @@ function durableReleaseProofEvidence(input: {
       ...(input.reachability.prNumber
         ? [`prNumber=${input.reachability.prNumber}`]
         : []),
+      ...(input.reachability.prHeadSha
+        ? [`prHeadSha=${input.reachability.prHeadSha}`]
+        : []),
       ...(input.reachability.mergeCommitOid
         ? [`mergeCommitOid=${input.reachability.mergeCommitOid}`]
+        : []),
+      ...(input.reachability.defaultBranchSha
+        ? [
+            `defaultBranchReachability=origin/${input.defaultBranch}@${input.reachability.defaultBranchSha}`,
+          ]
         : []),
     ].join("; "),
   };
@@ -522,6 +530,7 @@ function getReleaseFinalizationBlocker(input: {
       changeId: input.changeId,
       route,
       prNumber: input.change.phase9_status?.prNumber,
+      prHeadSha: input.change.phase9_status?.prHeadSha,
       repo: input.change.phase9_status?.repo,
       changeTipSha: input.change.phase9_status?.changeTipSha,
     });
@@ -561,6 +570,7 @@ function getReleaseFinalizationBlocker(input: {
     changeId: input.changeId,
     route,
     prNumber: input.change.phase9_status?.prNumber,
+    prHeadSha: input.change.phase9_status?.prHeadSha,
     repo: input.change.phase9_status?.repo,
     changeTipSha: input.change.phase9_status?.changeTipSha,
   });
