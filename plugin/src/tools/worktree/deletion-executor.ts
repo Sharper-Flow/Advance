@@ -23,6 +23,10 @@ import type {
 import { resolveGitBinary } from "../../utils/git-binary";
 import {
   acquireGitWorktreeProcessLease,
+  GitWorktreeLegacyLockError,
+  GitWorktreeLeaseResolutionError,
+  migrateLegacyGitWorktreeLock,
+  resolveGitWorktreeLeaseDir,
   type GitWorktreeProcessLeaseResult,
   GitWorktreeFlockUnsupportedError,
   GitWorktreeFlockQuiescenceError,
@@ -32,6 +36,7 @@ import {
   type WorktreeOperationContext,
 } from "../../utils/worktree-operation";
 import { stableStringify } from "../../utils/digest";
+import { appendDebugLog } from "../../utils/debug-log";
 import { isWorktreeInUse } from "./in-use";
 import {
   LocalBranchIntegrationDeadline,
@@ -42,7 +47,7 @@ import {
 export interface WorktreeDeletionExecutorDeps {
   /** Repository path selected by the caller; it must match the token exactly. */
   repository?: string;
-  /** Directory containing the repository owner-token lock. */
+  /** Test seam; production derives the lease directory from Git common-dir. */
   repositoryLeaseDir?: string;
   /** Current process CWD, supplied by the adapter rather than inferred in tests. */
   cwd?: string;
@@ -432,8 +437,7 @@ export class WorktreeDeletionExecutor {
         responseReserveMs: DEFAULT_RESPONSE_RESERVE_MS,
         now,
       });
-    const repositoryLeaseDir =
-      this.deps.repositoryLeaseDir ?? resolve(plan.repository, ".adv");
+    let repositoryLeaseDir = this.deps.repositoryLeaseDir;
     const acquire = this.deps.acquireLease ?? acquireGitWorktreeProcessLease;
     const release = this.deps.releaseLease;
     let lock: WorktreeLeaseResult | undefined;
@@ -590,13 +594,25 @@ export class WorktreeDeletionExecutor {
     };
 
     try {
+      if (!repositoryLeaseDir) {
+        repositoryLeaseDir = await runBounded("lease", () =>
+          resolveGitWorktreeLeaseDir(plan.repository),
+        );
+      }
+      if (!repositoryLeaseDir)
+        return failure(
+          "repair_required",
+          "git_common_dir_unavailable",
+          "lease",
+        );
+      const activeRepositoryLeaseDir = repositoryLeaseDir;
       if (expiryDecision("lease")) return expiryDecision("lease")!;
       if (operation.remainingMs() <= operation.responseReserveMs)
         return failure("deadline_exceeded", "deadline_exceeded", "lease");
       operation.startStage("lease");
       try {
         lock = await runBounded("lease", () =>
-          acquire(repositoryLeaseDir, {
+          acquire(activeRepositoryLeaseDir, {
             signal: operation.signal,
             operation,
           }),
@@ -628,7 +644,7 @@ export class WorktreeDeletionExecutor {
       ) {
         if (lock.owned) {
           try {
-            await settleLease(lock, repositoryLeaseDir, release);
+            await settleLease(lock, activeRepositoryLeaseDir, release);
           } catch {
             // The operation's terminationError is surfaced by the barrier;
             // cleanup must not replace that typed result with a rejection.
@@ -637,8 +653,22 @@ export class WorktreeDeletionExecutor {
         await operation.abort("deadline");
         return failure("deadline_exceeded", "deadline_exceeded", "lease");
       }
+      if (!lock.owned) {
+        operation.finishStage("lease");
+        return failure("busy", "repository_lease_held", "lease");
+      }
+      const migration = await runBounded("lease", () =>
+        migrateLegacyGitWorktreeLock(plan.repository),
+      );
+      if (migration.removed) {
+        // The migration is deliberately audited at the deletion boundary;
+        // no startup/background path is allowed to mutate repository files.
+        appendDebugLog(
+          "worktree-delete",
+          `migrated legacy repository lock ${migration.lockPath} to Git administrative lease state`,
+        );
+      }
       operation.finishStage("lease");
-      if (!lock.owned) return failure("busy", "repository_lease_held", "lease");
 
       const initialExpiry = expiryDecision("census");
       if (initialExpiry) return initialExpiry;
@@ -929,6 +959,22 @@ export class WorktreeDeletionExecutor {
         (error instanceof Error && /unsupported.*platform/i.test(error.message))
       )
         return failure("unsupported", error.message, operation.currentStage);
+      if (error instanceof GitWorktreeLegacyLockError) {
+        return {
+          ...failure(
+            "repair_required",
+            `legacy_lock_${error.failure}`,
+            "lease",
+          ),
+          warning: error.message,
+        };
+      }
+      if (error instanceof GitWorktreeLeaseResolutionError) {
+        return {
+          ...failure("repair_required", "git_common_dir_unavailable", "lease"),
+          warning: error.message,
+        };
+      }
       return failure(
         "indeterminate",
         error instanceof Error ? error.message : String(error),
@@ -939,7 +985,7 @@ export class WorktreeDeletionExecutor {
         await operation.abort("operation_complete");
         operation.dispose();
       }
-      if (lock?.owned) {
+      if (lock?.owned && repositoryLeaseDir) {
         try {
           await settleLease(lock, repositoryLeaseDir, release);
         } catch {

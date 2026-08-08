@@ -1,7 +1,7 @@
 /**
  * Git Worktree File-Lock (T15 — KD-2, KD-7, R16).
  *
- * A narrow per-project filesystem lock used **only** to serialize git filesystem
+ * A narrow per-repository filesystem lock used **only** to serialize git filesystem
  * operations (`git worktree add` / `git worktree remove`) that race against
  * each other when multiple peer sessions create or delete worktrees
  * concurrently. Hold time is targeted at ~50ms — long enough to cover the
@@ -14,15 +14,16 @@
  */
 
 import { mkdirSync } from "node:fs";
-import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import {
   spawn,
   type ChildProcess,
   type SpawnOptions,
 } from "node:child_process";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { isProcessAlive } from "./process-liveness";
+import { execFileGitAsync } from "./git-binary";
 
 export type GitWorktreeLockResult =
   | {
@@ -41,11 +42,265 @@ export type GitWorktreeLockResult =
     };
 
 /**
- * Lock filename used inside the per-project state directory. Distinct from
- * `worker.lock` so the singleton-worker election is not coupled to git
- * operations.
+ * Lock filename used inside the per-repository administrative lease
+ * directory. Distinct from
+ * `worker.lock` so singleton-worker election is not coupled to git operations.
+ * The file lives under `<git-common-dir>/advance`, never in a checkout.
  */
 export const GIT_WORKTREE_LOCK_FILENAME = "git-worktree.lock";
+/** Git administrative subdirectory shared by linked worktrees. */
+export const GIT_WORKTREE_LEASE_DIRECTORY = "advance";
+/** Distinct from the process-lease contention code for legacy migration. */
+export const LEGACY_GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE = 74;
+const LEGACY_LOCK_MAX_BYTES = 4_096;
+const LEGACY_REMOVE_SCRIPT =
+  'test ! -L "$1" && test -f "$1" && mv -- "$1" "$2" && rm -f -- "$2"';
+
+export type LegacyGitWorktreeLockFailure =
+  | "held"
+  | "malformed"
+  | "probe_failed"
+  | "remove_failed";
+
+/** Typed, fail-closed legacy migration error. The artifact is never force-removed. */
+export class GitWorktreeLegacyLockError extends Error {
+  constructor(
+    readonly failure: LegacyGitWorktreeLockFailure,
+    readonly lockPath: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "GitWorktreeLegacyLockError";
+  }
+}
+
+export class GitWorktreeLeaseResolutionError extends Error {
+  constructor(
+    readonly repository: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "GitWorktreeLeaseResolutionError";
+  }
+}
+
+/**
+ * Resolve the one lease directory shared by a repository's main and linked
+ * worktrees. Git's common directory is repository administrative state, not a
+ * checkout, so this path is invisible to `git status` and independent across
+ * separate clones.
+ */
+export async function resolveGitWorktreeLeaseDir(
+  repository: string,
+): Promise<string> {
+  try {
+    const { stdout } = await execFileGitAsync(
+      ["rev-parse", "--git-common-dir"],
+      { cwd: repository },
+    );
+    const commonDir = stdout.trim();
+    if (!commonDir) throw new Error("git returned an empty common directory");
+    return join(resolve(repository, commonDir), GIT_WORKTREE_LEASE_DIRECTORY);
+  } catch (error) {
+    throw new GitWorktreeLeaseResolutionError(
+      repository,
+      `unable to resolve git common directory for ${repository}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
+
+function isKnownLegacyLockRecord(value: unknown): boolean {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return false;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort().join(",");
+  if (keys !== "acquired_at,owner_token,pid,worker_id") return false;
+  return (
+    typeof record.pid === "number" &&
+    Number.isInteger(record.pid) &&
+    record.pid >= 0 &&
+    typeof record.worker_id === "string" &&
+    record.worker_id.length > 0 &&
+    record.worker_id.length <= 256 &&
+    typeof record.owner_token === "string" &&
+    record.owner_token.length > 0 &&
+    record.owner_token.length <= 256 &&
+    typeof record.acquired_at === "string" &&
+    record.acquired_at.length > 0 &&
+    record.acquired_at.length <= 128
+  );
+}
+
+async function probeLegacyKernelLock(lockPath: string): Promise<void> {
+  await new Promise<void>((resolveProbe, rejectProbe) => {
+    const child = spawn(
+      "flock",
+      [
+        "-n",
+        "-E",
+        String(LEGACY_GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE),
+        lockPath,
+        "true",
+      ],
+      { stdio: "ignore", windowsHide: true },
+    );
+    child.once("error", rejectProbe);
+    child.once("close", (code) => {
+      if (code === 0) return resolveProbe();
+      if (code === LEGACY_GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE) {
+        rejectProbe(
+          new GitWorktreeLegacyLockError(
+            "held",
+            lockPath,
+            `legacy worktree lock is held: ${lockPath}; retry deletion after its owner exits`,
+          ),
+        );
+        return;
+      }
+      rejectProbe(
+        new GitWorktreeLegacyLockError(
+          "probe_failed",
+          lockPath,
+          `unable to probe legacy worktree lock ${lockPath} (flock exit ${code ?? "unknown"})`,
+        ),
+      );
+    });
+  });
+}
+
+/**
+ * Reacquire nonblocking before removal so a holder arriving after the probe
+ * wins. Rename the locked inode before unlinking it: a peer that opens the
+ * canonical path after flock is taken gets a new inode that is left in place.
+ */
+async function removeLegacyKernelLock(lockPath: string): Promise<void> {
+  const retiredPath = join(
+    dirname(lockPath),
+    `.git-worktree.lock.migrating-${randomUUID()}`,
+  );
+  await new Promise<void>((resolveRemoval, rejectRemoval) => {
+    const child = spawn(
+      "flock",
+      [
+        "-n",
+        "-E",
+        String(LEGACY_GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE),
+        lockPath,
+        "sh",
+        "-c",
+        LEGACY_REMOVE_SCRIPT,
+        "sh",
+        lockPath,
+        retiredPath,
+      ],
+      { stdio: "ignore", windowsHide: true },
+    );
+    child.once("error", rejectRemoval);
+    child.once("close", (code) => {
+      if (code === 0) return resolveRemoval();
+      if (code === LEGACY_GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE) {
+        rejectRemoval(
+          new GitWorktreeLegacyLockError(
+            "held",
+            lockPath,
+            `legacy worktree lock became held during migration: ${lockPath}; retry deletion after its owner exits`,
+          ),
+        );
+        return;
+      }
+      rejectRemoval(
+        new GitWorktreeLegacyLockError(
+          "remove_failed",
+          lockPath,
+          `unable to remove migrated legacy worktree lock ${lockPath} (flock exit ${code ?? "unknown"})`,
+        ),
+      );
+    });
+  });
+}
+
+/**
+ * Migrate only the known historical repository-local lock artifact. This is
+ * intentionally called by deletion, never startup: malformed or held files
+ * remain in place and produce typed repair guidance instead of broad cleanup.
+ */
+export async function migrateLegacyGitWorktreeLock(
+  repository: string,
+): Promise<{ removed: boolean; lockPath: string }> {
+  const lockPath = join(
+    resolve(repository),
+    ".adv",
+    GIT_WORKTREE_LOCK_FILENAME,
+  );
+  try {
+    const legacyDir = dirname(lockPath);
+    const legacyDirDetails = await lstat(legacyDir);
+    if (!legacyDirDetails.isDirectory() || legacyDirDetails.isSymbolicLink()) {
+      throw new GitWorktreeLegacyLockError(
+        "malformed",
+        lockPath,
+        `legacy worktree lock parent is not a real directory: ${legacyDir}; preserve it for operator repair`,
+      );
+    }
+    const details = await lstat(lockPath);
+    if (!details.isFile() || details.size > LEGACY_LOCK_MAX_BYTES) {
+      throw new GitWorktreeLegacyLockError(
+        "malformed",
+        lockPath,
+        `legacy worktree lock is not a bounded regular artifact: ${lockPath}; preserve it for operator repair`,
+      );
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      return { removed: false, lockPath };
+    if (error instanceof GitWorktreeLegacyLockError) throw error;
+    throw new GitWorktreeLegacyLockError(
+      "probe_failed",
+      lockPath,
+      `unable to inspect legacy worktree lock ${lockPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  // Probe before reading or unlinking. A held legacy inode is never removed.
+  await probeLegacyKernelLock(lockPath);
+  let content: string;
+  try {
+    content = await readFile(lockPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      return { removed: false, lockPath };
+    throw new GitWorktreeLegacyLockError(
+      "probe_failed",
+      lockPath,
+      `unable to read legacy worktree lock ${lockPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  if (
+    content.length > LEGACY_LOCK_MAX_BYTES ||
+    (content.length > 0 &&
+      (() => {
+        try {
+          return !isKnownLegacyLockRecord(JSON.parse(content));
+        } catch {
+          return true;
+        }
+      })())
+  ) {
+    throw new GitWorktreeLegacyLockError(
+      "malformed",
+      lockPath,
+      `legacy worktree lock has an unexpected format: ${lockPath}; preserve it for operator repair`,
+    );
+  }
+  await removeLegacyKernelLock(lockPath);
+  return { removed: true, lockPath };
+}
 
 export interface AcquireGitWorktreeFlockOptions {
   signal?: AbortSignal;
@@ -336,7 +591,9 @@ function throwIfAborted(signal?: AbortSignal): void {
 }
 
 /**
- * Acquire the per-project git-worktree flock.
+ * Acquire the per-repository git-worktree flock. Callers pass the directory
+ * returned by `resolveGitWorktreeLeaseDir`; linked worktrees therefore share
+ * one Git-administrative artifact.
  *
  * Returns a lock result whose `owned` field indicates whether
  * the lock was taken (`true`) or contended (`false`). Callers MUST honour
@@ -458,7 +715,7 @@ export async function acquireGitWorktreeFlock(
 }
 
 /**
- * Release the per-project git-worktree flock previously taken via
+ * Release the per-repository git-worktree flock previously taken via
  * `acquireGitWorktreeFlock`. Idempotent — no-op when the lock file is
  * absent or owned by another PID (defensive: avoids stealing peer locks).
  */
