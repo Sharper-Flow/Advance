@@ -10,6 +10,7 @@ import {
   getExternalRootForProject,
   getProjectId,
 } from "../utils/project-id";
+import type { WorktreeOperationContext } from "../utils/worktree-operation";
 
 export type TargetStateRequirement =
   | "snapshot-ok"
@@ -44,6 +45,7 @@ export interface ResolveTargetProjectInput {
   mutation?: boolean;
   target_confirmed?: boolean;
   confirmationEvidence?: string;
+  operation?: WorktreeOperationContext;
 }
 
 export interface WithTargetPathStoreInput extends ResolveTargetProjectInput {
@@ -141,6 +143,7 @@ export async function validateCrossRepoTarget(
 export async function resolveTargetProject(
   input: ResolveTargetProjectInput,
 ): Promise<TargetProjectContext> {
+  input.operation?.throwIfAborted("target_resolution_aborted");
   const currentRoot = resolve(input.currentProjectPath);
   const targetRoot = input.target_path
     ? resolve(input.target_path)
@@ -148,6 +151,7 @@ export async function resolveTargetProject(
   const isCurrentProject = targetRoot === currentRoot;
 
   const validation = await validateCrossRepoTarget(targetRoot);
+  input.operation?.throwIfAborted("target_resolution_aborted");
   if (!validation.ok) {
     throw new TargetProjectError(validation.error);
   }
@@ -212,6 +216,7 @@ export async function withTargetPathStore<T>(
     externalRoot: context.externalRoot,
   });
   try {
+    input.operation?.throwIfAborted("target_store_aborted");
     if (input.stateRequirement !== "snapshot-ok") await store.init();
     const stateMode =
       input.stateRequirement === "snapshot-ok"

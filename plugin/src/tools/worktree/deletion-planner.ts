@@ -79,6 +79,8 @@ export interface WorktreeDeletionPlannerInput {
   /** Test/operator override for the five-minute token clock. */
   now?: number;
   budgetMs?: number;
+  /** Shared operation supplied by a public delete owner. */
+  operation?: WorktreeOperationContext;
 }
 
 export interface WorktreeDeletionTarget {
@@ -275,15 +277,20 @@ export class WorktreeDeletionPlanner {
     input: WorktreeDeletionPlannerInput,
   ): Promise<WorktreeDeletionPlanResult> {
     const now = input.now ?? this.deps.operationNow?.() ?? Date.now();
-    const operation = createWorktreeOperationContext({
-      now,
-      budgetMs: input.budgetMs,
-    });
+    const ownsOperation = input.operation === undefined;
+    const operation =
+      input.operation ??
+      createWorktreeOperationContext({
+        now,
+        budgetMs: input.budgetMs,
+      });
     const runWithDeadline = async <T>(work: () => Promise<T>): Promise<T> => {
       const remaining = operation.remainingMs();
       if (remaining <= 0) throw new Error("planning deadline exceeded");
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {
+        // Planning is read-only. This race bounds an uncooperative internal
+        // reader while the shared operation still guards every later mutation.
         return await Promise.race([
           work(),
           new Promise<T>((_resolve, reject) => {
@@ -642,7 +649,10 @@ export class WorktreeDeletionPlanner {
         stageTimings: operation.stageTimings,
       };
     } finally {
-      operation.dispose();
+      if (ownsOperation) {
+        await operation.abort("planning_complete");
+        operation.dispose();
+      }
     }
   }
 

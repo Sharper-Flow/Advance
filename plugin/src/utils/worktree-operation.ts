@@ -28,10 +28,13 @@ export interface WorktreeOperationContext {
   readonly signal: AbortSignal;
   readonly stageTimings: readonly WorktreeStageTiming[];
   readonly currentStage: string | undefined;
+  readonly terminationError: Error | undefined;
   remainingMs(now?: number): number;
   startStage(stage: string, now?: number): void;
   finishStage(stage?: string, now?: number): void;
   registerChildLease(lease: WorktreeChildLease): () => void;
+  /** Reject work that would begin after the shared cancellation barrier. */
+  throwIfAborted(reason?: string): void;
   abort(reason: string): Promise<void>;
   dispose(): void;
 }
@@ -56,15 +59,28 @@ export function createWorktreeOperationContext(
   let currentStage: string | undefined;
   let currentStageStartedAt: number | undefined;
   let abortPromise: Promise<void> | undefined;
+  let terminationError: Error | undefined;
   const abort = async (reason: string): Promise<void> => {
     if (abortPromise) return abortPromise;
     abortPromise = (async () => {
       clearTimeout(deadlineTimer);
       if (!controller.signal.aborted) controller.abort(reason);
       const activeChildren = [...children];
-      await Promise.allSettled(
+      const settled = await Promise.allSettled(
         activeChildren.map((child) => Promise.resolve(child.terminate(reason))),
       );
+      const failures = settled.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (failures.length > 0) {
+        terminationError = new Error(
+          `worktree operation child termination failed: ${failures
+            .map((failure) =>
+              failure instanceof Error ? failure.message : String(failure),
+            )
+            .join("; ")}`,
+        );
+      }
     })();
     return abortPromise;
   };
@@ -79,6 +95,9 @@ export function createWorktreeOperationContext(
     },
     get currentStage() {
       return currentStage;
+    },
+    get terminationError() {
+      return terminationError;
     },
     remainingMs(now = Date.now()) {
       return Math.max(0, deadlineAt - now);
@@ -105,6 +124,11 @@ export function createWorktreeOperationContext(
     registerChildLease(lease) {
       children.add(lease);
       return () => children.delete(lease);
+    },
+    throwIfAborted(reason = "operation_aborted") {
+      if (controller.signal.aborted || context.remainingMs() <= 0) {
+        throw new DOMException(reason, "AbortError");
+      }
     },
     abort,
     dispose() {

@@ -60,6 +60,28 @@ const responseText = async (response: Response): Promise<string> => {
   }
 };
 
+function requestSignal(input?: AbortSignal): {
+  signal: AbortSignal;
+  dispose: () => void;
+} {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort(input?.reason);
+  if (input?.aborted) onAbort();
+  else input?.addEventListener("abort", onAbort, { once: true });
+  const timer = setTimeout(
+    () => controller.abort("workspace operation timeout"),
+    WORKSPACE_OP_TIMEOUT_MS,
+  );
+  timer.unref?.();
+  return {
+    signal: controller.signal,
+    dispose: () => {
+      clearTimeout(timer);
+      input?.removeEventListener("abort", onAbort);
+    },
+  };
+}
+
 const workspaceUrl = (deps: WarpDeps, suffix = ""): URL =>
   new URL(`/experimental/workspace${suffix}`, deps.serverUrl);
 
@@ -239,23 +261,29 @@ const stringifyErrorDetail = (value: unknown): string => {
 export async function deleteAdvWorkspace(
   deps: WarpDeps,
   workspaceID: string,
+  signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetchWith(deps)(
-    workspaceUrl(deps, `/${encodeURIComponent(workspaceID)}`),
-    {
-      method: "DELETE",
-      headers: directoryHeaders(deps),
-      signal: AbortSignal.timeout(WORKSPACE_OP_TIMEOUT_MS),
-    },
-  );
+  const request = requestSignal(signal);
+  try {
+    const response = await fetchWith(deps)(
+      workspaceUrl(deps, `/${encodeURIComponent(workspaceID)}`),
+      {
+        method: "DELETE",
+        headers: directoryHeaders(deps),
+        signal: request.signal,
+      },
+    );
 
-  if (response.ok || response.status === 404) return;
+    if (response.ok || response.status === 404) return;
 
-  throw new Error(
-    `deleteAdvWorkspace failed: ${response.status} ${await responseText(
-      response,
-    )}`,
-  );
+    throw new Error(
+      `deleteAdvWorkspace failed: ${response.status} ${await responseText(
+        response,
+      )}`,
+    );
+  } finally {
+    request.dispose();
+  }
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -295,14 +323,16 @@ export async function findWorkspaceByDirectoryChecked(
   deps: WarpDeps,
   directory: string,
   branch?: string,
+  signal?: AbortSignal,
 ): Promise<WorkspaceDirectoryLookupResult> {
   if (!warpFlagEnabled()) return { ok: true, workspace: null };
 
   let list: unknown;
+  const request = requestSignal(signal);
   try {
     const response = await fetchWith(deps)(workspaceUrl(deps), {
       headers: directoryHeaders(deps),
-      signal: AbortSignal.timeout(WORKSPACE_OP_TIMEOUT_MS),
+      signal: request.signal,
     });
     if (!response.ok) {
       return {
@@ -320,6 +350,8 @@ export async function findWorkspaceByDirectoryChecked(
         error instanceof Error ? error.message : String(error)
       }`,
     };
+  } finally {
+    request.dispose();
   }
 
   if (!Array.isArray(list)) {

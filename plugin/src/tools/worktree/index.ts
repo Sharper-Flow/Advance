@@ -87,7 +87,11 @@ import {
   createWorktreeDeletionPlanner,
   type WorktreeDeletionPlanResult,
 } from "./deletion-planner";
-import { executeWorktreeDeletion } from "./deletion-executor";
+import {
+  createWorktreeBeforeRemoveStage,
+  createWorktreeReconciliationStage,
+  executeWorktreeDeletion,
+} from "./deletion-executor";
 import { runHooksWithSafety } from "./hooks";
 import { appendDebugLog } from "../../utils/debug-log";
 import { execGit, getDefaultBranch } from "../../utils/git";
@@ -116,6 +120,7 @@ import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 import { execGh } from "../../integrations/gh-cli";
 import { proveLocalBranchIntegration } from "../../utils/branch-integration";
 import type { WorktreeOperationContext } from "../../utils/worktree-operation";
+import { createWorktreeOperationContext } from "../../utils/worktree-operation";
 
 export { advWorktreeDetachBatch } from "./detach";
 export {
@@ -362,6 +367,7 @@ export async function detectUncommittedState(
 export async function reapEmptyWorktreeParents(
   removedWorktreePath: string,
   worktreeBase: string,
+  signal?: AbortSignal,
 ): Promise<string[]> {
   const base = path.resolve(worktreeBase);
   let current = path.dirname(path.resolve(removedWorktreePath));
@@ -370,6 +376,7 @@ export async function reapEmptyWorktreeParents(
   assertPathInsideDirectory(current, base);
 
   while (current !== base) {
+    if (signal?.aborted) break;
     assertPathInsideDirectory(current, base);
     try {
       await rmdir(current);
@@ -1321,6 +1328,8 @@ export interface AdvWorktreeDeleteDeps {
    * before the SDK timeout instead of continuing destructive work silently.
    */
   operationTimeoutMs?: number;
+  /** End-to-end cancellation context owned by the public delete handler. */
+  operation?: WorktreeOperationContext;
   /** Optional timeout for live GitHub PR evidence lookup. */
   prEvidenceTimeoutMs?: number;
   /**
@@ -1450,13 +1459,23 @@ async function cleanupOpenCodeWorkspaceForWorktree(
   worktreePath: string,
   branch: string,
   deps: AdvWorktreeDeleteDeps,
+  operation: WorktreeOperationContext,
 ): Promise<OpenCodeWorkspaceCleanupResult> {
   if (!deps.warpDeps) return { ok: true, warning: null };
+  if (operation.signal.aborted) {
+    return {
+      ok: false,
+      error: "WORKSPACE_CLEANUP_FAILED",
+      reason: "operation cancelled before workspace lookup",
+      hint: "Retry with a fresh deletion plan.",
+    };
+  }
 
   const lookup = await findWorkspaceByDirectoryChecked(
     deps.warpDeps,
     worktreePath,
     branch,
+    operation.signal,
   );
   if (!lookup.ok) {
     // Advisory only: the local isWorktreeInUse check upstream already proved
@@ -1474,7 +1493,19 @@ async function cleanupOpenCodeWorkspaceForWorktree(
   if (!lookup.workspace) return { ok: true, warning: null };
 
   try {
-    await deleteAdvWorkspace(deps.warpDeps, lookup.workspace.workspaceID);
+    if (operation.signal.aborted) {
+      return {
+        ok: false,
+        error: "WORKSPACE_CLEANUP_FAILED",
+        reason: "operation cancelled before workspace deletion",
+        hint: "Retry with a fresh deletion plan.",
+      };
+    }
+    await deleteAdvWorkspace(
+      deps.warpDeps,
+      lookup.workspace.workspaceID,
+      operation.signal,
+    );
     deps.log.debug(
       `[worktree] Cleaned up OpenCode workspace ${lookup.workspace.workspaceID}`,
     );
@@ -1754,6 +1785,17 @@ async function advWorktreeDeleteShared(
     };
 
   const changeId = inferChangeIdFromBranch(branch);
+  const operation = deps.operation;
+  if (!operation) {
+    return {
+      ok: false,
+      error: "DELETION_BLOCKED",
+      status: "missing_operation_context",
+      reason: "destructive deletion requires an operation context",
+      branch,
+      hint: "Call the public worktree delete handler or provide an operation context.",
+    };
+  }
   const terminalProof = async (
     id: string,
   ): Promise<
@@ -1867,6 +1909,7 @@ async function advWorktreeDeleteShared(
       registry: deps.registry,
       force: opts.force === true,
       budgetMs: deps.operationTimeoutMs,
+      operation,
     });
     return plannerResultToDeleteResult(branch, planned);
   }
@@ -1951,6 +1994,7 @@ async function advWorktreeDeleteShared(
       cwd: process.cwd(),
       hooks: hooks.preDelete,
       budgetMs: deps.operationTimeoutMs,
+      operation,
     },
     {
       repository: deps.projectRoot,
@@ -1958,40 +2002,43 @@ async function advWorktreeDeleteShared(
       cwd: process.cwd(),
       hooks: hooks.preDelete,
       budgetMs: deps.operationTimeoutMs,
+      operation,
       isWorktreeInUse: deps.isWorktreeInUse,
       census: deps.census,
       terminalProof,
       integrationProof,
-      beforeRemove: async () => {
-        const workspace = await cleanupOpenCodeWorkspaceForWorktree(
-          plan.facts.worktree,
-          branch,
-          deps,
-        );
-        if (!workspace.ok)
+      beforeRemove: createWorktreeBeforeRemoveStage(
+        async ({ operation: sharedOperation }) => {
+          const workspace = await cleanupOpenCodeWorkspaceForWorktree(
+            plan.facts.worktree,
+            branch,
+            deps,
+            sharedOperation,
+          );
+          if (!workspace.ok)
+            return {
+              ok: false as const,
+              status: "repair_required" as const,
+              reason: workspace.reason,
+            };
           return {
-            ok: false as const,
-            status: "repair_required" as const,
-            reason: workspace.reason,
+            ok: true as const,
+            ...(workspace.warning ? { warning: workspace.warning } : {}),
           };
-        return {
-          ok: true as const,
-          ...(workspace.warning ? { warning: workspace.warning } : {}),
-        };
-      },
-      reconcileAfterDeletion: async () => {
-        try {
+        },
+      ),
+      reconcileAfterDeletion: createWorktreeReconciliationStage(
+        async ({ operation: sharedOperation }) => {
+          sharedOperation.throwIfAborted("reconciliation_aborted");
           await reapEmptyWorktreeParents(
             plan.facts.worktree,
             getWorktreeBase(deps.database.projectId),
+            sharedOperation.signal,
           );
-        } catch (error) {
-          deps.log.warn(
-            `Skipped empty-parent cleanup for ${plan.facts.worktree}: ${String(error)}`,
-          );
-        }
-        await clearPendingDelete(deps.database, branch);
-      },
+          sharedOperation.throwIfAborted("reconciliation_aborted");
+          await clearPendingDelete(deps.database, branch);
+        },
+      ),
     },
   );
   if (result.ok)
@@ -2043,7 +2090,23 @@ export async function advWorktreeDelete(
   } = {},
   deps: AdvWorktreeDeleteDeps,
 ): Promise<AdvWorktreeDeleteResult> {
-  return advWorktreeDeleteShared(branch, opts, deps);
+  const ownsOperation = deps.operation === undefined;
+  const operation =
+    deps.operation ??
+    createWorktreeOperationContext({
+      budgetMs: deps.operationTimeoutMs,
+    });
+  try {
+    return await advWorktreeDeleteShared(branch, opts, {
+      ...deps,
+      operation,
+    });
+  } finally {
+    if (ownsOperation) {
+      await operation.abort("operation_complete");
+      operation.dispose();
+    }
+  }
 }
 
 // =============================================================================

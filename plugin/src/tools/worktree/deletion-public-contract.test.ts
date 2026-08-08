@@ -132,6 +132,12 @@ describe("shared public worktree deletion contract", () => {
     );
     expect(applied).toMatchObject({ ok: true, status: "deleted" });
     expect(executor).toHaveBeenCalledTimes(1);
+    const [executorInput, executorDeps] = executor.mock.calls[0] as [
+      { operation?: unknown },
+      { operation?: unknown },
+    ];
+    expect(executorInput.operation).toBeDefined();
+    expect(executorInput.operation).toBe(executorDeps.operation);
   });
 
   it("rejects blank approval before decoding or executing a plan", async () => {

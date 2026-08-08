@@ -11,9 +11,13 @@ import {
   type WorktreeDeletionIntegrationProof,
 } from "./deletion-contracts";
 import {
+  createWorktreeBeforeRemoveStage,
+  createWorktreeReconciliationStage,
   executeWorktreeDeletion,
   type WorktreeDeletionExecutorDeps,
+  type WorktreeBeforeRemoveStage,
 } from "./deletion-executor";
+import { createWorktreeOperationContext } from "../../utils/worktree-operation";
 
 const sha = "0123456789abcdef0123456789abcdef01234567";
 
@@ -162,6 +166,74 @@ describe("WorktreeDeletionExecutor", () => {
       expect(deps.acquireLease).toHaveBeenCalledTimes(1);
       expect(deps.runProcess).toHaveBeenCalledTimes(1);
       expect(exists(fx.worktree)).toBe(false);
+
+      const repeated = await executeWorktreeDeletion({ plan }, deps);
+      expect(repeated).toMatchObject({
+        ok: false,
+        status: "already_absent",
+      });
+      expect(deps.runProcess).toHaveBeenCalledTimes(1);
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("uses a kernel process lease for the production executor path", async () => {
+    const fx = fixture();
+    try {
+      const plan = makePlan(fx);
+      const result = await executeWorktreeDeletion(
+        { plan },
+        depsFor(fx, plan, {
+          acquireLease: undefined,
+          releaseLease: undefined,
+        }),
+      );
+
+      expect(result).toMatchObject({ ok: true, status: "deleted" });
+      expect(existsSync(join(fx.repository, "git-worktree.lock"))).toBe(true);
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("makes concurrent production applies mutually exclusive through flock", async () => {
+    const fx = fixture();
+    try {
+      const plan = makePlan(fx);
+      let censusStarted!: () => void;
+      const censusReady = new Promise<void>((resolve) => {
+        censusStarted = resolve;
+      });
+      const firstDeps = depsFor(fx, plan, {
+        acquireLease: undefined,
+        releaseLease: undefined,
+      });
+      const originalCensus = firstDeps.census!;
+      firstDeps.census = async (...args) => {
+        censusStarted();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return originalCensus(...args);
+      };
+
+      const firstPromise = executeWorktreeDeletion({ plan }, firstDeps);
+      await censusReady;
+      const second = await executeWorktreeDeletion(
+        { plan },
+        depsFor(fx, plan, {
+          acquireLease: undefined,
+          releaseLease: undefined,
+        }),
+      );
+      expect(second).toMatchObject({
+        ok: false,
+        status: "busy",
+        reason: "repository_lease_held",
+      });
+      await expect(firstPromise).resolves.toMatchObject({
+        ok: true,
+        status: "deleted",
+      });
     } finally {
       fx.cleanup();
     }
@@ -457,7 +529,7 @@ describe("WorktreeDeletionExecutor", () => {
 
       const cleanPlan = makePlan(fx);
       const cleanDeps = depsFor(fx, cleanPlan, {
-        reconcileAfterDeletion: vi.fn(async () => {
+        reconcileAfterDeletion: createWorktreeReconciliationStage(async () => {
           throw new Error("state store unavailable");
         }),
       });
@@ -491,6 +563,345 @@ describe("WorktreeDeletionExecutor", () => {
       const result = await executeWorktreeDeletion({ plan }, deps);
       expect(result).toMatchObject({ ok: false, status: "deadline_exceeded" });
       expect(exists(fx.worktree)).toBe(true);
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("awaits a late lease settlement and releases an owned lock before responding", async () => {
+    const fx = fixture();
+    let resolveLease!: (
+      value: Awaited<
+        ReturnType<NonNullable<WorktreeDeletionExecutorDeps["acquireLease"]>>
+      >,
+    ) => void;
+    const lease = {
+      owned: true as const,
+      ownerPid: process.pid,
+      workerId: "late-owner",
+      ownerToken: "late-owner-token",
+      lockPath: join(fx.repository, "lease"),
+    };
+    try {
+      const plan = makePlan(fx);
+      const operation = createWorktreeOperationContext({
+        budgetMs: 25,
+        responseReserveMs: 5,
+      });
+      const acquireLease = vi.fn(
+        () =>
+          new Promise<
+            Awaited<
+              ReturnType<
+                NonNullable<WorktreeDeletionExecutorDeps["acquireLease"]>
+              >
+            >
+          >((resolve) => {
+            resolveLease = resolve;
+          }),
+      );
+      const releaseLease = vi.fn(async () => undefined);
+      const resultPromise = executeWorktreeDeletion(
+        { plan, operation },
+        depsFor(fx, plan, { acquireLease, releaseLease }),
+      );
+
+      await expect(resultPromise).resolves.toMatchObject({
+        ok: false,
+        status: "deadline_exceeded",
+        stage: "lease",
+      });
+      resolveLease(lease);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(releaseLease).not.toHaveBeenCalled();
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("awaits late beforeRemove settlement and never removes after cancellation", async () => {
+    const fx = fixture();
+    let resolveBeforeRemove!: (value: { ok: true }) => void;
+    let beforeRemoveSignal!: AbortSignal;
+    let lateMutation = false;
+    try {
+      const plan = makePlan(fx);
+      const operation = createWorktreeOperationContext({
+        budgetMs: 25,
+        responseReserveMs: 5,
+      });
+      const beforeRemove = createWorktreeBeforeRemoveStage(
+        ({ signal }) =>
+          new Promise<{ ok: true }>((resolve) => {
+            beforeRemoveSignal = signal;
+            resolveBeforeRemove = (value) => {
+              if (!signal.aborted) lateMutation = true;
+              resolve(value);
+            };
+          }),
+      );
+      const deps = depsFor(fx, plan, {
+        beforeRemove,
+      });
+      const resultPromise = executeWorktreeDeletion({ plan, operation }, deps);
+
+      await expect(resultPromise).resolves.toMatchObject({
+        ok: false,
+        status: "deadline_exceeded",
+        stage: "before_remove",
+      });
+      expect(beforeRemoveSignal.aborted).toBe(true);
+      resolveBeforeRemove({ ok: true });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(lateMutation).toBe(false);
+      expect(deps.runProcess).not.toHaveBeenCalled();
+      expect(exists(fx.worktree)).toBe(true);
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("rejects an unbranded beforeRemove callback before invocation", async () => {
+    const fx = fixture();
+    const callback = vi.fn(async () => ({ ok: true as const }));
+    try {
+      const plan = makePlan(fx);
+      const result = await executeWorktreeDeletion(
+        { plan },
+        depsFor(fx, plan, {
+          beforeRemove: callback as unknown as WorktreeBeforeRemoveStage,
+        }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        status: "repair_required",
+        reason: "uncooperative_before_remove",
+      });
+      expect(callback).not.toHaveBeenCalled();
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("returns a typed post-census deadline before a held census is released", async () => {
+    const fx = fixture();
+    let releaseCensus!: (
+      value: Awaited<
+        ReturnType<NonNullable<WorktreeDeletionExecutorDeps["census"]>>
+      >,
+    ) => void;
+    const reconcileRun = vi.fn(async () => undefined);
+    try {
+      const plan = makePlan(fx);
+      const operation = createWorktreeOperationContext({
+        budgetMs: 25,
+        responseReserveMs: 5,
+      });
+      const deps = depsFor(fx, plan, {
+        census: vi.fn(
+          () =>
+            new Promise<
+              Awaited<
+                ReturnType<NonNullable<WorktreeDeletionExecutorDeps["census"]>>
+              >
+            >((resolve) => {
+              releaseCensus = resolve;
+            }),
+        ),
+        reconcileAfterDeletion: createWorktreeReconciliationStage(reconcileRun),
+      });
+      const resultPromise = executeWorktreeDeletion({ plan, operation }, deps);
+
+      await expect(resultPromise).resolves.toMatchObject({
+        ok: false,
+        status: "deadline_exceeded",
+        stage: "census",
+      });
+      releaseCensus({ branches: [], worktrees: [] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(reconcileRun).not.toHaveBeenCalled();
+      expect(exists(fx.worktree)).toBe(true);
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("returns indeterminate after Git removal when post-delete census is held", async () => {
+    const fx = fixture();
+    let calls = 0;
+    let releasePostDeleteCensus!: (value: {
+      branches: { branch: string; headSha: string; merged: boolean }[];
+      worktrees: never[];
+    }) => void;
+    const reconcileRun = vi.fn(async () => undefined);
+    try {
+      const plan = makePlan(fx);
+      const operation = createWorktreeOperationContext({
+        budgetMs: 35,
+        responseReserveMs: 5,
+      });
+      const base = depsFor(fx, plan);
+      const normalCensus = base.census!;
+      const deps: WorktreeDeletionExecutorDeps = {
+        ...base,
+        census: vi.fn((...args) => {
+          calls += 1;
+          if (calls === 3)
+            return new Promise<{
+              branches: { branch: string; headSha: string; merged: boolean }[];
+              worktrees: never[];
+            }>((resolve) => {
+              releasePostDeleteCensus = resolve;
+            });
+          return normalCensus(...args);
+        }),
+        reconcileAfterDeletion: createWorktreeReconciliationStage(reconcileRun),
+      };
+
+      const resultPromise = executeWorktreeDeletion({ plan, operation }, deps);
+      await expect(resultPromise).resolves.toMatchObject({
+        ok: false,
+        status: "indeterminate",
+        reason: "post_delete_census_deadline_exceeded",
+        stage: "post_delete_census",
+      });
+      expect(exists(fx.worktree)).toBe(false);
+      expect(reconcileRun).not.toHaveBeenCalled();
+
+      releasePostDeleteCensus({ branches: [], worktrees: [] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(reconcileRun).not.toHaveBeenCalled();
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("returns deleted with an awaited reconciliation warning before a held stage is released", async () => {
+    const fx = fixture();
+    let releaseReconciliation!: () => void;
+    let reconciliationSignal!: AbortSignal;
+    let lateMutation = false;
+    try {
+      const plan = makePlan(fx);
+      const operation = createWorktreeOperationContext({
+        budgetMs: 50,
+        responseReserveMs: 5,
+      });
+      const reconciliation = createWorktreeReconciliationStage(
+        ({ signal }) =>
+          new Promise<void>((resolve) => {
+            reconciliationSignal = signal;
+            releaseReconciliation = () => {
+              if (!signal.aborted) lateMutation = true;
+              resolve();
+            };
+          }),
+      );
+      const deps = depsFor(fx, plan, {
+        reconcileAfterDeletion: reconciliation,
+      });
+      const resultPromise = executeWorktreeDeletion({ plan, operation }, deps);
+
+      const result = await resultPromise;
+      expect(result).toMatchObject({ ok: true, status: "deleted" });
+      expect(result.warning).toMatch(/reconciliation deadline exceeded/);
+      expect(reconciliationSignal.aborted).toBe(true);
+      releaseReconciliation();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(lateMutation).toBe(false);
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("surfaces lease quiescence failure instead of claiming a deadline barrier", async () => {
+    const fx = fixture();
+    try {
+      const plan = makePlan(fx);
+      const operation = createWorktreeOperationContext({
+        budgetMs: 25,
+        responseReserveMs: 5,
+      });
+      const terminate = vi.fn(async () => {
+        throw new Error("process group remained alive");
+      });
+      const acquireLease = vi.fn(
+        async (_dir: string, options?: { operation?: typeof operation }) => {
+          options?.operation?.registerChildLease({ terminate });
+          return {
+            owned: true as const,
+            ownerPid: process.pid,
+            ownerToken: "quiescence-failure",
+            lockPath: join(fx.repository, "lease"),
+            process: undefined as never,
+            settled: Promise.resolve(),
+            terminate,
+          };
+        },
+      );
+      const deps = depsFor(fx, plan, {
+        acquireLease,
+        census: vi.fn(
+          () =>
+            new Promise<
+              Awaited<
+                ReturnType<NonNullable<WorktreeDeletionExecutorDeps["census"]>>
+              >
+            >(() => undefined),
+        ),
+      });
+
+      await expect(
+        executeWorktreeDeletion({ plan, operation }, deps),
+      ).resolves.toMatchObject({
+        ok: false,
+        status: "indeterminate",
+        reason: "operation_quiescence_failed",
+      });
+      expect(terminate).toHaveBeenCalled();
+      expect(deps.runProcess).not.toHaveBeenCalled();
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("surfaces a held lease termination failure before reporting a deadline", async () => {
+    const fx = fixture();
+    try {
+      const plan = makePlan(fx);
+      const operation = createWorktreeOperationContext({
+        budgetMs: 25,
+        responseReserveMs: 5,
+      });
+      const terminate = vi.fn(async () => {
+        throw new Error("held lease process group remained alive");
+      });
+      const acquireLease = vi.fn(
+        (_dir: string, options?: { operation?: typeof operation }) => {
+          options?.operation?.registerChildLease({ terminate });
+          return new Promise<
+            Awaited<
+              ReturnType<
+                NonNullable<WorktreeDeletionExecutorDeps["acquireLease"]>
+              >
+            >
+          >(() => undefined);
+        },
+      );
+
+      await expect(
+        executeWorktreeDeletion(
+          { plan, operation },
+          depsFor(fx, plan, { acquireLease }),
+        ),
+      ).resolves.toMatchObject({
+        ok: false,
+        status: "indeterminate",
+        reason: "operation_quiescence_failed",
+        stage: "lease",
+      });
+      expect(terminate).toHaveBeenCalled();
     } finally {
       fx.cleanup();
     }

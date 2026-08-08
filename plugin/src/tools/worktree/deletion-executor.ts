@@ -22,8 +22,10 @@ import type {
 } from "../../utils/process-runner";
 import { resolveGitBinary } from "../../utils/git-binary";
 import {
-  acquireGitWorktreeFlock,
-  releaseGitWorktreeFlock,
+  acquireGitWorktreeProcessLease,
+  type GitWorktreeProcessLeaseResult,
+  GitWorktreeFlockUnsupportedError,
+  GitWorktreeFlockQuiescenceError,
 } from "../../utils/git-worktree-flock";
 import {
   createWorktreeOperationContext,
@@ -46,6 +48,7 @@ export interface WorktreeDeletionExecutorDeps {
   cwd?: string;
   hooks?: readonly string[];
   budgetMs?: number;
+  operation?: WorktreeOperationContext;
   now?: () => number;
   platform?: NodeJS.Platform;
   census?: (
@@ -72,26 +75,24 @@ export interface WorktreeDeletionExecutorDeps {
    * destructive authority; adapters may only provide this bounded pre-remove
    * hook for adjacent ownership cleanup (for example OpenCode workspaces).
    */
-  beforeRemove?: (input: {
-    plan: WorktreeDeletionPlan;
-    operation: WorktreeOperationContext;
-  }) => Promise<
-    | { ok: true; warning?: string }
-    | { ok: false; status?: "busy" | "repair_required"; reason: string }
-  >;
+  beforeRemove?: WorktreeBeforeRemoveStage;
   acquireLease?: (
     repositoryLeaseDir: string,
-  ) => ReturnType<typeof acquireGitWorktreeFlock>;
-  releaseLease?: typeof releaseGitWorktreeFlock;
+    options?: {
+      signal?: AbortSignal;
+      operation?: WorktreeOperationContext;
+    },
+  ) => Promise<GitWorktreeProcessLeaseResult | LegacyGitWorktreeLock>;
+  /** Compatibility seam for direct tests; production leases terminate groups. */
+  releaseLease?: (
+    repositoryLeaseDir: string,
+    ownerToken: string,
+  ) => Promise<void>;
   runProcess?: (
     input: AbortableProcessInput,
   ) => Promise<AbortableProcessResult>;
   /** Runs only after Git and filesystem both prove the worktree is absent. */
-  reconcileAfterDeletion?: (input: {
-    plan: WorktreeDeletionPlan;
-    census: GitWorkspaceFacts;
-    operation: WorktreeOperationContext;
-  }) => Promise<void>;
+  reconcileAfterDeletion?: WorktreeReconciliationStage;
 }
 
 export interface WorktreeDeletionExecutorInput {
@@ -102,6 +103,8 @@ export interface WorktreeDeletionExecutorInput {
   hooks?: readonly string[];
   budgetMs?: number;
   now?: number;
+  /** Shared operation supplied by a public delete owner. */
+  operation?: WorktreeOperationContext;
 }
 
 export type WorktreeDeletionExecutorResult = WorktreeDeletionResult & {
@@ -109,8 +112,138 @@ export type WorktreeDeletionExecutorResult = WorktreeDeletionResult & {
   warning?: string;
 };
 
+export type WorktreeBeforeRemoveResult =
+  | { ok: true; warning?: string }
+  | { ok: false; status?: "busy" | "repair_required"; reason: string };
+
+export const WORKTREE_BEFORE_REMOVE_STAGE = Symbol(
+  "worktree-before-remove-stage",
+);
+
+export interface WorktreeBeforeRemoveInput {
+  plan: WorktreeDeletionPlan;
+  operation: WorktreeOperationContext;
+  signal: AbortSignal;
+}
+
+export interface WorktreeBeforeRemoveStage {
+  readonly [WORKTREE_BEFORE_REMOVE_STAGE]: true;
+  readonly kind: "worktree-before-remove";
+  readonly settled: Promise<void>;
+  start(input: WorktreeBeforeRemoveInput): Promise<WorktreeBeforeRemoveResult>;
+  cancel(reason: string): Promise<void>;
+}
+
+export const WORKTREE_RECONCILIATION_STAGE = Symbol(
+  "worktree-reconciliation-stage",
+);
+
+export interface WorktreeReconciliationInput {
+  plan: WorktreeDeletionPlan;
+  census: GitWorkspaceFacts;
+  operation: WorktreeOperationContext;
+  signal: AbortSignal;
+}
+
+export interface WorktreeReconciliationStage {
+  readonly [WORKTREE_RECONCILIATION_STAGE]: true;
+  readonly kind: "worktree-reconciliation";
+  readonly settled: Promise<void>;
+  start(input: WorktreeReconciliationInput): Promise<void>;
+  cancel(reason: string): Promise<void>;
+}
+
+/** Build the only accepted mutable pre-remove contract. */
+export function createWorktreeBeforeRemoveStage(
+  run: (
+    input: WorktreeBeforeRemoveInput,
+  ) => Promise<WorktreeBeforeRemoveResult>,
+): WorktreeBeforeRemoveStage {
+  let started = false;
+  let cancelled = false;
+  let resolveSettled!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    resolveSettled = resolve;
+  });
+
+  return {
+    [WORKTREE_BEFORE_REMOVE_STAGE]: true,
+    kind: "worktree-before-remove",
+    settled,
+    start(input) {
+      if (started) return Promise.reject(new Error("beforeRemove reused"));
+      started = true;
+      if (cancelled) {
+        return Promise.resolve({
+          ok: false,
+          status: "repair_required" as const,
+          reason: "beforeRemove cancelled before start",
+        });
+      }
+      const result = Promise.resolve().then(() => run(input));
+      result.then(
+        () => resolveSettled(),
+        () => resolveSettled(),
+      );
+      return result;
+    },
+    async cancel(_reason) {
+      cancelled = true;
+      resolveSettled();
+    },
+  };
+}
+
+export function createWorktreeReconciliationStage(
+  run: (input: WorktreeReconciliationInput) => Promise<void>,
+): WorktreeReconciliationStage {
+  let started = false;
+  let cancelled = false;
+  let resolveSettled!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    resolveSettled = resolve;
+  });
+
+  return {
+    [WORKTREE_RECONCILIATION_STAGE]: true,
+    kind: "worktree-reconciliation",
+    settled,
+    start(input) {
+      if (started) return Promise.reject(new Error("reconciliation reused"));
+      started = true;
+      if (cancelled) return Promise.resolve();
+      const result = Promise.resolve().then(() => run(input));
+      result.then(resolveSettled, resolveSettled);
+      return result;
+    },
+    async cancel(_reason) {
+      cancelled = true;
+      resolveSettled();
+    },
+  };
+}
+
 const DEFAULT_BUDGET_MS = 7_500;
 const DEFAULT_RESPONSE_RESERVE_MS = 500;
+
+type LegacyGitWorktreeLock =
+  | {
+      owned: true;
+      ownerPid: number;
+      workerId: string;
+      ownerToken: string;
+      lockPath: string;
+    }
+  | {
+      owned: false;
+      ownerPid: number;
+      workerId?: string;
+      lockPath: string;
+      reason: "lock_held_by_alive_pid";
+    };
+type WorktreeLeaseResult =
+  | GitWorktreeProcessLeaseResult
+  | LegacyGitWorktreeLock;
 
 class WorktreeDeletionStageDeadline extends Error {
   constructor(readonly stage: string) {
@@ -235,6 +368,20 @@ function safeToRemove(
   );
 }
 
+async function settleLease(
+  lock: WorktreeLeaseResult,
+  repositoryLeaseDir: string,
+  release?: WorktreeDeletionExecutorDeps["releaseLease"],
+): Promise<void> {
+  if (!lock.owned) return;
+  if ("terminate" in lock) {
+    await lock.terminate("operation_complete");
+    lock.unregister?.();
+    return;
+  }
+  if (release) await release(repositoryLeaseDir, lock.ownerToken);
+}
+
 export class WorktreeDeletionExecutor {
   private readonly deps: WorktreeDeletionExecutorDeps;
 
@@ -275,16 +422,21 @@ export class WorktreeDeletionExecutor {
         "target_validation",
       );
 
-    const operation = createWorktreeOperationContext({
-      budgetMs: input.budgetMs ?? this.deps.budgetMs ?? DEFAULT_BUDGET_MS,
-      responseReserveMs: DEFAULT_RESPONSE_RESERVE_MS,
-      now,
-    });
+    const ownsOperation =
+      input.operation === undefined && this.deps.operation === undefined;
+    const operation =
+      input.operation ??
+      this.deps.operation ??
+      createWorktreeOperationContext({
+        budgetMs: input.budgetMs ?? this.deps.budgetMs ?? DEFAULT_BUDGET_MS,
+        responseReserveMs: DEFAULT_RESPONSE_RESERVE_MS,
+        now,
+      });
     const repositoryLeaseDir =
       this.deps.repositoryLeaseDir ?? resolve(plan.repository, ".adv");
-    const acquire = this.deps.acquireLease ?? acquireGitWorktreeFlock;
-    const release = this.deps.releaseLease ?? releaseGitWorktreeFlock;
-    let lock: Awaited<ReturnType<typeof acquireGitWorktreeFlock>> | undefined;
+    const acquire = this.deps.acquireLease ?? acquireGitWorktreeProcessLease;
+    const release = this.deps.releaseLease;
+    let lock: WorktreeLeaseResult | undefined;
     const cwd = input.cwd ?? this.deps.cwd ?? plan.facts.cwd ?? process.cwd();
     const census = this.deps.census ?? scanGitWorkspaceFacts;
     const runProcess = this.deps.runProcess ?? runAbortableProcess;
@@ -302,21 +454,33 @@ export class WorktreeDeletionExecutor {
       work: () => Promise<T>,
     ): Promise<T> => {
       const remaining = operation.remainingMs() - operation.responseReserveMs;
-      if (remaining <= 0) throw new WorktreeDeletionStageDeadline(stage);
+      if (remaining <= 0 || operation.signal.aborted) {
+        await operation.abort("deadline");
+        throw new WorktreeDeletionStageDeadline(stage);
+      }
       let timer: ReturnType<typeof setTimeout> | undefined;
+      let onAbort: (() => void) | undefined;
+      const workPromise = Promise.resolve().then(work);
+      const deadlinePromise = new Promise<T>((_resolve, reject) => {
+        onAbort = () => reject(new WorktreeDeletionStageDeadline(stage));
+        operation.signal.addEventListener("abort", onAbort, { once: true });
+        timer = setTimeout(
+          () => reject(new WorktreeDeletionStageDeadline(stage)),
+          Math.max(1, remaining),
+        );
+        timer.unref?.();
+      });
       try {
-        return await Promise.race([
-          work(),
-          new Promise<T>((_resolve, reject) => {
-            timer = setTimeout(
-              () => reject(new WorktreeDeletionStageDeadline(stage)),
-              Math.max(1, remaining),
-            );
-            timer.unref?.();
-          }),
-        ]);
+        return await Promise.race([workPromise, deadlinePromise]);
+      } catch (error) {
+        if (error instanceof WorktreeDeletionStageDeadline) {
+          await operation.abort("deadline");
+          if (operation.terminationError) throw operation.terminationError;
+        }
+        throw error;
       } finally {
         if (timer) clearTimeout(timer);
+        if (onAbort) operation.signal.removeEventListener("abort", onAbort);
       }
     };
 
@@ -335,6 +499,7 @@ export class WorktreeDeletionExecutor {
         );
       } catch (error) {
         if (error instanceof WorktreeDeletionStageDeadline) throw error;
+        if (operation.terminationError) throw operation.terminationError;
         return null;
       } finally {
         operation.finishStage(stage);
@@ -429,40 +594,49 @@ export class WorktreeDeletionExecutor {
       if (operation.remainingMs() <= operation.responseReserveMs)
         return failure("deadline_exceeded", "deadline_exceeded", "lease");
       operation.startStage("lease");
-      const leasePromise = Promise.resolve(acquire(repositoryLeaseDir));
-      let leaseTimer: ReturnType<typeof setTimeout> | undefined;
-      type LeaseResult = Awaited<ReturnType<typeof acquireGitWorktreeFlock>>;
-      const leaseResult = await new Promise<
-        | { kind: "acquired"; lock: LeaseResult }
-        | { kind: "failed" }
-        | { kind: "deadline" }
-      >((resolveLease) => {
-        leaseTimer = setTimeout(
-          () => resolveLease({ kind: "deadline" }),
-          Math.max(1, operation.remainingMs() - operation.responseReserveMs),
+      try {
+        lock = await runBounded("lease", () =>
+          acquire(repositoryLeaseDir, {
+            signal: operation.signal,
+            operation,
+          }),
         );
-        leaseTimer.unref?.();
-        leasePromise.then(
-          (acquired) => resolveLease({ kind: "acquired", lock: acquired }),
-          () => resolveLease({ kind: "failed" }),
-        );
-      });
-      if (leaseTimer) clearTimeout(leaseTimer);
-      if (leaseResult.kind === "deadline") {
-        void leasePromise.then(async (lateLease) => {
-          if (lateLease.owned)
-            await release(repositoryLeaseDir, lateLease.ownerToken);
-        });
-        await operation.abort("deadline");
-        return failure("deadline_exceeded", "deadline_exceeded", "lease");
-      }
-      if (leaseResult.kind === "failed")
+      } catch (error) {
+        operation.finishStage("lease");
+        if (error instanceof GitWorktreeFlockUnsupportedError)
+          return failure("unsupported", "kernel_flock_unavailable", "lease");
+        if (operation.terminationError)
+          return failure(
+            "indeterminate",
+            "operation_quiescence_failed",
+            "lease",
+          );
+        if (
+          operation.signal.aborted ||
+          operation.remainingMs() <= operation.responseReserveMs
+        )
+          return failure("deadline_exceeded", "deadline_exceeded", "lease");
         return failure(
           "repair_required",
           "repository_lease_unavailable",
           "lease",
         );
-      lock = leaseResult.lock;
+      }
+      if (
+        operation.signal.aborted ||
+        operation.remainingMs() <= operation.responseReserveMs
+      ) {
+        if (lock.owned) {
+          try {
+            await settleLease(lock, repositoryLeaseDir, release);
+          } catch {
+            // The operation's terminationError is surfaced by the barrier;
+            // cleanup must not replace that typed result with a rejection.
+          }
+        }
+        await operation.abort("deadline");
+        return failure("deadline_exceeded", "deadline_exceeded", "lease");
+      }
       operation.finishStage("lease");
       if (!lock.owned) return failure("busy", "repository_lease_held", "lease");
 
@@ -480,9 +654,33 @@ export class WorktreeDeletionExecutor {
 
       let beforeRemoveWarning: string | undefined;
       if (this.deps.beforeRemove) {
-        const preRemove = await runBounded("before_remove", () =>
-          this.deps.beforeRemove!({ plan, operation }),
-        );
+        if (
+          this.deps.beforeRemove[WORKTREE_BEFORE_REMOVE_STAGE] !== true ||
+          this.deps.beforeRemove.kind !== "worktree-before-remove"
+        ) {
+          return failure(
+            "repair_required",
+            "uncooperative_before_remove",
+            "before_remove",
+          );
+        }
+        const unregisterBeforeRemove = operation.registerChildLease({
+          terminate: this.deps.beforeRemove.cancel,
+        });
+        operation.startStage("before_remove");
+        let preRemove;
+        try {
+          preRemove = await runBounded("before_remove", () =>
+            this.deps.beforeRemove!.start({
+              plan,
+              operation,
+              signal: operation.signal,
+            }),
+          );
+        } finally {
+          unregisterBeforeRemove();
+          operation.finishStage("before_remove");
+        }
         if (!preRemove.ok)
           return failure(
             preRemove.status ?? "repair_required",
@@ -588,9 +786,31 @@ export class WorktreeDeletionExecutor {
       if (!removeResult.closed || removeResult.exitCode !== 0)
         return failure("indeterminate", "git_worktree_remove_failed", "remove");
 
-      const postDeleteExpiry = expiryDecision("post_delete_census");
-      if (postDeleteExpiry) return postDeleteExpiry;
-      const after = await runCensus("post_delete_census");
+      // Post-delete census is read-only, so its late completion may be
+      // abandoned after the shared abort barrier. It must never reach
+      // reconciliation after a deadline response.
+      let after: GitWorkspaceFacts | null;
+      operation.startStage("post_delete_census");
+      try {
+        after = await runBounded("post_delete_census", () =>
+          census(
+            plan.repository,
+            plan.integration?.defaultBranch ?? "HEAD",
+            Math.max(1, operation.remainingMs()),
+          ),
+        );
+      } catch (error) {
+        if (error instanceof WorktreeDeletionStageDeadline) {
+          return failure(
+            "indeterminate",
+            "post_delete_census_deadline_exceeded",
+            "post_delete_census",
+          );
+        }
+        throw error;
+      } finally {
+        operation.finishStage("post_delete_census");
+      }
       if (!after)
         return failure(
           "indeterminate",
@@ -598,7 +818,22 @@ export class WorktreeDeletionExecutor {
           "post_delete_census",
         );
       const remaining = currentWorktree(after, plan);
-      if (remaining || (await exists(plan.facts.worktree)))
+      let stillOnDisk = false;
+      try {
+        stillOnDisk = await runBounded("post_delete_census", () =>
+          exists(plan.facts.worktree),
+        );
+      } catch (error) {
+        if (error instanceof WorktreeDeletionStageDeadline) {
+          return failure(
+            "indeterminate",
+            "post_delete_census_deadline_exceeded",
+            "post_delete_census",
+          );
+        }
+        throw error;
+      }
+      if (remaining || stillOnDisk)
         return failure(
           "indeterminate",
           "git_removal_not_confirmed",
@@ -607,14 +842,47 @@ export class WorktreeDeletionExecutor {
 
       let warning: string | undefined;
       if (this.deps.reconcileAfterDeletion) {
+        if (
+          this.deps.reconcileAfterDeletion[WORKTREE_RECONCILIATION_STAGE] !==
+            true ||
+          this.deps.reconcileAfterDeletion.kind !== "worktree-reconciliation"
+        ) {
+          return failure(
+            "indeterminate",
+            "uncooperative_reconciliation",
+            "reconcile",
+          );
+        }
+        const unregisterReconciliation = operation.registerChildLease({
+          terminate: this.deps.reconcileAfterDeletion.cancel,
+        });
+        operation.startStage("reconcile");
         try {
-          await this.deps.reconcileAfterDeletion({
-            plan,
-            census: after,
-            operation,
-          });
+          await runBounded("reconcile", () =>
+            this.deps.reconcileAfterDeletion!.start({
+              plan,
+              census: after,
+              operation,
+              signal: operation.signal,
+            }),
+          );
         } catch (error) {
-          warning = `reconciliation failed after confirmed removal: ${error instanceof Error ? error.message : String(error)}`;
+          if (operation.terminationError) {
+            return failure(
+              "indeterminate",
+              "operation_quiescence_failed",
+              "reconcile",
+            );
+          }
+          if (error instanceof WorktreeDeletionStageDeadline) {
+            warning =
+              "reconciliation deadline exceeded after confirmed Git removal";
+          } else {
+            warning = `reconciliation failed after confirmed removal: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        } finally {
+          unregisterReconciliation();
+          operation.finishStage("reconcile");
         }
       }
       return {
@@ -631,6 +899,15 @@ export class WorktreeDeletionExecutor {
           : {}),
       };
     } catch (error) {
+      if (operation.terminationError) {
+        return failure(
+          "indeterminate",
+          "operation_quiescence_failed",
+          operation.currentStage,
+        );
+      }
+      if (error instanceof WorktreeDeletionStageDeadline)
+        return failure("deadline_exceeded", error.message, error.stage);
       if (
         operation.signal.aborted ||
         operation.remainingMs() <= operation.responseReserveMs
@@ -640,8 +917,6 @@ export class WorktreeDeletionExecutor {
           "deadline_exceeded",
           operation.currentStage,
         );
-      if (error instanceof WorktreeDeletionStageDeadline)
-        return failure("deadline_exceeded", error.message, error.stage);
       if (error instanceof LocalBranchIntegrationDeadline)
         return failure(
           "deadline_exceeded",
@@ -649,8 +924,9 @@ export class WorktreeDeletionExecutor {
           operation.currentStage,
         );
       if (
-        error instanceof Error &&
-        /unsupported.*platform/i.test(error.message)
+        error instanceof GitWorktreeFlockUnsupportedError ||
+        error instanceof GitWorktreeFlockQuiescenceError ||
+        (error instanceof Error && /unsupported.*platform/i.test(error.message))
       )
         return failure("unsupported", error.message, operation.currentStage);
       return failure(
@@ -659,9 +935,17 @@ export class WorktreeDeletionExecutor {
         operation.currentStage,
       );
     } finally {
-      await operation.abort("operation_complete");
-      operation.dispose();
-      if (lock?.owned) await release(repositoryLeaseDir, lock.ownerToken);
+      if (ownsOperation) {
+        await operation.abort("operation_complete");
+        operation.dispose();
+      }
+      if (lock?.owned) {
+        try {
+          await settleLease(lock, repositoryLeaseDir, release);
+        } catch {
+          // A barrier failure is already represented by terminationError.
+        }
+      }
     }
   }
 }
