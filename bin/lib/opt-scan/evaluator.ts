@@ -33,6 +33,9 @@ import type {
   OptimizationEvidence,
 } from "./schema";
 import type { OptimizationDetector } from "./registry";
+import { SCAN_IGNORE_DIRS } from "../scan-ignore";
+
+export { SCAN_IGNORE_DIRS } from "../scan-ignore";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -59,20 +62,6 @@ export interface EvaluationResult {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_REGEX_TIMEOUT_MS = 5000;
-
-const SCAN_IGNORE_DIRS: ReadonlySet<string> = new Set([
-  "node_modules",
-  ".git",
-  "dist",
-  "build",
-  "coverage",
-  ".next",
-  ".cache",
-  ".turbo",
-  ".adv",
-  "__tests__",
-  "__mocks__",
-]);
 
 const MAX_FILE_BYTES = 1_000_000;
 const MAX_SCANNED_FILES = 10_000;

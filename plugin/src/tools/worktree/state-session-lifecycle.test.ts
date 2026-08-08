@@ -11,11 +11,11 @@ import {
   getPendingDeletes,
   getSessionRecord,
   getWorktreePath,
-  inferChangeIdFromBranch,
   incrementPendingDeleteAttempts,
   setPendingDelete,
   type WorktreeStateAccess,
 } from "./state";
+import { inferChangeIdFromBranch } from "./branch-parser";
 import { synthesizeTestProjectId } from "../../utils/project-id";
 
 const access: WorktreeStateAccess = {

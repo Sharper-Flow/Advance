@@ -23,7 +23,15 @@
  */
 import { describe, expect, it } from "vitest";
 import ts from "typescript";
-import { readFileSync, statSync, existsSync } from "node:fs";
+import {
+  readFileSync,
+  statSync,
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve, dirname, join, relative, extname } from "node:path";
 import {
   findExecutableSaveChangeCalls,
@@ -231,6 +239,292 @@ function directStoreImports(source: ts.SourceFile): string[] {
   return specs;
 }
 
+type FsReadBinding = {
+  moduleName: string;
+  importedName: string | null;
+};
+
+function isFsModule(moduleName: string): boolean {
+  return (
+    moduleName === "node:fs" ||
+    moduleName === "fs" ||
+    moduleName === "node:fs/promises" ||
+    moduleName === "fs/promises"
+  );
+}
+
+function collectFsReadBindings(
+  source: ts.SourceFile,
+  checker: ts.TypeChecker,
+): Map<ts.Symbol, FsReadBinding> {
+  const bindings = new Map<ts.Symbol, FsReadBinding>();
+
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement) || !statement.importClause) {
+      continue;
+    }
+
+    const moduleSpecifier = statement.moduleSpecifier;
+    if (
+      !ts.isStringLiteral(moduleSpecifier) ||
+      !isFsModule(moduleSpecifier.text)
+    ) {
+      continue;
+    }
+
+    const { namedBindings } = statement.importClause;
+    if (!namedBindings) continue;
+
+    if (ts.isNamespaceImport(namedBindings)) {
+      const symbol = checker.getSymbolAtLocation(namedBindings.name);
+      if (symbol) {
+        bindings.set(symbol, {
+          moduleName: moduleSpecifier.text,
+          importedName: null,
+        });
+      }
+      continue;
+    }
+
+    for (const element of namedBindings.elements) {
+      if (element.isTypeOnly) continue;
+      const symbol = checker.getSymbolAtLocation(element.name);
+      if (symbol) {
+        bindings.set(symbol, {
+          moduleName: moduleSpecifier.text,
+          importedName: element.propertyName?.text ?? element.name.text,
+        });
+      }
+    }
+  }
+
+  // Track local aliases too: importing `readFileSync as rfs` is covered above,
+  // but `const rfs = readFileSync` must not create a guard bypass.
+  function collectAliases(node: ts.Node) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      const reference = resolveFsReference(node.initializer, checker, bindings);
+      const symbol = checker.getSymbolAtLocation(node.name);
+      if (reference && symbol) {
+        bindings.set(symbol, {
+          moduleName: reference.binding.moduleName,
+          importedName:
+            reference.properties.at(-1) ?? reference.binding.importedName,
+        });
+      }
+    }
+    ts.forEachChild(node, collectAliases);
+  }
+  collectAliases(source);
+
+  return bindings;
+}
+
+function resolveFsReference(
+  expression: ts.Expression,
+  checker: ts.TypeChecker,
+  bindings: Map<ts.Symbol, FsReadBinding>,
+): { binding: FsReadBinding; properties: string[] } | undefined {
+  if (ts.isIdentifier(expression)) {
+    const symbol = checker.getSymbolAtLocation(expression);
+    const binding = symbol && bindings.get(symbol);
+    if (!binding) return undefined;
+    return {
+      binding,
+      properties: binding.importedName ? [binding.importedName] : [],
+    };
+  }
+
+  if (ts.isPropertyAccessExpression(expression)) {
+    const root = resolveFsReference(expression.expression, checker, bindings);
+    if (!root) return undefined;
+    return {
+      binding: root.binding,
+      properties: [...root.properties, expression.name.text],
+    };
+  }
+
+  return undefined;
+}
+
+function isChangeJsonReader(
+  call: ts.CallExpression,
+  checker: ts.TypeChecker,
+  bindings: Map<ts.Symbol, FsReadBinding>,
+): boolean {
+  const reference = resolveFsReference(call.expression, checker, bindings);
+  if (!reference) return false;
+
+  const { moduleName, importedName } = reference.binding;
+  const { properties } = reference;
+  if (moduleName === "node:fs" || moduleName === "fs") {
+    return (
+      (importedName === "readFileSync" && properties.length === 1) ||
+      (importedName === "readFile" && properties.length === 1) ||
+      (importedName === "promises" &&
+        properties.join(".") === "promises.readFile") ||
+      (importedName === null &&
+        (properties.join(".") === "readFileSync" ||
+          properties.join(".") === "readFile" ||
+          properties.join(".") === "promises.readFile"))
+    );
+  }
+
+  return (
+    (moduleName === "node:fs/promises" || moduleName === "fs/promises") &&
+    properties.length === 1 &&
+    properties[0] === "readFile" &&
+    (importedName === null || importedName === "readFile")
+  );
+}
+
+function isChangeJsonLiteral(expression: ts.Expression): boolean {
+  if (!ts.isStringLiteralLike(expression)) return false;
+  const normalized = expression.text.replaceAll("\\", "/");
+  return normalized === "change.json" || normalized.endsWith("/change.json");
+}
+
+/**
+ * Modules permitted to read a `change.json` path directly, each with the
+ * reason the bounded/validated reader is not the right tool there.
+ *
+ * This is an explicit allowlist on purpose. An earlier revision instead
+ * conjoined the traversal with "file also contains an `as ChangeState` cast",
+ * which silently hid four other raw readers and would have let any future
+ * violator through by casting to a different type. Membership here must be a
+ * deliberate, reviewed decision (P33) — not a side effect of how a file
+ * happens to be written.
+ */
+const CHANGE_JSON_READ_ALLOWLIST: ReadonlyArray<{
+  readonly path: string;
+  readonly reason: string;
+}> = [
+  {
+    path: "storage/change-projection-reader.ts",
+    reason:
+      "Owns the bounded, ChangeSchema-validated read. This is the entry point every other caller must route through.",
+  },
+  {
+    path: "storage/reconcile-action-quarantine.ts",
+    reason:
+      "Quarantine repair reads raw bytes precisely because the file may be corrupt. Routing through the validated reader would reject the input this module exists to recover.",
+  },
+  {
+    path: "tools/_recovery-writers.ts",
+    reason:
+      "Reads an ARCHIVE BUNDLE manifest (bundleDir/change.json), not an active projection, and asserts object shape before use.",
+  },
+  {
+    path: "tools/change/helpers.ts",
+    reason:
+      "Reads an ARCHIVE BUNDLE manifest and runs ChangeSchema.parse on it before use.",
+  },
+];
+
+function findChangeJsonReaders(sourcePathsOverride?: string[]): string[] {
+  const sourcePaths =
+    sourcePathsOverride ??
+    ts.sys
+      .readDirectory(
+        pluginSrc,
+        [".ts", ".tsx", ".js"],
+        ["node_modules", "dist"],
+      )
+      .filter((file) => !file.includes(".test.") && !file.includes(".itest."));
+  const program = ts.createProgram(sourcePaths, {
+    allowJs: true,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    target: ts.ScriptTarget.ESNext,
+    skipLibCheck: true,
+    types: ["node"],
+  });
+  const readers: string[] = [];
+  const allowlisted = new Set(
+    CHANGE_JSON_READ_ALLOWLIST.map((entry) => resolve(pluginSrc, entry.path)),
+  );
+
+  for (const file of sourcePaths) {
+    if (allowlisted.has(file)) continue;
+    const source = program.getSourceFile(file);
+    if (!source) continue;
+    const checker = program.getTypeChecker();
+    const bindings = collectFsReadBindings(source, checker);
+    const initializers = new Map<ts.Symbol, ts.Expression>();
+
+    function collectInitializers(node: ts.Node) {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.initializer
+      ) {
+        const symbol = checker.getSymbolAtLocation(node.name);
+        if (symbol) initializers.set(symbol, node.initializer);
+      }
+      ts.forEachChild(node, collectInitializers);
+    }
+    collectInitializers(source);
+
+    function resolvesToChangeJson(
+      expression: ts.Expression,
+      seen = new Set<ts.Symbol>(),
+    ): boolean {
+      if (isChangeJsonLiteral(expression)) return true;
+      if (ts.isIdentifier(expression)) {
+        const symbol = checker.getSymbolAtLocation(expression);
+        const initializer = symbol && initializers.get(symbol);
+        if (!symbol || !initializer || seen.has(symbol)) return false;
+        const nextSeen = new Set(seen);
+        nextSeen.add(symbol);
+        return resolvesToChangeJson(initializer, nextSeen);
+      }
+      if (ts.isParenthesizedExpression(expression)) {
+        return resolvesToChangeJson(expression.expression, seen);
+      }
+      if (ts.isCallExpression(expression)) {
+        return expression.arguments.some((argument) =>
+          resolvesToChangeJson(argument, seen),
+        );
+      }
+      if (ts.isBinaryExpression(expression)) {
+        return (
+          resolvesToChangeJson(expression.left, seen) ||
+          resolvesToChangeJson(expression.right, seen)
+        );
+      }
+      if (ts.isTemplateExpression(expression)) {
+        return expression.templateSpans.some((span) =>
+          resolvesToChangeJson(span.expression, seen),
+        );
+      }
+      return false;
+    }
+
+    let found = false;
+    function visit(node: ts.Node) {
+      if (found) return;
+      if (
+        ts.isCallExpression(node) &&
+        isChangeJsonReader(node, checker, bindings) &&
+        node.arguments[0] &&
+        resolvesToChangeJson(node.arguments[0])
+      ) {
+        found = true;
+        return;
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(source);
+
+    if (found) readers.push(relative(pluginSrc, file));
+  }
+
+  return readers.sort();
+}
+
 const routineReaders = [
   "storage/change-summary-shard-reader.ts",
   "storage/launcher-projection.ts",
@@ -295,5 +589,55 @@ describe("writer allowlist", () => {
     }
 
     expect(violations).toEqual([]);
+  });
+});
+
+describe("raw change.json reader boundary", () => {
+  // findChangeJsonReaders builds a ts.Program over the whole of src, which
+  // takes several seconds on its own and longer when the suite runs in
+  // parallel. The 5s default timeout is not enough and made this guard fail
+  // intermittently under load — a structural guard that reds CI at random
+  // teaches people to ignore it, so the budget is explicit here.
+  it("confines direct change.json reads to the reviewed allowlist", () => {
+    // Every entry below is a KNOWN violation, not an approved one. Approved
+    // readers live in CHANGE_JSON_READ_ALLOWLIST with a written reason.
+    //
+    // - index.ts: reads a cross-project active change.json for epic_membership
+    //   title enrichment via an unchecked cast (best-effort, catch-and-fallback).
+    //   Advisory only — it feeds no gate, persistence, or workflow authority —
+    //   so it is tracked here rather than fixed in this change.
+    expect(findChangeJsonReaders()).toEqual(["index.ts"]);
+  }, 120_000);
+
+  it("detects imported and local aliases of an fs reader", () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-change-json-reader-"));
+    const importedAliasFixture = join(root, "imported-alias.ts");
+    const localAliasFixture = join(root, "local-alias.ts");
+    try {
+      writeFileSync(
+        importedAliasFixture,
+        [
+          'import { readFileSync as rfs } from "node:fs";',
+          'rfs("change.json", "utf8");',
+        ].join("\n"),
+      );
+      writeFileSync(
+        localAliasFixture,
+        [
+          'import { readFileSync } from "node:fs";',
+          "const rfs = readFileSync;",
+          'const path = "change.json";',
+          'rfs(path, "utf8");',
+        ].join("\n"),
+      );
+      expect(
+        findChangeJsonReaders([importedAliasFixture, localAliasFixture]),
+      ).toEqual([
+        relative(pluginSrc, importedAliasFixture),
+        relative(pluginSrc, localAliasFixture),
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

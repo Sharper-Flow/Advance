@@ -5,11 +5,8 @@ import { describe, expect, test, vi } from "vitest";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import { getProjectPaths } from "./json";
 import { buildReconcilePlan, type StoreResidueScan } from "./reconcile-plan";
-import {
-  reconcileExitCode,
-  runReconcileApply,
-  type ActionOutcome,
-} from "./reconcile-apply";
+import { reconcileExitCode, runReconcileApply } from "./reconcile-apply";
+import type { ActionOutcome } from "./reconcile-action-types";
 
 const classes = [
   "schema_drift_retired_enum",

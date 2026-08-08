@@ -22,8 +22,8 @@ import {
   initStateDb,
   getPendingDeletes,
   type WorktreeStateAccess,
-  inferChangeIdFromBranch,
 } from "./state";
+import { inferChangeIdFromBranch } from "./branch-parser";
 import { detectStaleBranchHead } from "../../utils/stale-head";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { resolve } from "path";

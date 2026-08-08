@@ -23,7 +23,7 @@ import type {
   ActionContext,
   ActionExecutor,
   ActionOutcome,
-} from "./reconcile-apply";
+} from "./reconcile-action-types";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
 import { loadChange } from "./json";
 

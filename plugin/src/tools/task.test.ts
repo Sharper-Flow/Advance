@@ -37,21 +37,15 @@ async function setup(): Promise<{ root: string; store: Store }> {
   const root = await createTempDir("adv-task-");
   const changeDir = join(root, "changes");
   await mkdir(changeDir, { recursive: true });
+  await mkdir(join(changeDir, "change-1"), { recursive: true });
   await writeFile(
-    join(changeDir, "change-1.json"),
+    join(changeDir, "change-1", "change.json"),
     JSON.stringify({
-      schemaVersion: 2,
-      projectId: "0".repeat(40),
-      changeId: "change-1",
-      projectedAt: "2026-01-01T00:00:00Z",
-      state: {
-        id: "change-1",
-        changeId: "change-1",
-        title: "Change",
-        status: "active",
-        tasks,
-        gates: {},
-      },
+      id: "change-1",
+      title: "Change",
+      status: "active",
+      created_at: "2026-01-01T00:00:00Z",
+      tasks,
     }),
   );
   const store = {

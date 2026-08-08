@@ -15,11 +15,8 @@ import {
   acquireGitWorktreeFlock,
   releaseGitWorktreeFlock,
 } from "../../utils/git-worktree-flock";
-import {
-  getWorktreeRecord,
-  inferChangeIdFromBranch,
-  type WorktreeStateAccess,
-} from "./state";
+import { getWorktreeRecord, type WorktreeStateAccess } from "./state";
+import { inferChangeIdFromBranch } from "./branch-parser";
 import { isWorktreeInUse } from "./in-use";
 import { getProjectId, getExternalRoot } from "../../utils/project-id";
 import {

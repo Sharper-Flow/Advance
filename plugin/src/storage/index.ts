@@ -92,13 +92,16 @@ export {
   notImplementedExecutor,
   runReconcileApply,
   saveEpicOptimistic,
-  type ActionContext,
-  type ActionExecutor,
-  type ActionOutcome,
   type ReconcileApplyDeps,
   type ReconcileErrorClass,
   type RunReconcileApplyOptions,
 } from "./reconcile-apply";
+export type {
+  ActionContext,
+  ActionExecutor,
+  ActionOutcome,
+  EpicSaveResult,
+} from "./reconcile-action-types";
 export {
   normalizeEnumMappingExecutor,
   quarantineRecordExecutor,

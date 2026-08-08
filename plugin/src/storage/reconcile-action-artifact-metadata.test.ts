@@ -11,7 +11,7 @@ import {
 } from "../__tests__/setup";
 import { ChangeSchema, type Change } from "../types";
 import { createDiskStore } from "./store-disk";
-import type { ActionContext } from "./reconcile-apply";
+import type { ActionContext } from "./reconcile-action-types";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
 import {
   classifyTerminalNoopExecutor,

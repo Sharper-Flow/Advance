@@ -11,10 +11,9 @@ import {
 } from "../../types";
 import { basename, dirname } from "node:path";
 import type { Store } from "../../storage/store";
-import { loadChange } from "../../storage/json";
+import { loadChange } from "../../storage/change-projection-reader";
 import { createLogger } from "../../utils/debug-log";
 import { formatToolOutput } from "../../utils/tool-output";
-import { readChangeProjectionState } from "../../storage/read-change-projection";
 import { hasGateRecoveryAudit } from "../recovery-audit";
 import {
   detectDefaultBranch,
@@ -49,6 +48,10 @@ export type ArchiveGateState = {
   effectiveGates: Gates;
   storeGates: Gates;
   source: "store";
+  projectionLoadFailure?: {
+    type: string;
+    error: string;
+  };
   liveGates?: Gates;
   liveQueryError?: string;
 };
@@ -59,10 +62,19 @@ export async function resolveArchiveGateState(
   change: { gates?: Gates },
 ): Promise<ArchiveGateState> {
   const storeGates = change.gates ?? createDefaultGates();
-  const diskGates = readChangeProjectionState(
-    store.paths.changes,
-    changeId,
-  )?.gates;
+  const projected = await loadChange(store.paths.changes, changeId);
+  if (!projected.success) {
+    return {
+      effectiveGates: storeGates,
+      storeGates,
+      source: "store",
+      projectionLoadFailure: {
+        type: projected.type,
+        error: projected.error,
+      },
+    };
+  }
+  const diskGates = projected.data?.gates;
   return {
     effectiveGates:
       diskGates && typeof diskGates === "object" ? diskGates : storeGates,
@@ -77,6 +89,14 @@ export function getArchiveGatePreflightError(
   allowReleasePending: boolean,
   _divergenceHint?: string | null,
 ): string | null {
+  if (gateState.projectionLoadFailure) {
+    return formatToolOutput({
+      error: gateState.projectionLoadFailure.error,
+      code: "CHANGE_PROJECTION_LOAD_FAILED",
+      projectionFailureType: gateState.projectionLoadFailure.type,
+      changeId,
+    });
+  }
   const incompleteGates = allowReleasePending
     ? GATE_ORDER.filter(
         (gateId) =>
@@ -405,6 +425,8 @@ export type ArchiveReleaseGateResult =
   | {
       ok: false;
       error: string;
+      code?: string;
+      projectionFailureType?: string;
       workflowGateStatus?: GateCompletion["status"];
       readinessBlockers?: GateCompletion["readiness_blockers"];
       stuckReason?: GateCompletion["stuck_reason"];
@@ -436,6 +458,8 @@ export async function verifyReleaseGateDurableForArchive(input: {
   | {
       ok: false;
       error: string;
+      code?: string;
+      projectionFailureType?: string;
       releaseGateStatus?: GateCompletion["status"];
       readinessBlockers?: GateCompletion["readiness_blockers"];
       stuckReason?: GateCompletion["stuck_reason"];
@@ -446,7 +470,14 @@ export async function verifyReleaseGateDurableForArchive(input: {
     : input.store.paths.changes;
   const id = input.bundlePath ? basename(input.bundlePath) : input.changeId;
   const loaded = await loadChange(changesDir, id);
-  const gate = loaded.success ? loaded.data?.gates?.release : undefined;
+  if (!loaded.success)
+    return {
+      ok: false,
+      error: loaded.error,
+      code: "CHANGE_PROJECTION_LOAD_FAILED",
+      projectionFailureType: loaded.type,
+    };
+  const gate = loaded.data?.gates?.release;
   const shipped = input.finalization?.status === "shipped";
   if (gate?.status !== "done")
     return {
@@ -484,10 +515,18 @@ export async function completeReleaseGateAfterFinalization(input: {
       ok: false,
       error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}`,
     };
-  const current = readChangeProjectionState(
+  const currentProjection = await loadChange(
     input.store.paths.changes,
     input.changeId,
-  )?.gates?.release;
+  );
+  if (!currentProjection.success)
+    return {
+      ok: false,
+      error: currentProjection.error,
+      code: "CHANGE_PROJECTION_LOAD_FAILED",
+      projectionFailureType: currentProjection.type,
+    };
+  const current = currentProjection.data?.gates?.release;
   if (current?.status === "done")
     return { ok: true, gate: current, alreadyDone: true };
   const evidence = buildReleaseCompletionEvidence(input.finalization);

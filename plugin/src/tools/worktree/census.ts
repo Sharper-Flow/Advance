@@ -1,6 +1,6 @@
 import type { SessionRecord, WorktreeRecord } from "../../types";
 import { execFileGitAsync } from "../../utils/git-binary";
-import { inferChangeIdFromBranch } from "./state";
+import { inferChangeIdFromBranch } from "./branch-parser";
 import { parseWorktreeListPorcelain } from "./porcelain-parser";
 
 export interface GitBranchFact {

@@ -47,12 +47,12 @@ async function readProjectionDocuments(
   changesDir: string,
   changeId: string,
 ): Promise<Partial<Record<ArtifactKind, string>>> {
-  // Canonical projection lives at {changesDir}/{changeId}/change.json (matches
-  // read-change-projection.ts:17). The flat {changeId}.json envelope is a
-  // legacy read-only fallback. Previously this read ONLY the flat path, which
-  // never exists for canonical-layout changes — so the projection-first read
-  // always missed and fell through to disk. That silent miss is the root cause
-  // of #403 (update-written artifacts unreadable from the projection).
+  // Canonical projection lives at {changesDir}/{changeId}/change.json and the
+  // flat {changeId}.json envelope is a legacy read-only fallback. Previously
+  // this read ONLY the flat path, which never exists for canonical-layout
+  // changes — so the projection-first read always missed and fell through to
+  // disk. That silent miss is the root cause of #403 (update-written artifacts
+  // unreadable from the projection).
   const candidates = [
     join(changesDir, changeId, "change.json"),
     join(changesDir, `${changeId}.json`),

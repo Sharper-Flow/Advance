@@ -30,7 +30,7 @@ import {
   withTargetPathStore,
   appendTargetProjectContextOutput,
 } from "./target-project";
-import { readChangeProjectionState } from "../storage/read-change-projection";
+import { loadChange } from "../storage/change-projection-reader";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 import { dismissAllSuggestedDrafts } from "../utils/wisdom-draft";
 
@@ -92,6 +92,7 @@ interface CheckpointRecordingResult {
   recorded: boolean;
   error?: string;
   remediation?: string;
+  projectionFailureType?: string;
   /** Drafts in `suggested` state observed before auto-dismissal (AC5). */
   drafts_pending_review?: number;
   /** Drafts transitioned to `dismissed` at this checkpoint (AC5). */
@@ -478,10 +479,16 @@ async function fireTaskCompletedFromCheckpoint(
         remediation: CHECKPOINT_RECORDING_REMEDIATION,
       };
     }
-    const projectedState = readChangeProjectionState(
-      store.paths.changes,
-      changeId,
-    );
+    const projectedResult = await loadChange(store.paths.changes, changeId);
+    if (!projectedResult.success) {
+      return {
+        recorded: false,
+        error: projectedResult.error,
+        projectionFailureType: projectedResult.type,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
+    const projectedState = projectedResult.data;
     const recordedTask =
       projectedState?.tasks?.find((task) => task.id === taskId) ?? null;
 

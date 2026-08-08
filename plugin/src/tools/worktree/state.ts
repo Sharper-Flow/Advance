@@ -21,6 +21,7 @@ import type {
 } from "../../types";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { parseWorktreeListPorcelain } from "./porcelain-parser";
+import { inferChangeIdFromBranch } from "./branch-parser";
 import { getDefaultBranch } from "../../utils/git";
 import { scanGitWorkspaceFacts, reconcileWorktreeRegistry } from "./census";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
@@ -409,13 +410,6 @@ export async function listWorktrees(
 ): Promise<Worktree[]> {
   const snapshot = await getWorktreeRegistrySnapshot(access);
   return snapshot.records as Worktree[];
-}
-
-export function inferChangeIdFromBranch(branch: string): string | undefined {
-  const prefix = "change/";
-  if (!branch.startsWith(prefix)) return undefined;
-  const suffix = branch.slice(prefix.length);
-  return suffix.length > 0 ? suffix : undefined;
 }
 
 /** Return change branches currently attached to a local Git worktree. */

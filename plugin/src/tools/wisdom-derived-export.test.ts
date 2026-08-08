@@ -205,11 +205,15 @@ describe("adv_wisdom_list disk path", () => {
         recorded_at: "2026-05-02T00:00:00Z",
       },
     ];
+    await mkdir(join(changes, "myChange"), { recursive: true });
     await writeFile(
-      join(changes, "myChange.json"),
+      join(changes, "myChange", "change.json"),
       JSON.stringify({
-        schemaVersion: 2,
-        state: { id: "myChange", wisdom: stateWisdom },
+        id: "myChange",
+        title: "My Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        wisdom: stateWisdom,
       }),
     );
 
@@ -236,14 +240,22 @@ describe("adv_wisdom_list disk path", () => {
     const root = await mkdtemp(join(tmpdir(), "adv-wisdom-projection-"));
     const changes = join(root, "changes");
     await mkdir(changes, { recursive: true });
+    await mkdir(join(changes, "myChange"), { recursive: true });
     await writeFile(
-      join(changes, "myChange.json"),
+      join(changes, "myChange", "change.json"),
       JSON.stringify({
-        schemaVersion: 2,
-        state: {
-          id: "myChange",
-          wisdom: [{ id: "ws-1", type: "pattern", content: "Use signals" }],
-        },
+        id: "myChange",
+        title: "My Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        wisdom: [
+          {
+            id: "ws-1",
+            type: "pattern",
+            content: "Use signals",
+            recorded_at: "2026-05-01T00:00:00Z",
+          },
+        ],
       }),
     );
 

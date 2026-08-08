@@ -10,6 +10,10 @@ import {
 } from "../__tests__/setup";
 import { gateTools, validateGateBoundary } from "./gate";
 import type { Change, Gates, Store, Task } from "../types";
+import {
+  loadChange,
+  PROJECTION_DOCUMENT_BYTE_LIMIT,
+} from "../storage/change-projection-reader";
 
 const done = { status: "done" } as const;
 const pending = { status: "pending" } as const;
@@ -268,6 +272,78 @@ describe("gate tools — disk projection lifecycle", () => {
       expect(parsed.incompleteTasks).toEqual([
         expect.objectContaining({ id: "tk-open", status: "pending" }),
       ]);
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test.each([
+    ["malformed JSON", "{not-json"],
+    ["schema-invalid JSON", JSON.stringify({ invalid: true })],
+  ])(
+    "gate completion refuses %s instead of using stale in-memory gates",
+    async (_label, projection) => {
+      const root = await createTempDir("adv-gate-projection-failure-");
+      try {
+        const current = change();
+        await seed(root, current);
+        await writeFile(join(root, current.id, "change.json"), projection);
+
+        const parsed = JSON.parse(
+          await gateTools.adv_gate_complete.execute(
+            { changeId: current.id, gateId: "acceptance" },
+            storeFor(root, current),
+          ),
+        );
+
+        expect(parsed.success).not.toBe(true);
+        expect(parsed.code).toBe("CHANGE_PROJECTION_LOAD_FAILED");
+        expect(parsed.projectionFailureType).toBe(
+          projection === "{not-json" ? "corrupt" : "schema_error",
+        );
+      } finally {
+        await cleanupTempDir(root);
+      }
+    },
+  );
+
+  test("gate completion refuses an oversized projection instead of using stale gates", async () => {
+    const root = await createTempDir("adv-gate-projection-failure-");
+    try {
+      const current = change();
+      await seed(root, current);
+      await writeFile(
+        join(root, current.id, "change.json"),
+        "x".repeat(PROJECTION_DOCUMENT_BYTE_LIMIT + 1),
+      );
+
+      const parsed = JSON.parse(
+        await gateTools.adv_gate_complete.execute(
+          { changeId: current.id, gateId: "acceptance" },
+          storeFor(root, current),
+        ),
+      );
+
+      expect(parsed.success).not.toBe(true);
+      expect(parsed.code).toBe("CHANGE_PROJECTION_LOAD_FAILED");
+      expect(parsed.projectionFailureType).toBe("oversized");
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("not_found remains a successful absent load, distinct from corrupt", async () => {
+    const root = await createTempDir("adv-gate-projection-failure-");
+    try {
+      const result = await loadChange(root, "missing-change");
+      expect(result).toEqual({ success: true, data: null });
+
+      const corruptDir = join(root, "corrupt-change");
+      await mkdir(corruptDir, { recursive: true });
+      await writeFile(join(corruptDir, "change.json"), "{not-json");
+      const corrupt = await loadChange(root, "corrupt-change");
+      expect(corrupt.success).toBe(false);
+      expect(corrupt.type).toBe("corrupt");
     } finally {
       await cleanupTempDir(root);
     }

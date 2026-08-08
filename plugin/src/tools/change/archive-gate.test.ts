@@ -8,8 +8,11 @@ import type { Store } from "../../storage/store";
 import type { Change, Gates } from "../../types";
 import {
   buildReleaseCompletionEvidence,
+  getArchiveGatePreflightError,
+  resolveArchiveGateState,
   verifyReleaseGateDurableForArchive,
 } from "./archive-gate";
+import { PROJECTION_DOCUMENT_BYTE_LIMIT } from "../../storage/change-projection-reader";
 
 const gateDone = {
   status: "done" as const,
@@ -151,6 +154,110 @@ describe("archive-gate disk projection", () => {
         },
       });
       expect(result.ok).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps a corrupt durable release proof distinct from an absent one", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-projection-"));
+    try {
+      const change = makeChange();
+      await writeDiskChange(root, change);
+      await writeFile(join(root, change.id, "change.json"), "{not-json");
+
+      const corrupt = await verifyReleaseGateDurableForArchive({
+        store: makeStore(root, change.gates),
+        changeId: change.id,
+        evidence: "release evidence",
+      });
+      expect(corrupt).toMatchObject({
+        ok: false,
+        code: "CHANGE_PROJECTION_LOAD_FAILED",
+        projectionFailureType: "corrupt",
+      });
+
+      const missing = await verifyReleaseGateDurableForArchive({
+        store: makeStore(root, change.gates),
+        changeId: "missing-change",
+        evidence: "release evidence",
+      });
+      expect(missing).toMatchObject({ ok: false });
+      if (!missing.ok) expect(missing.code).toBeUndefined();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("carries corrupt projection failure into the archive preflight refusal", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-projection-"));
+    try {
+      const change = makeChange();
+      await writeDiskChange(root, change);
+      await writeFile(join(root, change.id, "change.json"), "{not-json");
+
+      const state = await resolveArchiveGateState(
+        makeStore(root, change.gates),
+        change.id,
+        change,
+      );
+
+      expect(state.projectionLoadFailure?.type).toBe("corrupt");
+      expect(state.effectiveGates).toEqual(change.gates);
+
+      const refusal = getArchiveGatePreflightError(change.id, state, false);
+      expect(refusal).not.toBeNull();
+      expect(JSON.parse(refusal!)).toMatchObject({
+        code: "CHANGE_PROJECTION_LOAD_FAILED",
+        projectionFailureType: "corrupt",
+        changeId: change.id,
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an oversized projection before evaluating stale gates", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-projection-"));
+    try {
+      const change = makeChange();
+      await writeDiskChange(root, change);
+      await writeFile(
+        join(root, change.id, "change.json"),
+        "x".repeat(PROJECTION_DOCUMENT_BYTE_LIMIT + 1),
+      );
+
+      const state = await resolveArchiveGateState(
+        makeStore(root, change.gates),
+        change.id,
+        change,
+      );
+      expect(state.projectionLoadFailure?.type).toBe("oversized");
+
+      const refusal = getArchiveGatePreflightError(change.id, state, false);
+      expect(JSON.parse(refusal!)).toMatchObject({
+        code: "CHANGE_PROJECTION_LOAD_FAILED",
+        projectionFailureType: "oversized",
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes archive preflight with a healthy projection", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-projection-"));
+    try {
+      const change = makeChange();
+      await writeDiskChange(root, change);
+
+      const state = await resolveArchiveGateState(
+        makeStore(root, { ...change.gates, release: { status: "pending" } }),
+        change.id,
+        change,
+      );
+
+      expect(state.projectionLoadFailure).toBeUndefined();
+      expect(getArchiveGatePreflightError(change.id, state, false)).toBeNull();
     } finally {
       await rm(root, { recursive: true, force: true });
     }

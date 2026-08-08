@@ -11,7 +11,7 @@ import {
 import { ChangeSchema } from "../types";
 import { coordinateChangeMutation } from "../tools/change-mutation-coordinator";
 import { getProjectPaths, type ProjectPaths } from "./json";
-import type { ActionContext } from "./reconcile-apply";
+import type { ActionContext } from "./reconcile-action-types";
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: vi.fn(async () => "0000000000000000000000000000000000000001"),

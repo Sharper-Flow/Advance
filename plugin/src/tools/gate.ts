@@ -40,7 +40,6 @@ import {
 } from "./target-project";
 import { includeSnapshotSchema } from "./shared-args";
 import { reconcileRecoveredAcceptanceRemediation } from "./acceptance-reconciliation";
-import { readChangeProjectionState } from "../storage/read-change-projection";
 import {
   type WorktreeIsolationDeps,
   type WorktreeIsolationResult,
@@ -1410,12 +1409,22 @@ export const gateTools = {
           });
         }
 
-        const projectedState = readChangeProjectionState(
+        const projectedResult = await loadChange(
           activeStore.paths.changes,
           changeId,
         );
+        if (!projectedResult.success) {
+          return formatToolOutput({
+            error: projectedResult.error,
+            code: "CHANGE_PROJECTION_LOAD_FAILED",
+            projectionFailureType: projectedResult.type,
+            changeId,
+            gateId,
+          });
+        }
+        const projectedState = projectedResult.data;
         const queriedGates = projectedState?.gates;
-        if (queriedGates && typeof queriedGates === "object") {
+        if (queriedGates) {
           gates = queriedGates;
         }
 
@@ -1485,14 +1494,20 @@ export const gateTools = {
         }
 
         if (gateId === "execution") {
-          const projectedState = readChangeProjectionState(
+          const projectedResult = await loadChange(
             activeStore.paths.changes,
             changeId,
           );
-          // Disk projection is authoritative after Temporal removal. Keep the
-          // loaded change as a compatibility fallback for older fixtures and
-          // projections, but never silently replace a known task list with an
-          // empty array when the projection reader cannot resolve it.
+          if (!projectedResult.success) {
+            return formatToolOutput({
+              error: projectedResult.error,
+              code: "CHANGE_PROJECTION_LOAD_FAILED",
+              projectionFailureType: projectedResult.type,
+              changeId,
+              gateId,
+            });
+          }
+          const projectedState = projectedResult.data;
           const tasks = projectedState?.tasks ?? change.tasks;
           const incompleteTasks = tasks.filter(
             (t) => t.status !== "done" && t.status !== "cancelled",
