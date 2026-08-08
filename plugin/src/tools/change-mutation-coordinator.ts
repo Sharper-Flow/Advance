@@ -45,6 +45,8 @@ export interface MutationIntent {
   mutateLatestProjection: (latest: Change) => Change;
   /** Verify the intended postcondition against the durable readback. */
   verifyProjection: (readback: Change) => ProjectionCommitVerifyResult;
+  /** Repair-only parser for a schema-invalid latest projection. */
+  normalizeLatestProjection?: (value: unknown) => unknown;
 }
 
 interface CoordinateOptions {
@@ -101,6 +103,7 @@ async function executeDiskPath<T>({
     },
     mutationKind: intent.mutationKind,
     mutateLatest: intent.mutateLatestProjection,
+    normalizeLatestProjection: intent.normalizeLatestProjection,
     verify: ({ readback }) => intent.verifyProjection(readback),
   });
 

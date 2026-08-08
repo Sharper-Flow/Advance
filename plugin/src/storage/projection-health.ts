@@ -121,7 +121,7 @@ export async function findProjectionDivergences(
     let legacyCounters: ProjectionCounters | undefined;
     if (legacy.kind === "ok") {
       legacyCounters = legacy.counters;
-      if (!sameCounters(canonical, legacy.counters)) {
+      if (compareProjectionCounters(legacy.counters, canonical) < 0) {
         reasons.push(
           `legacy envelope is behind or differs (canonical revision ${canonical.projection_revision}, ${canonical.task_count} tasks; legacy revision ${legacy.counters.projection_revision}, ${legacy.counters.task_count} tasks)`,
         );

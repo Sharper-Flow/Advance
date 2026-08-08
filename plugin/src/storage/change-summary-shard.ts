@@ -364,6 +364,7 @@ export async function commitChangeProjectionWithSummary(
     authority: options.authority,
     mutationKind: options.mutationKind,
     mutateLatest: options.mutateLatest,
+    normalizeLatestProjection: options.normalizeLatestProjection,
     verify: options.verify,
     afterCommit,
     lockTimeoutMs: options.lockTimeoutMs,

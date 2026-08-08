@@ -124,7 +124,11 @@ describe("quarantine reconcile action executors", () => {
         any
       >;
       expect(restored.test_runs["tk-test0001"][0].evidence_kind).toBe("other");
+      expect(restored.worktree_auto_managed).toBe(false);
       expect(ChangeSchema.safeParse(restored).success).toBe(true);
+      await expect(
+        access(join(data.paths.summariesDir, CHANGE_ID, "current.json")),
+      ).resolves.toBeUndefined();
       await expect(access(data.sourcePath)).rejects.toMatchObject({
         code: "ENOENT",
       });
@@ -145,7 +149,10 @@ describe("quarantine reconcile action executors", () => {
       data.ctx,
     );
     const reported = await remainQuarantinedReportedExecutor(
-      record(data.sourcePath, "remain_quarantined_reported"),
+      record(
+        join(data.paths.quarantineChanges, CHANGE_ID),
+        "remain_quarantined_reported",
+      ),
       { class: "quarantined_record", action: "remain_quarantined_reported" },
       data.ctx,
     );

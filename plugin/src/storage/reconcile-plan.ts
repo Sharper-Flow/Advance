@@ -173,13 +173,40 @@ export function buildReconcilePlan(scan: StoreResidueScan): ReconcilePlan {
         classOrder[left.class] - classOrder[right.class] ||
         left.record_id.localeCompare(right.record_id),
     )
-    .map((record) => ({
-      record_id: record.record_id,
-      source_path: record.source_path,
-      class: record.class,
-      evidence: [...record.evidence],
-      actions: actionsFor(record.class),
-    }));
+    .map((record) => {
+      // Marker and derived-summary repairs are independent of the primary
+      // residue repair. Other secondary classifications are diagnostic
+      // overlaps whose actions would target a different storage layout or
+      // repeat a primary fallback. Schema-invalid and quarantined records must
+      // normalize first; all other records can safely establish secondary
+      // projections before their primary action so the secondary write does
+      // not invalidate a copied envelope.
+      const secondaryActions = [
+        ...(record.also_matches.includes("unmigrated_worktree_marker")
+          ? actionsFor("unmigrated_worktree_marker")
+          : []),
+        ...(record.also_matches.includes("summary_pointer_missing")
+          ? actionsFor("summary_pointer_missing")
+          : []),
+        ...(record.also_matches.includes("summary_pointer_stale")
+          ? actionsFor("summary_pointer_stale")
+          : []),
+      ];
+      const primaryActions = actionsFor(record.class);
+      const actions =
+        record.class === "schema_drift_retired_enum" ||
+        record.class === "quarantined_record" ||
+        record.class === "unmigrated_artifact_metadata"
+          ? [...primaryActions, ...secondaryActions]
+          : [...secondaryActions, ...primaryActions];
+      return {
+        record_id: record.record_id,
+        source_path: record.source_path,
+        class: record.class,
+        evidence: [...record.evidence],
+        actions,
+      };
+    });
   const withoutHash = { schema_version: 1 as const, records };
   return { ...withoutHash, plan_hash: hashPlan(withoutHash) };
 }

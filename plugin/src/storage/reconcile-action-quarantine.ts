@@ -6,11 +6,12 @@
  * reported as a residual; this module never invents a projection.
  */
 
-import { access, mkdir, readFile, rename, rm } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rename, rm } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
 import { ChangeSchema } from "../types";
 import { atomicWriteFile, acquireFileLock } from "../utils/fs";
+import { publishSummaryForChange } from "./change-summary-shard";
 import type {
   ActionContext,
   ActionExecutor,
@@ -97,18 +98,55 @@ async function sourceFileFor(
     );
   }
 
-  const sourceFile =
-    basename(source) === "change.json" ? source : join(source, "change.json");
-  const quarantineDir = dirname(sourceFile);
-  try {
-    await access(sourceFile);
-  } catch (error) {
+  const sourceFiles = await findQuarantinedChangeFiles(source, quarantineRoot);
+  if (sourceFiles.length === 0) {
     return failed(
       "quarantine_source_missing",
-      `${record.record_id}: quarantined projection is unavailable: ${error instanceof Error ? error.message : String(error)}`,
+      `${record.record_id}: quarantined projection is unavailable under ${source}`,
     );
   }
+  if (sourceFiles.length > 1) {
+    return failed(
+      "quarantine_source_ambiguous",
+      `${record.record_id}: multiple quarantined projections found under ${source}`,
+    );
+  }
+  const sourceFile = sourceFiles[0];
+  const quarantineDir = dirname(sourceFile);
   return { sourceFile, quarantineDir, changeId };
+}
+
+async function findQuarantinedChangeFiles(
+  source: string,
+  quarantineRoot: string,
+): Promise<string[]> {
+  if (!isWithin(source, quarantineRoot)) return [];
+  if (basename(source) === "change.json") {
+    try {
+      await access(source);
+      return [source];
+    } catch {
+      return [];
+    }
+  }
+
+  let entries;
+  try {
+    entries = await readdir(source, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const files: string[] = [];
+  for (const entry of entries) {
+    const candidate = resolve(source, entry.name);
+    if (!isWithin(candidate, quarantineRoot)) continue;
+    if (entry.isFile() && entry.name === "change.json") {
+      files.push(candidate);
+    } else if (entry.isDirectory()) {
+      files.push(...(await findQuarantinedChangeFiles(candidate, quarantineRoot)));
+    }
+  }
+  return files;
 }
 
 function mapRetiredEvidence(value: unknown): {
@@ -223,8 +261,12 @@ export const normalizeAndRestoreExecutor: ActionExecutor = async (
     }
 
     await ctx.writeBeforeState(record.record_id, parsed.bytes);
+    const normalized =
+      candidate.data.worktree_auto_managed === undefined
+        ? { ...candidate.data, worktree_auto_managed: false }
+        : candidate.data;
     const normalizedBytes = Buffer.from(
-      JSON.stringify(candidate.data, null, 2),
+      JSON.stringify(normalized, null, 2),
       "utf8",
     );
     await atomicWriteFile(activePath, normalizedBytes.toString("utf8"));
@@ -248,6 +290,21 @@ export const normalizeAndRestoreExecutor: ActionExecutor = async (
       return failed(
         "restore_validation_failed",
         `${source.changeId}: restored projection failed current ChangeSchema validation`,
+      );
+    }
+
+    try {
+      await publishSummaryForChange(
+        {
+          changesDir: ctx.storePaths.changes,
+          summariesDir: ctx.storePaths.summariesDir,
+        },
+        verified.data,
+      );
+    } catch (error) {
+      return failed(
+        "summary_rebuild_failed",
+        `${source.changeId}: restored projection is readable but its summary could not be rebuilt: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 

@@ -144,6 +144,10 @@ export const normalizeEnumMappingExecutor: ActionExecutor = async (
   const mutation = await ctx.coordinateChangeMutation<Change>({
     changeId: record.record_id,
     mutationKind: "store-reconcile:normalize-enum-mapping",
+    normalizeLatestProjection: (latest) => {
+      const mappedLatest = mapRetiredEvidence(latest).value;
+      return ChangeSchema.parse(mappedLatest);
+    },
     mutateLatestProjection: (latest) => {
       const latestMapped = mapRetiredEvidence(latest).value;
       const parsed = ChangeSchema.safeParse(latestMapped);
@@ -154,7 +158,7 @@ export const normalizeEnumMappingExecutor: ActionExecutor = async (
       }
       return parsed.data;
     },
-    verifyProjection: ({ readback }) => {
+    verifyProjection: (readback) => {
       const parsed = ChangeSchema.safeParse(readback);
       return {
         ok: parsed.success && !hasRetiredEvidence(readback),

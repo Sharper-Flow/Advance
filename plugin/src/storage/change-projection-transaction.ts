@@ -20,8 +20,13 @@ import { join } from "path";
 import { access } from "fs/promises";
 import { acquireFileLock, atomicWriteFile } from "../utils/fs";
 import { loadChange } from "./json";
+import { readBoundedProjectionDocument } from "./change-projection-reader";
 import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-detector";
-import type { Change, ProjectionCommitAuditEntry } from "../types";
+import {
+  ChangeSchema,
+  type Change,
+  type ProjectionCommitAuditEntry,
+} from "../types";
 
 export const PROJECTION_COMMIT_MAX_AUDIT_ENTRIES = 50;
 
@@ -208,6 +213,12 @@ export interface CommitChangeProjectionOptions {
    */
   mutateLatest: (latest: Change) => Change;
   /**
+   * Optional repair-only parser for a projection that is not yet current
+   * schema-valid. The returned value is still validated by ChangeSchema before
+   * it enters the transaction; ordinary callers must leave this unset.
+   */
+  normalizeLatestProjection?: (value: unknown) => unknown;
+  /**
    * Mutation-specific postcondition checked against the in-lock readback.
    * Returning `false` or `{ ok: false }` produces `committed_unverified`,
    * which downstream authority treats as a blocker.
@@ -266,6 +277,7 @@ export async function commitChangeProjection(
     authority,
     mutationKind,
     mutateLatest,
+    normalizeLatestProjection,
     verify,
     afterCommit,
     lockTimeoutMs,
@@ -309,17 +321,38 @@ export async function commitChangeProjection(
   try {
     // 1. Read and schema-validate the latest projection inside the lock.
     const loaded = await loadChange(changesDir, changeId);
-    if (!loaded.success) {
-      if (loaded.type === "schema_error") {
-        return { kind: "schema_error", error: loaded.error };
+    let latest: Change | null = null;
+    if (loaded.success) {
+      latest = loaded.data;
+    } else {
+      if (loaded.type === "schema_error" && normalizeLatestProjection) {
+        const rawRead = await readBoundedProjectionDocument(changePath);
+        if (rawRead.kind !== "ok") {
+          return {
+            kind: "schema_error",
+            error: `Cannot normalize projection for ${changeId}: ${rawRead.kind}`,
+          };
+        }
+        try {
+          latest = ChangeSchema.parse(
+            normalizeLatestProjection(JSON.parse(rawRead.content) as unknown),
+          );
+        } catch (error) {
+          return {
+            kind: "schema_error",
+            error: `Normalized projection for ${changeId} failed ChangeSchema validation: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      } else {
+        if (loaded.type === "schema_error") {
+          return { kind: "schema_error", error: loaded.error };
+        }
+        return {
+          kind: "operator_required",
+          reason: `Cannot commit projection for ${changeId}: ${loaded.error}`,
+        };
       }
-      return {
-        kind: "operator_required",
-        reason: `Cannot commit projection for ${changeId}: ${loaded.error}`,
-      };
     }
-
-    const latest = loaded.data;
     if (!latest) {
       return {
         kind: "operator_required",

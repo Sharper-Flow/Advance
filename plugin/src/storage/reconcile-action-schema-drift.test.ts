@@ -9,6 +9,7 @@ import {
   SAMPLE_CHANGE,
 } from "../__tests__/setup";
 import { ChangeSchema } from "../types";
+import { coordinateChangeMutation } from "../tools/change-mutation-coordinator";
 import { getProjectPaths, type ProjectPaths } from "./json";
 import type { ActionContext } from "./reconcile-apply";
 
@@ -157,6 +158,67 @@ describe("schema drift reconcile action executors", () => {
       expect(result).toMatchObject(audit);
     },
   );
+
+  test("normalizes an invalid retired-enum projection through the real commit coordinator", async () => {
+    const tempDir = await createTempDir("reconcile-schema-drift-coordinator-");
+    tempDirs.push(tempDir);
+    const paths = getProjectPaths(
+      tempDir,
+      {},
+      { externalRoot: join(tempDir, "state") },
+    );
+    const base = ChangeSchema.parse({
+      ...SAMPLE_CHANGE,
+      id: CHANGE_ID,
+      status: "draft",
+    });
+    const raw = {
+      ...base,
+      test_runs: {
+        ["tk-test0001"]: [
+          {
+            runId: "run-1",
+            exitCode: 0,
+            classification: "pass",
+            command: "test",
+            durationMs: 1,
+            evidence_kind: "build_worker",
+            recordedAt: "2026-08-07T00:00:00Z",
+          },
+        ],
+      },
+    };
+    const { sourcePath } = await seedChange(paths, raw);
+    const { ctx } = makeContext(paths, sourcePath);
+    const coordinatedCtx: ActionContext = {
+      ...ctx,
+      coordinateChangeMutation: (intent) =>
+        coordinateChangeMutation({
+          authority: {
+            reason: "schema drift regression",
+            evidence: "reconcile-action-schema-drift.test.ts",
+          },
+          intent,
+          changesDir: paths.changes,
+        }),
+    };
+
+    const result = await normalizeEnumMappingExecutor(
+      planRecord(sourcePath),
+      {
+        class: "schema_drift_retired_enum",
+        action: "normalize_enum_mapping",
+      },
+      coordinatedCtx,
+    );
+
+    expect(result.status).toBe("mutated");
+    expect(
+      ChangeSchema.safeParse(
+        JSON.parse(await readFile(sourcePath, "utf8")),
+      ).success,
+    ).toBe(true);
+  });
 
   test("quarantines an unmappable invalid record without synthesizing fields", async () => {
     const tempDir = await createTempDir("reconcile-schema-drift-quarantine-");

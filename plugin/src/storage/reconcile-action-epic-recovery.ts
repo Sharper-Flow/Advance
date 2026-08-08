@@ -214,6 +214,8 @@ function childEntry(
         change_id: fragment.change.id,
         project_id: fragment.membership.epic_project_id,
       },
+      linked_by: "store-reconcile-recovery",
+      link_evidence: `reconstructed from ${SOURCE}`,
     }),
     ...(isTerminal
       ? {

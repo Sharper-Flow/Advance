@@ -514,10 +514,44 @@ export async function runReconcileApply({
         if (completed.has(record.record_id)) continue;
         const outcomes: ActionOutcome[] = [];
         const attemptedActions: ReconcileAction[] = [];
+        let skippedFallbackClass: ReconcileAction["class"] | null = null;
         for (const action of record.actions) {
+          if (skippedFallbackClass === action.class) continue;
           try {
             attemptedActions.push(action);
-            outcomes.push(await executeRecordAction(record, action, ctx));
+            const actionRecord =
+              action.class === record.class
+                ? record
+                : { ...record, class: action.class, actions: [action] };
+            if (
+              action.class === "unmigrated_worktree_marker" &&
+              !(await fileExists(actionRecord.source_path))
+            ) {
+              const activeSource = join(
+                storePaths.changes,
+                record.record_id,
+                "change.json",
+              );
+              if (await fileExists(activeSource)) {
+                actionRecord.source_path = activeSource;
+              }
+            }
+            const actionOutcome = await executeRecordAction(
+              actionRecord,
+              action,
+              ctx,
+            );
+            outcomes.push(actionOutcome);
+            // Action lists are ordered fallbacks. Once one action durably
+            // mutates the record, later fallbacks must not reinterpret the
+            // post-mutation state as a failure (for example, a quarantine
+            // report observing the source removed by a successful restore).
+            if (
+              actionOutcome.status === "mutated" &&
+              record.actions[attemptedActions.length]?.class === action.class
+            ) {
+              skippedFallbackClass = action.class;
+            }
           } catch (error) {
             outcomes.push({
               status: "failed",

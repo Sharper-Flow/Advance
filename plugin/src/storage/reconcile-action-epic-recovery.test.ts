@@ -31,6 +31,7 @@ function makeChange(
   order: number,
   title: string,
   linkedAt: string,
+  epicProjectId?: string,
 ): Change {
   return ChangeSchema.parse({
     ...SAMPLE_CHANGE,
@@ -43,6 +44,7 @@ function makeChange(
       order,
       title,
       linked_at: linkedAt,
+      ...(epicProjectId ? { epic_project_id: epicProjectId } : {}),
     },
   });
 }
@@ -126,6 +128,7 @@ describe("Epic recovery reconcile action executors", () => {
       4,
       "First child",
       "2026-08-07T00:00:00.000Z",
+      "fixture-project",
     );
     const second = makeChange(
       "child-two",
@@ -174,6 +177,12 @@ describe("Epic recovery reconcile action executors", () => {
         title: "First child",
         linked_at: "2026-08-07T00:00:00.000Z",
         change_id: "child-one",
+        change_ref: {
+          change_id: "child-one",
+          project_id: "fixture-project",
+        },
+        linked_by: "store-reconcile-recovery",
+        link_evidence: "reconstructed from child_epic_membership_fragments",
       }),
       expect.objectContaining({
         entry_id: "entry-two",

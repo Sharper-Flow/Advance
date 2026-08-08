@@ -73,6 +73,31 @@ describe("buildReconcilePlan", () => {
     ]);
   });
 
+  test("includes ordered actions for secondary residue matches", () => {
+    const plan = buildReconcilePlan(
+      scan([
+        {
+          ...base("legacy_newer_than_canonical", "legacy"),
+          also_matches: ["unmigrated_worktree_marker"],
+        },
+      ]),
+    );
+    expect(plan.records[0].actions).toEqual([
+      {
+        class: "unmigrated_worktree_marker",
+        action: "set_marker_auto",
+      },
+      {
+        class: "unmigrated_worktree_marker",
+        action: "set_marker_legacy",
+      },
+      {
+        class: "legacy_newer_than_canonical",
+        action: "report_only",
+      },
+    ]);
+  });
+
   test("plan hash is stable when input object keys are permuted", () => {
     const left = scan([
       { record_id: "b", class: "healthy", also_matches: [], evidence: ["ok"] },

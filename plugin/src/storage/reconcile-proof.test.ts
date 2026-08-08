@@ -1,3 +1,5 @@
+import { join } from "node:path";
+import { writeFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
@@ -7,6 +9,7 @@ import {
   computeReconcileCompletionProof,
   ReconcileCompletionProofSchema,
 } from "./reconcile-proof";
+import { findProjectionDivergences } from "./projection-health";
 
 describe("computeReconcileCompletionProof", () => {
   test("proves an empty store with two unbounded scans", async () => {
@@ -56,6 +59,27 @@ describe("computeReconcileCompletionProof", () => {
       expect(proof.before_divergence_count).toBe(0);
       expect(proof.after_divergence_count).toBe(0);
       expect(proof.after.divergences).toEqual([]);
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("does not treat a report-only newer legacy envelope as a completion divergence", async () => {
+    const root = await createTempDir("adv-reconcile-proof-legacy-newer-");
+    try {
+      const store = await createStore(root);
+      const paths = getProjectPaths(root);
+      const created = await store.changes.create("Legacy newer proof fixture");
+      const loaded = await store.changes.get(created.changeId);
+      expect(loaded.success).toBe(true);
+      if (!loaded.success || !loaded.data) throw new Error("fixture load failed");
+      await writeFile(
+        join(paths.changes, `${created.changeId}.json`),
+        JSON.stringify({ state: { ...loaded.data, projection_revision: 99 } }),
+      );
+
+      const scan = await findProjectionDivergences(paths);
+      expect(scan.divergences).toEqual([]);
     } finally {
       await cleanupTempDir(root);
     }
