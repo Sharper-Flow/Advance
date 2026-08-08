@@ -30,7 +30,7 @@ import {
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
 import { type D3EnforcementError } from "../../validator/work-graph-enforcement";
 import { nodeRefKey } from "../../validator/work-graph-validation";
-import { findArchiveBundle } from "../../archive";
+import { findArchiveBundle } from "../../archive/archive";
 import { classifyBriefingFacts } from "../../utils/briefing-fact-classifier";
 import { type BriefingPacketRendererInput } from "../../utils/briefing-packet-renderer";
 import type { GitFinalizeOutcome } from "../archive-helpers/git-finalize";

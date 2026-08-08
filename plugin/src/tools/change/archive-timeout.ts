@@ -20,7 +20,7 @@
  */
 
 import { join } from "path";
-import { findArchiveBundle } from "../../archive";
+import { findArchiveBundle } from "../../archive/archive";
 import type { Store } from "../../storage/store-types";
 import { formatToolOutput } from "../../utils/tool-output";
 

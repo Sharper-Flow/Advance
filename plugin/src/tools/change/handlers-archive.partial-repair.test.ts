@@ -52,14 +52,22 @@ const mocks = vi.hoisted(() => ({
   resolveRequiredOpsLinks: vi.fn(),
 }));
 
-vi.mock("../../archive", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../archive")>();
+vi.mock("../../archive/archive", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../archive/archive")>();
   return {
     ...actual,
     findArchiveBundle: mocks.findArchiveBundle,
-    readProjectionManifest: mocks.readProjectionManifest,
     archiveChange: mocks.archiveChange,
     reconcileInRepoArchive: mocks.reconcileInRepoArchive,
+  };
+});
+
+vi.mock("../../archive/projection-proof", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../archive/projection-proof")>();
+  return {
+    ...actual,
+    readProjectionManifest: mocks.readProjectionManifest,
     verifyProjectionAtGitCommit: mocks.verifyProjectionAtGitCommit,
   };
 });

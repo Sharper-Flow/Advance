@@ -14,7 +14,7 @@ import {
 } from "../../types";
 import type { Store } from "../../storage/store";
 import { fileExists } from "../../storage/json";
-import { findArchiveBundle } from "../../archive";
+import { findArchiveBundle } from "../../archive/archive";
 import {
   readBoundedProjectionDocument,
   type LoadResult,

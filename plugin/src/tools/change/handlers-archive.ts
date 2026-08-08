@@ -35,11 +35,13 @@ import {
   findArchiveBundle,
   getArchiveContractProofErrors,
   reconcileInRepoArchive,
+} from "../../archive/archive";
+import {
   readProjectionManifest,
   verifyProjectionAtGitCommit,
   projectionFailureRoutesToReconcile,
-  canonicalSha256,
-} from "../../archive";
+} from "../../archive/projection-proof";
+import { canonicalSha256 } from "../../archive/projection";
 import { formatToolOutput } from "../../utils/tool-output";
 import {
   withTargetPathStore,
