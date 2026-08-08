@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixWorktreeDeletionReliability",
+  "title": "Fix worktree deletion reliability",
+  "release_notes": {
+    "audience": "both",
+    "category": "fixed",
+    "headline_internal": "Worktree deletion is now Git-authoritative, deadline-bounded, and quiescent before response",
+    "headline_external": "Advance v1.21.0 improves reliable and safe worktree cleanup",
+    "highlights": [
+      "Deletion now uses expiring token-bound plans and drift revalidation.",
+      "Valid unregistered and patch-equivalent worktrees can be cleaned without manual Git fallback.",
+      "Target-project routing is bounded before heavy initialization.",
+      "Kernel-flock process leases and shared cancellation prevent mutation after timeout responses.",
+      "Delete, cleanup, archive, and pending-drain paths share one safety implementation."
+    ],
+    "area": "worktree lifecycle and cleanup",
+    "user_action_required": false,
+    "links": {
+      "pr": "https://github.com/Sharper-Flow/Advance/pull/409"
+    }
+  }
+}

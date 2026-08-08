@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "change_id": "fixWorktreeDeletionReliability",
+  "delta_set_sha256": "df09809f142483003b04e31ad22d3cbf4aa66ac244205021b56f7aa43236fff0",
+  "capabilities": [
+    {
+      "capability": "worktree-lifecycle",
+      "base_version": "1.9.0",
+      "target_version": "1.10.0",
+      "spec_sha256": "4b6cd1b00d05a951bb1950a149fabf5bedfc618129be2ca47d79108dba8dcbaa",
+      "document_sha256": "495645cd50512b764c380fa80369063c50e8007a885f9f5b6946a1bf10c38b7d",
+      "requirement_sha256": {
+        "rq-wl-branchRegistry01": "5631a394c5b4181447ab0cb8ef5cd3e4932d32726f99b301cd20d62122c0e865",
+        "rq-worktreePoisonVisibility01": "1ca0b92bbf34a5e347b356ab53b74037a13da79b774bd9151686a6db687604f5",
+        "rq-wl-setupReadiness01": "65e4a8518dcd3554285914ab90bc46af487f07cf9522daa3f68e01328c06f5d1",
+        "rq-wl-gitFirstReconcile01": "ad026d38ea3f4f17f5bf515ffd1d0b3291887ec4dc24ad6bb5840c67420b1db2",
+        "rq-wl-resumeTool01": "c13fecc0030d5700bf4c8c73e7916100c2056cad40efcbccad3b7c687ad395fa",
+        "rq-wl-cleanupEligibility01": "53cedcb925d9e43c5d319f84a9e783d49b2bd01297612a996246b8e42341690e",
+        "rq-terminalCleanupReaper01": "1714c9d3dc3bb71c8a4e44064bec655d06b9cb250adcab20e1ddb2d3b6e7c1ed",
+        "rq-terminalCleanupSafety01": "f60890dd26b999b10494ea896d70527bd83552e82c732f618de6d6ab87000417",
+        "rq-terminalCleanupVisibility01": "be9453d89556657128966964e7ee182022130ab87f7fe4b7e6a0e389c6e0b8d3",
+        "rq-terminalCleanupLifecycle01": "79a67df0e1a3abc853a3c3154d0e017a7a99510d030011d9ea4a48bdf1641e2a",
+        "rq-worktreeMutationGuard01": "654e00c21ba993f991833c6a2419ca5d8a7a637c4c1d7e808ad2d5f63d92d345",
+        "rq-worktreeBoundedCleanup01": "7936aabef912983cfa8318ad9006de0b3fb5dd629887369d93bd8509162d3c96",
+        "rq-worktreeBoundedCleanup02": "0dc4305b6957a9bd77985bfd550be1e9cdbf25892870dc1f7302ee50a12e41d0",
+        "rq-worktreeTargetCleanup01": "a7ff6aa1abf7c33c8aa8d200534d3edd6fbc8f0036b933163fdbafc94defac07",
+        "rq-worktreeLeaseLiveness01": "9f3da711f96d2acf110bc08483f7b2a4aa22f3476b200091e87c8d0d9a79f516",
+        "rq-worktreeStaleRegistryCleanup01": "ebd0c382df9d634cd452810c66cca69de3a50ed127254f4c8cc6cb248e935d00",
+        "rq-healthReadOnlyWorktree01": "9d80e6b68808d1fa905582aed7de9b4a676144883907bdafaf350692a5176232",
+        "rq-worktreeTimeoutTruthfulness01": "23ea75f4d74bc6b43ead5ede755bacc2359694b74c04b8e2e23d37a99aec31e9",
+        "rq-worktreeDeletionProtocol01": "569bad971063bf914c1ca8f3b9abb7379ddfea9d721ae88a5cb00ba7a24d6476"
+      },
+      "dispositions": [
+        {
+          "deltaId": "dl-V1StGXR8Z5jdHi6BmyT",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-worktreeDeletionProtocol01"
+        }
+      ]
+    }
+  ]
+}

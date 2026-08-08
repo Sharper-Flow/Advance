@@ -1,7 +1,7 @@
 # Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation
 
-> **Version:** 1.9.0
-> **Updated:** 2026-08-04
+> **Version:** 1.10.0
+> **Updated:** 2026-08-08
 
 ## Purpose
 
@@ -488,21 +488,6 @@ ADV mutating tools that advance working-tree-impacting gates or change task exec
 
 ---
 
-### Planner-Backed Worktree Deletion
-
-**ID:** `rq-worktreeDeletionProtocol01` | **Priority:** **[MUST]**
-
-Every destructive worktree deletion surface — public delete, terminal cleanup,
-reaper/drain, manual cleanup, and archive cleanup — uses the shared Git census
-planner and drift-safe executor. `dryRun:true` returns a typed expiring plan and
-`planToken`; destructive apply requires that token and nonblank approval
-evidence. A legacy branch-only apply returns `PLAN_REQUIRED` before shell or
-write effects. Registry rows remain advisory; target-path trust is established
-before the planner resolves the target and timeout results are typed and
-terminal.
-
----
-
 ### Bounded Worktree Cleanup
 
 **ID:** `rq-worktreeBoundedCleanup01` | **Priority:** **[MUST]**
@@ -890,5 +875,65 @@ Git subprocesses on the cleanup discovery path must each be bounded strictly bel
 - It is terminated by its own timeout strictly below the tool budget
 - Discovery does not rely on the outer race as its only guard
 - Shared git helpers invoked from non-cleanup paths retain their original defaults
+
+---
+
+### Bounded Git-Authoritative Worktree Deletion Protocol
+
+**ID:** `rq-worktreeDeletionProtocol01` | **Priority:** **[MUST]**
+
+Worktree deletion MUST use Git worktree census as existence and identity authority, produce a typed expiring plan before destructive apply, revalidate every safety fact under a liveness-aware repository lock, and enforce one cancellable end-to-end deadline. Registry state is advisory metadata and MUST NOT be required to discover a Git-owned worktree. Timeout responses MUST be terminal: no child process, Git removal, hook, or registry mutation may continue after response.
+
+**Tags:** `worktree`, `cleanup`, `safety`, `deadline`, `cancellation`
+
+#### Scenarios
+
+**Unregistered merged worktree can be planned** (`rq-worktreeDeletionProtocol01.1`)
+
+**Given:**
+- A clean merged linked worktree exists in Git census
+- Its branch is absent from ADV registry
+
+**When:** Deletion planning runs
+
+**Then:**
+- A typed plan binds repository, path, branch, HEAD, safety facts, integration proof, expiry, and token
+- Registry absence is advisory and does not refuse planning
+
+**Apply rejects drift under lock** (`rq-worktreeDeletionProtocol01.2`)
+
+**Given:**
+- A valid deletion plan exists
+- Any bound Git or safety fact changes before apply
+
+**When:** Apply revalidates under the repository cleanup lock
+
+**Then:**
+- The result is typed as drifted
+- No git worktree remove command runs
+
+**Deadline is terminal** (`rq-worktreeDeletionProtocol01.3`)
+
+**Given:**
+- A deletion stage exceeds the end-to-end operation deadline
+
+**When:** The deadline expires
+
+**Then:**
+- All spawned process groups are terminated and confirmed exited
+- The tool returns typed deadline stage evidence before the host ceiling
+- No later deletion or metadata mutation occurs
+
+**Branch families share one authority path** (`rq-worktreeDeletionProtocol01.4`)
+
+**Given:**
+- Git owns clean integrated change, release, and ad-hoc worktrees
+
+**When:** Each is planned and applied
+
+**Then:**
+- All use the same planner and executor
+- Only lifecycle-specific terminal proof differs
+- Repeated apply returns already absent
 
 ---
