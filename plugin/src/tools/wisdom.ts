@@ -20,7 +20,7 @@ import {
   compactProjectWisdom,
   listProjectWisdom,
 } from "../storage/project-wisdom";
-import { readChangeProjectionState } from "../storage/read-change-projection";
+import { loadChange } from "../storage/change-projection-reader";
 import { formatToolOutput } from "../utils/tool-output";
 import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
@@ -427,11 +427,22 @@ export const wisdomTools = {
               // Change-specific reads come from the disk projection. A missing
               // or malformed projection is an empty result, never a runtime
               // query failure.
-              const state = readChangeProjectionState(
+              const projected = await loadChange(
                 activeStore.paths.changes,
                 changeId,
               );
-              let entries = state?.wisdom ?? [];
+              let entries: NonNullable<Change["wisdom"]> = [];
+              if (!projected.success) {
+                // Existing query contract deliberately treats malformed
+                // projections as empty wisdom rather than a query failure.
+                entries = [];
+              } else if (!projected.data) {
+                // not_found is a successful null result, distinct from the
+                // explicit malformed/unreadable degradation above.
+                entries = [];
+              } else {
+                entries = projected.data.wisdom ?? [];
+              }
               if (wisdomType) {
                 entries = entries.filter((e) => e.type === wisdomType);
               }

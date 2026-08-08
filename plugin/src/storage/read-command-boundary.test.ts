@@ -561,15 +561,10 @@ describe("raw change.json reader boundary", () => {
     // Every entry below is a KNOWN violation, not an approved one. Approved
     // readers live in CHANGE_JSON_READ_ALLOWLIST with a written reason.
     //
-    // - storage/read-change-projection.ts: the blocker this change removes.
-    //   DELETE THIS LINE when that file is deleted; do not allowlist it.
     // - index.ts: reads a cross-project active change.json for epic_membership
     //   title enrichment via an unchecked cast (best-effort, catch-and-fallback).
     //   Advisory only — it feeds no gate, persistence, or workflow authority —
     //   so it is tracked here rather than fixed in this change.
-    expect(findChangeJsonReaders()).toEqual([
-      "index.ts",
-      "storage/read-change-projection.ts",
-    ]);
+    expect(findChangeJsonReaders()).toEqual(["index.ts"]);
   });
 });

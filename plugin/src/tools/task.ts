@@ -49,7 +49,7 @@ import {
   withTargetPathStore,
 } from "./target-project";
 import { includeSnapshotSchema } from "./shared-args";
-import { readChangeProjectionState } from "../storage/read-change-projection";
+import { loadChange } from "../storage/change-projection-reader";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   appendDraft,
@@ -470,8 +470,14 @@ async function resolveChangeId(
 
   for (const change of changes) {
     if (change.status === "archived" || change.status === "closed") continue;
-    const state = readChangeProjectionState(store.paths.changes, change.id);
-    if ((state?.tasks ?? []).some((task) => task.id === taskId)) {
+    const projected = await loadChange(store.paths.changes, change.id);
+    if (!projected.success) {
+      // This structural fallback is deliberately best-effort: corrupt or
+      // unreadable projections contribute no tasks, while not_found remains
+      // distinguishable as a successful null result below.
+      continue;
+    }
+    if (projected.data?.tasks.some((task) => task.id === taskId)) {
       return change.id;
     }
   }
@@ -507,10 +513,19 @@ export const taskTools = {
           if (!changeId) {
             return formatToolOutput({ error: `Task not found: ${taskId}` });
           }
-          const state = readChangeProjectionState(
+          const projected = await loadChange(
             activeStore.paths.changes,
             changeId,
           );
+          if (!projected.success) {
+            return formatToolOutput({
+              error: projected.error,
+              code: "CHANGE_PROJECTION_LOAD_FAILED",
+              projectionFailureType: projected.type,
+              changeId,
+            });
+          }
+          const state = projected.data;
           const task =
             state?.tasks?.find((candidate) => candidate.id === taskId) ?? null;
           if (!task) {
@@ -636,13 +651,22 @@ export const taskTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const state = readChangeProjectionState(
+          const projected = await loadChange(
             activeStore.paths.changes,
             changeId,
           );
-          const tasks = state
-            ? listTasksFromProjection(state, status, filter)
-            : [];
+          let tasks: Task[];
+          if (!projected.success) {
+            // Task listing is advisory and deliberately degrades corrupt,
+            // oversized, or unreadable projections to an empty list.
+            tasks = [];
+          } else if (!projected.data) {
+            // A missing projection is a successful null result, kept distinct
+            // from the explicit corruption degradation above.
+            tasks = [];
+          } else {
+            tasks = listTasksFromProjection(projected.data, status, filter);
+          }
           const paged = paginate(tasks, {
             limit,
             offset,
@@ -693,13 +717,21 @@ export const taskTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const state = readChangeProjectionState(
+          const projected = await loadChange(
             activeStore.paths.changes,
             changeId,
           );
-          const result = state
-            ? getReadyTasksFromProjection(state)
-            : { ready: [], blocked: [] };
+          let result: ReturnType<typeof getReadyTasksFromProjection>;
+          if (!projected.success) {
+            // Ready-task discovery is advisory and deliberately returns no
+            // tasks on corrupt projections instead of failing the query.
+            result = { ready: [], blocked: [] };
+          } else if (!projected.data) {
+            // Keep not_found distinct from the explicit corrupt/failed branch.
+            result = { ready: [], blocked: [] };
+          } else {
+            result = getReadyTasksFromProjection(projected.data);
+          }
           const formatted = formatTaskReadyOutput({
             ready: result.ready.map((t) => ({
               id: t.id,
@@ -1101,13 +1133,23 @@ export const taskTools = {
 
         let task: Task | null = null;
         if (!recoveredViaPoisoned) {
-          const state = readChangeProjectionState(
+          const projected = await loadChange(
             activeStore.paths.changes,
             changeId,
           );
+          if (!projected.success) {
+            return formatToolOutput({
+              success: false,
+              error: projected.error,
+              code: "CHANGE_PROJECTION_LOAD_FAILED",
+              projectionFailureType: projected.type,
+              changeId,
+            });
+          }
           task =
-            state?.tasks?.find((candidate) => candidate.id === args.taskId) ??
-            null;
+            projected.data?.tasks?.find(
+              (candidate) => candidate.id === args.taskId,
+            ) ?? null;
         } else {
           // After recovery write, read task from refreshed store.
           const refreshed = await activeStore.changes.get(changeId);
@@ -1325,11 +1367,19 @@ export const taskTools = {
 
         // P1.12 Scope C: validate blockedBy task IDs exist in this change
         if (blockedBy && blockedBy.length > 0) {
-          const state = readChangeProjectionState(
+          const projected = await loadChange(
             activeStore.paths.changes,
             changeId,
           );
-          const tasks = state?.tasks ?? [];
+          if (!projected.success) {
+            return formatToolOutput({
+              error: projected.error,
+              code: "CHANGE_PROJECTION_LOAD_FAILED",
+              projectionFailureType: projected.type,
+              changeId,
+            });
+          }
+          const tasks = projected.data?.tasks ?? [];
           const validIdSet = new Set(tasks.map((t) => t.id));
           const unknown = blockedBy.filter((id) => !validIdSet.has(id));
           if (unknown.length > 0) {
@@ -1338,7 +1388,7 @@ export const taskTools = {
                 unknown.length === 1
                   ? `Unknown task ID in blockedBy: '${unknown[0]}' does not exist in change '${changeId}'.`
                   : `Unknown task IDs in blockedBy: ${unknown.map((id) => `'${id}'`).join(", ")} do not exist in change '${changeId}'.`,
-              hint: state
+              hint: projected.data
                 ? `Read canonical task IDs from 'adv_task_list changeId: ${changeId}' and copy exact IDs into blockedBy.`
                 : `Canonical change.json task reads are unavailable for '${changeId}'. Run adv_doctor and stop; do not retry in a loop while projection health is degraded.`,
               unknownTaskIds: unknown,
@@ -1348,11 +1398,16 @@ export const taskTools = {
         }
 
         // Query current tasks to compute next priority
-        const state = readChangeProjectionState(
-          activeStore.paths.changes,
-          changeId,
-        );
-        const tasks = state?.tasks ?? [];
+        const projected = await loadChange(activeStore.paths.changes, changeId);
+        if (!projected.success) {
+          return formatToolOutput({
+            error: projected.error,
+            code: "CHANGE_PROJECTION_LOAD_FAILED",
+            projectionFailureType: projected.type,
+            changeId,
+          });
+        }
+        const tasks = projected.data?.tasks ?? [];
         const nextPriority =
           tasks.length === 0
             ? 0

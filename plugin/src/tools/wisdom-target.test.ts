@@ -105,21 +105,22 @@ describe("wisdom target_path reads", () => {
     const root = await mkdtemp(join(tmpdir(), "adv-wisdom-target-"));
     const changes = join(root, "changes");
     await mkdir(changes, { recursive: true });
+    await mkdir(join(changes, "target-change"), { recursive: true });
     await writeFile(
-      join(changes, "target-change.json"),
+      join(changes, "target-change", "change.json"),
       JSON.stringify({
-        schemaVersion: 2,
-        state: {
-          id: "target-change",
-          wisdom: [
-            {
-              id: "ws-target-change",
-              type: "pattern",
-              content: "target change wisdom",
-              recorded_at: "2026-01-01T00:00:00.000Z",
-            },
-          ],
-        },
+        id: "target-change",
+        title: "Target Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00.000Z",
+        wisdom: [
+          {
+            id: "ws-target-change",
+            type: "pattern",
+            content: "target change wisdom",
+            recorded_at: "2026-01-01T00:00:00.000Z",
+          },
+        ],
       }),
     );
     const list = vi.fn(async () => [
