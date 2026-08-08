@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "change_id": "reconcileStoreMigrationResidue",
+  "delta_set_sha256": "43616542d0bfea0e1bf2162739b15f1553f5d763bbabcca0857e6677e49662bc",
+  "capabilities": [
+    {
+      "capability": "store-reconciliation",
+      "base_version": "0.0.0",
+      "target_version": "1.0.0",
+      "spec_sha256": "ca47aedffdc562a7a1d3dae647315888f3caf4b8c615f3c959a37ce689068972",
+      "document_sha256": "aaa9da7c465d13c2c449a9d0ceeb6da5c2594d462ea2c5e188ba8cd379cab72b",
+      "requirement_sha256": {
+        "rq-storeReconcileDryRunPlanHash01": "fc0809dc0297b9eb827d39491d176090f685c085d4ef6f58345b8d9f7145ac1f",
+        "rq-storeReconcileLegacyDirection01": "f6d56cc2970541ace399d384facdb18a446ef21e9b05f1fc156f35af20e87f0d",
+        "rq-storeReconcileBoundedResume01": "15a72292d63f9c4ba9dcf4e8c7399795921fd26d46d5703cad3ad1812249c1f9",
+        "rq-epicReconstructionProvenance01": "36be24623761030c65901cdc1b4cba5193159692dd22967c8257c54eeda14820",
+        "rq-storeReconcileWorkerLockRefusal01": "36c8b5c0ce4c692700af66122edf92d792d446de0ab67bbecbfb9cccd772bcc9",
+        "rq-storeReconcileUnboundedProof01": "104b4068be8595fc6e98d06f7d67c651a014491d0cb2e44cec8d98646513d3a6"
+      },
+      "dispositions": [
+        {
+          "deltaId": "dl-dryRunPlanHash01a",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-storeReconcileDryRunPlanHash01"
+        },
+        {
+          "deltaId": "dl-legacyDirection01b",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-storeReconcileLegacyDirection01"
+        },
+        {
+          "deltaId": "dl-boundedResume01c",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-storeReconcileBoundedResume01"
+        },
+        {
+          "deltaId": "dl-epicReconProv01e",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-epicReconstructionProvenance01"
+        },
+        {
+          "deltaId": "dl-workerLockRefusal01f",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-storeReconcileWorkerLockRefusal01"
+        },
+        {
+          "deltaId": "dl-unboundedProof01d",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-storeReconcileUnboundedProof01"
+        }
+      ]
+    }
+  ]
+}
