@@ -77,6 +77,10 @@ jobs:
         run: pnpm test
         working-directory: plugin
 
+      - name: Build plugin bundle for CLI parity
+        run: pnpm run build
+        working-directory: plugin
+
       - name: Test bin CLI (Bun)
         run: bun test bin/
         working-directory: .
