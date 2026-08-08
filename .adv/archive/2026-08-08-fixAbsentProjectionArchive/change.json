@@ -445,6 +445,33 @@
         "durationMs": 19275.14373599738,
         "evidence_kind": "other",
         "recordedAt": "2026-08-08T16:44:05.841Z"
+      },
+      {
+        "runId": "tr_mskmlf6r_a3591b04",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json 2>&1 | tail -30",
+        "durationMs": 28188.70027499646,
+        "recordedAt": "2026-08-08T17:06:33.816Z"
+      },
+      {
+        "runId": "tr_mskmm28a_6b2d8f6b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/projection-proof.test.ts 2>&1 | tail -15",
+        "durationMs": 7086.84771399945,
+        "recordedAt": "2026-08-08T17:07:03.652Z"
+      },
+      {
+        "runId": "tr_mskmpmm8_080ee6e6",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check 2>&1 | tail -15",
+        "durationMs": 149339.32501400262,
+        "recordedAt": "2026-08-08T17:09:49.722Z"
       }
     ]
   },
@@ -636,7 +663,7 @@
     "kind": "discovery",
     "source_artifact": "archive-manifest-unreadable-2026-08-08"
   },
-  "projection_revision": 40,
+  "projection_revision": 43,
   "projection_commits": [
     {
       "mutation_kind": "gate_completion",
@@ -1077,6 +1104,39 @@
       "prior_revision": 39,
       "new_revision": 40,
       "committed_at": "2026-08-08T16:45:42.227Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec tsc --noEmit -p tsconfig.json 2>&1 | tail -30",
+      "operation_id": "mutation:test_run_recorded:fixAbsentProjectionArchive:e66913df-bd00-4e21-8455-1496d07cc93d",
+      "payload_hash": "2990f66787ea45eada64d2857f3aabd1e7771e03d598650ba42f1082c8e88562",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-08T17:06:34.030Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/projection-proof.test.ts 2>&1 | tail -15",
+      "operation_id": "mutation:test_run_recorded:fixAbsentProjectionArchive:1b1764e6-d63e-46b2-bef7-8dfe93ecedfa",
+      "payload_hash": "6b2701f302472b87ee2ec0387e6a0377926fabf4887cee9b186d0109ac251af8",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-08T17:07:03.733Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check 2>&1 | tail -15",
+      "operation_id": "mutation:test_run_recorded:fixAbsentProjectionArchive:10369209-89dd-4a1b-8e4d-07f86400cb52",
+      "payload_hash": "dd2de6478163b408e09ddd333c290e1b8b09986aa5f58600fb55705b1d38d9a4",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-08T17:09:49.884Z"
     }
   ]
 }

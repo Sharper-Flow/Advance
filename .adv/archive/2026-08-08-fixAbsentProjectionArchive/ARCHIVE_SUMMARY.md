@@ -1,7 +1,7 @@
 # Archive: Fix absent projection archive refusal
 
 **Change ID:** fixAbsentProjectionArchive
-**Archived:** 2026-08-08T16:56:01.115Z
+**Archived:** 2026-08-08T17:11:43.731Z
 **Created:** 2026-08-08T07:01:44.685Z
 
 ## Tasks Completed

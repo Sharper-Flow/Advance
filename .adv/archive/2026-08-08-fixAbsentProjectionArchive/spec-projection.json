@@ -5,7 +5,7 @@
   "capabilities": [
     {
       "capability": "advance-workflow",
-      "base_version": "1.46.0",
+      "base_version": "1.47.0",
       "target_version": "1.47.0",
       "spec_sha256": "a67f95164a130d0babf5058ef150e33be136c3ebc78743d3c01346dc7197bed4",
       "document_sha256": "041a83ea5eacd4a848f3fa1fd04714586fa847b4093f252dac420779415e3aae",
@@ -145,13 +145,13 @@
         {
           "deltaId": "dl-qualifyRetryIdempotence01",
           "operation": "modify",
-          "status": "missing",
+          "status": "identical",
           "targetId": "rq-archiveRetryIdempotence01"
         },
         {
           "deltaId": "dl-restoreDeltaRecon01",
           "operation": "add",
-          "status": "missing",
+          "status": "identical",
           "targetId": "rq-archiveDeltaReconciliation01"
         }
       ]

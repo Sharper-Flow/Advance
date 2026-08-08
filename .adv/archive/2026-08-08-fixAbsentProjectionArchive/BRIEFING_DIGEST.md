@@ -3,7 +3,7 @@
 **Change ID:** fixAbsentProjectionArchive
 **Title:** Fix absent projection archive refusal
 **Status:** archived
-**Generated:** 2026-08-08T16:56:01.362Z
+**Generated:** 2026-08-08T17:11:43.774Z
 
 ## Identity Anchors
 
