@@ -17,7 +17,7 @@
       "nesting_depth_threshold": 8,
       "defensive_guard_threshold": 3,
       "complexity_threshold": 12,
-      "ast_timeout_ms": 30000
+      "ast_timeout_ms": 120000
     }
   }
 }
