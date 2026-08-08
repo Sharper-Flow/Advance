@@ -18,14 +18,16 @@ import {
 } from "./projection";
 
 export type ProjectionProofFailureCode =
-  | "MANIFEST_UNREADABLE"
+  | "MANIFEST_ABSENT"
+  | "MANIFEST_INVALID"
   | "MANIFEST_MISMATCH"
   | "SPEC_UNREADABLE"
   | "SPEC_MISMATCH"
   | "VERSION_MISMATCH"
   | "REQUIREMENT_MISMATCH"
   | "DOCUMENT_UNREADABLE"
-  | "DOCUMENT_MISMATCH";
+  | "DOCUMENT_MISMATCH"
+  | "REPO_ERROR";
 
 export type ProjectionProofResult =
   | { ok: true; receipt: ArchiveProjectionProofReceipt }
@@ -70,7 +72,7 @@ async function verifyProjection(
   if (!parsedManifest.success) {
     return {
       ok: false,
-      code: "MANIFEST_UNREADABLE",
+      code: "MANIFEST_INVALID",
       message: "Projection manifest failed strict schema validation",
     };
   }
@@ -344,6 +346,37 @@ export async function verifyProjectionAtGitCommit(input: {
 }): Promise<ProjectionProofResult> {
   const readGitPath = async (path: string): Promise<string> =>
     readGitPathBounded(input.repo, input.releasedCommitSha, path);
+  // Structural existence probe before content read: an absent in-repo
+  // projection is unstarted work that routes to reconcile, while a corrupt
+  // or non-blob entry is an integrity failure. These must NOT share a code.
+  const probe = probeManifestAtCommit(
+    input.repo,
+    input.releasedCommitSha,
+    input.manifestGitPath,
+  );
+  if (probe.kind === "absent") {
+    return {
+      ok: false,
+      code: "MANIFEST_ABSENT",
+      message:
+        "Released projection manifest is not committed in-repo; bundle exists in external store but projection was never committed",
+    };
+  }
+  if (probe.kind === "repo_error") {
+    return {
+      ok: false,
+      code: "REPO_ERROR",
+      message: probe.message,
+    };
+  }
+  if (probe.kind === "non_blob") {
+    return {
+      ok: false,
+      code: "MANIFEST_INVALID",
+      message: `Released projection manifest is not a regular blob: ${probe.detail}`,
+    };
+  }
+  // probe.kind === "blob" — proceed to read and validate content.
   let committedManifest: SpecProjectionManifest;
   try {
     committedManifest = SpecProjectionManifestSchema.parse(
@@ -352,8 +385,8 @@ export async function verifyProjectionAtGitCommit(input: {
   } catch (error) {
     return {
       ok: false,
-      code: "MANIFEST_UNREADABLE",
-      message: `Released projection manifest is unreadable: ${error instanceof Error ? error.message : String(error)}`,
+      code: "MANIFEST_INVALID",
+      message: `Released projection manifest is present but unreadable: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
   if (canonicalSha256(committedManifest) !== canonicalSha256(input.manifest)) {
@@ -375,6 +408,82 @@ export async function verifyProjectionAtGitCommit(input: {
       readDocument: (capability) => readGitPath(`docs/specs/${capability}.md`),
     },
   );
+}
+
+type ManifestProbeResult =
+  | { kind: "absent" }
+  | { kind: "blob" }
+  | { kind: "non_blob"; detail: string }
+  | { kind: "repo_error"; message: string };
+
+/**
+ * Structurally probe whether a manifest path exists as a regular blob at a
+ * given commit, WITHOUT reading its content and WITHOUT matching git stderr.
+ *
+ * `git cat-file -e` has no stable absent-path exit code (missing `rev:path`
+ * fails revision resolution at exit 128, undocumented). Instead:
+ *  1. Verify `<sha>^{commit}` independently — a missing revision is a
+ *     repository error, NOT an absent manifest.
+ *  2. `git ls-tree -z --full-tree --format=… <sha> -- <path>` — the exit
+ *     code + record count is the structural signal. Zero records = absent;
+ *     one `100644 blob` = readable; anything else = invalid.
+ *
+ * See rq-archiveDeltaReconciliation01.5: external-store bundle presence is
+ * advisory metadata, never authority for an in-repo committed projection.
+ */
+function probeManifestAtCommit(
+  repo: string,
+  releasedCommitSha: string,
+  manifestGitPath: string,
+): ManifestProbeResult {
+  const revCheck = spawnSyncGit(
+    ["rev-parse", "--verify", `${releasedCommitSha}^{commit}`],
+    { cwd: repo, encoding: "utf8" },
+  );
+  if (revCheck.status !== 0) {
+    const stderr =
+      typeof revCheck.stderr === "string" ? revCheck.stderr.trim() : "";
+    return {
+      kind: "repo_error",
+      message: `Released commit ${releasedCommitSha} is not resolvable: ${stderr || `git exit ${revCheck.status}`}`,
+    };
+  }
+  const ls = spawnSyncGit(
+    [
+      "ls-tree",
+      "-z",
+      "--full-tree",
+      "--format=%(objectmode)%x09%(objecttype)%x09%(objectname)%x09%(path)",
+      releasedCommitSha,
+      "--",
+      manifestGitPath,
+    ],
+    { cwd: repo, encoding: "utf8" },
+  );
+  if (ls.status !== 0) {
+    const stderr = typeof ls.stderr === "string" ? ls.stderr.trim() : "";
+    return {
+      kind: "repo_error",
+      message: `git ls-tree failed: ${stderr || `git exit ${ls.status}`}`,
+    };
+  }
+  const out = typeof ls.stdout === "string" ? ls.stdout : "";
+  const records = out.split("\0").filter((r) => r.length > 0);
+  if (records.length === 0) {
+    return { kind: "absent" };
+  }
+  // ls-tree with an explicit file pathspec returns at most the matching
+  // entry. Parse the first record: mode \t type \t objectname \t path.
+  const fields = records[0].split("\t");
+  const objectmode = fields[0];
+  const objecttype = fields[1];
+  if (objectmode === "100644" && objecttype === "blob") {
+    return { kind: "blob" };
+  }
+  return {
+    kind: "non_blob",
+    detail: `entry is ${objectmode} ${objecttype}, expected 100644 blob`,
+  };
 }
 
 export function resolveGitCommitSha(repo: string, ref: string): string | null {

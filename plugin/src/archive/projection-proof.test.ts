@@ -253,4 +253,92 @@ describe("archive projection proof", () => {
       "hello",
     );
   });
+
+  // Shared manifest fixture for the absent/invalid classification tests.
+  const manifestFixture: SpecProjectionManifest = {
+    schema_version: 1,
+    change_id: "change-absent",
+    delta_set_sha256: "c".repeat(64),
+    capabilities: [],
+  };
+
+  async function initGitRepo(root: string): Promise<void> {
+    await exec("git", ["init", "--initial-branch=main"], { cwd: root });
+    await exec("git", ["config", "user.email", "test@example.com"], {
+      cwd: root,
+    });
+    await exec("git", ["config", "user.name", "Test User"], { cwd: root });
+  }
+
+  it("classifies a missing in-repo manifest as MANIFEST_ABSENT, not corruption", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await initGitRepo(root);
+    // Commit an unrelated file — the manifest path is never committed.
+    await mkdir(join(root, ".adv", "archive", "bundle"), { recursive: true });
+    await writeFile(join(root, ".adv", "archive", "bundle", "README"), "none");
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "no manifest"], { cwd: root });
+    const releasedCommitSha = (
+      await exec("git", ["rev-parse", "HEAD"], { cwd: root })
+    ).stdout.trim();
+
+    const result = await verifyProjectionAtGitCommit({
+      manifest: manifestFixture,
+      repo: root,
+      releasedCommitSha,
+      manifestGitPath: ".adv/archive/bundle/spec-projection.json",
+      expectedChangeId: "change-absent",
+      expectedDeltaSetSha256: "c".repeat(64),
+      expectedDeltaIdsByCapability: {},
+    });
+    expect(result).toMatchObject({ ok: false, code: "MANIFEST_ABSENT" });
+  });
+
+  it("classifies a corrupt-but-present manifest as MANIFEST_INVALID", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await initGitRepo(root);
+    await mkdir(join(root, ".adv", "archive", "bundle"), { recursive: true });
+    await writeFile(
+      join(root, ".adv", "archive", "bundle", "spec-projection.json"),
+      "{not valid json",
+    );
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "corrupt manifest"], { cwd: root });
+    const releasedCommitSha = (
+      await exec("git", ["rev-parse", "HEAD"], { cwd: root })
+    ).stdout.trim();
+
+    const result = await verifyProjectionAtGitCommit({
+      manifest: manifestFixture,
+      repo: root,
+      releasedCommitSha,
+      manifestGitPath: ".adv/archive/bundle/spec-projection.json",
+      expectedChangeId: "change-absent",
+      expectedDeltaSetSha256: "c".repeat(64),
+      expectedDeltaIdsByCapability: {},
+    });
+    expect(result).toMatchObject({ ok: false, code: "MANIFEST_INVALID" });
+  });
+
+  it("classifies an unresolvable released commit as REPO_ERROR, not absence", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await initGitRepo(root);
+    await writeFile(join(root, "placeholder"), "x");
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "init"], { cwd: root });
+
+    const result = await verifyProjectionAtGitCommit({
+      manifest: manifestFixture,
+      repo: root,
+      releasedCommitSha: "0".repeat(40),
+      manifestGitPath: ".adv/archive/bundle/spec-projection.json",
+      expectedChangeId: "change-absent",
+      expectedDeltaSetSha256: "c".repeat(64),
+      expectedDeltaIdsByCapability: {},
+    });
+    expect(result).toMatchObject({ ok: false, code: "REPO_ERROR" });
+  });
 });
