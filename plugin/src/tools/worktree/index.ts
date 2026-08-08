@@ -1486,7 +1486,9 @@ async function getPrMergedBranchIntegration(
       pr.headRepository.nameWithOwner.length > 0 &&
       pr.headRepository.nameWithOwner === currentRepository &&
       typeof pr.headRepositoryOwner?.login === "string" &&
-      pr.headRepositoryOwner.login === currentRepositoryOwner,
+      pr.headRepositoryOwner.login === currentRepositoryOwner &&
+      typeof pr.mergeCommit?.oid === "string" &&
+      pr.mergeCommit.oid.trim().length > 0,
   );
   if (structuralCandidates.length === 0) {
     return {
@@ -1567,7 +1569,7 @@ async function getPrMergedBranchIntegration(
       continue;
     }
 
-    const mergeCommitOid = pr.mergeCommit?.oid?.trim() || undefined;
+    const mergeCommitOid = pr.mergeCommit?.oid?.trim();
     if (mergeCommitOid) {
       checkBudget();
       const defaultFetch = await git(

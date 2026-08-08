@@ -1133,17 +1133,14 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const result = await advWorktreeDelete(branch, {}, deps);
 
     expect(result).toMatchObject({
-      ok: true,
-      branch,
-      path: wtPath,
+      ok: false,
+      error: "DELETION_BLOCKED",
+      status: "repair_required",
+      reason: "pr_revalidation_missing_bound_fact",
     });
-    expect(appendDebugLog).toHaveBeenCalledWith(
-      "worktree-delete",
-      expect.stringContaining("verified squash PR merge"),
-    );
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).not.toContain(branch);
+    ).toContain(branch);
   });
 
   it("deletes missing-registry change branch when local head is ancestor of merged PR head", async () => {
@@ -1167,13 +1164,14 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const result = await advWorktreeDelete(branch, {}, deps);
 
     expect(result).toMatchObject({
-      ok: true,
-      branch,
-      path: wtPath,
+      ok: false,
+      error: "DELETION_BLOCKED",
+      status: "repair_required",
+      reason: "pr_revalidation_missing_bound_fact",
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).not.toContain(branch);
+    ).toContain(branch);
   });
 
   it("retains missing-registry change branch when local commits are not proven in merged PR head", async () => {
@@ -1289,10 +1287,15 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     const result = await advWorktreeDelete(branch, {}, deps);
 
-    expect(result).toMatchObject({ ok: true, branch, path: wtPath });
+    expect(result).toMatchObject({
+      ok: false,
+      error: "DELETION_BLOCKED",
+      status: "repair_required",
+      reason: "pr_revalidation_missing_bound_fact",
+    });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).not.toContain(branch);
+    ).toContain(branch);
   });
 
   it("plans a generic squash PR only with exact merged repository proof", async () => {
@@ -1451,6 +1454,56 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         fixture.firstHead,
       );
       await refusal({}, "local_commits_after_pr_head");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("applies a bound squash PR plan with local Git only", async () => {
+    const branch = "fix/delete-target-routing";
+    const fixture = makeSquashPrFixture(branch, 407);
+    try {
+      const payload = {
+        ...LIVE_PR_407_SHAPE,
+        headRefName: branch,
+        headRefOid: fixture.head,
+        baseRefName: "main",
+        headRepository: { nameWithOwner: "owner/repo" },
+        headRepositoryOwner: { login: "owner" },
+        mergeCommit: { oid: fixture.mergeCommit },
+      };
+      const ghExec = createPrGhExec(payload);
+      const deps = createMockDeps(fixture.root, fixture.worktree);
+      deps.integrationCheck = undefined;
+      deps.mergedBranches = async () => [];
+      deps.ghExec = ghExec;
+
+      const planned = await rawAdvWorktreeDelete(
+        branch,
+        { dryRun: true },
+        deps,
+      );
+      expect(planned).toMatchObject({ ok: true, status: "planned" });
+      if (!planned.ok || !planned.planToken) throw new Error("plan missing");
+
+      const ghCallsDuringPlan = ghExec.mock.calls.length;
+      deps.ghExec = vi.fn(async () => {
+        throw new Error("gh must not be called during apply");
+      });
+      const applied = await rawAdvWorktreeDelete(
+        branch,
+        {
+          planToken: planned.planToken,
+          approvalEvidence: "approved exact PR deletion plan",
+        },
+        deps,
+      );
+
+      expect(applied).toMatchObject({ ok: true, status: "deleted", branch });
+      expect(ghExec).toHaveBeenCalledTimes(ghCallsDuringPlan);
+      expect(
+        execSync("git worktree list", { cwd: fixture.root }).toString(),
+      ).not.toContain(branch);
     } finally {
       fixture.cleanup();
     }

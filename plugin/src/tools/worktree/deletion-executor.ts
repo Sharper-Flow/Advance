@@ -21,6 +21,8 @@ import type {
   AbortableProcessResult,
 } from "../../utils/process-runner";
 import { resolveGitBinary } from "../../utils/git-binary";
+import { parseGitRemoteUrl } from "../../utils/git-remote";
+import { isValidGitBranchRef } from "../../utils/git-ref";
 import {
   acquireGitWorktreeProcessLease,
   GitWorktreeLegacyLockError,
@@ -515,6 +517,190 @@ export class WorktreeDeletionExecutor {
       }
     };
 
+    const revalidatePrMerged = async (
+      integration: WorktreeDeletionIntegrationProof,
+      actual: WorktreeDeletionFacts,
+      stage: string,
+    ): Promise<WorktreeDeletionExecutorResult | null> => {
+      const {
+        prNumber,
+        prHeadOid,
+        mergeCommitOid,
+        headRepository,
+        baseRepository,
+        defaultBranch,
+        branch,
+        head,
+      } = integration;
+      if (
+        typeof prNumber !== "number" ||
+        !Number.isInteger(prNumber) ||
+        prNumber <= 0 ||
+        typeof prHeadOid !== "string" ||
+        prHeadOid.trim().length === 0 ||
+        typeof mergeCommitOid !== "string" ||
+        mergeCommitOid.trim().length === 0 ||
+        typeof headRepository !== "string" ||
+        headRepository.trim().length === 0 ||
+        typeof baseRepository !== "string" ||
+        baseRepository.trim().length === 0 ||
+        typeof defaultBranch !== "string" ||
+        !isValidGitBranchRef(defaultBranch) ||
+        typeof branch !== "string" ||
+        !isValidGitBranchRef(branch) ||
+        typeof head !== "string" ||
+        head.trim().length === 0
+      )
+        return failure(
+          "repair_required",
+          "pr_revalidation_missing_bound_fact",
+          stage,
+        );
+
+      const runGit = async (
+        args: string[],
+      ): Promise<
+        | { ok: true; stdout: string }
+        | { ok: false; timedOut: boolean; detail: string }
+      > => {
+        const remaining = operation.remainingMs() - operation.responseReserveMs;
+        if (remaining <= 0 || operation.signal.aborted) {
+          await operation.abort("deadline");
+          throw new WorktreeDeletionStageDeadline(stage);
+        }
+        const result = await runBounded(stage, () =>
+          runProcess({
+            command: resolveGitBinary(),
+            args,
+            cwd: plan.repository,
+            signal: operation.signal,
+            timeoutMs: Math.max(1, remaining),
+            operation,
+          }),
+        );
+        if (
+          isTimeout(result) ||
+          operation.remainingMs() <= operation.responseReserveMs
+        ) {
+          await operation.abort("deadline");
+          throw new WorktreeDeletionStageDeadline(stage);
+        }
+        if (!result.closed || result.exitCode !== 0)
+          return {
+            ok: false,
+            timedOut: false,
+            detail:
+              result.stderr.trim() ||
+              result.stdout.trim() ||
+              `git ${args[0]} failed`,
+          };
+        return { ok: true, stdout: result.stdout.trim() };
+      };
+
+      const gitFailure = (_result: {
+        ok: false;
+        timedOut: boolean;
+        detail: string;
+      }): WorktreeDeletionExecutorResult =>
+        failure("repair_required", "pr_revalidation_git_failed", stage);
+
+      const localHead = await runGit([
+        "rev-parse",
+        "--verify",
+        `refs/heads/${branch}^{commit}`,
+      ]);
+      if (!localHead.ok) return gitFailure(localHead);
+      if (localHead.stdout !== actual.head || localHead.stdout !== head)
+        return failure("drifted", "pr_revalidation_local_head_drifted", stage);
+
+      const localBelongsToPrHead = await runGit([
+        "merge-base",
+        "--is-ancestor",
+        localHead.stdout,
+        prHeadOid,
+      ]);
+      if (!localBelongsToPrHead.ok)
+        return failure(
+          "drifted",
+          "pr_revalidation_local_head_not_in_pr",
+          stage,
+        );
+
+      const origin = await runGit(["config", "--get", "remote.origin.url"]);
+      if (!origin.ok) return gitFailure(origin);
+      const currentRepository = parseGitRemoteUrl(origin.stdout);
+      const currentRepositoryName = currentRepository
+        ? `${currentRepository.owner}/${currentRepository.name}`
+        : undefined;
+      if (
+        !currentRepositoryName ||
+        currentRepositoryName !== headRepository ||
+        currentRepositoryName !== baseRepository
+      )
+        return failure("drifted", "pr_revalidation_repository_drifted", stage);
+
+      const currentDefault = await runGit([
+        "symbolic-ref",
+        "--quiet",
+        "--short",
+        "refs/remotes/origin/HEAD",
+      ]);
+      if (!currentDefault.ok) return gitFailure(currentDefault);
+      if (currentDefault.stdout.replace(/^origin\//, "") !== defaultBranch)
+        return failure(
+          "drifted",
+          "pr_revalidation_default_branch_drifted",
+          stage,
+        );
+
+      const fetchedPrHead = await runGit([
+        "fetch",
+        "--no-tags",
+        "origin",
+        `refs/pull/${prNumber}/head`,
+      ]);
+      if (!fetchedPrHead.ok) return gitFailure(fetchedPrHead);
+      const fetchedPrHeadOid = await runGit([
+        "rev-parse",
+        "--verify",
+        "FETCH_HEAD^{commit}",
+      ]);
+      if (!fetchedPrHeadOid.ok) return gitFailure(fetchedPrHeadOid);
+      if (fetchedPrHeadOid.stdout !== prHeadOid)
+        return failure("drifted", "pr_revalidation_pr_head_drifted", stage);
+
+      const fetchedDefault = await runGit([
+        "fetch",
+        "--no-tags",
+        "origin",
+        `refs/heads/${defaultBranch}:refs/remotes/origin/${defaultBranch}`,
+      ]);
+      if (!fetchedDefault.ok) return gitFailure(fetchedDefault);
+      const fetchedDefaultOid = await runGit([
+        "rev-parse",
+        "--verify",
+        `refs/remotes/origin/${defaultBranch}^{commit}`,
+      ]);
+      if (!fetchedDefaultOid.ok) return gitFailure(fetchedDefaultOid);
+      const mergeIsReachable = await runGit([
+        "merge-base",
+        "--is-ancestor",
+        mergeCommitOid,
+        `refs/remotes/origin/${defaultBranch}`,
+      ]);
+      if (!mergeIsReachable.ok)
+        return failure(
+          "drifted",
+          "pr_revalidation_merge_commit_unreachable",
+          stage,
+        );
+
+      const expired = expiryDecision(stage);
+      if (expired) return expired;
+
+      return null;
+    };
+
     const evaluate = async (
       current: GitWorkspaceFacts,
       stage: string,
@@ -550,7 +736,10 @@ export class WorktreeDeletionExecutor {
         branchFact.headSha !== integration.head
       )
         return failure("drifted", "integration_fact_changed", stage);
-      if (this.deps.integrationProof) {
+      if (integration.kind === "pr_merged") {
+        const prDecision = await revalidatePrMerged(integration, actual, stage);
+        if (prDecision) return prDecision;
+      } else if (this.deps.integrationProof) {
         const currentProof = await runBounded(stage, () =>
           this.deps.integrationProof!(
             plan.facts.branch ?? "",
@@ -600,6 +789,8 @@ export class WorktreeDeletionExecutor {
         if (stableStringify(plan.terminal) !== stableStringify(terminal))
           return failure("drifted", "terminal_proof_changed", stage);
       }
+      const expired = expiryDecision(stage);
+      if (expired) return expired;
       return null;
     };
 
