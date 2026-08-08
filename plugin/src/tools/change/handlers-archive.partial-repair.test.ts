@@ -629,4 +629,34 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expect(mocks.reconcileArchivedBundleRetry).toHaveBeenCalled();
     expect(mocks.archiveChange).not.toHaveBeenCalled();
   });
+
+  it("requires explicit approval before repairing an archived absent projection", async () => {
+    const change = makeChange({
+      status: "archived",
+      lifecycleState: "archived",
+    });
+    seedForChange(change);
+    mocks.verifyProjectionAtGitCommit.mockResolvedValue({
+      ok: false,
+      code: "MANIFEST_ABSENT",
+      message: "projection manifest is absent from the released commit",
+    });
+    const store = makeStore(change);
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      {
+        changeId: CHANGE_ID,
+        worktreePath: REPAIR_WORKTREE,
+        phase9: "run",
+      },
+      store,
+    );
+
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(false);
+    expect(String(parsed.error)).toContain(
+      "explicit archived-delta repair approval",
+    );
+    expectNoRepairWrites();
+  });
 });

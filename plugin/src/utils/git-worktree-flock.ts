@@ -16,7 +16,11 @@
 import { mkdirSync } from "node:fs";
 import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import {
+  spawn,
+  type ChildProcess,
+  type SpawnOptions,
+} from "node:child_process";
 import { join } from "node:path";
 import { isProcessAlive } from "./process-liveness";
 
@@ -84,8 +88,34 @@ export class GitWorktreeFlockQuiescenceError extends Error {
 }
 
 const FLOCK_READY = "ADV_WORKTREE_FLOCK_READY\n";
+/** GNU util-linux documents 1 as the default conflict code; keep it distinct. */
+export const GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE = 73;
+const FLOCK_DIAGNOSTIC_LIMIT = 4_096;
+// Keep this shell program constant: the lock path is a separate argv and no
+// path, token, or runtime value is interpolated into shell syntax.
 const FLOCK_HOLDER_SCRIPT =
-  "const fs = require('node:fs'); const { spawn } = require('node:child_process'); fs.writeFileSync(process.env.ADV_FLOCK_PATH, JSON.stringify({ pid: process.pid, owner_token: process.env.ADV_FLOCK_TOKEN })); spawn(process.execPath, ['-e', 'setInterval(() => {}, 0x7fffffff);'], { stdio: 'ignore' }); process.stdout.write('ADV_WORKTREE_FLOCK_READY\\n'); setInterval(() => {}, 0x7fffffff);";
+  "command -v tail >/dev/null 2>&1 || { printf '%s\\n' 'ADV_WORKTREE_FLOCK_HOLDER_UNAVAILABLE' >&2; exit 127; }; printf '%s\\n' 'ADV_WORKTREE_FLOCK_READY'; exec tail -f /dev/null";
+
+export class GitWorktreeFlockHolderError extends Error {
+  constructor(
+    readonly exitCode: number | null,
+    readonly stdout: string,
+    readonly stderr: string,
+  ) {
+    const detail = stderr || stdout;
+    super(
+      `flock holder failed to start (exit ${exitCode ?? "unknown"})${
+        detail ? `: ${detail}` : ""
+      }`,
+    );
+    this.name = "GitWorktreeFlockHolderError";
+  }
+}
+
+function appendBounded(current: string, chunk: Buffer | string): string {
+  if (current.length >= FLOCK_DIAGNOSTIC_LIMIT) return current;
+  return `${current}${chunk.toString()}`.slice(0, FLOCK_DIAGNOSTIC_LIMIT);
+}
 
 async function waitForSettlement(
   settled: Promise<void>,
@@ -144,6 +174,12 @@ function signalProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
 }
 
 export interface AcquireGitWorktreeProcessLeaseOptions extends AcquireGitWorktreeFlockOptions {
+  platform?: NodeJS.Platform;
+  spawnProcess?: (
+    command: string,
+    args: readonly string[],
+    options: SpawnOptions,
+  ) => ChildProcess;
   operation?: {
     registerChildLease: (lease: {
       terminate: (reason: string) => Promise<void>;
@@ -161,9 +197,10 @@ export async function acquireGitWorktreeProcessLease(
   options: AcquireGitWorktreeProcessLeaseOptions = {},
 ): Promise<GitWorktreeProcessLeaseResult> {
   if (options.signal?.aborted) throwIfAborted(options.signal);
-  if (process.platform !== "linux") {
+  const platform = options.platform ?? process.platform;
+  if (platform !== "linux") {
     throw new GitWorktreeFlockUnsupportedError(
-      `kernel flock lease requires Linux (got ${process.platform})`,
+      `kernel flock lease requires Linux (got ${platform})`,
     );
   }
   mkdirSync(projectStateDir, { recursive: true });
@@ -171,16 +208,19 @@ export async function acquireGitWorktreeProcessLease(
 
   const lockPath = join(projectStateDir, GIT_WORKTREE_LOCK_FILENAME);
   const ownerToken = randomUUID();
-  const child = spawn(
+  const child = (options.spawnProcess ?? spawn)(
     "flock",
-    ["-n", lockPath, process.execPath, "-e", FLOCK_HOLDER_SCRIPT],
+    [
+      "-n",
+      "-E",
+      String(GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE),
+      lockPath,
+      "sh",
+      "-c",
+      FLOCK_HOLDER_SCRIPT,
+    ],
     {
       detached: true,
-      env: {
-        ...process.env,
-        ADV_FLOCK_PATH: lockPath,
-        ADV_FLOCK_TOKEN: ownerToken,
-      },
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     },
@@ -193,6 +233,7 @@ export async function acquireGitWorktreeProcessLease(
   });
   let readyState = false;
   let output = "";
+  let stderrOutput = "";
   let terminatePromise: Promise<void> | undefined;
   const settled = parentSettled.then(async () => {
     const pgid = child.pid;
@@ -205,11 +246,14 @@ export async function acquireGitWorktreeProcessLease(
   void settled.catch(() => undefined);
   const ready = new Promise<boolean>((resolve, reject) => {
     child.stdout?.on("data", (chunk: Buffer | string) => {
-      output += chunk.toString();
+      output = appendBounded(output, chunk);
       if (!readyState && output.includes(FLOCK_READY)) {
         readyState = true;
         resolve(true);
       }
+    });
+    child.stderr?.on("data", (chunk: Buffer | string) => {
+      stderrOutput = appendBounded(stderrOutput, chunk);
     });
     child.once("error", (error) => {
       if (!readyState) reject(error);
@@ -217,7 +261,17 @@ export async function acquireGitWorktreeProcessLease(
     child.once("close", (code) => {
       settledState = true;
       resolveParentSettled();
-      if (!readyState) resolve(code === 1 ? false : false);
+      if (!readyState) {
+        if (code === GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE) resolve(false);
+        else if (code === 127)
+          reject(
+            new GitWorktreeFlockUnsupportedError(
+              `flock holder command is unavailable: ${stderrOutput || output}`,
+            ),
+          );
+        else
+          reject(new GitWorktreeFlockHolderError(code, output, stderrOutput));
+      }
     });
   });
 
