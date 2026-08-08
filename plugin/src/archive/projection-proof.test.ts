@@ -22,6 +22,22 @@ const exec = promisify(execFile);
 
 const dirs: string[] = [];
 
+// Shared manifest fixture for the absent/invalid classification tests.
+const manifestFixture: SpecProjectionManifest = {
+  schema_version: 1,
+  change_id: "change-absent",
+  delta_set_sha256: "c".repeat(64),
+  capabilities: [],
+};
+
+async function initGitRepo(root: string): Promise<void> {
+  await exec("git", ["init", "--initial-branch=main"], { cwd: root });
+  await exec("git", ["config", "user.email", "test@example.com"], {
+    cwd: root,
+  });
+  await exec("git", ["config", "user.name", "Test User"], { cwd: root });
+}
+
 afterEach(async () => {
   await Promise.all(dirs.splice(0).map(cleanupTempDir));
 });
@@ -255,21 +271,7 @@ describe("archive projection proof", () => {
     );
   });
 
-  // Shared manifest fixture for the absent/invalid classification tests.
-  const manifestFixture: SpecProjectionManifest = {
-    schema_version: 1,
-    change_id: "change-absent",
-    delta_set_sha256: "c".repeat(64),
-    capabilities: [],
-  };
-
-  async function initGitRepo(root: string): Promise<void> {
-    await exec("git", ["init", "--initial-branch=main"], { cwd: root });
-    await exec("git", ["config", "user.email", "test@example.com"], {
-      cwd: root,
-    });
-    await exec("git", ["config", "user.name", "Test User"], { cwd: root });
-  }
+  // Shared manifest fixture and initGitRepo are hoisted to module scope.
 
   it("classifies a missing in-repo manifest as MANIFEST_ABSENT, not corruption", async () => {
     const root = await createTempDir();
@@ -372,5 +374,96 @@ describe("projectionFailureRoutesToReconcile", () => {
       false,
     );
     expect(projectionFailureRoutesToReconcile("DOCUMENT_MISMATCH")).toBe(false);
+  });
+});
+
+describe("AC1 composition: verifyProjectionAtGitCommit + projectionFailureRoutesToReconcile", () => {
+  // These tests chain the two functions the handler uses in sequence:
+  // 1. verifyProjectionAtGitCommit classifies the git state
+  // 2. projectionFailureRoutesToReconcile decides reconcile vs refuse
+  // The handler's retry branch (handlers-archive.ts:326) uses exactly this
+  // composition: proof = verifyProjectionAtGitCommit(...); if (!proof.ok)
+  // { if (projectionFailureRoutesToReconcile(proof.code)) reconcile; else refuse; }
+
+  it("absent in-repo projection → MANIFEST_ABSENT → routes to reconcile (AC1)", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await initGitRepo(root);
+    await mkdir(join(root, ".adv", "archive", "bundle"), { recursive: true });
+    await writeFile(join(root, ".adv", "archive", "bundle", "README"), "none");
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "no manifest"], { cwd: root });
+    const releasedCommitSha = (
+      await exec("git", ["rev-parse", "HEAD"], { cwd: root })
+    ).stdout.trim();
+
+    const proof = await verifyProjectionAtGitCommit({
+      manifest: manifestFixture,
+      repo: root,
+      releasedCommitSha,
+      manifestGitPath: ".adv/archive/bundle/spec-projection.json",
+      expectedChangeId: "change-absent",
+      expectedDeltaSetSha256: "c".repeat(64),
+      expectedDeltaIdsByCapability: {},
+    });
+    // The handler would set projectionNeedsReconcile=true and fall through.
+    expect(proof.ok).toBe(false);
+    if (!proof.ok) {
+      expect(projectionFailureRoutesToReconcile(proof.code)).toBe(true);
+    }
+  });
+
+  it("corrupt in-repo manifest → MANIFEST_INVALID → routes to refuse (AC2)", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await initGitRepo(root);
+    await mkdir(join(root, ".adv", "archive", "bundle"), { recursive: true });
+    await writeFile(
+      join(root, ".adv", "archive", "bundle", "spec-projection.json"),
+      "{corrupt",
+    );
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "corrupt"], { cwd: root });
+    const releasedCommitSha = (
+      await exec("git", ["rev-parse", "HEAD"], { cwd: root })
+    ).stdout.trim();
+
+    const proof = await verifyProjectionAtGitCommit({
+      manifest: manifestFixture,
+      repo: root,
+      releasedCommitSha,
+      manifestGitPath: ".adv/archive/bundle/spec-projection.json",
+      expectedChangeId: "change-absent",
+      expectedDeltaSetSha256: "c".repeat(64),
+      expectedDeltaIdsByCapability: {},
+    });
+    // The handler would return a hard refusal.
+    expect(proof.ok).toBe(false);
+    if (!proof.ok) {
+      expect(projectionFailureRoutesToReconcile(proof.code)).toBe(false);
+    }
+  });
+
+  it("bad revision → REPO_ERROR → routes to refuse (fail closed)", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await initGitRepo(root);
+    await writeFile(join(root, "placeholder"), "x");
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "init"], { cwd: root });
+
+    const proof = await verifyProjectionAtGitCommit({
+      manifest: manifestFixture,
+      repo: root,
+      releasedCommitSha: "0".repeat(40),
+      manifestGitPath: ".adv/archive/bundle/spec-projection.json",
+      expectedChangeId: "change-absent",
+      expectedDeltaSetSha256: "c".repeat(64),
+      expectedDeltaIdsByCapability: {},
+    });
+    expect(proof.ok).toBe(false);
+    if (!proof.ok) {
+      expect(projectionFailureRoutesToReconcile(proof.code)).toBe(false);
+    }
   });
 });
