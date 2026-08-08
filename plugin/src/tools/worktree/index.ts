@@ -1243,11 +1243,25 @@ interface GhPullRequestSummary {
   headRefOid?: string | null;
   baseRefName?: string | null;
   headRepository?: { nameWithOwner?: string | null } | null;
-  baseRepository?: { nameWithOwner?: string | null } | null;
+  headRepositoryOwner?: { login?: string | null } | null;
   isCrossRepository?: boolean | null;
   mergeCommit?: { oid?: string | null } | null;
   url?: string;
 }
+
+export const GH_PR_LIST_JSON_FIELDS = [
+  "number",
+  "state",
+  "mergedAt",
+  "headRefName",
+  "headRefOid",
+  "baseRefName",
+  "headRepository",
+  "headRepositoryOwner",
+  "isCrossRepository",
+  "mergeCommit",
+  "url",
+] as const;
 
 async function getPrMergedBranchIntegration(
   branch: string,
@@ -1323,7 +1337,46 @@ async function getPrMergedBranchIntegration(
       hint: "The origin remote is not an unambiguous GitHub repository; retaining worktree.",
     };
   }
-  const repository = `${parsedRemote.owner}/${parsedRemote.name}`;
+  checkBudget();
+  const repoView = await (deps.ghExec ?? execGh)(
+    ["repo", "view", "--json", "nameWithOwner"],
+    deps.projectRoot,
+    Math.min(deps.prEvidenceTimeoutMs ?? remaining(), remaining()),
+    operation.signal,
+  );
+  if (repoView.exitCode !== 0) {
+    return {
+      ok: false,
+      classification: "repair",
+      reason: "gh_failed",
+      hint: `Current GitHub repository identity unavailable for ${branch}; retaining worktree.`,
+      details: [repoView.stderr || repoView.stdout || "gh repo view failed"],
+    };
+  }
+
+  let currentRepository: string;
+  try {
+    const parsed = JSON.parse(repoView.stdout || "null") as unknown;
+    const nameWithOwner =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as { nameWithOwner?: unknown }).nameWithOwner
+        : undefined;
+    if (
+      typeof nameWithOwner !== "string" ||
+      !/^[^/\s]+\/[^/\s]+$/.test(nameWithOwner)
+    )
+      throw new Error("gh repo view returned malformed nameWithOwner");
+    currentRepository = nameWithOwner;
+  } catch (error) {
+    return {
+      ok: false,
+      classification: "refusal",
+      reason: "gh_json_invalid",
+      hint: `Current GitHub repository identity for ${branch} was not valid JSON; retaining worktree.`,
+      details: [error instanceof Error ? error.message : String(error)],
+    };
+  }
+  const currentRepositoryOwner = currentRepository.split("/")[0];
 
   checkBudget();
   const remoteHead = await git(
@@ -1354,13 +1407,13 @@ async function getPrMergedBranchIntegration(
       "--head",
       branch,
       "--repo",
-      repository,
+      currentRepository,
       "--base",
       defaultBranch,
       "--limit",
       "20",
       "--json",
-      "number,state,mergedAt,headRefName,headRefOid,baseRefName,headRepository,baseRepository,isCrossRepository,mergeCommit,url",
+      GH_PR_LIST_JSON_FIELDS.join(","),
     ],
     deps.projectRoot,
     Math.min(deps.prEvidenceTimeoutMs ?? remaining(), remaining()),
@@ -1402,7 +1455,11 @@ async function getPrMergedBranchIntegration(
   const mergedPrs = prs.filter(
     (pr) =>
       pr.state === "MERGED" &&
-      Boolean(pr.mergedAt) &&
+      typeof pr.number === "number" &&
+      Number.isInteger(pr.number) &&
+      pr.number > 0 &&
+      typeof pr.mergedAt === "string" &&
+      pr.mergedAt.trim().length > 0 &&
       typeof pr.headRefOid === "string" &&
       pr.headRefOid.trim().length > 0,
   );
@@ -1427,8 +1484,9 @@ async function getPrMergedBranchIntegration(
       pr.isCrossRepository === false &&
       typeof pr.headRepository?.nameWithOwner === "string" &&
       pr.headRepository.nameWithOwner.length > 0 &&
-      pr.headRepository.nameWithOwner === pr.baseRepository?.nameWithOwner &&
-      pr.headRepository.nameWithOwner === repository,
+      pr.headRepository.nameWithOwner === currentRepository &&
+      typeof pr.headRepositoryOwner?.login === "string" &&
+      pr.headRepositoryOwner.login === currentRepositoryOwner,
   );
   if (structuralCandidates.length === 0) {
     return {
@@ -1455,7 +1513,9 @@ async function getPrMergedBranchIntegration(
       pr.baseRefName !== defaultBranch ||
       pr.isCrossRepository !== false ||
       typeof pr.headRepository?.nameWithOwner !== "string" ||
-      pr.headRepository.nameWithOwner !== pr.baseRepository?.nameWithOwner
+      pr.headRepository.nameWithOwner !== currentRepository ||
+      typeof pr.headRepositoryOwner?.login !== "string" ||
+      pr.headRepositoryOwner.login !== currentRepositoryOwner
     )
       continue;
 
@@ -1563,8 +1623,6 @@ async function getPrMergedBranchIntegration(
     }
 
     const headRepository = pr.headRepository.nameWithOwner;
-    const baseRepository = pr.baseRepository?.nameWithOwner;
-    if (!baseRepository) continue;
     return {
       ok: true,
       proof:
@@ -1576,7 +1634,7 @@ async function getPrMergedBranchIntegration(
       headRefOid: pr.headRefOid.trim(),
       baseRefName: defaultBranch,
       headRepository,
-      baseRepository,
+      baseRepository: currentRepository,
       ...(mergeCommitOid ? { mergeCommitOid } : {}),
     };
   }
