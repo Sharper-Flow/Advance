@@ -102,8 +102,6 @@ export {
 export {
   WorktreeDeletionExecutor,
   executeWorktreeDeletion,
-  applyWorktreeDeletion,
-  executeDeletion,
 } from "./deletion-executor";
 
 const DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS = 1_500;

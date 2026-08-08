@@ -101,7 +101,7 @@ export function resetStatusHealthModuleForTest(): void {
   _statusProbeCaches.clear();
 }
 
-/** Exported for test isolation only. */
+/** Deliberate internal-but-test-accessible seam consumed by tools/status.test.ts; not a duplicate. */
 export const _healthSnapshotCache = healthSnapshotCache;
 
 export async function computeHealthSnapshot(

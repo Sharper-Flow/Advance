@@ -245,7 +245,6 @@ export {
   TaskScopedSubagentReportSchema,
   ChangeScopedSubagentReportSchema,
   ScopedSubagentReportSchema,
-  SupportedSubagentReportSchema,
   normalizePersistedSubagentReportState,
   type PersistedSubagentReportAgent,
   type SubagentReportFieldSource,
@@ -275,7 +274,6 @@ export {
   type VerificationTriageBundleSubagentReport,
   type ScopedSubagentReport,
   type SupportedSubagentReport,
-  SubagentReportSchema,
   type SubagentReport,
 } from "./subagent-reports";
 

@@ -23,7 +23,6 @@ import {
   executePullRequestHandoff,
   finalizeRelease,
   mergeChangeBranch,
-  mergeToTrunk,
   pushToOrigin,
   pushChangeBranch,
   reconcileChangeBranchWithDefault,
@@ -2687,7 +2686,7 @@ describe("git-finalize helpers", () => {
     ]);
   });
 
-  it("mergeChangeBranch and mergeToTrunk fast-forward a clean change branch", async () => {
+  it("mergeChangeBranch fast-forwards a clean change branch", async () => {
     const repo = join(tempRoot, "repo");
     await mkdir(repo);
     await initRepo(repo);
@@ -2700,8 +2699,6 @@ describe("git-finalize helpers", () => {
     const result = mergeChangeBranch(repo, "trunk", "example");
     expect(result.status).toBe("merged");
     expect(existsSync(join(repo, "feature.txt"))).toBe(true);
-
-    expect(mergeToTrunk).toBe(mergeChangeBranch);
   });
 
   it("mergeChangeBranch reports already-reachable branch as merged without invoking git merge (rq-harden-archive-flow AC3)", async () => {

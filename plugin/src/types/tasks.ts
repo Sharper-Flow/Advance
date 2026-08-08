@@ -13,7 +13,7 @@ import {
 import { DependencySchema } from "./specs";
 import {
   ReportFollowUpRefSchema,
-  SubagentReportSchema,
+  TaskScopedSubagentReportSchema,
 } from "./subagent-reports";
 import { TaskStructuredOutputSchema } from "./task-output";
 
@@ -691,7 +691,7 @@ export const TaskSchema = z
      * Task records intentionally keep the task-scoped report schema; independent
      * review/research/scanner sidecars persist on change.subagent_reports[].
      */
-    subagent_reports: z.array(SubagentReportSchema).optional(),
+    subagent_reports: z.array(TaskScopedSubagentReportSchema).optional(),
     /**
      * Advisory-only typed wisdom drafts auto-created from SEMANTIC
      * error_recovery attempts (rq-wisdomAutoSurfacing01). Task-scoped (AC7):

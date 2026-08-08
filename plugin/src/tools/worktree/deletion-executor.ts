@@ -1002,7 +1002,3 @@ export async function executeWorktreeDeletion(
 ): Promise<WorktreeDeletionExecutorResult> {
   return new WorktreeDeletionExecutor(deps).execute(input);
 }
-
-/** Names used by adapters during the convergence task; all share one executor. */
-export const applyWorktreeDeletion = executeWorktreeDeletion;
-export const executeDeletion = executeWorktreeDeletion;

@@ -1126,8 +1126,6 @@ export function mergeChangeBranch(
   return { status: "blocked", code: "MERGE_FAILED", message: noffMessage };
 }
 
-export const mergeToTrunk = mergeChangeBranch;
-
 export function pushToOrigin(
   repoRoot: string,
   defaultBranch: string,
@@ -3790,7 +3788,7 @@ export async function finalizeRelease(
       finalizationDeps,
       async (ephemeral) => {
         // Merge the change branch into the detached default-branch HEAD.
-        const merge = mergeToTrunk(
+        const merge = mergeChangeBranch(
           ephemeral,
           defaultBranch,
           ctx.changeId,

@@ -216,6 +216,10 @@ export const ScopeDriftRecommendationSchema = z.enum([
   "accept_compromise",
 ]);
 
+/**
+ * Shared scope-drift shape deliberately reused by engineer, designer, and
+ * reviewer reports.
+ */
 export const ReviewerScopeDriftSchema = z
   .object({
     items: z.array(z.string().min(1)),
@@ -223,8 +227,6 @@ export const ReviewerScopeDriftSchema = z
     recommendation: ScopeDriftRecommendationSchema,
   })
   .strict();
-
-export const EngineerScopeDriftSchema = ReviewerScopeDriftSchema;
 
 export const RequiredFollowUpSchema = z
   .object({
@@ -336,7 +338,7 @@ export const EngineerSubagentReportSchema =
     verification: z.array(SubagentVerificationEntrySchema).min(1),
     decisions: z.array(SubagentDecisionSchema),
     blockers: z.array(SubagentBlockerSchema),
-    scope_drift: EngineerScopeDriftSchema.nullable(),
+    scope_drift: ReviewerScopeDriftSchema.nullable(),
     follow_ups: z.array(z.string().min(1)),
     required_follow_ups: z.array(RequiredFollowUpSchema).optional(),
     required_main_agent_actions: z.array(z.string().min(1)),
@@ -407,7 +409,7 @@ export const DesignerSubagentReportSchema =
     verification: z.array(SubagentVerificationEntrySchema).min(1),
     decisions: z.array(SubagentDecisionSchema),
     blockers: z.array(SubagentBlockerSchema),
-    scope_drift: EngineerScopeDriftSchema.nullable(),
+    scope_drift: ReviewerScopeDriftSchema.nullable(),
     follow_ups: z.array(z.string().min(1)),
     required_main_agent_actions: z.array(z.string().min(1)),
     related_scan: z.string().min(1),
@@ -975,14 +977,6 @@ export const ScopedSubagentReportSchema = z.union([
   ChangeScopedSubagentReportSchema,
 ]);
 
-/**
- * Backward-compatible alias for reports persisted on task records only.
- * Change-scoped reports persist on `change.subagent_reports[]`; use
- * `ScopedSubagentReportSchema` for the full ingest surface accepted by
- * `adv_subagent_report_submit`.
- */
-export const SupportedSubagentReportSchema = TaskScopedSubagentReportSchema;
-
 // Only these task-scoped agents existed before `scope_drift` and
 // `required_main_agent_actions` became required fields. Change-scoped agents
 // were introduced with the current strict shape and must not receive legacy
@@ -1356,7 +1350,7 @@ export type VisualReviewSubagentReport = z.infer<
 >;
 export type ScopedSubagentReport = z.infer<typeof ScopedSubagentReportSchema>;
 export type SupportedSubagentReport = z.infer<
-  typeof SupportedSubagentReportSchema
+  typeof TaskScopedSubagentReportSchema
 >;
 
 /**
@@ -1587,7 +1581,5 @@ export function resolveReportFollowUpByRef(
   return rf ? { text: rf.text, required: true } : undefined;
 }
 
-/** @deprecated Use `TaskScopedSubagentReportSchema` or `ScopedSubagentReportSchema` explicitly. */
-export const SubagentReportSchema = SupportedSubagentReportSchema;
 /** @deprecated Use `TaskScopedSubagentReport` or `ScopedSubagentReport` explicitly. */
 export type SubagentReport = SupportedSubagentReport;

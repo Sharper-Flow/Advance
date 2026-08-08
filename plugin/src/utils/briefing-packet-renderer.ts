@@ -584,5 +584,3 @@ export function renderBriefingPacket(
 
   return packet;
 }
-
-export default renderBriefingPacket;
