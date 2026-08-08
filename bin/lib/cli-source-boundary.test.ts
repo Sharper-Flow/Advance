@@ -14,6 +14,7 @@ const PLUGIN_SRC = join(REPO_ROOT, "plugin/src");
 
 const APPROVED_BIN_PLUGIN_IMPORTS = new Set([
   "../../plugin/src/shared/cli-projection",
+  "../../../plugin/src/shared/cli-projection",
   "../../plugin/src/cli/projection-boundary",
 ]);
 

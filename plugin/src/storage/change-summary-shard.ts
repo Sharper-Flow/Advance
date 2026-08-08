@@ -22,6 +22,7 @@ import type { Dirent } from "fs";
 import { atomicWriteFile } from "../utils/fs";
 import type { Change } from "../types";
 import { FastFollowOfSchema } from "../types";
+import { GATE_ORDER } from "../types/gates";
 import {
   commitChangeProjection,
   type CommitChangeProjectionOptions,
@@ -156,16 +157,6 @@ export interface CommitChangeSummaryOutcome {
   pointer?: ChangeSummaryPointer;
   error?: string;
 }
-
-const GATE_ORDER: readonly string[] = [
-  "proposal",
-  "discovery",
-  "design",
-  "planning",
-  "execution",
-  "acceptance",
-  "release",
-];
 
 export function assertSafeChangeId(changeId: string): void {
   if (

@@ -1,6 +1,7 @@
 import type { DashboardDegradedSource, DashboardGithubConfig } from "./types";
 import type { LinkedDashboardItem, UnlinkedDashboardItem } from "./correlation";
 import type { DashboardAdvChange } from "./adv";
+import { GATE_ORDER } from "../../../plugin/src/shared/cli-projection";
 
 export interface AttentionInput {
   github?: DashboardGithubConfig;
@@ -112,16 +113,6 @@ export interface GroupedLaneItem {
   collapsedByDefault: boolean;
   metadata?: LaneCardMetadata[];
 }
-
-const GATE_ORDER = [
-  "proposal",
-  "discovery",
-  "design",
-  "planning",
-  "execution",
-  "acceptance",
-  "release",
-] as const;
 
 export function buildAttentionLanes(input: AttentionInput): AttentionLanes {
   const degradedItems = input.degradedSources.map(
