@@ -12,6 +12,7 @@ import {
   type SpecProjectionManifest,
 } from "./projection";
 import {
+  projectionFailureRoutesToReconcile,
   readGitPathBounded,
   verifyProjectionAtGitCommit,
   verifyProjectionAtPaths,
@@ -340,5 +341,36 @@ describe("archive projection proof", () => {
       expectedDeltaIdsByCapability: {},
     });
     expect(result).toMatchObject({ ok: false, code: "REPO_ERROR" });
+  });
+});
+
+describe("projectionFailureRoutesToReconcile", () => {
+  it("routes MANIFEST_ABSENT to reconcile (unstarted work)", () => {
+    expect(projectionFailureRoutesToReconcile("MANIFEST_ABSENT")).toBe(true);
+  });
+
+  it("refuses MANIFEST_INVALID (corrupt manifest)", () => {
+    expect(projectionFailureRoutesToReconcile("MANIFEST_INVALID")).toBe(false);
+  });
+
+  it("refuses MANIFEST_MISMATCH (content drift)", () => {
+    expect(projectionFailureRoutesToReconcile("MANIFEST_MISMATCH")).toBe(false);
+  });
+
+  it("refuses REPO_ERROR (repository failure)", () => {
+    expect(projectionFailureRoutesToReconcile("REPO_ERROR")).toBe(false);
+  });
+
+  it("refuses spec/doc/version drift codes", () => {
+    expect(projectionFailureRoutesToReconcile("SPEC_UNREADABLE")).toBe(false);
+    expect(projectionFailureRoutesToReconcile("SPEC_MISMATCH")).toBe(false);
+    expect(projectionFailureRoutesToReconcile("VERSION_MISMATCH")).toBe(false);
+    expect(projectionFailureRoutesToReconcile("REQUIREMENT_MISMATCH")).toBe(
+      false,
+    );
+    expect(projectionFailureRoutesToReconcile("DOCUMENT_UNREADABLE")).toBe(
+      false,
+    );
+    expect(projectionFailureRoutesToReconcile("DOCUMENT_MISMATCH")).toBe(false);
   });
 });

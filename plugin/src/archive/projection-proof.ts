@@ -43,6 +43,47 @@ interface ProjectionContentReader {
   readDocument(capability: string): Promise<string>;
 }
 
+/**
+ * Classify a projection-proof failure for the archived-retry routing
+ * decision. Returns `true` only when the failure represents unstarted
+ * work — an in-repo projection that was never committed — which MUST
+ * route to reconcile rather than a hard refusal.
+ *
+ * All other codes (corrupt content, mismatch, spec/doc/version drift,
+ * repository errors) are integrity failures that MUST refuse.
+ *
+ * The `never`-exhaustive default makes adding a new
+ * {@link ProjectionProofFailureCode} a compile error until this routing
+ * decision is updated — preventing silent fallthrough to refusal or
+ * reconcile for an unclassified outcome (AC4, P33).
+ */
+export function projectionFailureRoutesToReconcile(
+  code: ProjectionProofFailureCode,
+): boolean {
+  switch (code) {
+    case "MANIFEST_ABSENT":
+      return true;
+    case "MANIFEST_INVALID":
+    case "MANIFEST_MISMATCH":
+    case "SPEC_UNREADABLE":
+    case "SPEC_MISMATCH":
+    case "VERSION_MISMATCH":
+    case "REQUIREMENT_MISMATCH":
+    case "DOCUMENT_UNREADABLE":
+    case "DOCUMENT_MISMATCH":
+    case "REPO_ERROR":
+      return false;
+    default: {
+      // Compile-time exhaustiveness: a new failure code added to the
+      // union without a case here is a type error, not a silent refuse.
+      const _exhaustive: never = code;
+      throw new Error(
+        `Unhandled projection failure code: ${String(_exhaustive)}`,
+      );
+    }
+  }
+}
+
 export async function readProjectionManifest(
   bundlePath: string,
 ): Promise<SpecProjectionManifest | null> {

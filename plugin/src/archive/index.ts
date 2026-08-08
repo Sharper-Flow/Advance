@@ -18,6 +18,7 @@ export {
   verifyProjectionAtGitCommit,
   verifyProjectionAtPaths,
   resolveGitCommitSha,
+  projectionFailureRoutesToReconcile,
 } from "./projection-proof";
 export { canonicalSha256 } from "./projection";
 export {
