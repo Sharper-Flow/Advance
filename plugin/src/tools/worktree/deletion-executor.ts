@@ -42,6 +42,7 @@ import {
   LocalBranchIntegrationDeadline,
   proveLocalBranchIntegration,
 } from "../../utils/branch-integration";
+import type { WorktreeDeletionIntegrationFailure } from "./deletion-planner";
 
 /** Dependency seams keep the destructive boundary testable without bypassing Git. */
 export interface WorktreeDeletionExecutorDeps {
@@ -68,7 +69,11 @@ export interface WorktreeDeletionExecutorDeps {
     defaultBranch: string,
     repository: string,
     operation: WorktreeOperationContext,
-  ) => Promise<WorktreeDeletionIntegrationProof | undefined>;
+  ) => Promise<
+    | WorktreeDeletionIntegrationProof
+    | WorktreeDeletionIntegrationFailure
+    | undefined
+  >;
   terminalProof?: (
     changeId: string,
     repository: string,
@@ -555,7 +560,12 @@ export class WorktreeDeletionExecutor {
             operation,
           ),
         );
-        if (!sameProof(integration, currentProof))
+        if (
+          !currentProof ||
+          ("classification" in currentProof &&
+            currentProof.classification !== undefined) ||
+          !sameProof(integration, currentProof)
+        )
           return failure("drifted", "integration_proof_changed", stage);
       } else if (branchFact.merged) {
         if (integration.kind !== "merged_to_default")

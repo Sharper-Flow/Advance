@@ -47,6 +47,12 @@ export type WorktreeDeletionRefusalReason =
   | "git_corrupt"
   | "bare_worktree"
   | "branch_not_merged"
+  | "pr_evidence_invalid"
+  | "pr_not_found"
+  | "pr_not_merged"
+  | "local_commits_after_pr_head"
+  | "pr_merge_commit_unreachable"
+  | "integration_proof_unavailable"
   | "invalid_ref"
   | "terminal_proof_required";
 
@@ -54,7 +60,30 @@ export type WorktreeDeletionRepairReason =
   | "target_resolution_failed"
   | "census_unavailable"
   | "malformed_census"
-  | "terminal_state_corrupt";
+  | "terminal_state_corrupt"
+  | "integration_proof_unavailable";
+
+export type WorktreeDeletionIntegrationFailure =
+  | {
+      ok: false;
+      classification: "refusal";
+      reason: Extract<
+        WorktreeDeletionRefusalReason,
+        | "pr_evidence_invalid"
+        | "pr_not_found"
+        | "pr_not_merged"
+        | "local_commits_after_pr_head"
+        | "pr_merge_commit_unreachable"
+        | "integration_proof_unavailable"
+      >;
+      message: string;
+    }
+  | {
+      ok: false;
+      classification: "repair";
+      reason: "integration_proof_unavailable";
+      message: string;
+    };
 
 export type WorktreeDeletionUnsupportedReason =
   | "process_use_detection_unsupported"
@@ -113,7 +142,11 @@ export interface WorktreeDeletionPlannerDeps {
     defaultBranch: string,
     repository: string,
     operation: WorktreeOperationContext,
-  ) => Promise<WorktreeDeletionIntegrationProof | undefined>;
+  ) => Promise<
+    | WorktreeDeletionIntegrationProof
+    | WorktreeDeletionIntegrationFailure
+    | undefined
+  >;
   statePathResolver?: (
     repository: string,
     changeId: string,
@@ -527,7 +560,7 @@ export class WorktreeDeletionPlanner {
       operation.startStage("integration_proof");
       let integration: WorktreeDeletionIntegrationProof | undefined;
       try {
-        integration = await (this.deps.integrationProof
+        const integrationResult = await (this.deps.integrationProof
           ? runWithDeadline(() =>
               this.deps.integrationProof!(
                 branch,
@@ -552,6 +585,26 @@ export class WorktreeDeletionPlanner {
                 target.repository,
                 operation,
               )) as LocalBranchIntegrationProof | undefined));
+        if (integrationResult && "classification" in integrationResult) {
+          if (integrationResult.classification === "repair") {
+            return {
+              kind: "repair",
+              reason: integrationResult.reason,
+              message: integrationResult.message,
+              target,
+              stageTimings: operation.stageTimings,
+            };
+          }
+          return refusal(
+            integrationResult.reason,
+            integrationResult.message,
+            operation,
+            { facts, target },
+          );
+        }
+        integration = integrationResult as
+          | WorktreeDeletionIntegrationProof
+          | undefined;
       } catch (error) {
         if (isTimeoutError(error) || operation.remainingMs() <= 0)
           return this.deadline(operation, "integration_proof", error, target);

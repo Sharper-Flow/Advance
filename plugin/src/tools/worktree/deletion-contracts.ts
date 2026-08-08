@@ -40,6 +40,12 @@ export const WorktreeDeletionIntegrationProofSchema = z
     defaultBranch: NonEmptyTextSchema,
     head: z.string().regex(HEX_SHA_RE),
     evidence: NonEmptyTextSchema,
+    /** Exact PR evidence, present for live pr_merged proofs. */
+    prNumber: z.number().int().positive().optional(),
+    prHeadOid: NonEmptyTextSchema.optional(),
+    mergeCommitOid: NonEmptyTextSchema.optional(),
+    headRepository: NonEmptyTextSchema.optional(),
+    baseRepository: NonEmptyTextSchema.optional(),
   })
   .strict();
 

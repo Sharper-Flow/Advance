@@ -57,6 +57,7 @@ export function execGh(
   args: string[],
   cwd: string,
   timeout: number = DEFAULT_TIMEOUT_MS,
+  signal?: AbortSignal,
 ): Promise<GhExecResult> {
   return new Promise((resolve) => {
     execFile(
@@ -65,6 +66,7 @@ export function execGh(
       {
         cwd,
         timeout,
+        signal,
         maxBuffer: DEFAULT_MAX_BUFFER,
         env: { ...process.env, ...GH_ENV },
       },
@@ -72,7 +74,12 @@ export function execGh(
         if (error) {
           const isEnoent = (error as NodeJS.ErrnoException).code === "ENOENT";
           const isKilled =
-            "killed" in error ? (error as { killed: boolean }).killed : false;
+            ("killed" in error
+              ? (error as { killed: boolean }).killed
+              : false) ||
+            ("name" in error &&
+              (error as { name?: string }).name === "AbortError") ||
+            signal?.aborted === true;
           const rawStderr = stderr ?? "";
           const isRateLimit =
             rawStderr.includes("HTTP 429") ||
