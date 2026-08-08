@@ -588,6 +588,10 @@ export const advChangeArchiveHandler = async (
           changeId,
           archivePath: archiveResult.archivePath,
           finalization,
+          ...(proof.code ? { code: proof.code } : {}),
+          ...(proof.projectionFailureType
+            ? { projectionFailureType: proof.projectionFailureType }
+            : {}),
           ...openOpsObligationsPayload,
         });
       releaseGateCompletion = { ...releaseResult, gate: proof.gate };

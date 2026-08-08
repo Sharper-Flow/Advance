@@ -159,6 +159,36 @@ describe("archive-gate disk projection", () => {
     }
   });
 
+  it("keeps a corrupt durable release proof distinct from an absent one", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-projection-"));
+    try {
+      const change = makeChange();
+      await writeDiskChange(root, change);
+      await writeFile(join(root, change.id, "change.json"), "{not-json");
+
+      const corrupt = await verifyReleaseGateDurableForArchive({
+        store: makeStore(root, change.gates),
+        changeId: change.id,
+        evidence: "release evidence",
+      });
+      expect(corrupt).toMatchObject({
+        ok: false,
+        code: "CHANGE_PROJECTION_LOAD_FAILED",
+        projectionFailureType: "corrupt",
+      });
+
+      const missing = await verifyReleaseGateDurableForArchive({
+        store: makeStore(root, change.gates),
+        changeId: "missing-change",
+        evidence: "release evidence",
+      });
+      expect(missing).toMatchObject({ ok: false });
+      if (!missing.ok) expect(missing.code).toBeUndefined();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("carries corrupt projection failure into the archive preflight refusal", async () => {
     const root = await mkdtemp(join(tmpdir(), "adv-archive-gate-projection-"));
     try {

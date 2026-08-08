@@ -458,6 +458,8 @@ export async function verifyReleaseGateDurableForArchive(input: {
   | {
       ok: false;
       error: string;
+      code?: string;
+      projectionFailureType?: string;
       releaseGateStatus?: GateCompletion["status"];
       readinessBlockers?: GateCompletion["readiness_blockers"];
       stuckReason?: GateCompletion["stuck_reason"];
@@ -468,7 +470,14 @@ export async function verifyReleaseGateDurableForArchive(input: {
     : input.store.paths.changes;
   const id = input.bundlePath ? basename(input.bundlePath) : input.changeId;
   const loaded = await loadChange(changesDir, id);
-  const gate = loaded.success ? loaded.data?.gates?.release : undefined;
+  if (!loaded.success)
+    return {
+      ok: false,
+      error: loaded.error,
+      code: "CHANGE_PROJECTION_LOAD_FAILED",
+      projectionFailureType: loaded.type,
+    };
+  const gate = loaded.data?.gates?.release;
   const shipped = input.finalization?.status === "shipped";
   if (gate?.status !== "done")
     return {

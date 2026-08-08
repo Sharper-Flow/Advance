@@ -23,7 +23,15 @@
  */
 import { describe, expect, it } from "vitest";
 import ts from "typescript";
-import { readFileSync, statSync, existsSync } from "node:fs";
+import {
+  readFileSync,
+  statSync,
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve, dirname, join, relative, extname } from "node:path";
 import {
   findExecutableSaveChangeCalls,
@@ -290,6 +298,28 @@ function collectFsReadBindings(
     }
   }
 
+  // Track local aliases too: importing `readFileSync as rfs` is covered above,
+  // but `const rfs = readFileSync` must not create a guard bypass.
+  function collectAliases(node: ts.Node) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      const reference = resolveFsReference(node.initializer, checker, bindings);
+      const symbol = checker.getSymbolAtLocation(node.name);
+      if (reference && symbol) {
+        bindings.set(symbol, {
+          moduleName: reference.binding.moduleName,
+          importedName:
+            reference.properties.at(-1) ?? reference.binding.importedName,
+        });
+      }
+    }
+    ts.forEachChild(node, collectAliases);
+  }
+  collectAliases(source);
+
   return bindings;
 }
 
@@ -394,10 +424,16 @@ const CHANGE_JSON_READ_ALLOWLIST: ReadonlyArray<{
   },
 ];
 
-function findChangeJsonReaders(): string[] {
-  const sourcePaths = ts.sys
-    .readDirectory(pluginSrc, [".ts", ".tsx", ".js"], ["node_modules", "dist"])
-    .filter((file) => !file.includes(".test.") && !file.includes(".itest."));
+function findChangeJsonReaders(sourcePathsOverride?: string[]): string[] {
+  const sourcePaths =
+    sourcePathsOverride ??
+    ts.sys
+      .readDirectory(
+        pluginSrc,
+        [".ts", ".tsx", ".js"],
+        ["node_modules", "dist"],
+      )
+      .filter((file) => !file.includes(".test.") && !file.includes(".itest."));
   const program = ts.createProgram(sourcePaths, {
     allowJs: true,
     module: ts.ModuleKind.ESNext,
@@ -572,4 +608,36 @@ describe("raw change.json reader boundary", () => {
     //   so it is tracked here rather than fixed in this change.
     expect(findChangeJsonReaders()).toEqual(["index.ts"]);
   }, 120_000);
+
+  it("detects imported and local aliases of an fs reader", () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-change-json-reader-"));
+    const importedAliasFixture = join(root, "imported-alias.ts");
+    const localAliasFixture = join(root, "local-alias.ts");
+    try {
+      writeFileSync(
+        importedAliasFixture,
+        [
+          'import { readFileSync as rfs } from "node:fs";',
+          'rfs("change.json", "utf8");',
+        ].join("\n"),
+      );
+      writeFileSync(
+        localAliasFixture,
+        [
+          'import { readFileSync } from "node:fs";',
+          "const rfs = readFileSync;",
+          'const path = "change.json";',
+          'rfs(path, "utf8");',
+        ].join("\n"),
+      );
+      expect(
+        findChangeJsonReaders([importedAliasFixture, localAliasFixture]),
+      ).toEqual([
+        relative(pluginSrc, importedAliasFixture),
+        relative(pluginSrc, localAliasFixture),
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
