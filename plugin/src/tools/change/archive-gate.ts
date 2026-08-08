@@ -115,7 +115,12 @@ export function buildReleaseCompletionEvidence(
       ? `mergeCommitSha=${finalization.mergeCommitSha}`
       : null,
     finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
+    finalization.repo ? `repo=${finalization.repo}` : null,
     finalization.prNumber ? `prNumber=${finalization.prNumber}` : null,
+    finalization.prHeadSha ? `prHeadSha=${finalization.prHeadSha}` : null,
+    finalization.defaultBranchSha
+      ? `defaultBranchReachability=origin/${finalization.defaultBranch}@${finalization.defaultBranchSha}`
+      : null,
     finalization.prUrl ? `prUrl=${finalization.prUrl}` : null,
     finalization.route ? `route=${finalization.route}` : null,
   ].filter(Boolean);
@@ -143,6 +148,13 @@ export function preservePhase9Evidence(
       : {}),
     ...(previous.changeTipSha !== undefined && next.changeTipSha === undefined
       ? { changeTipSha: previous.changeTipSha }
+      : {}),
+    ...(previous.prHeadSha !== undefined && next.prHeadSha === undefined
+      ? { prHeadSha: previous.prHeadSha }
+      : {}),
+    ...(previous.defaultBranchSha !== undefined &&
+    next.defaultBranchSha === undefined
+      ? { defaultBranchSha: previous.defaultBranchSha }
       : {}),
     ...(previous.autoMergeArmed !== undefined &&
     next.autoMergeArmed === undefined
@@ -286,6 +298,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       changeId: input.changeId,
       route,
       prNumber: input.change?.phase9_status?.prNumber,
+      prHeadSha: input.change?.phase9_status?.prHeadSha,
       changeTipSha: input.change?.phase9_status?.changeTipSha,
       repo: input.change?.phase9_status?.repo,
     },
@@ -303,6 +316,9 @@ export function verifyReleaseEvidenceFromMain(input: {
           ? reachability.mergeCommitOid
           : undefined,
       prNumber: reachability.prNumber,
+      prHeadSha: reachability.prHeadSha,
+      defaultBranchSha: reachability.defaultBranchSha,
+      repo: input.change?.phase9_status?.repo,
       prUrl: input.change?.phase9_status?.prUrl,
       autoMergeArmed: false,
       pushStatus: route.route === "no_remote" ? "skipped" : "pushed",

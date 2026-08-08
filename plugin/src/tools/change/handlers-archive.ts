@@ -654,6 +654,15 @@ export const advChangeArchiveHandler = async (
                     startedAt: latest.phase9_status?.startedAt ?? archivedAt,
                     completedAt: archivedAt,
                     changeTipSha: finalization?.changeTipSha,
+                    repo: finalization?.repo,
+                    prNumber: finalization?.prNumber,
+                    prUrl: finalization?.prUrl,
+                    route: finalization?.route,
+                    prHeadSha: finalization?.prHeadSha,
+                    defaultBranchSha: finalization?.defaultBranchSha,
+                    ...(finalization?.mergeCommitSha
+                      ? { mergeCommitSha: finalization.mergeCommitSha }
+                      : {}),
                   }),
                 }
               : {}),

@@ -28,9 +28,14 @@ export interface GitFinalizeOutcome {
   /** SHA of the change branch tip captured before merge/cleanup so tree-SHA
    *  re-proof can survive branch deletion (rq-fixArchivedBranchFinalization SC1). */
   changeTipSha?: string;
+  /** Exact PR head SHA accepted for a direct-route merged-PR proof. */
+  prHeadSha?: string;
+  /** Current origin/default SHA containing the accepted PR merge commit. */
+  defaultBranchSha?: string;
   pushStatus: "pushed" | "skipped" | "failed" | "not_attempted";
   pushFailureReason?: string;
   prBranch?: string;
+  repo?: string;
   prNumber?: number;
   prUrl?: string;
   autoMergeArmed?: boolean;
@@ -242,6 +247,18 @@ export interface PullRequestMergeState {
   raw?: unknown;
 }
 
+export type DirectMergedPrProof =
+  | { kind: "none" }
+  | {
+      kind: "valid";
+      prNumber: number;
+      prUrl?: string;
+      prHeadSha: string;
+      mergeCommitOid: string;
+      defaultBranchSha: string;
+    }
+  | { kind: "invalid"; reason: string; details?: string[] };
+
 interface PullRequestSummary {
   number: number;
   url: string;
@@ -258,6 +275,8 @@ export interface ReleaseReachabilityInput {
   prNumber?: number;
   /** Optional repo override; falls back to route.repo. */
   repo?: string;
+  /** Persisted exact PR head SHA for a prior direct-route finalization. */
+  prHeadSha?: string;
   // rq-fixPhase9SquashMergeRedetect SC1: persisted change-tip SHA captured at
   // archive dispatch time. When provided, detection uses this content-addressed
   // tip instead of the live change/{id} git ref so reachability survives
@@ -272,7 +291,9 @@ export type ReleaseReachabilityProof =
       /** Route-neutral SHA from the authority that proved release (required). */
       releasedCommitSha: string;
       prNumber?: number;
+      prHeadSha?: string;
       mergeCommitOid?: string;
+      defaultBranchSha?: string;
       details?: string[];
     }
   | {
@@ -1212,7 +1233,17 @@ export function verifyDefaultBranchPushed(
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
 ): { pushed: true; sha: string } | { pushed: false; reason: string } {
   const runGit = deps.runGit ?? defaultRunGit;
-  runGit(repoRoot, ["fetch", "origin", defaultBranch]);
+  const fetch = runGit(repoRoot, ["fetch", "origin", defaultBranch]);
+  if (fetch.status !== 0) {
+    return {
+      pushed: false,
+      reason: (
+        fetch.stderr ||
+        fetch.stdout ||
+        `unable to fetch origin/${defaultBranch}`
+      ).trim(),
+    };
+  }
   const localHead = runGit(repoRoot, ["rev-parse", "HEAD"]);
   if (localHead.status !== 0 || !localHead.stdout.trim()) {
     return {
@@ -1308,6 +1339,226 @@ export function readPrMergeState(
     default:
       return assertNever(parsed);
   }
+}
+
+/**
+ * Query and verify an already-merged PR before a direct-route merge attempt.
+ *
+ * A direct route can still have been merged through GitHub before Phase 9 is
+ * resumed (notably after a squash merge plus later trunk commits). The proof
+ * is accepted only when the API response identifies the exact repository,
+ * head/base branches, local change-tip SHA, and a non-empty merge commit that
+ * is reachable from the freshly fetched origin/default ref.
+ *
+ * An explicit empty list means no merged-PR proof exists and preserves the
+ * existing direct merge path. Every other malformed, conflicting, or failed
+ * response is ambiguous and therefore fails closed.
+ */
+export function verifyDirectMergedPrProof(
+  input: {
+    repoRoot: string;
+    repo?: string;
+    defaultBranch: string;
+    changeId: string;
+    changeTipSha?: string;
+  },
+  deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
+): DirectMergedPrProof {
+  if (!input.repo) return { kind: "none" };
+
+  const runGh = deps.runGh ?? defaultRunGh;
+  const branch = `change/${input.changeId}`;
+  const result = runGh(input.repoRoot, [
+    "pr",
+    "list",
+    "--repo",
+    input.repo,
+    "--state",
+    "merged",
+    "--head",
+    branch,
+    "--base",
+    input.defaultBranch,
+    "--json",
+    "number,url,state,mergedAt,mergeCommit,headRefName,headRefOid,baseRefName,headRepositoryOwner,headRepository,isCrossRepository",
+    "--limit",
+    "20",
+  ]);
+  if (result.status !== 0) {
+    return {
+      kind: "invalid",
+      reason: "MERGED_PR_PROOF_QUERY_FAILED",
+      details: splitLines(result.stderr || result.stdout),
+    };
+  }
+
+  const parsed = parseGhJson(result.stdout);
+  if (parsed.kind === "empty") {
+    return {
+      kind: "invalid",
+      reason: "MERGED_PR_PROOF_UNPARSEABLE",
+      details: [],
+    };
+  }
+  if (parsed.kind === "malformed") {
+    return {
+      kind: "invalid",
+      reason: "MERGED_PR_PROOF_UNPARSEABLE",
+      details: [parsed.message],
+    };
+  }
+  if (!Array.isArray(parsed.value)) {
+    return {
+      kind: "invalid",
+      reason: "MERGED_PR_PROOF_UNPARSEABLE",
+      details: ["GitHub returned a non-array pull-request payload"],
+    };
+  }
+  if (parsed.value.length === 0) return { kind: "none" };
+
+  const repoParts = input.repo.split("/").slice(-2);
+  if (repoParts.length !== 2 || repoParts.some((part) => !part)) {
+    return {
+      kind: "invalid",
+      reason: "MERGED_PR_PROOF_REPOSITORY_UNPARSEABLE",
+    };
+  }
+  const [expectedOwner, expectedName] = repoParts;
+  const localTip = input.changeTipSha?.trim();
+  const candidates: DirectMergedPrProof[] = [];
+
+  for (const value of parsed.value) {
+    if (!value || typeof value !== "object") {
+      candidates.push({
+        kind: "invalid",
+        reason: "MERGED_PR_PROOF_RECORD_UNPARSEABLE",
+      });
+      continue;
+    }
+    const payload = value as {
+      number?: unknown;
+      url?: unknown;
+      state?: unknown;
+      mergedAt?: unknown;
+      mergeCommit?: { oid?: unknown } | null;
+      headRefName?: unknown;
+      headRefOid?: unknown;
+      baseRefName?: unknown;
+      headRepositoryOwner?: { login?: unknown } | string | null;
+      headRepository?: {
+        name?: unknown;
+        nameWithOwner?: unknown;
+      } | null;
+      isCrossRepository?: unknown;
+    };
+    const owner =
+      typeof payload.headRepositoryOwner === "string"
+        ? payload.headRepositoryOwner
+        : payload.headRepositoryOwner?.login;
+    const headRepository = payload.headRepository;
+    const exactHeadRepository =
+      typeof headRepository?.nameWithOwner === "string"
+        ? headRepository.nameWithOwner === input.repo
+        : owner === expectedOwner && headRepository?.name === expectedName;
+    const prNumber = payload.number;
+    const prHeadSha =
+      typeof payload.headRefOid === "string" ? payload.headRefOid.trim() : "";
+    const mergeCommitOid =
+      typeof payload.mergeCommit?.oid === "string"
+        ? payload.mergeCommit.oid.trim()
+        : "";
+    const validPrNumber =
+      typeof prNumber === "number" && Number.isInteger(prNumber) && prNumber > 0
+        ? prNumber
+        : undefined;
+    const exactRecord =
+      validPrNumber !== undefined &&
+      payload.state === "MERGED" &&
+      typeof payload.mergedAt === "string" &&
+      payload.mergedAt.trim() !== "" &&
+      payload.headRefName === branch &&
+      payload.baseRefName === input.defaultBranch &&
+      payload.isCrossRepository !== true &&
+      exactHeadRepository &&
+      prHeadSha !== "" &&
+      mergeCommitOid !== "" &&
+      localTip !== undefined &&
+      prHeadSha === localTip;
+
+    if (!exactRecord) {
+      candidates.push({
+        kind: "invalid",
+        reason: "MERGED_PR_PROOF_MISMATCH",
+        details: [
+          `PR ${String(prNumber)} did not match exact repo/head/base/state/OID proof`,
+        ],
+      });
+      continue;
+    }
+
+    candidates.push({
+      kind: "valid",
+      prNumber: validPrNumber as number,
+      prUrl: typeof payload.url === "string" ? payload.url : undefined,
+      prHeadSha,
+      mergeCommitOid,
+      defaultBranchSha: "",
+    });
+  }
+
+  const valid = candidates.filter(
+    (candidate): candidate is Extract<DirectMergedPrProof, { kind: "valid" }> =>
+      candidate.kind === "valid",
+  );
+  if (valid.length !== 1 || candidates.length !== 1) {
+    return {
+      kind: "invalid",
+      reason:
+        valid.length > 1
+          ? "MERGED_PR_PROOF_AMBIGUOUS"
+          : (candidates.find((candidate) => candidate.kind === "invalid")
+              ?.reason ?? "MERGED_PR_PROOF_MISMATCH"),
+      details: candidates.flatMap((candidate) =>
+        candidate.kind === "invalid" ? (candidate.details ?? []) : [],
+      ),
+    };
+  }
+
+  const runGit = deps.runGit ?? defaultRunGit;
+  const reachable = runGit(input.repoRoot, [
+    "merge-base",
+    "--is-ancestor",
+    valid[0].mergeCommitOid,
+    `origin/${input.defaultBranch}`,
+  ]);
+  if (reachable.status !== 0) {
+    return {
+      kind: "invalid",
+      reason:
+        reachable.status === 1
+          ? "MERGED_PR_COMMIT_UNREACHABLE"
+          : "MERGED_PR_REACHABILITY_CHECK_FAILED",
+      details: splitLines(reachable.stderr || reachable.stdout),
+    };
+  }
+
+  const defaultBranch = runGit(input.repoRoot, [
+    "rev-parse",
+    "--verify",
+    `origin/${input.defaultBranch}`,
+  ]);
+  if (defaultBranch.status !== 0 || !defaultBranch.stdout.trim()) {
+    return {
+      kind: "invalid",
+      reason: "DEFAULT_BRANCH_REACHABILITY_UNRESOLVED",
+      details: splitLines(defaultBranch.stderr || defaultBranch.stdout),
+    };
+  }
+
+  return {
+    ...valid[0],
+    defaultBranchSha: defaultBranch.stdout.trim(),
+  };
 }
 
 export function discoverMergedPr(
@@ -2567,6 +2818,52 @@ export function resolveReleaseReachability(
       }
     }
 
+    // A persisted exact head SHA upgrades release-gate rechecks to the same
+    // strict proof used before a direct merge. This keeps a later gate check
+    // from accepting an unrelated merged PR or unreachable merge commit.
+    if (directRepo && input.prHeadSha) {
+      const exactProof = verifyDirectMergedPrProof(
+        {
+          repoRoot: input.repoRoot,
+          repo: directRepo,
+          defaultBranch: input.defaultBranch,
+          changeId: input.changeId,
+          changeTipSha: input.changeTipSha,
+        },
+        deps,
+      );
+      if (exactProof.kind === "valid") {
+        if (
+          input.prNumber === undefined ||
+          input.prNumber === exactProof.prNumber
+        ) {
+          return {
+            reachable: true,
+            proof: "pr_merged",
+            releasedCommitSha: exactProof.mergeCommitOid,
+            prNumber: exactProof.prNumber,
+            prHeadSha: exactProof.prHeadSha,
+            mergeCommitOid: exactProof.mergeCommitOid,
+            defaultBranchSha: exactProof.defaultBranchSha,
+          };
+        }
+        return {
+          reachable: false,
+          proof: "blocked",
+          prNumber: input.prNumber,
+          details: ["Merged PR number does not match persisted Phase 9 proof"],
+        };
+      }
+      if (exactProof.kind === "invalid") {
+        return {
+          reachable: false,
+          proof: "blocked",
+          prNumber: input.prNumber,
+          details: [exactProof.reason, ...(exactProof.details ?? [])],
+        };
+      }
+    }
+
     // Existing PR merge state check (now with auto-discovered PR)
     if (effectivePrNumber && directRepo) {
       const prState = readPrMergeState(
@@ -3199,6 +3496,58 @@ export async function finalizeRelease(
         details: splitLines(fetchOrigin.stderr || fetchOrigin.stdout),
       },
     };
+  }
+
+  // A direct route may be resumed after the change branch was already
+  // squash-merged through GitHub. Prove that exact merge before creating the
+  // ephemeral merge worktree; otherwise the old branch can conflict with
+  // later trunk commits and the finalizer would attempt a duplicate merge.
+  if (route.route === "direct") {
+    const mergedPrProof = verifyDirectMergedPrProof(
+      {
+        repoRoot,
+        repo: route.repo,
+        defaultBranch,
+        changeId: ctx.changeId,
+        changeTipSha,
+      },
+      deps,
+    );
+    if (mergedPrProof.kind === "invalid") {
+      return {
+        status: "blocked",
+        repoRoot,
+        defaultBranch,
+        route: route.route,
+        pushStatus: "not_attempted",
+        prBranch: `change/${ctx.changeId}`,
+        blocked: {
+          reason: mergedPrProof.reason,
+          remediation:
+            "The merged PR proof is ambiguous or unreachable. Verify the exact PR head/base, local change-tip SHA, and origin/default reachability before rerunning archive finalization.",
+          details: mergedPrProof.details,
+        },
+      };
+    }
+    if (mergedPrProof.kind === "valid") {
+      return {
+        status: "shipped",
+        repoRoot,
+        defaultBranch,
+        route: route.route,
+        releasedCommitSha: mergedPrProof.defaultBranchSha,
+        mergeCommitSha: mergedPrProof.mergeCommitOid,
+        changeTipSha,
+        pushStatus: "pushed",
+        prBranch: `change/${ctx.changeId}`,
+        repo: route.repo,
+        prNumber: mergedPrProof.prNumber,
+        prUrl: mergedPrProof.prUrl,
+        prHeadSha: mergedPrProof.prHeadSha,
+        defaultBranchSha: mergedPrProof.defaultBranchSha,
+        autoMergeArmed: false,
+      };
+    }
   }
 
   const originDefaultRef = runGit(repoRoot, [

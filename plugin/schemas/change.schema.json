@@ -3484,7 +3484,19 @@
         "completedAt": {
           "type": "string"
         },
+        "defaultBranchSha": {
+          "minLength": 1,
+          "type": "string"
+        },
         "error": {
+          "type": "string"
+        },
+        "mergeCommitSha": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "prHeadSha": {
+          "minLength": 1,
           "type": "string"
         },
         "prNumber": {

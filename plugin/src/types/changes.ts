@@ -1118,6 +1118,12 @@ export const Phase9FinalizationStatusSchema = z.object({
     .string()
     .regex(/^[0-9a-f]{40}$/, "changeTipSha must be a 40-hex Git SHA")
     .optional(),
+  /** Exact PR head SHA used by direct-route merged-PR proof. */
+  prHeadSha: z.string().min(1).optional(),
+  /** Exact merged PR commit OID used by direct-route merged-PR proof. */
+  mergeCommitSha: z.string().min(1).optional(),
+  /** Current origin/default SHA proven to contain the merged PR commit. */
+  defaultBranchSha: z.string().min(1).optional(),
 });
 
 export type Phase9FinalizationStatus = z.infer<
