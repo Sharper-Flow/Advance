@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.46.0
-> **Updated:** 2026-08-05
+> **Version:** 1.47.0
+> **Updated:** 2026-08-08
 
 ## Purpose
 
@@ -5296,36 +5296,39 @@ adv_change_archive and adv_task_checkpoint MUST support target_path routing to t
 
 **ID:** `rq-archiveRetryIdempotence01` | **Priority:** **[MUST]**
 
-adv_change_archive MUST detect when a change is already archived and the archive bundle is present on disk. In that case it MUST return bounded success with `noOp: true`, MUST report the existing archive path, MUST NOT repeat Phase 9 finalization, branch deletion, linked issue closure, or terminal cleanup, and MUST still surface any open ops follow-up obligations. When the bundle exists but the status is not yet archived, the tool MUST recover the status transition without rewriting the bundle.
+adv_change_archive MUST detect when a change is already archived and the archive bundle's spec projection is committed in-repo at the released commit. Only a committed in-repo projection is durable authority; a bundle present in the external store (on-disk project store) without a committed in-repo projection is advisory metadata and MUST route to reconcile rather than no-op. When the in-repo projection is committed and matches the expected projection, adv_change_archive MUST return bounded success with `noOp: true`, MUST report the existing archive path, MUST NOT repeat Phase 9 finalization, branch deletion, linked issue closure, or terminal cleanup, and MUST still surface any open ops follow-up obligations. When the bundle exists in the external store but the status is not yet archived or the in-repo projection is absent, the tool MUST recover by applying the deltas and committing the projection without rewriting the bundle.
 
 **Tags:** `workflow`, `archive`, `idempotency`
 
 #### Scenarios
 
-**Already archived with bundle returns no-op success** (`rq-archiveRetryIdempotence01.1`)
+**Already archived with committed in-repo projection returns no-op success** (`rq-archiveRetryIdempotence01.1`)
 
 **Given:**
 - A change has status archived
-- The archive bundle exists on disk
+- The archive bundle's spec-projection.json is committed in-repo at the released commit and matches the expected projection
 
-**When:** adv_change_archive is called again
+**When:** adv_change_archive retries on this change
 
 **Then:**
-- The response has success true and noOp true
-- The response includes the existing archivePath
-- Phase 9 finalization, branch deletion, issue closure, and cleanup are not repeated
+- The tool returns bounded success with noOp: true
+- It reports the existing archive path
+- It does not repeat Phase 9 finalization, branch deletion, linked issue closure, or terminal cleanup
+- It still surfaces any open ops follow-up obligations
 
-**Bundle-only retry completes status transition** (`rq-archiveRetryIdempotence01.2`)
+**External-store bundle without committed in-repo projection routes to reconcile** (`rq-archiveRetryIdempotence01.2`)
 
 **Given:**
-- The archive bundle exists on disk
-- The change status is not archived
+- A change has status archived or is pending archive
+- An archive bundle exists in the external store
+- The in-repo spec-projection.json is absent at the released commit
 
-**When:** adv_change_archive is called
+**When:** adv_change_archive retries on this change
 
 **Then:**
-- The existing bundle is reused instead of rewritten
-- The status transition completes in the durable store
+- The tool does NOT return noOp
+- It applies the deltas and commits the projection without rewriting the external-store bundle
+- It recovers the status transition if not yet archived
 
 ---
 
@@ -6924,5 +6927,85 @@ Change enumeration MUST resolve terminal dominance per requested ID, including r
 - The closed status is preserved
 - Closed is not rewritten to archived by dominance
 - Existing closed-status handling is unchanged
+
+---
+
+### Archive Terminal Success Requires Full Delta Projection Proof
+
+**ID:** `rq-archiveDeltaReconciliation01` | **Priority:** **[MUST]**
+
+Every archive path that would report terminal success, return an archived no-op, or project archived status MUST prove each accepted delta against the released specification projection. Reconciliation MUST classify typed normalized content as missing, identical, conflicting, or unverified; apply only proven-safe missing work through the archive-owned worktree path; preserve identical work without rebumping versions; fail closed on conflicting or unverified state; and verify capability version plus generated documentation before terminal success. Bundle presence in the external store does NOT establish in-repo projection durability and MUST NOT be treated as authority that reconciliation already ran; external-store presence is advisory metadata. Historical repair MUST remain current-repository scoped, approval-gated for mutation, and must not rewrite archived evidence.
+
+**Tags:** `workflow`, `archive`, `spec-deltas`, `reconciliation`, `terminal-proof`
+
+#### Scenarios
+
+**Terminal success proves complete released projection** (`rq-archiveDeltaReconciliation01.1`)
+
+**Given:**
+- A change or archived bundle contains accepted spec deltas
+- An archive, retry, no-op, or status-repair path would report terminal success or project archived state
+
+**When:** The shared archive reconciliation gate evaluates the released projection
+
+**Then:**
+- Every accepted delta is classified from typed normalized content
+- Requirement content and capability version match the expected projection
+- Generated documentation matches the projected spec
+- Terminal success is refused unless all proof checks pass
+
+**Missing and identical state converges exactly once** (`rq-archiveDeltaReconciliation01.2`)
+
+**Given:**
+- An interrupted archive left some accepted deltas missing and others already identical
+
+**When:** Archive-owned reconciliation runs in a trusted change worktree
+
+**Then:**
+- Only proven-safe missing projection is written
+- Identical requirements are not duplicated
+- Identical capability state is not version-bumped again
+- Retry converges to the same spec and documentation bytes
+
+**Conflict or missing authority fails closed** (`rq-archiveDeltaReconciliation01.3`)
+
+**Given:**
+- A same-ID requirement differs from the expected normalized postimage or a historical mutation lacks authoritative baseline/postimage proof
+
+**When:** Reconciliation classifies the archive plan
+
+**Then:**
+- The result is conflicting or unverified
+- No spec, version, documentation, bundle, or terminal-state mutation occurs for that semantic plan
+- The response provides bounded actionable evidence
+
+**Approved historical repair preserves archive evidence** (`rq-archiveDeltaReconciliation01.4`)
+
+**Given:**
+- An operator approves current-repository historical delta reconciliation
+- Discoverable archives include complete, repairable, conflicting, or unreadable projection states
+
+**When:** The batch repair simulates archives deterministically and applies proven-safe results in a trusted repair worktree
+
+**Then:**
+- Each archive receives a complete, repaired, conflict, or unreadable disposition
+- Only proven-safe cumulative target specs and docs are written
+- Conflicting or unreadable law is not overwritten
+- Archived bundles, release evidence, gates, and terminal status remain unchanged
+
+**External-store bundle presence is not in-repo projection authority** (`rq-archiveDeltaReconciliation01.5`)
+
+**Given:**
+- A change has status archived
+- An archive bundle exists in the external store (on-disk project store)
+- The in-repo spec-projection.json is absent at the released commit because the bundle was never committed in-repo
+
+**When:** adv_change_archive retries on this change
+
+**Then:**
+- The retry MUST NOT treat external-store bundle presence as proof the in-repo projection is durable
+- The retry MUST route to reconcile: stage the bundle in-repo, apply deltas, regenerate docs, and commit
+- The retry MUST NOT return a hard refusal treating absence as corruption
+- Once the in-repo projection is committed and matches, subsequent retries converge to the idempotent no-op
 
 ---
