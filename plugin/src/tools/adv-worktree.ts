@@ -42,6 +42,10 @@ import {
   withTargetPathStore,
   type TargetProjectContext,
 } from "./target-project";
+import {
+  createWorktreeOperationContext,
+  type WorktreeOperationContext,
+} from "../utils/worktree-operation";
 
 /**
  * Safe timeout budget for worktree tool wrappers (cleanup and delete).
@@ -244,10 +248,21 @@ async function executeWorktreeResume(
 async function executeWorktreeDelete(
   args: WorktreeDeleteArgs,
   store: Store,
-  options: { serverUrl?: URL; client?: OpencodeClient } = {},
+  options: {
+    serverUrl?: URL;
+    client?: OpencodeClient;
+    operation?: WorktreeOperationContext;
+  } = {},
   context?: TargetProjectContext,
 ): Promise<string> {
   const projectRoot = store.paths.root;
+  const ownsOperation = !options.operation;
+  const operation =
+    options.operation ??
+    createWorktreeOperationContext({
+      budgetMs: WORKTREE_TOOL_SAFE_TIMEOUT_MS,
+      responseReserveMs: WORKTREE_TOOL_RETURN_RESERVE_MS,
+    });
   const database = await initWorktreeDb(projectRoot);
   const log = createLogger();
   const warpDeps = buildWarpDeps({
@@ -256,57 +271,185 @@ async function executeWorktreeDelete(
     client: options.client,
   });
 
-  // rq-worktreeBoundedCleanup02 AC1: bound delete with safe budget so the
-  // tool never exceeds the SDK's 10s hard ceiling.
+  try {
+    // The operation starts at the public handler, so target routing time is
+    // deducted before planning/execution. Keep the response reserve outside
+    // the child budget; the planner and executor then share the same remaining
+    // end-to-end budget instead of resetting their clocks after routing.
+    const effectiveTimeoutMs = Math.max(1, operation.remainingMs());
+    const operationTimeoutMs = Math.max(
+      1,
+      Math.floor(effectiveTimeoutMs - operation.responseReserveMs),
+    );
+    if (
+      operation.signal.aborted ||
+      operation.remainingMs() <= operation.responseReserveMs
+    ) {
+      return formatMaybeTargetOutput(
+        formatToolOutput({
+          ok: false,
+          timedOut: true,
+          error: `DEADLINE_EXCEEDED: adv_worktree_delete timed out during target routing`,
+          status: "deadline_exceeded",
+          stage: "target_resolution",
+          effectiveTimeoutMs,
+          remediation:
+            "Retry with a fresh dry-run plan; the shared executor owns cancellation and revalidation.",
+        }),
+        context,
+      );
+    }
+
+    const deletePromise = advWorktreeDelete(
+      args.branch,
+      {
+        ...(args.force !== undefined ? { force: args.force } : {}),
+        ...(args.dryRun !== undefined ? { dryRun: args.dryRun } : {}),
+        ...(args.planToken !== undefined ? { planToken: args.planToken } : {}),
+        ...(args.approvalEvidence !== undefined
+          ? { approvalEvidence: args.approvalEvidence }
+          : {}),
+      },
+      {
+        projectRoot,
+        database,
+        log,
+        store,
+        warpDeps,
+        operationTimeoutMs,
+      },
+    );
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutRace = new Promise<{ _timedOut: true }>((resolve) => {
+      timeoutHandle = setTimeout(
+        () => resolve({ _timedOut: true }),
+        Math.max(1, effectiveTimeoutMs),
+      );
+    });
+    const result = await Promise.race([deletePromise, timeoutRace]);
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    if ("_timedOut" in result && result._timedOut) {
+      await operation.abort("deadline");
+      return formatMaybeTargetOutput(
+        formatToolOutput({
+          ok: false,
+          timedOut: true,
+          error: `DEADLINE_EXCEEDED: adv_worktree_delete timed out after ${effectiveTimeoutMs}ms`,
+          status: "deadline_exceeded",
+          stage: "handler",
+          effectiveTimeoutMs,
+          remediation:
+            "Retry with a fresh dry-run plan; the shared executor owns cancellation and revalidation.",
+        }),
+        context,
+      );
+    }
+    return formatMaybeTargetOutput(
+      formatToolOutput(result as Awaited<ReturnType<typeof advWorktreeDelete>>),
+      context,
+    );
+  } finally {
+    if (ownsOperation) {
+      await operation.abort("operation_complete");
+      operation.dispose();
+    }
+  }
+}
+
+function targetDeleteRoutingExpired(
+  operation: WorktreeOperationContext,
+): boolean {
+  return (
+    operation.signal.aborted ||
+    operation.remainingMs() <= operation.responseReserveMs
+  );
+}
+
+function targetDeleteRoutingTimeout(effectiveTimeoutMs: number): string {
+  return formatToolOutput({
+    ok: false,
+    timedOut: true,
+    error: `DEADLINE_EXCEEDED: adv_worktree_delete target resolution timed out after ${effectiveTimeoutMs}ms`,
+    status: "deadline_exceeded",
+    stage: "target_resolution",
+    effectiveTimeoutMs,
+    remediation:
+      "Retry with a fresh dry-run plan; target routing did not finish before the internal deadline.",
+  });
+}
+
+async function executeTargetWorktreeDelete(
+  args: WorktreeDeleteArgs,
+  store: Store,
+  options: { serverUrl?: URL; client?: OpencodeClient },
+): Promise<string> {
   const { effectiveTimeoutMs } = clampToSafeBudget(undefined);
-  const deletePromise = advWorktreeDelete(
-    args.branch,
+  const operation = createWorktreeOperationContext({
+    budgetMs: effectiveTimeoutMs,
+    responseReserveMs: WORKTREE_TOOL_RETURN_RESERVE_MS,
+  });
+  const routedPromise = withTargetPathStore(
     {
-      ...(args.force !== undefined ? { force: args.force } : {}),
-      ...(args.dryRun !== undefined ? { dryRun: args.dryRun } : {}),
-      ...(args.planToken !== undefined ? { planToken: args.planToken } : {}),
-      ...(args.approvalEvidence !== undefined
-        ? { approvalEvidence: args.approvalEvidence }
-        : {}),
+      currentProjectPath: store.paths.root,
+      target_path: args.target_path!,
+      target_confirmed: args.target_confirmed,
+      confirmationEvidence: args.confirmationEvidence,
+      // The store is only a lightweight terminal-proof input. Git census and
+      // the executor own all deletion effects, including apply.
+      stateRequirement: "snapshot-ok",
+      // Keep the mutation trust gate for apply even though the store itself is
+      // deliberately not initialized or migrated.
+      mutation: !args.dryRun,
     },
-    {
-      projectRoot,
-      database,
-      log,
-      store,
-      warpDeps,
-      operationTimeoutMs: cleanupItemTimeoutForToolBudget(effectiveTimeoutMs),
+    async ({ context, store: targetStore }) => {
+      // withTargetPathStore is intentionally non-cancelling. A late target
+      // resolution may finish, but it must never enter planning or execution
+      // after the public handler has returned its timeout response.
+      if (targetDeleteRoutingExpired(operation)) {
+        return targetDeleteRoutingTimeout(effectiveTimeoutMs);
+      }
+      return executeWorktreeDelete(
+        args,
+        targetStore,
+        { ...options, operation },
+        context,
+      );
     },
   );
 
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
   const timeoutRace = new Promise<{ _timedOut: true }>((resolve) => {
     timeoutHandle = setTimeout(
       () => resolve({ _timedOut: true }),
-      effectiveTimeoutMs,
+      Math.max(1, operation.remainingMs() - operation.responseReserveMs),
     );
   });
-  const result = await Promise.race([deletePromise, timeoutRace]);
-  if (timeoutHandle) clearTimeout(timeoutHandle);
-  if ("_timedOut" in result && result._timedOut) {
-    return formatMaybeTargetOutput(
-      formatToolOutput({
-        ok: false,
-        timedOut: true,
-        error: `DEADLINE_EXCEEDED: adv_worktree_delete timed out after ${effectiveTimeoutMs}ms`,
-        status: "deadline_exceeded",
-        stage: "handler",
-        effectiveTimeoutMs,
-        remediation:
-          "Retry with a fresh dry-run plan; the shared executor owns cancellation and revalidation.",
-      }),
-      context,
-    );
+  try {
+    const result = await Promise.race([routedPromise, timeoutRace]);
+    if (typeof result !== "string") {
+      if (result._timedOut) {
+        timedOut = true;
+        await operation.abort("target_resolution_deadline");
+        return targetDeleteRoutingTimeout(effectiveTimeoutMs);
+      }
+      throw new Error("unexpected target delete routing result");
+    }
+    return result;
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    if (timedOut) {
+      // Keep the aborted guard alive until the non-cancelling resolution
+      // settles, then release its deadline timer and child leases.
+      void routedPromise.then(
+        () => operation.dispose(),
+        () => operation.dispose(),
+      );
+    } else {
+      operation.dispose();
+    }
   }
-  return formatMaybeTargetOutput(
-    formatToolOutput(result as Awaited<ReturnType<typeof advWorktreeDelete>>),
-    context,
-  );
 }
 
 async function executeWorktreeCleanup(
@@ -890,18 +1033,7 @@ export const advWorktreeTools = {
       // rq-worktreeTargetCleanup01: target_path delete uses the target store
       // while preserving advWorktreeDelete as the sole deletion authority.
       if (args.target_path) {
-        return withTargetPathStore(
-          {
-            currentProjectPath: store.paths.root,
-            target_path: args.target_path,
-            target_confirmed: args.target_confirmed,
-            confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "authoritative",
-            mutation: !args.dryRun,
-          },
-          async ({ context, store: targetStore }) =>
-            executeWorktreeDelete(args, targetStore, options, context),
-        );
+        return executeTargetWorktreeDelete(args, store, options);
       }
       return executeWorktreeDelete(args, store, options);
     },

@@ -2,7 +2,7 @@
  * Smoke tests for ADV worktree tool wrappers.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const worktreeMock = vi.hoisted(() => ({
   advWorktreeCreate: vi.fn(),
@@ -85,6 +85,10 @@ describe("advWorktreeTools", () => {
           store: targetStore,
         }),
     );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("adv_worktree_create delegates to advWorktreeCreate", async () => {
@@ -756,6 +760,8 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target cleanup",
+        planToken: "target-plan-token",
+        approvalEvidence: "User approved exact target deletion plan",
       },
       store,
     );
@@ -766,20 +772,133 @@ describe("advWorktreeTools", () => {
         target_path: "/target",
         target_confirmed: true,
         confirmationEvidence: "User approved target cleanup",
-        stateRequirement: "authoritative",
+        stateRequirement: "snapshot-ok",
+        mutation: true,
       }),
       expect.any(Function),
     );
     expect(stateMock.initStateDb).toHaveBeenCalledWith("/target");
     expect(worktreeMock.advWorktreeDelete).toHaveBeenCalledWith(
       "change/x",
-      expect.any(Object),
+      expect.objectContaining({
+        planToken: "target-plan-token",
+        approvalEvidence: "User approved exact target deletion plan",
+      }),
       expect.objectContaining({
         projectRoot: "/target",
         database,
         store: targetStore,
       }),
     );
+  });
+
+  it("adv_worktree_delete routes dry-run target reads through snapshot access without mutation trust", async () => {
+    const database = {
+      projectDir: "/target",
+      projectId: "0a00e00000ec0000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDelete.mockResolvedValue({
+      ok: true,
+      branch: "change/x",
+      dryRun: true,
+    });
+
+    await advWorktreeTools.adv_worktree_delete.execute(
+      { branch: "change/x", dryRun: true, target_path: "/target" },
+      store,
+    );
+
+    expect(targetProjectMock.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stateRequirement: "snapshot-ok",
+        mutation: false,
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it("adv_worktree_delete passes only the remaining target-routing budget to planning", async () => {
+    const database = {
+      projectDir: "/target",
+      projectId: "0a00e00000ec0000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDelete.mockResolvedValue({
+      ok: true,
+      branch: "change/x",
+    });
+    targetProjectMock.withTargetPathStore.mockImplementation(
+      async (_input, fn) => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return fn({
+          context: {
+            root: "/target",
+            projectId: "0a00e00000ec0000000000000000000000000000",
+            externalRoot: "/external/target-project",
+            trusted: true,
+            trustSource: "explicit",
+            stateMode: "disk-snapshot",
+          },
+          store: targetStore,
+        });
+      },
+    );
+
+    await advWorktreeTools.adv_worktree_delete.execute(
+      { branch: "change/x", target_path: "/target", dryRun: true },
+      store,
+    );
+
+    const [, , deps] = worktreeMock.advWorktreeDelete.mock.calls.at(-1)!;
+    expect(deps.operationTimeoutMs).toBeLessThan(
+      WORKTREE_TOOL_SAFE_TIMEOUT_MS - 500,
+    );
+    expect(deps.operationTimeoutMs).toBeGreaterThan(1);
+  });
+
+  it("adv_worktree_delete returns a typed target-resolution timeout and blocks a late callback", async () => {
+    vi.useFakeTimers();
+    let releaseTarget!: () => void;
+    let lateRoute!: Promise<unknown>;
+    const targetPending = new Promise<void>((resolve) => {
+      releaseTarget = resolve;
+    });
+    targetProjectMock.withTargetPathStore.mockImplementation(
+      async (_input, fn) => {
+        await targetPending;
+        lateRoute = fn({
+          context: {
+            root: "/target",
+            projectId: "0a00e00000ec0000000000000000000000000000",
+            externalRoot: "/external/target-project",
+            trusted: true,
+            trustSource: "explicit",
+            stateMode: "disk-snapshot",
+          },
+          store: targetStore,
+        });
+        return lateRoute;
+      },
+    );
+
+    const resultPromise = advWorktreeTools.adv_worktree_delete.execute(
+      { branch: "change/x", target_path: "/target", dryRun: true },
+      store,
+    );
+    await vi.advanceTimersByTimeAsync(WORKTREE_TOOL_SAFE_TIMEOUT_MS - 500 + 1);
+
+    const parsed = JSON.parse(await resultPromise);
+    expect(parsed).toMatchObject({
+      timedOut: true,
+      status: "deadline_exceeded",
+      stage: "target_resolution",
+    });
+
+    releaseTarget();
+    await vi.runAllTicks();
+    await lateRoute;
+    expect(worktreeMock.advWorktreeDelete).not.toHaveBeenCalled();
   });
 
   it("adv_worktree_delete rejects unconfirmed target mutation before deleting", async () => {
