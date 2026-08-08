@@ -4,11 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 
 import { partitionEslintTargets, runSlopScan } from "./scan";
-import type {
-  ToolRunRequest,
-  ToolRunResult,
-  ToolRunner,
-} from "./runner";
+import type { ToolRunRequest, ToolRunResult, ToolRunner } from "./runner";
 
 interface RecordedCall {
   detectorId: string;
@@ -25,8 +21,7 @@ function makeResult(
     detectorId: request.detectorId,
     command: request.command,
     status,
-    exitCode:
-      status === "success" ? 0 : status === "unavailable" ? null : 1,
+    exitCode: status === "success" ? 0 : status === "unavailable" ? null : 1,
     stdout,
     stderr: "",
     durationMs: 0,
@@ -36,6 +31,7 @@ function makeResult(
 interface FakeOptions {
   astGrep?: "success" | "unavailable";
   jscpd?: "success" | "unavailable";
+  failEslintTarget?: string;
 }
 
 function makeFakeRunner(opts: FakeOptions = {}): {
@@ -56,7 +52,8 @@ function makeFakeRunner(opts: FakeOptions = {}): {
       }
 
       if (request.detectorId === "jscpd") {
-        if (opts.jscpd === "unavailable") return makeResult(request, "unavailable");
+        if (opts.jscpd === "unavailable")
+          return makeResult(request, "unavailable");
         // Mirror the real adapter: jscpd writes its JSON report to the --output dir.
         const outIdx = request.command.indexOf("--output");
         const outDir = outIdx >= 0 ? request.command[outIdx + 1] : undefined;
@@ -72,6 +69,14 @@ function makeFakeRunner(opts: FakeOptions = {}): {
 
       if (request.detectorId === "knip") {
         return makeResult(request, "success", JSON.stringify({ issues: [] }));
+      }
+
+      if (
+        request.detectorId === "eslint" &&
+        opts.failEslintTarget &&
+        request.command.at(-1) === opts.failEslintTarget
+      ) {
+        return makeResult(request, "failed");
       }
 
       // eslint + ast-grep(success): empty array stdout parses cleanly.
@@ -110,7 +115,9 @@ describe("slop-scan detector dispatch", () => {
     await runSlopScan({ repoRoot, requestedPath: "plugin/src/a.ts", runner });
 
     const packageRoot = join(repoRoot, "plugin");
-    const byId = Object.fromEntries(calls.map((call) => [call.detectorId, call]));
+    const byId = Object.fromEntries(
+      calls.map((call) => [call.detectorId, call]),
+    );
 
     expect(byId["ast-grep"].cwd).toBe(packageRoot);
     expect(byId["jscpd"].cwd).toBe(packageRoot);
@@ -126,13 +133,18 @@ describe("slop-scan detector dispatch", () => {
     ]);
     // Package-local detectors already share the package root cwd.
     expect(byId["eslint"].cwd).toBe(packageRoot);
-    expect(byId["eslint"].command.at(-1)).toBe(join(repoRoot, "plugin", "src", "a.ts"));
+    expect(byId["eslint"].command.at(-1)).toBe(
+      join(repoRoot, "plugin", "src", "a.ts"),
+    );
     expect(byId["knip"].cwd).toBe(packageRoot);
   });
 
   test("recovers a required detector from degraded to run when the tool becomes available", async () => {
     // Run 1: ast-grep unavailable -> required coverage degrades the scan.
-    const degraded = makeFakeRunner({ astGrep: "unavailable", jscpd: "unavailable" });
+    const degraded = makeFakeRunner({
+      astGrep: "unavailable",
+      jscpd: "unavailable",
+    });
     const degradedReport = await runSlopScan({
       repoRoot,
       requestedPath: "plugin/src/a.ts",
@@ -159,7 +171,8 @@ describe("slop-scan detector dispatch", () => {
     );
     expect(recoveredAstGrep?.state).toBe("run");
     expect(
-      recoveredReport.failure?.failedDetectors.map((detector) => detector.id) ?? [],
+      recoveredReport.failure?.failedDetectors.map((detector) => detector.id) ??
+        [],
     ).not.toContain("ast-grep");
   });
 
@@ -170,7 +183,9 @@ describe("slop-scan detector dispatch", () => {
     const report = await runSlopScan({ repoRoot, requestedPath: ".", runner });
 
     const packageRoot = join(repoRoot, "plugin");
-    const byId = Object.fromEntries(calls.map((call) => [call.detectorId, call]));
+    const byId = Object.fromEntries(
+      calls.map((call) => [call.detectorId, call]),
+    );
 
     expect(byId["eslint"].cwd).toBe(packageRoot);
     expect(byId["knip"].cwd).toBe(packageRoot);
@@ -189,7 +204,14 @@ describe("slop-scan detector dispatch", () => {
 
     const partition = await partitionEslintTargets(repoRoot, repoRoot);
     expect(partition).toEqual({
-      covered: [{ configRoot: join(repoRoot, "plugin"), target: join(repoRoot, "plugin") }],
+      covered: [
+        {
+          configRoot: join(repoRoot, "plugin"),
+          target: join(repoRoot, "plugin"),
+        },
+      ],
+      // Collapses to the shallowest unlinted directory rather than listing
+      // every unlinted file beneath it — one coverage entry per region.
       uncovered: [join(repoRoot, "bin")],
     });
 
@@ -199,7 +221,10 @@ describe("slop-scan detector dispatch", () => {
 
     expect(eslintCalls).toHaveLength(1);
     expect(eslintCalls[0]?.command.at(-1)).toBe(join(repoRoot, "plugin"));
-    expect(report.coverage.detectors.find((detector) => detector.id === "eslint")?.state).toBe("run");
+    expect(
+      report.coverage.detectors.find((detector) => detector.id === "eslint")
+        ?.state,
+    ).toBe("run");
 
     const uncovered = report.coverage.detectors.find(
       (detector) => detector.id === "eslint:bin",
@@ -212,6 +237,45 @@ describe("slop-scan detector dispatch", () => {
     expect(uncovered?.reason).toBe(
       "no eslint.config.* reachable from bin; region not linted",
     );
+
+    // Region collapse must not fan out to per-file entries.
+    const eslintEntries = report.coverage.detectors.filter((detector) =>
+      detector.id.startsWith("eslint:"),
+    );
+    expect(eslintEntries).toHaveLength(1);
+  });
+
+  test("finds covered regions below config-less intermediate directories and reports loose source files", async () => {
+    await mkdir(join(repoRoot, "packages", "nested", "src"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(repoRoot, "packages", "nested", "src", "index.ts"),
+      "export const nested = 1;\n",
+    );
+    await writeFile(
+      join(repoRoot, "packages", "nested", "eslint.config.js"),
+      "export default [];\n",
+    );
+    await writeFile(
+      join(repoRoot, "root-source.ts"),
+      "export const root = 1;\n",
+    );
+
+    const partition = await partitionEslintTargets(repoRoot, repoRoot);
+    expect(partition).toEqual({
+      covered: [
+        {
+          configRoot: join(repoRoot, "packages", "nested"),
+          target: join(repoRoot, "packages", "nested"),
+        },
+        {
+          configRoot: join(repoRoot, "plugin"),
+          target: join(repoRoot, "plugin"),
+        },
+      ],
+      uncovered: [join(repoRoot, "root-source.ts")],
+    });
   });
 
   test("fails closed when every eslint region is uncovered", async () => {
@@ -297,6 +361,50 @@ describe("slop-scan detector dispatch", () => {
     }
   });
 
+  test("preserves a failed covered region instead of reporting eslint as complete", async () => {
+    const multiRegionRepo = await mkdtemp(
+      join(tmpdir(), "slop-scan-eslint-partial-failure-"),
+    );
+    try {
+      await writeFile(
+        join(multiRegionRepo, "package.json"),
+        JSON.stringify({ name: "multi-region", type: "module" }),
+      );
+      for (const region of ["one", "two"]) {
+        await mkdir(join(multiRegionRepo, "packages", region, "src"), {
+          recursive: true,
+        });
+        await writeFile(
+          join(multiRegionRepo, "packages", region, "src", "index.ts"),
+          `export const ${region} = 1;\n`,
+        );
+        await writeFile(
+          join(multiRegionRepo, "packages", region, "eslint.config.js"),
+          "export default [];\n",
+        );
+      }
+
+      const failedTarget = join(multiRegionRepo, "packages", "two");
+      const { runner } = makeFakeRunner({ failEslintTarget: failedTarget });
+      const report = await runSlopScan({
+        repoRoot: multiRegionRepo,
+        requestedPath: "packages",
+        runner,
+      });
+
+      expect(report.coverage.detectors).toContainEqual(
+        expect.objectContaining({
+          id: "eslint:packages/two",
+          state: "failed",
+          important: true,
+        }),
+      );
+      expect(report.failure?.code).toBe("SLOP_SCAN_DEGRADED");
+    } finally {
+      await rm(multiRegionRepo, { recursive: true, force: true });
+    }
+  });
+
   test("fails with actionable error when multiple nested package.json roots exist", async () => {
     // Separate repo with two nested packages so the resolver cannot pick deterministically.
     const multiRepo = await mkdtemp(join(tmpdir(), "slop-scan-multi-"));
@@ -321,14 +429,20 @@ describe("slop-scan detector dispatch", () => {
       );
 
       const { runner } = makeFakeRunner();
-      const report = await runSlopScan({ repoRoot: multiRepo, requestedPath: ".", runner });
+      const report = await runSlopScan({
+        repoRoot: multiRepo,
+        requestedPath: ".",
+        runner,
+      });
 
       // Required coverage degrades with an actionable ambiguity message.
       expect(report.failure?.code).toBe("SLOP_SCAN_DEGRADED");
       expect(report.failure?.message ?? "").toContain("plugin");
       expect(report.failure?.message ?? "").toContain("other-pkg");
       // Each applicable required detector is marked failed with the ambiguity reason.
-      const requiredDetectors = report.coverage.detectors.filter((d) => d.important);
+      const requiredDetectors = report.coverage.detectors.filter(
+        (d) => d.important,
+      );
       expect(requiredDetectors.length).toBeGreaterThan(0);
       for (const detector of requiredDetectors) {
         expect(detector.state).toBe("failed");
@@ -345,7 +459,9 @@ describe("slop-scan detector dispatch", () => {
     await runSlopScan({ repoRoot, requestedPath: "plugin/src/a.ts", runner });
 
     const packageRoot = join(repoRoot, "plugin");
-    const byId = Object.fromEntries(calls.map((call) => [call.detectorId, call]));
+    const byId = Object.fromEntries(
+      calls.map((call) => [call.detectorId, call]),
+    );
 
     expect(byId["eslint"].cwd).toBe(packageRoot);
     expect(byId["knip"].cwd).toBe(packageRoot);

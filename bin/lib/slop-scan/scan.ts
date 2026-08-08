@@ -229,7 +229,8 @@ async function reachableEslintConfigRoot(
   const root = resolve(repoRoot);
   const absoluteTarget = resolve(target);
   const relativeTarget = relative(root, absoluteTarget);
-  if (relativeTarget.startsWith("..") || isAbsolute(relativeTarget)) return null;
+  if (relativeTarget.startsWith("..") || isAbsolute(relativeTarget))
+    return null;
 
   const targetInfo = await stat(absoluteTarget).catch(() => null);
   let current = targetInfo?.isFile() ? dirname(absoluteTarget) : absoluteTarget;
@@ -244,7 +245,10 @@ async function reachableEslintConfigRoot(
     for (const entry of entries) {
       if (!entry.name.startsWith("eslint.config.")) continue;
       const configPath = join(current, entry.name);
-      if (entry.isFile() || (await stat(configPath).catch(() => null))?.isFile()) {
+      if (
+        entry.isFile() ||
+        (await stat(configPath).catch(() => null))?.isFile()
+      ) {
         return current;
       }
     }
@@ -267,37 +271,65 @@ export async function partitionEslintTargets(
 ): Promise<EslintTargetPartition> {
   const root = resolve(repoRoot);
   const target = resolve(absoluteTarget);
-  const configRoot = await reachableEslintConfigRoot(root, target);
-  if (configRoot) {
-    return { covered: [{ configRoot, target }], uncovered: [] };
-  }
-
-  const targetInfo = await stat(target).catch(() => null);
-  if (!targetInfo?.isDirectory()) {
-    return { covered: [], uncovered: targetInfo?.isFile() ? [target] : [] };
-  }
-
-  let entries;
-  try {
-    entries = await readdir(target, { withFileTypes: true });
-  } catch {
-    return { covered: [], uncovered: [] };
-  }
-
   const grouped = new Map<string, string>();
   const uncovered: string[] = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory() || SKIP_DIRS.has(entry.name)) continue;
-    const child = join(target, entry.name);
-    if (!(await directoryContainsSource(child))) continue;
 
-    const childConfigRoot = await reachableEslintConfigRoot(root, child);
-    if (!childConfigRoot) {
-      uncovered.push(child);
-      continue;
+  /**
+   * Returns true when a covered region exists at or below `current`.
+   *
+   * Uncovered subtrees collapse to their shallowest directory so coverage
+   * reports one entry per unlinted region rather than one per unlinted file.
+   * Individual entries are only emitted for siblings of a covered region —
+   * e.g. a loose source file at a repo root whose packages are linted.
+   */
+  async function visit(current: string): Promise<boolean> {
+    const configRoot = await reachableEslintConfigRoot(root, current);
+    if (configRoot) {
+      if (!grouped.has(configRoot)) grouped.set(configRoot, current);
+      return true;
     }
-    if (!grouped.has(childConfigRoot)) grouped.set(childConfigRoot, child);
+
+    const info = await stat(current).catch(() => null);
+    if (info?.isFile()) {
+      const dot = current.lastIndexOf(".");
+      return dot >= 0 && SOURCE_EXTENSIONS.has(current.slice(dot))
+        ? (pending.push(current), false)
+        : false;
+    }
+    if (!info?.isDirectory()) return false;
+
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+
+    const childPending: string[] = [];
+    let anyCovered = false;
+    for (const entry of entries) {
+      if (SKIP_DIRS.has(entry.name)) continue;
+      if (!entry.isDirectory() && !entry.isFile()) continue;
+      const child = join(current, entry.name);
+      const before = pending.length;
+      if (await visit(child)) anyCovered = true;
+      childPending.push(...pending.splice(before));
+    }
+
+    if (anyCovered) {
+      // A sibling is linted, so report the unlinted siblings individually.
+      pending.push(...childPending);
+      return true;
+    }
+
+    // Nothing beneath this directory is linted — collapse to one entry.
+    if (childPending.length > 0) pending.push(current);
+    return false;
   }
+
+  const pending: string[] = [];
+  await visit(target);
+  uncovered.push(...pending);
 
   const covered = [...grouped.entries()]
     .map(([childConfigRoot, child]) => ({
@@ -355,7 +387,9 @@ async function buildAmbiguousPackageRootReport(
   for (const detector of detectors) {
     if (detector.id === "external-ci-semgrep") {
       // External CI coverage does not depend on the package root; report it normally.
-      report.coverage.detectors.push(await semgrepCoverage(report.scope.repoRoot));
+      report.coverage.detectors.push(
+        await semgrepCoverage(report.scope.repoRoot),
+      );
       continue;
     }
     report.coverage.detectors.push(ambiguousCoverageEntry(detector, reason));
@@ -473,6 +507,8 @@ export async function runSlopScan(
           absoluteTarget,
         );
         const eslintCoverage: DetectorCoverage[] = [];
+        const eslintRegions: { target: string; coverage: DetectorCoverage }[] =
+          [];
         for (const { target } of targets.covered) {
           const result = await runner.run({
             detectorId: detector.id,
@@ -491,6 +527,9 @@ export async function runSlopScan(
             findings,
             eslintCoverage,
           );
+          const regionCoverage = eslintCoverage.at(-1);
+          if (regionCoverage)
+            eslintRegions.push({ target, coverage: regionCoverage });
         }
 
         if (targets.covered.length === 0) {
@@ -502,10 +541,12 @@ export async function runSlopScan(
             important: detector.important,
           });
         } else {
-          const ran = eslintCoverage.find((entry) => entry.state === "run");
+          const ran = eslintRegions.find(
+            ({ coverage: entry }) => entry.state === "run",
+          );
           coverage.push(
-            ran ??
-              eslintCoverage[0] ?? {
+            ran?.coverage ??
+              eslintRegions[0]?.coverage ?? {
                 id: detector.id,
                 label: detector.label,
                 state: "unavailable",
@@ -513,6 +554,13 @@ export async function runSlopScan(
                 important: detector.important,
               },
           );
+          for (const region of eslintRegions) {
+            if (region === ran || region.coverage.state === "run") continue;
+            coverage.push({
+              ...region.coverage,
+              id: `${detector.id}:${toRepoRelative(region.target, options.repoRoot)}`,
+            });
+          }
         }
 
         for (const uncovered of targets.uncovered) {
