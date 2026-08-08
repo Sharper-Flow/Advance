@@ -58,6 +58,8 @@ scripts/provider-eval-results/
 
 # ADV working state (local project data - in .adv directory)
 .adv/changes/
+# Same ADV runtime projections when the store root is plugin/ (untracked by design)
+plugin/.adv/
 # Leaked-in-repo runtime files: ADV state lives outside the repo per AGENTS.md.
 # Add explicit ignores so accidental fallback writes don't get committed.
 .adv/agenda.jsonl
