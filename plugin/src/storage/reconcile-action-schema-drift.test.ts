@@ -214,9 +214,8 @@ describe("schema drift reconcile action executors", () => {
 
     expect(result.status).toBe("mutated");
     expect(
-      ChangeSchema.safeParse(
-        JSON.parse(await readFile(sourcePath, "utf8")),
-      ).success,
+      ChangeSchema.safeParse(JSON.parse(await readFile(sourcePath, "utf8")))
+        .success,
     ).toBe(true);
   });
 

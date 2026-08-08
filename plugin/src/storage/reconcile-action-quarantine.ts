@@ -143,7 +143,9 @@ async function findQuarantinedChangeFiles(
     if (entry.isFile() && entry.name === "change.json") {
       files.push(candidate);
     } else if (entry.isDirectory()) {
-      files.push(...(await findQuarantinedChangeFiles(candidate, quarantineRoot)));
+      files.push(
+        ...(await findQuarantinedChangeFiles(candidate, quarantineRoot)),
+      );
     }
   }
   return files;
@@ -398,6 +400,20 @@ export const quarantineToTrashExecutor: ActionExecutor = async (
   );
   try {
     await mkdir(dirname(target), { recursive: true });
+    try {
+      await access(target);
+      return failed(
+        "noise_quarantine_target_exists",
+        `${record.record_id}: refusing to overwrite existing quarantine entry ${target}`,
+      );
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        return failed(
+          "noise_quarantine_target_check_failed",
+          `${record.record_id}: could not verify quarantine target ${target}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
     await rename(record.source_path, target);
     return { status: "mutated" };
   } catch (error) {

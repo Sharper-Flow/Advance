@@ -586,6 +586,8 @@ describe("store reconciliation integration", () => {
       const report = applied.report as {
         counters: { mutated: number; failed: number };
       };
+      expect(report.counters.failed).toBe(0);
+      expect(report.counters.mutated).toBeGreaterThan(0);
       const failedRecords = (
         applied.report as { records: Array<Record<string, unknown>> }
       ).records.filter((record) => record.status === "failed");

@@ -63,8 +63,10 @@ import {
 } from "./reconcile-plan";
 import {
   computeReconcileCompletionProof,
+  runUnboundedProjectionDivergenceScan,
   type ReconcileCompletionProof,
 } from "./reconcile-proof";
+import type { ProjectionDivergenceScan } from "./projection-health";
 import type { SummaryIndexPaths } from "./change-summary-shard";
 import { runStoreResidueScan } from "./store-residue-scan";
 import {
@@ -380,6 +382,7 @@ export interface ReconcileApplyDeps {
   now?: () => string;
   completionProof?: (
     paths: SummaryIndexPaths,
+    before?: ProjectionDivergenceScan,
   ) => Promise<ReconcileCompletionProof>;
 }
 
@@ -513,6 +516,40 @@ export async function runReconcileApply({
   let skipped = 0;
   let failed = 0;
   try {
+    const proofPaths: SummaryIndexPaths = {
+      changesDir: storePaths.changes,
+      summariesDir: storePaths.summariesDir,
+    };
+    let beforeProof: ProjectionDivergenceScan;
+    try {
+      // Capture the baseline while the reconcile lock is held. Passing this
+      // exact scan into the final proof makes its before/after counts describe
+      // the mutation window, rather than two post-apply observations.
+      beforeProof = await runUnboundedProjectionDivergenceScan(proofPaths);
+    } catch (error) {
+      const failure = await computeReconcileCompletionProof({
+        paths: proofPaths,
+        deps: {
+          scan: async () => {
+            throw error;
+          },
+        },
+      });
+      const report: ReconcileRunReport = {
+        schema_version: 1,
+        run_id: runId,
+        mode: "execute",
+        started_at: startedAt,
+        finished_at: now(),
+        interrupted: false,
+        records: [],
+        counters: { mutated, skipped, failed },
+        residuals: [failure.error ?? "before proof scan failed"],
+        proof: failure,
+      };
+      await writeReconcileRunReport(currentRunDir, report);
+      return report;
+    }
     const auditWriter =
       deps.auditWriter ??
       ((event: ReconcileAuditEvent) =>
@@ -715,11 +752,13 @@ export async function runReconcileApply({
     }
     const completionProof = await (
       deps.completionProof ??
-      ((paths) => computeReconcileCompletionProof({ paths }))
-    )({
-      changesDir: storePaths.changes,
-      summariesDir: storePaths.summariesDir,
-    });
+      ((paths, before) => computeReconcileCompletionProof({ paths, before }))
+    )(
+      {
+        ...proofPaths,
+      },
+      beforeProof,
+    );
     const report: ReconcileRunReport = {
       schema_version: 1,
       run_id: runId,

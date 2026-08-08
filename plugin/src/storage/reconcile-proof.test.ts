@@ -72,7 +72,8 @@ describe("computeReconcileCompletionProof", () => {
       const created = await store.changes.create("Legacy newer proof fixture");
       const loaded = await store.changes.get(created.changeId);
       expect(loaded.success).toBe(true);
-      if (!loaded.success || !loaded.data) throw new Error("fixture load failed");
+      if (!loaded.success || !loaded.data)
+        throw new Error("fixture load failed");
       await writeFile(
         join(paths.changes, `${created.changeId}.json`),
         JSON.stringify({ state: { ...loaded.data, projection_revision: 99 } }),

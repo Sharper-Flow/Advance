@@ -363,6 +363,7 @@ describe("reconcile apply", () => {
         documented_whitelist: [],
         error: "after proof scan failed: disk read failed",
       } as never;
+      let proofBefore: unknown;
       const report = await runReconcileApply({
         storePaths: data.paths,
         plan,
@@ -376,12 +377,19 @@ describe("reconcile apply", () => {
               status: "skipped",
             }),
           },
-          completionProof: async () => proof,
+          completionProof: async (_paths, before) => {
+            proofBefore = before;
+            return proof;
+          },
         },
       });
       expect(report.proof).toBe(proof);
       expect(report.proof?.complete).toBe(false);
       expect(reconcileExitCode(report)).toBe(5);
+      expect(proofBefore).toMatchObject({
+        truncated: false,
+        budgetExceeded: false,
+      });
     } finally {
       await data.cleanup();
     }

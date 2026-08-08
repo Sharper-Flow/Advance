@@ -191,6 +191,37 @@ describe("quarantine reconcile action executors", () => {
     expect(await readFile(noisePath, "utf8")).toBe(noiseBytes);
   });
 
+  test("refuses to overwrite an existing quarantine noise entry", async () => {
+    const data = await fixture({ ...SAMPLE_CHANGE, id: CHANGE_ID });
+    const noisePath = join(
+      data.paths.external ?? data.paths.root,
+      "orphan.json",
+    );
+    const existingTarget = join(
+      data.paths.quarantineChanges,
+      "noise",
+      "orphan.json",
+    );
+    await writeFile(noisePath, "source bytes", "utf8");
+    await mkdir(join(data.paths.quarantineChanges, "noise"), {
+      recursive: true,
+    });
+    await writeFile(existingTarget, "existing bytes", "utf8");
+
+    const outcome = await quarantineToTrashExecutor(
+      record(noisePath, "quarantine_to_trash", "unknown_store_noise"),
+      { class: "unknown_store_noise", action: "quarantine_to_trash" },
+      data.ctx,
+    );
+
+    expect(outcome).toMatchObject({
+      status: "failed",
+      error_class: "noise_quarantine_target_exists",
+    });
+    expect(await readFile(noisePath, "utf8")).toBe("source bytes");
+    expect(await readFile(existingTarget, "utf8")).toBe("existing bytes");
+  });
+
   test("refuses a mismatched action context and an existing readable target", async () => {
     const data = await fixture({
       ...SAMPLE_CHANGE,
