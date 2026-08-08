@@ -360,25 +360,25 @@
     "proposal": {
       "updatedAt": "2026-07-21T23:05:19.377Z",
       "contentHash": "281cb7a1c6b3fe70693089b07eda58359b5b7235f1ae992efcea37e737388340",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-24T22:56:52.193Z",
       "contentHash": "de8230b21b893da45ea01d30e278e8727afc833d7509b957ec53c4a16b8b12b6",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-24T22:56:52.193Z",
       "contentHash": "a9611f6e2b9bd7617df6237f4a8e3be8817b7880419e71f8a113895c1cc5fe2b",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-24T23:06:12.281Z",
       "contentHash": "e6f2b2536d14ea9b7181fcafacefc3434ecb171b54ea7b17d135cf7731520f39",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

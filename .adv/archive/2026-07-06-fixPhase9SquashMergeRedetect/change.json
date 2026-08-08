@@ -769,31 +769,31 @@
     "problemStatement": {
       "updatedAt": "2026-07-05T23:46:10.227Z",
       "contentHash": "1a34a3443e4eed59629f123c48f16c6ef3177b55dff946b239209f1e0419ecf4",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-05T23:46:40.981Z",
       "contentHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-05T23:57:43.661Z",
       "contentHash": "ba0e746da2f85dd9e51c87be2a891fb46fa14d8ca801687337618ee47a6912f1",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "proposal": {
       "updatedAt": "2026-07-05T23:35:34.967Z",
       "contentHash": "bad6d3ac811a1cbbce3fb5c8498f22cf008bd7b9d9968a3322080da5d8c55ba8",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-06T00:39:04.566Z",
       "contentHash": "4e6cd61841e16c136e3c2e7d4b4116ea09fd8b0e6aa5b5be102179ea603867a7",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

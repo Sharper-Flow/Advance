@@ -1523,25 +1523,25 @@
     "problemStatement": {
       "updatedAt": "2026-07-25T07:35:58.621Z",
       "contentHash": "f47028aebd2f6d44f18823590a6e436bb9ce1566f5a736c47b10266dcfdc3fec",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-25T07:35:58.621Z",
       "contentHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-25T07:41:19.807Z",
       "contentHash": "85c03b07333031f7a93822a8c39e5c830025405b482343c595afb8c80f0dca30",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-25T15:50:15.335Z",
       "contentHash": "af0ece7328d63e1ac9b51da6e32d19a5e4df3e009d315b66f5e2db5410ce5310",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

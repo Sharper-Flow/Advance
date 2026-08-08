@@ -2684,31 +2684,31 @@
     "proposal": {
       "updatedAt": "2026-07-31T01:03:59.266Z",
       "contentHash": "951ac9ede5ccd086e5f9259a49888a0e01e254cc1ddc5239678347c321006e44",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-31T00:31:53.913Z",
       "contentHash": "691668121f48627581c224e7d47a392b8c1a426e3c93ac63b2e3e5984592a53b",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-31T01:18:36.516Z",
       "contentHash": "221fdc489b061c336ee4e77b81f8e358d0614d443c3682af7afeca8926a3778a",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-31T01:28:04.355Z",
       "contentHash": "d31acdf56193831078aecfba841ab538b0d8e2b76970e95bb83902eac40aa576",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-31T17:40:49.781Z",
       "contentHash": "baf2327ce594a2cbd47addc1a00ec81165637c08ebd41c3c08f153f3195e5ee3",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

@@ -1952,31 +1952,31 @@
     "proposal": {
       "updatedAt": "2026-07-23T14:33:33.126Z",
       "contentHash": "8d5ef2ed811d2f19adac2e89dcd035f446c624fa4e0cd5202df804ed08e6caf8",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-22T19:59:10.719Z",
       "contentHash": "ebc61b9ee6a7a52dc05efd9a50acf9e1d07c2d71d6d9aebb6f29b79fd76e72fc",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-23T15:05:26.830Z",
       "contentHash": "0ae330b790831b99721c8692558532bd2dd26322ee5e49e8a1c606a1a399d3e9",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-23T15:13:50.432Z",
       "contentHash": "6bcc72ec5422a9a416cca65a31a792cb7a475a47dd322ca5194b42eae7de0a29",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-23T17:50:31.266Z",
       "contentHash": "75f03c585bc8b3cd0fa9caed71327adfe02c0ce29bc7098c09a422a0275cf7fd",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

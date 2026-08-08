@@ -1685,25 +1685,25 @@
     "proposal": {
       "updatedAt": "2026-07-21T16:31:15.100Z",
       "contentHash": "e8e521ec9dcccd519a0a84700ffa6e38ff841942344db8ef8fb11216033216b8",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-21T16:42:58.865Z",
       "contentHash": "4f3133cd6f8661d8373e2fba455f4e86b8ecf6e8ddfc6d69d00f760dce62c48a",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-21T16:52:11.136Z",
       "contentHash": "77f974408f2ed4f7b114307f1f457256f60090335887722c64114c104a6884d5",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-21T19:31:03.881Z",
       "contentHash": "e0529dc70584ee7045cc8b356d216a062fb0cc8a8668143e77e96152aacb59c6",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

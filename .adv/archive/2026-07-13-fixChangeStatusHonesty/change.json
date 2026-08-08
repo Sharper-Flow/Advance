@@ -2004,31 +2004,31 @@
     "proposal": {
       "updatedAt": "2026-07-13T18:56:34.694Z",
       "contentHash": "312aeaa258ae8a015e18eca812cc3e1e405915fc380f6a47ea062994813ed609",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-13T18:56:34.694Z",
       "contentHash": "b7f83ce03bf346e5ef962912b38f842ee89a3542db14e23aa122a8bf9d98d3f3",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-13T19:02:22.270Z",
       "contentHash": "d05524355731e5506c33bf59c01f6bfaf100995220f08ab5cb99b42d1106085e",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-13T19:32:19.627Z",
       "contentHash": "877e055c8c8539de1db430b4725959dce9d846f79092b8c922a8f70d2ddce7d4",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-13T22:36:03.911Z",
       "contentHash": "daddbd91dadd52bf4eaa164811547eb3bce7318c1355cc74028370ae62c2e3b9",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

@@ -4181,31 +4181,31 @@
     "proposal": {
       "updatedAt": "2026-07-29T19:10:39.566Z",
       "contentHash": "13b5420119288c422637a021607db46eb8b0b5826ed7dd5176f0ac28e4dd5db0",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-29T19:10:24.505Z",
       "contentHash": "02cb390528b721fbc14aeaef752e042c8a34275f87c2e62b3d50267e6e7d8493",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-29T19:16:38.749Z",
       "contentHash": "c0775f0ea70c2c70c6679aa5313abe0aab2dda981176100fba1a641cdb3f176e",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-29T19:28:42.066Z",
       "contentHash": "5e2490e39714e803f08be750338b5baec327dec37d40028e70e1a2bdc1b23aee",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-08-01T21:23:50.175Z",
       "contentHash": "4028afd28f24ccf7b05ca8f0a70eae069b5e3cf6e2ef8dbda0262fca6cd679d8",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

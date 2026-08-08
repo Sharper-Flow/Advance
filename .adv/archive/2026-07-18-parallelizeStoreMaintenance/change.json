@@ -668,25 +668,25 @@
     "problemStatement": {
       "updatedAt": "2026-07-18T17:39:27.946Z",
       "contentHash": "fa59046874ec32be2f798adee539aa4939556f4bb1095739520afaa7599d195a",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-18T17:40:27.750Z",
       "contentHash": "a8efcf673134210c44f08b2805a3c0dcc112044383bb358b0edca9ff424b2533",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-18T17:40:27.750Z",
       "contentHash": "1ad64d794c4e9df3a065fa3dac80d26e2d266d4aa55eaec869a1e72ae555519e",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-18T18:08:24.790Z",
       "contentHash": "dd1849497b113ab646116cc0917cbb80917fc909f5605051ebcf03839135b95a",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

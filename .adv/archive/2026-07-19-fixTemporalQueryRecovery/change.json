@@ -2018,31 +2018,31 @@
     "proposal": {
       "updatedAt": "2026-07-16T02:30:52.864Z",
       "contentHash": "942a8f9f756770d157088e79080eceb9f08917b8b01b643b09629db8d424fc86",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-16T01:56:49.660Z",
       "contentHash": "b02c88232d59fb7ccb08d73c59a9e0d0bbd2c6f77d4dd427e4ca7a487a5bdf1a",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-16T04:05:21.273Z",
       "contentHash": "baa3f88f6c6a6087198a0d0893669805b585051e098dc0d54acc8487dc172695",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-16T17:38:15.002Z",
       "contentHash": "9ff419ada5afe9ca8bf3d2c55b9248fa3c1fd960c568e5ea775ad1b75ef9d728",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-19T21:08:55.656Z",
       "contentHash": "8c385c81c5d50f1ee98861aa22e95b0523cce0367c5dd8c2ada2316912a3b1b5",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

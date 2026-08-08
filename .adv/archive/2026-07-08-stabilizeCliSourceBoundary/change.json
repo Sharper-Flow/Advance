@@ -1358,31 +1358,31 @@
     "proposal": {
       "updatedAt": "2026-07-07T23:49:41.194Z",
       "contentHash": "16154e5abbcfb1079e8a556815884252b8c366ad15a72d7f5a26dcd8d89e17a8",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-07T23:27:17.875Z",
       "contentHash": "9365c8874133294845c14ce6b160fa3ceb766fe2e8c42244272db08c4bd82331",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-07T23:52:24.568Z",
       "contentHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-08T00:10:00.207Z",
       "contentHash": "5d8a31921814ce4e7542613d6442f10efcc9b59d323d2799a12bcf27a4c4611e",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-08T00:42:39.043Z",
       "contentHash": "100a9172961016cfb70ca7e759834c4e42898a624bd13f8ab42f0675f7bedd2f",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

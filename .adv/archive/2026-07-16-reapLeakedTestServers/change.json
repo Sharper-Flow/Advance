@@ -2800,31 +2800,31 @@
     "proposal": {
       "updatedAt": "2026-07-15T21:27:16.148Z",
       "contentHash": "e6760bdc1309d641c168deeaf8c4e2d4f19a63a30d40224d7f71a6a86bd6c502",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-15T21:27:16.148Z",
       "contentHash": "911f7b75c2d2300089f862f058fa5b978a15dd8a66f4247f9c60dc596ce0af46",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-15T21:42:15.659Z",
       "contentHash": "0d97e3a4863c0b827ac8969a3974d14888b98cca77e96e2104d3ba56a0005a9f",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-15T21:49:43.771Z",
       "contentHash": "d66e636858cfb1e6b71fdd341799b1c63beb0b5f2dfaf2988d9a90d8f6bf058f",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-16T01:14:48.686Z",
       "contentHash": "10f218333051e50b61da40d85a1de06819fa16b1ea611c8e56f39b728282bc36",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

@@ -1253,31 +1253,31 @@
     "problemStatement": {
       "updatedAt": "2026-07-18T18:52:01.281Z",
       "contentHash": "8000d5a6e1ad1102497a2a9de5239a82cb464b15361f5862e526752c7cbad8d7",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-18T18:52:35.623Z",
       "contentHash": "71cf65ca4857626d42f3357cbd130b78a723338d4bf3d30d6fbdbeabe6d5415b",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-18T18:52:35.623Z",
       "contentHash": "beaefa21ea990a4ad2adc271378bb1f3aeece35bfffa5cfdcd4d0d9680076f8f",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "proposal": {
       "updatedAt": "2026-07-18T18:52:35.623Z",
       "contentHash": "8b252d9917fbf28276f921e70c404957b7cc3b136459f0a4109fff05d887170f",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-18T20:03:00.257Z",
       "contentHash": "1f0b1be35ee76e6323bdb92fa63faf285c98cdfb585cafe927430acb073f4511",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

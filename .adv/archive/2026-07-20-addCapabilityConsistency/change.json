@@ -1955,31 +1955,31 @@
     "proposal": {
       "updatedAt": "2026-07-20T07:14:19.788Z",
       "contentHash": "2fb27c70f6311075286cba7b15e8f535b3ee6bbdfb2f41973874de9c96f4613e",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-20T07:14:19.788Z",
       "contentHash": "dbcccfb4ddd9a101ae36382de334b44312b40b25b928c1fb64649a3d4182b920",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-20T14:26:45.433Z",
       "contentHash": "4703429982d97500966eabd9509298b8fa19ad406b53c3280ae43091f21f3246",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-20T07:32:34.676Z",
       "contentHash": "81b7713df9f5599ff19b5c77110bb0f15581aca4c1da73674b20c4cf24747836",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-20T19:30:37.560Z",
       "contentHash": "53b1214224d9a7745060c27d2932b51bf4662ccbc3856c27220337eae0495f50",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

@@ -2643,25 +2643,25 @@
     "problemStatement": {
       "updatedAt": "2026-07-25T16:17:14.001Z",
       "contentHash": "236b623c4b3d234c29591090cc380d6fc915631a8b54c0cfb8f15d170fa1a46b",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-25T16:17:14.001Z",
       "contentHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-25T16:21:45.380Z",
       "contentHash": "ed1dd1f50286d91cbbd79b9f7764eb353f44074dd3c2441427f258ed85bd3aa5",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-25T18:50:08.526Z",
       "contentHash": "0628c43cccc5900e6ae0b581bcd979367c72bf069112805698ebab280c30dee2",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

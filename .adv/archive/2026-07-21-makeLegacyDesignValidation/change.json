@@ -1711,31 +1711,31 @@
     "proposal": {
       "updatedAt": "2026-07-20T17:45:05.143Z",
       "contentHash": "ffdbe8346a84d187df765bfde0b249b00873ee833e858cb0f7560377529b7cec",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-20T17:34:16.169Z",
       "contentHash": "8907d7efc0c18e4faf4bed6421998009693a23830e2a49d7b0f9dd7d072e0351",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-20T19:33:48.239Z",
       "contentHash": "6bec7c8ad602833edb6bbb206b737d5ff96d7f1d66e07960594bc8014ab6a6c5",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-20T18:58:56.240Z",
       "contentHash": "cbc4b87303a326a9fce1696d50c460ad83075df26ca61a889c7a7e64161eba69",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-20T21:42:28.223Z",
       "contentHash": "243de781205e669026e14712d94fd2016d88aa6aa67a571b460b06711e939268",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },

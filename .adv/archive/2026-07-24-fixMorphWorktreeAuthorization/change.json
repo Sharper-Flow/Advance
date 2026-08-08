@@ -601,31 +601,31 @@
     "proposal": {
       "updatedAt": "2026-07-24T20:43:04.944Z",
       "contentHash": "a6d1e5d713c7f2656ce8a38ff62ed1b0df1bf10dc87c1952fdcbc69221ad6867",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "problemStatement": {
       "updatedAt": "2026-07-24T20:43:04.944Z",
       "contentHash": "ad2324aafc50893582892f653b19498f5b7d6f9dd6a226466ab2d899836e2503",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "design": {
       "updatedAt": "2026-07-24T20:58:05.928Z",
       "contentHash": "137695ebce30dd93dc98db6bf069bb5054803c73c6508f54266d24d63326c9a1",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "agreement": {
       "updatedAt": "2026-07-24T21:38:29.528Z",
       "contentHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     },
     "executiveSummary": {
       "updatedAt": "2026-07-24T21:17:19.088Z",
       "contentHash": "5e44d6f168c7bdebf58162636d3f32facdb13a5b4fa9d70eac8e64cf6f341ed5",
-      "source": "temporal",
+      "source": "disk",
       "readable": false
     }
   },
