@@ -40,6 +40,10 @@ function sha256(input: string): string {
 
 const FAKE_INDEX = "// fake build\n";
 const FAKE_INDEX_SHA256 = sha256(FAKE_INDEX);
+const FAKE_MCP_SERVER = "// fake mcp server\n";
+const FAKE_MCP_SERVER_SHA256 = sha256(FAKE_MCP_SERVER);
+const FAKE_RECONCILE_CLI = "// fake reconcile cli\n";
+const FAKE_RECONCILE_CLI_SHA256 = sha256(FAKE_RECONCILE_CLI);
 
 const INDEX_MTIME = new Date("2020-01-01T00:00:00Z");
 const MANIFEST_MTIME = new Date("2030-01-01T00:00:00Z");
@@ -146,15 +150,21 @@ describe("deploy-local plugin manifest publication", () => {
         schema_version: 1,
         generation:
           "aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffff0000000011111111",
-        files: { index: FAKE_INDEX_SHA256 },
+        files: {
+          index: FAKE_INDEX_SHA256,
+          "mcp-server": FAKE_MCP_SERVER_SHA256,
+          "reconcile-cli": FAKE_RECONCILE_CLI_SHA256,
+        },
         built_at: "2026-01-01T00:00:00.000Z",
       };
 
       writeFileSync(indexPath, FAKE_INDEX);
-      writeFileSync(join(distDir, "mcp-server.js"), "// fake mcp server\n");
+      writeFileSync(join(distDir, "mcp-server.js"), FAKE_MCP_SERVER);
+      writeFileSync(join(distDir, "reconcile-cli.js"), FAKE_RECONCILE_CLI);
       writeFileSync(manifestPath, JSON.stringify(sourceManifest, null, 2));
       utimesSync(indexPath, INDEX_MTIME, INDEX_MTIME);
       utimesSync(join(distDir, "mcp-server.js"), INDEX_MTIME, INDEX_MTIME);
+      utimesSync(join(distDir, "reconcile-cli.js"), INDEX_MTIME, INDEX_MTIME);
       utimesSync(manifestPath, MANIFEST_MTIME, MANIFEST_MTIME);
       ageSourceInputs(fixture.tempWorktree);
 
@@ -165,7 +175,9 @@ describe("deploy-local plugin manifest publication", () => {
       expect(output).toMatch(/published plugin bundle manifest/i);
 
       const rsyncCommands = readFileSync(fixture.rsyncLog, "utf8");
-      expect(rsyncCommands).toContain("dist/plugin-bundle-manifest.json");
+      expect(rsyncCommands).toContain(
+        "-a --delete --exclude=dist/plugin-bundle-manifest.json",
+      );
 
       const runtimePlugin = join(
         fixture.tempHome,
@@ -176,6 +188,13 @@ describe("deploy-local plugin manifest publication", () => {
       expect(statSync(deployedIndex).mtime.toISOString()).toBe(
         INDEX_MTIME.toISOString(),
       );
+      for (const bundle of ["mcp-server.js", "reconcile-cli.js"]) {
+        const deployedBundle = join(runtimePlugin, "dist", bundle);
+        expect(existsSync(deployedBundle)).toBe(true);
+        expect(statSync(deployedBundle).mtime.toISOString()).toBe(
+          INDEX_MTIME.toISOString(),
+        );
+      }
 
       const deployedManifest = join(
         runtimePlugin,
@@ -198,6 +217,8 @@ describe("deploy-local plugin manifest publication", () => {
       const parsed = JSON.parse(readFileSync(deployedManifest, "utf8"));
       expect(parsed.generation).toBe(sourceManifest.generation);
       expect(parsed.files.index).toBe(FAKE_INDEX_SHA256);
+      expect(parsed.files["mcp-server"]).toBe(FAKE_MCP_SERVER_SHA256);
+      expect(parsed.files["reconcile-cli"]).toBe(FAKE_RECONCILE_CLI_SHA256);
     });
   });
 });

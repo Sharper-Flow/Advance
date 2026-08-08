@@ -197,6 +197,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_session_show",
       "adv_snapshot_health",
       "adv_store_cleanup",
+      "adv_store_reconcile",
       "adv_lightweight_profile_evaluate",
     ];
     const byName = (a: string, b: string) => a.localeCompare(b);

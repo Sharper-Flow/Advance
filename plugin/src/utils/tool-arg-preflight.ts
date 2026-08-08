@@ -535,6 +535,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_reflection_list: {
     maxEntries: { zero: "omit" },
   },
+  // The reconcile engine treats omitted scan caps as unbounded (required for
+  // completion proof); strict-mode zero is the placeholder for that omission.
+  // Positive values remain bounded scan batches.
+  adv_store_reconcile: {
+    max_records: { zero: "omit" },
+    budget_ms: { zero: "omit" },
+  },
 };
 
 export function listToolArgFieldPolicies(): Readonly<

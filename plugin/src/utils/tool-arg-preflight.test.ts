@@ -305,6 +305,22 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
+    // An omitted max_records is the engine's unbounded full-scan default;
+    // strict-mode zero is therefore an omission placeholder, not a bound.
+    toolName: "adv_store_reconcile",
+    field: "max_records",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    // An omitted budget_ms leaves the scan time-unbounded; strict-mode zero is
+    // therefore an omission placeholder, not a one-millisecond budget.
+    toolName: "adv_store_reconcile",
+    field: "budget_ms",
+    policy: "zero",
+    action: "omit",
+  },
+  {
     toolName: "adv_ops_run_evidence_add",
     field: "step_id",
     policy: "blank",
@@ -1393,6 +1409,34 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     rawArgs: { maxEntries: 8 },
     ok: true,
     normalizedArgs: { maxEntries: 8 },
+  },
+  {
+    label: "zero store-reconcile max_records normalizes to omitted",
+    toolName: "adv_store_reconcile",
+    rawArgs: { max_records: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero store-reconcile max_records preserved",
+    toolName: "adv_store_reconcile",
+    rawArgs: { max_records: 25 },
+    ok: true,
+    normalizedArgs: { max_records: 25 },
+  },
+  {
+    label: "zero store-reconcile budget_ms normalizes to omitted",
+    toolName: "adv_store_reconcile",
+    rawArgs: { budget_ms: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero store-reconcile budget_ms preserved",
+    toolName: "adv_store_reconcile",
+    rawArgs: { budget_ms: 250 },
+    ok: true,
+    normalizedArgs: { budget_ms: 250 },
   },
   {
     label: "release-notes setter accepts valid payload",

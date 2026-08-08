@@ -40,6 +40,7 @@ describe("executeTier4Tool dispatcher injection", () => {
     try {
       await writeFile(join(distDir, "index.js"), "index");
       await writeFile(join(distDir, "mcp-server.js"), "mcp");
+      await writeFile(join(distDir, "reconcile-cli.js"), "reconcile-cli");
       const loadedGeneration = generatePluginBundleGeneration();
       const deployedGeneration = generatePluginBundleGeneration();
       await writePluginBundleManifest(distDir, deployedGeneration);
