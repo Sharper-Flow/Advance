@@ -14,7 +14,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execFileSync, execSync } from "child_process";
 
 // Mock debug-log to capture audit trail.
 vi.mock("../../utils/debug-log", async (importOriginal) => {
@@ -51,6 +51,7 @@ import {
   setPendingDelete,
 } from "./state";
 import { synthesizeTestProjectId } from "../../utils/project-id";
+import { decodeWorktreeDeletionToken } from "./deletion-contracts";
 
 const isLinux = process.platform === "linux";
 
@@ -69,6 +70,67 @@ function addWorktree(repoRoot: string, branch: string): string {
   const wtDir = join(repoRoot, "worktrees", branch);
   execSync(`git worktree add -b ${branch} ${wtDir}`, { cwd: repoRoot });
   return wtDir;
+}
+
+function git(cwd: string, ...args: string[]): string {
+  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+}
+
+function makeSquashPrFixture(
+  branch: string,
+  prNumber: number,
+): {
+  root: string;
+  remote: string;
+  worktree: string;
+  head: string;
+  firstHead: string;
+  mergeCommit: string;
+  cleanup: () => void;
+} {
+  const root = createGitRepo();
+  const remote = mkdtempSync(join(tmpdir(), "adv-pr-remote-"));
+  const worktree = addWorktree(root, branch);
+  git(remote, "init", "--bare", "-b", "main");
+  git(root, "remote", "add", "origin", "https://github.com/owner/repo.git");
+  git(
+    root,
+    "config",
+    "url.file://" + remote + ".insteadOf",
+    "https://github.com/owner/repo.git",
+  );
+  git(root, "push", "-u", "origin", "main");
+  git(root, "remote", "set-head", "origin", "main");
+
+  writeFileSync(join(worktree, "one.txt"), "one\n");
+  git(worktree, "add", "one.txt");
+  git(worktree, "commit", "-m", "first PR commit");
+  const firstHead = git(worktree, "rev-parse", "HEAD");
+  writeFileSync(join(worktree, "two.txt"), "two\n");
+  git(worktree, "add", "two.txt");
+  git(worktree, "commit", "-m", "second PR commit");
+  const head = git(worktree, "rev-parse", "HEAD");
+
+  git(root, "cherry-pick", "--no-commit", firstHead);
+  git(root, "cherry-pick", "--no-commit", head);
+  git(root, "commit", "-m", "squash PR #" + prNumber);
+  const mergeCommit = git(root, "rev-parse", "HEAD");
+  git(root, "push", "origin", "main");
+  git(root, "push", "origin", branch);
+  git(remote, "update-ref", `refs/pull/${prNumber}/head`, head);
+
+  return {
+    root,
+    remote,
+    worktree,
+    head,
+    firstHead,
+    mergeCommit,
+    cleanup: () => {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(remote, { recursive: true, force: true });
+    },
+  };
 }
 
 function createMockDeps(
@@ -738,8 +800,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: "INTEGRATION_REQUIRED",
-      reason: "branch_not_merged",
+      error: "DELETION_BLOCKED",
+      status: "repair_required",
+      reason: expect.stringMatching(/gh_failed|git_remote_unavailable/),
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -928,8 +991,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: "INTEGRATION_REQUIRED",
-      reason: "branch_not_merged",
+      error: "DELETION_BLOCKED",
+      status: "repair_required",
+      reason: expect.stringMatching(/gh_failed|git_remote_unavailable/),
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -1000,8 +1064,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: "INTEGRATION_REQUIRED",
-      reason: "branch_not_merged",
+      error: "DELETION_BLOCKED",
+      status: "repair_required",
+      reason: expect.stringMatching(/gh_failed|git_remote_unavailable/),
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
@@ -1165,6 +1230,211 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).not.toContain(branch);
   });
+
+  it("uses PR merge evidence for a non-change branch family", async () => {
+    const branch = "fix/delete-target-routing";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "fix.txt"), "squash merged fix\n");
+    execSync("git add fix.txt", { cwd: wtPath });
+    execSync("git commit -m 'squash merged fix'", { cwd: wtPath });
+    const headRefOid = execSync(`git rev-parse ${branch}`, {
+      cwd: repoRoot,
+    })
+      .toString()
+      .trim();
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.integrationCheck = undefined;
+    deps.mergedBranches = async () => [];
+    deps.prMergeEvidence = async () => ({
+      ok: true,
+      proof: "pr-head-exact" as const,
+      prNumber: 407,
+      headRefOid,
+    });
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({ ok: true, branch, path: wtPath });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("plans a generic squash PR only with exact merged repository proof", async () => {
+    const branch = "fix/delete-patch-equivalence";
+    const fixture = makeSquashPrFixture(branch, 407);
+    try {
+      // Keep local main stale; reachability must use a fresh origin/main fetch.
+      git(fixture.root, "reset", "--hard", "HEAD~1");
+      const payload = {
+        number: 407,
+        state: "MERGED",
+        mergedAt: "2026-08-08T00:00:00Z",
+        headRefName: branch,
+        headRefOid: fixture.head,
+        baseRefName: "main",
+        headRepository: { nameWithOwner: "owner/repo" },
+        baseRepository: { nameWithOwner: "owner/repo" },
+        isCrossRepository: false,
+        mergeCommit: { oid: fixture.mergeCommit },
+      };
+      const ghExec = vi.fn(async () => ({
+        stdout: JSON.stringify([payload]),
+        stderr: "",
+        exitCode: 0,
+      }));
+      const deps = createMockDeps(fixture.root, fixture.worktree);
+      deps.integrationCheck = undefined;
+      deps.mergedBranches = async () => [];
+      deps.ghExec = ghExec;
+
+      const planned = await rawAdvWorktreeDelete(
+        branch,
+        { dryRun: true },
+        deps,
+      );
+      expect(planned).toMatchObject({ ok: true, status: "planned" });
+      if (planned.ok) {
+        expect(planned.plan.integration).toMatchObject({
+          kind: "pr_merged",
+          prNumber: 407,
+          prHeadOid: fixture.head,
+          mergeCommitOid: fixture.mergeCommit,
+          headRepository: "owner/repo",
+          baseRepository: "owner/repo",
+          defaultBranch: "main",
+        });
+        expect(
+          decodeWorktreeDeletionToken(planned.planToken).integration,
+        ).toEqual(planned.plan.integration);
+      }
+      expect(ghExec).toHaveBeenCalledWith(
+        expect.arrayContaining(["--repo", "owner/repo", "--base", "main"]),
+        fixture.root,
+        expect.any(Number),
+        expect.any(AbortSignal),
+      );
+
+      const refusal = async (
+        patch: Partial<typeof payload>,
+        reason: string,
+      ) => {
+        Object.assign(payload, patch);
+        const result = await rawAdvWorktreeDelete(
+          branch,
+          { dryRun: true },
+          deps,
+        );
+        expect(result).toMatchObject({
+          ok: false,
+          error: "INTEGRATION_REQUIRED",
+          reason,
+        });
+      };
+
+      await refusal(
+        {
+          headRepository: { nameWithOwner: "other/repo" },
+          baseRepository: { nameWithOwner: "other/repo" },
+        },
+        "pr_evidence_invalid",
+      );
+      await refusal(
+        {
+          headRepository: { nameWithOwner: "owner/repo" },
+          baseRepository: { nameWithOwner: "owner/repo" },
+          baseRefName: "develop",
+        },
+        "pr_evidence_invalid",
+      );
+      await refusal(
+        {
+          baseRefName: "main",
+          state: "OPEN",
+          mergedAt: null,
+        },
+        "pr_not_merged",
+      );
+      await refusal(
+        {
+          state: "MERGED",
+          mergedAt: "2026-08-08T00:00:00Z",
+          mergeCommit: { oid: "deadbeef" },
+        },
+        "pr_merge_commit_unreachable",
+      );
+
+      Object.assign(payload, {
+        state: "MERGED",
+        mergedAt: "2026-08-08T00:00:00Z",
+        headRefOid: fixture.firstHead,
+        baseRefName: "main",
+        headRepository: { nameWithOwner: "owner/repo" },
+        baseRepository: { nameWithOwner: "owner/repo" },
+        mergeCommit: { oid: fixture.mergeCommit },
+      });
+      git(
+        fixture.remote,
+        "update-ref",
+        "refs/pull/407/head",
+        fixture.firstHead,
+      );
+      await refusal({}, "local_commits_after_pr_head");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it.each([
+    [408, "fix/delete-cancellation-barrier"],
+    [409, "fix/flock-runtime-holder"],
+    [415, "fix/worktree-pr-proof"],
+  ] as const)(
+    "plans multi-commit squash PR #%i for %s",
+    async (prNumber, branch) => {
+      const fixture = makeSquashPrFixture(branch, prNumber);
+      try {
+        const payload = {
+          number: prNumber,
+          state: "MERGED",
+          mergedAt: "2026-08-08T00:00:00Z",
+          headRefName: branch,
+          headRefOid: fixture.head,
+          baseRefName: "main",
+          headRepository: { nameWithOwner: "owner/repo" },
+          baseRepository: { nameWithOwner: "owner/repo" },
+          isCrossRepository: false,
+          mergeCommit: { oid: fixture.mergeCommit },
+        };
+        const deps = createMockDeps(fixture.root, fixture.worktree);
+        deps.integrationCheck = undefined;
+        deps.mergedBranches = async () => [];
+        deps.ghExec = vi.fn(async () => ({
+          stdout: JSON.stringify([payload]),
+          stderr: "",
+          exitCode: 0,
+        }));
+
+        const planned = await rawAdvWorktreeDelete(
+          branch,
+          { dryRun: true },
+          deps,
+        );
+        expect(planned).toMatchObject({ ok: true, status: "planned" });
+        if (planned.ok)
+          expect(planned.plan.integration).toMatchObject({
+            kind: "pr_merged",
+            prNumber,
+            prHeadOid: fixture.head,
+            mergeCommitOid: fixture.mergeCommit,
+            defaultBranch: "main",
+          });
+      } finally {
+        fixture.cleanup();
+      }
+    },
+  );
 
   it("#55 non-registered clean branch is governed by Git census, not registry", async () => {
     const branch = "chore/no-force";

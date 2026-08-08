@@ -97,10 +97,9 @@ describe("AC6: cleanup discovery git subprocesses are bounded below the tool bud
     });
   });
 
-  // The worktree/index.ts helper is the OTHER half of AC6, and it carries the
-  // looser 30000ms default. Without these guards, silently changing that
-  // default — or dropping the gitTimeoutMs argument at a discovery call site —
-  // passes every other suite in the repo.
+  // The worktree/index.ts helper is the OTHER half of AC6. Cleanup discovery
+  // must use the shared operation budget rather than a standalone 30000ms
+  // default, or a hung PR probe can outlive the tool response.
   describe("worktree/index.ts git helper", () => {
     /** Drive the discovery path far enough to reach the local git() helper. */
     async function runDiscovery(gitTimeoutMs?: number) {
@@ -169,14 +168,14 @@ describe("AC6: cleanup discovery git subprocesses are bounded below the tool bud
       }
     });
 
-    // C6 regression guard for the 30000ms default.
-    it("preserves the 30000ms default when no gitTimeoutMs is supplied", async () => {
+    it("uses the remaining operation budget when no gitTimeoutMs is supplied", async () => {
       await runDiscovery();
 
       const timeouts = localHelperTimeouts();
       expect(timeouts.length).toBeGreaterThan(0);
       for (const timeout of timeouts) {
-        expect(timeout).toBe(30_000);
+        expect(timeout).toBeGreaterThan(0);
+        expect(timeout as number).toBeLessThan(8_000);
       }
     });
   });

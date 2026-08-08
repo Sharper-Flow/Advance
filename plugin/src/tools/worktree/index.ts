@@ -63,6 +63,7 @@ import {
 } from "./deletion-contracts";
 import {
   createWorktreeDeletionPlanner,
+  type WorktreeDeletionIntegrationFailure,
   type WorktreeDeletionPlanResult,
 } from "./deletion-planner";
 import {
@@ -89,8 +90,9 @@ import {
 } from "../../utils/workspace-warp";
 import type { Store } from "../../storage/store";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout";
-import { execGh } from "../../integrations/gh-cli";
+import { execGh, type GhExecResult } from "../../integrations/gh-cli";
 import { proveLocalBranchIntegration } from "../../utils/branch-integration";
+import { parseGitRemoteUrl } from "../../utils/git-remote";
 import type { WorktreeOperationContext } from "../../utils/worktree-operation";
 import { createWorktreeOperationContext } from "../../utils/worktree-operation";
 
@@ -390,6 +392,7 @@ async function git(
   args: string[],
   cwd: string,
   timeoutMs: number = DEFAULT_WORKTREE_GIT_TIMEOUT_MS,
+  signal?: AbortSignal,
 ): Promise<Result<string, string>> {
   return new Promise((resolve) => {
     execFileGitCb(
@@ -397,6 +400,7 @@ async function git(
       {
         cwd,
         timeout: timeoutMs,
+        signal,
       },
       (error, stdout, stderr) => {
         if (error) {
@@ -1010,6 +1014,13 @@ export interface AdvWorktreeDeleteDeps {
   operation?: WorktreeOperationContext;
   /** Optional timeout for live GitHub PR evidence lookup. */
   prEvidenceTimeoutMs?: number;
+  /** Test seam for the bounded GitHub PR evidence command. */
+  ghExec?: (
+    args: string[],
+    cwd: string,
+    timeout: number,
+    signal?: AbortSignal,
+  ) => Promise<GhExecResult>;
   /**
    * Optional per-subprocess git bound for the cleanup discovery path. Cleanup
    * callers set this strictly below the worktree tool budget so no single hung
@@ -1035,6 +1046,7 @@ export interface AdvWorktreeDeleteDeps {
   prMergeEvidence?: (
     branch: string,
     repoRoot: string,
+    operation?: WorktreeOperationContext,
   ) => Promise<PrMergedBranchIntegrationResult>;
   /** Lightweight path resolver used by the shared planner's terminal proof. */
   statePathResolver?: (changeId: string) => Promise<string | undefined>;
@@ -1210,9 +1222,14 @@ type PrMergedBranchIntegrationResult =
       prNumber: number;
       prUrl?: string;
       headRefOid: string;
+      baseRefName?: string;
+      headRepository?: string;
+      baseRepository?: string;
+      mergeCommitOid?: string;
     }
   | {
       ok: false;
+      classification?: "refusal" | "repair";
       reason: string;
       hint: string;
       details?: string[];
@@ -1222,41 +1239,113 @@ interface GhPullRequestSummary {
   number?: number;
   state?: string;
   mergedAt?: string | null;
+  headRefName?: string | null;
   headRefOid?: string | null;
+  baseRefName?: string | null;
+  headRepository?: { nameWithOwner?: string | null } | null;
+  baseRepository?: { nameWithOwner?: string | null } | null;
+  isCrossRepository?: boolean | null;
+  mergeCommit?: { oid?: string | null } | null;
   url?: string;
 }
 
 async function getPrMergedBranchIntegration(
   branch: string,
+  defaultBranch: string,
   deps: AdvWorktreeDeleteDeps,
+  operation: WorktreeOperationContext,
 ): Promise<PrMergedBranchIntegrationResult> {
-  if (!branch.startsWith("change/")) {
+  if (!isValidGitBranchRef(branch) || !isValidGitBranchRef(defaultBranch)) {
     return {
       ok: false,
-      reason: "branch_not_change_branch",
-      hint: "PR-aware squash cleanup is limited to ADV change/* branches.",
+      classification: "refusal",
+      reason: "pr_evidence_invalid",
+      hint: "PR-aware cleanup requires valid local branch and default refs.",
     };
   }
 
   if (deps.prMergeEvidence) {
-    return deps.prMergeEvidence(branch, deps.projectRoot);
+    return deps.prMergeEvidence(branch, deps.projectRoot, operation);
   }
 
+  const remaining = (): number =>
+    Math.max(1, operation.remainingMs() - operation.responseReserveMs);
+  const checkBudget = (): void => operation.throwIfAborted("pr_proof_aborted");
+  const repairForGitFailure = (
+    error: string,
+  ): PrMergedBranchIntegrationResult => ({
+    ok: false,
+    classification: "repair",
+    reason: "git_failed",
+    hint: "Git PR integration evidence could not be completed within the operation budget; retaining worktree.",
+    details: [error],
+  });
+
+  checkBudget();
   const localHead = await git(
-    ["rev-parse", branch],
+    ["rev-parse", "--verify", `${branch}^{commit}`],
     deps.projectRoot,
-    deps.gitTimeoutMs,
+    Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+    operation.signal,
   );
   if (!localHead.ok) {
     return {
       ok: false,
+      classification: "repair",
       reason: "local_branch_missing",
       hint: `Local branch ${branch} does not exist or cannot be resolved.`,
       details: [localHead.error],
     };
   }
 
-  const prList = await execGh(
+  checkBudget();
+  const remote = await git(
+    ["config", "--get", "remote.origin.url"],
+    deps.projectRoot,
+    Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+    operation.signal,
+  );
+  if (!remote.ok) {
+    return {
+      ok: false,
+      classification: "repair",
+      reason: "git_remote_unavailable",
+      hint: `The GitHub repository for ${branch} could not be resolved; retaining worktree.`,
+      details: [remote.error],
+    };
+  }
+  const parsedRemote = parseGitRemoteUrl(remote.value);
+  if (!parsedRemote) {
+    return {
+      ok: false,
+      classification: "refusal",
+      reason: "pr_evidence_invalid",
+      hint: "The origin remote is not an unambiguous GitHub repository; retaining worktree.",
+    };
+  }
+  const repository = `${parsedRemote.owner}/${parsedRemote.name}`;
+
+  checkBudget();
+  const remoteHead = await git(
+    ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+    deps.projectRoot,
+    Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+    operation.signal,
+  );
+  const detectedDefault = remoteHead.ok
+    ? remoteHead.value.trim().replace(/^origin\//, "")
+    : undefined;
+  if (detectedDefault && detectedDefault !== defaultBranch) {
+    return {
+      ok: false,
+      classification: "refusal",
+      reason: "pr_evidence_invalid",
+      hint: `PR base ${defaultBranch} does not match detected default ${detectedDefault}; retaining worktree.`,
+    };
+  }
+
+  checkBudget();
+  const prList = await (deps.ghExec ?? execGh)(
     [
       "pr",
       "list",
@@ -1264,17 +1353,23 @@ async function getPrMergedBranchIntegration(
       "all",
       "--head",
       branch,
+      "--repo",
+      repository,
+      "--base",
+      defaultBranch,
       "--limit",
       "20",
       "--json",
-      "number,state,mergedAt,headRefOid,url",
+      "number,state,mergedAt,headRefName,headRefOid,baseRefName,headRepository,baseRepository,isCrossRepository,mergeCommit,url",
     ],
     deps.projectRoot,
-    deps.prEvidenceTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+    Math.min(deps.prEvidenceTimeoutMs ?? remaining(), remaining()),
+    operation.signal,
   );
   if (prList.exitCode !== 0) {
     return {
       ok: false,
+      classification: "repair",
       reason: "gh_failed",
       hint: `GitHub PR evidence unavailable for ${branch}; retaining worktree.`,
       details: [prList.stderr || prList.stdout || "gh pr list failed"],
@@ -1288,6 +1383,7 @@ async function getPrMergedBranchIntegration(
   } catch (error) {
     return {
       ok: false,
+      classification: "refusal",
       reason: "gh_json_invalid",
       hint: `GitHub PR evidence for ${branch} was not valid JSON; retaining worktree.`,
       details: [error instanceof Error ? error.message : String(error)],
@@ -1297,17 +1393,23 @@ async function getPrMergedBranchIntegration(
   if (prs.length === 0) {
     return {
       ok: false,
+      classification: "refusal",
       reason: "no_pr_evidence",
       hint: `No GitHub PR found for ${branch}; retaining worktree.`,
     };
   }
 
   const mergedPrs = prs.filter(
-    (pr) => Boolean(pr.mergedAt) && typeof pr.headRefOid === "string",
+    (pr) =>
+      pr.state === "MERGED" &&
+      Boolean(pr.mergedAt) &&
+      typeof pr.headRefOid === "string" &&
+      pr.headRefOid.trim().length > 0,
   );
   if (mergedPrs.length === 0) {
     return {
       ok: false,
+      classification: "refusal",
       reason: "pr_not_merged",
       hint: `GitHub PR for ${branch} is not merged; retaining worktree.`,
       details: prs.map(
@@ -1317,44 +1419,171 @@ async function getPrMergedBranchIntegration(
   }
 
   const localHeadSha = localHead.value.trim();
-  for (const pr of mergedPrs) {
-    if (pr.number && pr.headRefOid === localHeadSha) {
-      return {
-        ok: true,
-        proof: "pr-head-exact",
-        prNumber: pr.number,
-        prUrl: pr.url,
-        headRefOid: pr.headRefOid,
-      };
-    }
+  const structuralCandidates = mergedPrs.filter(
+    (pr) =>
+      pr.number &&
+      pr.headRefName === branch &&
+      pr.baseRefName === defaultBranch &&
+      pr.isCrossRepository === false &&
+      typeof pr.headRepository?.nameWithOwner === "string" &&
+      pr.headRepository.nameWithOwner.length > 0 &&
+      pr.headRepository.nameWithOwner === pr.baseRepository?.nameWithOwner &&
+      pr.headRepository.nameWithOwner === repository,
+  );
+  if (structuralCandidates.length === 0) {
+    return {
+      ok: false,
+      classification: "refusal",
+      reason: "pr_evidence_invalid",
+      hint: `Merged PR evidence for ${branch} did not match the exact repository/head/base proof; retaining worktree.`,
+    };
+  }
+  if (structuralCandidates.length > 1) {
+    return {
+      ok: false,
+      classification: "refusal",
+      reason: "pr_evidence_invalid",
+      hint: `Multiple merged PRs matched ${branch}; retaining worktree.`,
+      details: structuralCandidates.map((pr) => `PR #${pr.number}`),
+    };
   }
 
-  for (const pr of mergedPrs) {
+  for (const pr of structuralCandidates) {
     if (!pr.number || !pr.headRefOid) continue;
+    if (
+      pr.headRefName !== branch ||
+      pr.baseRefName !== defaultBranch ||
+      pr.isCrossRepository !== false ||
+      typeof pr.headRepository?.nameWithOwner !== "string" ||
+      pr.headRepository.nameWithOwner !== pr.baseRepository?.nameWithOwner
+    )
+      continue;
+
+    checkBudget();
     const fetch = await git(
       ["fetch", "origin", `refs/pull/${pr.number}/head`],
       deps.projectRoot,
-      deps.gitTimeoutMs,
+      Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+      operation.signal,
     );
-    if (!fetch.ok) continue;
+    if (!fetch.ok) {
+      if (
+        operation.signal.aborted ||
+        operation.remainingMs() <= operation.responseReserveMs ||
+        /timeout|timed out|deadline|abort/i.test(fetch.error)
+      )
+        return repairForGitFailure(fetch.error);
+      continue;
+    }
+    const fetchedHead = await git(
+      ["rev-parse", "--verify", "FETCH_HEAD^{commit}"],
+      deps.projectRoot,
+      Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+      operation.signal,
+    );
+    if (!fetchedHead.ok) {
+      if (
+        operation.signal.aborted ||
+        operation.remainingMs() <= operation.responseReserveMs ||
+        /timeout|timed out|deadline|abort/i.test(fetchedHead.error)
+      )
+        return repairForGitFailure(fetchedHead.error);
+      continue;
+    }
+    if (fetchedHead.value.trim() !== pr.headRefOid.trim()) continue;
     const ancestor = await git(
       ["merge-base", "--is-ancestor", branch, "FETCH_HEAD"],
       deps.projectRoot,
-      deps.gitTimeoutMs,
+      Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+      operation.signal,
     );
-    if (ancestor.ok) {
-      return {
-        ok: true,
-        proof: "local-ancestor-of-pr-head",
-        prNumber: pr.number,
-        prUrl: pr.url,
-        headRefOid: pr.headRefOid,
-      };
+    if (!ancestor.ok) {
+      if (
+        operation.signal.aborted ||
+        operation.remainingMs() <= operation.responseReserveMs ||
+        /timeout|timed out|deadline|abort/i.test(ancestor.error)
+      )
+        return repairForGitFailure(ancestor.error);
+      continue;
     }
+
+    const mergeCommitOid = pr.mergeCommit?.oid?.trim() || undefined;
+    if (mergeCommitOid) {
+      checkBudget();
+      const defaultFetch = await git(
+        [
+          "fetch",
+          "--no-tags",
+          "origin",
+          `refs/heads/${defaultBranch}:refs/remotes/origin/${defaultBranch}`,
+        ],
+        deps.projectRoot,
+        Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+        operation.signal,
+      );
+      if (!defaultFetch.ok) return repairForGitFailure(defaultFetch.error);
+      const fetchedDefault = await git(
+        [
+          "rev-parse",
+          "--verify",
+          `refs/remotes/origin/${defaultBranch}^{commit}`,
+        ],
+        deps.projectRoot,
+        Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+        operation.signal,
+      );
+      if (!fetchedDefault.ok) return repairForGitFailure(fetchedDefault.error);
+      const remoteDefault = await git(
+        [
+          "merge-base",
+          "--is-ancestor",
+          mergeCommitOid,
+          `refs/remotes/origin/${defaultBranch}`,
+        ],
+        deps.projectRoot,
+        Math.min(deps.gitTimeoutMs ?? remaining(), remaining()),
+        operation.signal,
+      );
+      if (!remoteDefault.ok) {
+        const detail = remoteDefault.error;
+        if (
+          operation.signal.aborted ||
+          operation.remainingMs() <= operation.responseReserveMs ||
+          /timeout|timed out|deadline|abort/i.test(detail)
+        )
+          return repairForGitFailure(detail);
+        return {
+          ok: false,
+          classification: "refusal",
+          reason: "pr_merge_commit_unreachable",
+          hint: `Merged PR #${pr.number} is not reachable from ${defaultBranch}; retaining worktree.`,
+          details: [detail],
+        };
+      }
+    }
+
+    const headRepository = pr.headRepository.nameWithOwner;
+    const baseRepository = pr.baseRepository?.nameWithOwner;
+    if (!baseRepository) continue;
+    return {
+      ok: true,
+      proof:
+        pr.headRefOid.trim() === localHeadSha
+          ? "pr-head-exact"
+          : "local-ancestor-of-pr-head",
+      prNumber: pr.number,
+      prUrl: pr.url,
+      headRefOid: pr.headRefOid.trim(),
+      baseRefName: defaultBranch,
+      headRepository,
+      baseRepository,
+      ...(mergeCommitOid ? { mergeCommitOid } : {}),
+    };
   }
 
   return {
     ok: false,
+    classification: "refusal",
     reason: "local_has_commits_after_pr_head",
     hint: `Merged PR exists for ${branch}, but local branch has commits not proven merged by the PR head; retaining worktree.`,
     details: mergedPrs.map(
@@ -1367,15 +1596,32 @@ async function verifyPrMergedChangeBranchIntegration(
   branch: string,
   deps: AdvWorktreeDeleteDeps,
 ): Promise<{ ok: true } | { ok: false; reason: string; hint: string }> {
-  const pr = await getPrMergedBranchIntegration(branch, deps);
-  if (pr.ok) {
-    appendDebugLog(
-      "worktree-delete",
-      `verified squash PR merge for ${branch} via PR #${pr.prNumber} (${pr.proof})`,
+  const ownsOperation = deps.operation === undefined;
+  const operation =
+    deps.operation ??
+    createWorktreeOperationContext({ budgetMs: deps.operationTimeoutMs });
+  try {
+    const defaultBranch = await getDefaultBranch(deps.projectRoot);
+    const pr = await getPrMergedBranchIntegration(
+      branch,
+      defaultBranch,
+      deps,
+      operation,
     );
-    return { ok: true };
+    if (pr.ok) {
+      appendDebugLog(
+        "worktree-delete",
+        `verified squash PR merge for ${branch} via PR #${pr.prNumber} (${pr.proof})`,
+      );
+      return { ok: true };
+    }
+    return { ok: false, reason: pr.reason, hint: pr.hint };
+  } finally {
+    if (ownsOperation) {
+      await operation.abort("operation_complete");
+      operation.dispose();
+    }
   }
-  return { ok: false, reason: pr.reason, hint: pr.hint };
 }
 
 function plannerResultToDeleteResult(
@@ -1496,76 +1742,117 @@ async function advWorktreeDeleteShared(
       evidence: `durable terminal status: ${loaded.status}`,
     };
   };
-  const integrationProof =
-    deps.integrationCheck || deps.prMergeEvidence || deps.mergedBranches
-      ? async (
-          branchName: string,
-          head: string,
-          defaultBranch: string,
-          repository: string,
-          operation: WorktreeOperationContext,
-        ) => {
-          if (deps.integrationCheck) {
-            const checked = await deps.integrationCheck(
-              branchName,
-              repository,
-              {},
-              {
-                registry: deps.registry,
-                mergedBranches: deps.mergedBranches,
-              },
-            );
-            if (checked.ok) {
-              return {
-                kind: "merged_to_default" as const,
-                branch: branchName,
-                defaultBranch,
-                head,
-                evidence: "legacy integration check",
-              };
-            }
-            if (checked.reason !== "branch_not_merged") return undefined;
-          }
-          if (deps.mergedBranches) {
-            const merged = await deps.mergedBranches(defaultBranch, repository);
-            if (
-              merged
-                .map((item) => item.replace(/^[*+ ]+/, "").trim())
-                .includes(branchName)
-            )
-              return {
-                kind: "merged_to_default" as const,
-                branch: branchName,
-                defaultBranch,
-                head,
-                evidence: `git branch --merged ${defaultBranch}`,
-              };
-          }
-          if (deps.prMergeEvidence) {
-            const proof = await deps.prMergeEvidence(branchName, repository);
-            if (proof.ok) {
-              appendDebugLog(
-                "worktree-delete",
-                `verified squash PR merge for ${branchName} via PR #${proof.prNumber} (${proof.proof})`,
-              );
-              return {
-                kind: "pr_merged" as const,
-                branch: branchName,
-                defaultBranch,
-                head,
-                evidence: `merged PR #${proof.prNumber}${proof.prUrl ? ` (${proof.prUrl})` : ""}`,
-              };
-            }
-          }
-          return proveLocalBranchIntegration(
-            branchName,
-            head,
-            defaultBranch,
-            repository,
-            operation,
-          );
-        }
-      : undefined;
+  const integrationProof = async (
+    branchName: string,
+    head: string,
+    defaultBranch: string,
+    repository: string,
+    operation: WorktreeOperationContext,
+  ) => {
+    // An explicitly supplied legacy integration gate remains authoritative;
+    // the normal proof order below is local ancestry/patch, then GitHub.
+    if (deps.integrationCheck) {
+      const checked = await deps.integrationCheck(
+        branchName,
+        repository,
+        {},
+        {
+          registry: deps.registry,
+          mergedBranches: deps.mergedBranches,
+        },
+      );
+      if (checked.ok) {
+        return {
+          kind: "merged_to_default" as const,
+          branch: branchName,
+          defaultBranch,
+          head,
+          evidence: "legacy integration check",
+        };
+      }
+      if (checked.reason !== "branch_not_merged") return undefined;
+    }
+
+    // Proof order is intentional: local ancestry/patch equivalence is
+    // authoritative and cheap; GitHub is only consulted for squash cases.
+    const localProof = await proveLocalBranchIntegration(
+      branchName,
+      head,
+      defaultBranch,
+      repository,
+      operation,
+    );
+    if (localProof) return localProof;
+
+    if (deps.mergedBranches) {
+      const merged = await deps.mergedBranches(defaultBranch, repository);
+      if (
+        merged
+          .map((item) => item.replace(/^[*+ ]+/, "").trim())
+          .includes(branchName)
+      )
+        return {
+          kind: "merged_to_default" as const,
+          branch: branchName,
+          defaultBranch,
+          head,
+          evidence: `git branch --merged ${defaultBranch}`,
+        };
+    }
+
+    const proof = deps.prMergeEvidence
+      ? await deps.prMergeEvidence(branchName, repository, operation)
+      : await getPrMergedBranchIntegration(
+          branchName,
+          defaultBranch,
+          { ...deps, projectRoot: repository },
+          operation,
+        );
+    if (proof.ok) {
+      appendDebugLog(
+        "worktree-delete",
+        `verified squash PR merge for ${branchName} via PR #${proof.prNumber} (${proof.proof})`,
+      );
+      return {
+        kind: "pr_merged" as const,
+        branch: branchName,
+        defaultBranch,
+        head,
+        evidence: `merged PR #${proof.prNumber}${proof.prUrl ? ` (${proof.prUrl})` : ""}`,
+        prNumber: proof.prNumber,
+        prHeadOid: proof.headRefOid,
+        ...(proof.mergeCommitOid
+          ? { mergeCommitOid: proof.mergeCommitOid }
+          : {}),
+        headRepository: proof.headRepository,
+        baseRepository: proof.baseRepository,
+      };
+    }
+    if (!proof.classification) return undefined;
+    if (proof.classification === "repair")
+      return {
+        ok: false as const,
+        classification: "repair" as const,
+        reason: "integration_proof_unavailable" as const,
+        message: `${proof.reason}: ${proof.hint}`,
+      } satisfies WorktreeDeletionIntegrationFailure;
+    const reason =
+      proof.reason === "no_pr_evidence"
+        ? "pr_not_found"
+        : proof.reason === "pr_not_merged"
+          ? "pr_not_merged"
+          : proof.reason === "local_has_commits_after_pr_head"
+            ? "local_commits_after_pr_head"
+            : proof.reason === "pr_merge_commit_unreachable"
+              ? "pr_merge_commit_unreachable"
+              : "pr_evidence_invalid";
+    return {
+      ok: false as const,
+      classification: "refusal" as const,
+      reason,
+      message: `${proof.reason}: ${proof.hint}`,
+    } satisfies WorktreeDeletionIntegrationFailure;
+  };
   const planner =
     deps.deletionPlanner ??
     createWorktreeDeletionPlanner({
