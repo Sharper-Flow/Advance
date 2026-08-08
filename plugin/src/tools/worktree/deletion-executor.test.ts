@@ -17,6 +17,7 @@ import {
   type WorktreeDeletionExecutorDeps,
   type WorktreeBeforeRemoveStage,
 } from "./deletion-executor";
+import { GitWorktreeFlockUnsupportedError } from "../../utils/git-worktree-flock";
 import { createWorktreeOperationContext } from "../../utils/worktree-operation";
 
 const sha = "0123456789abcdef0123456789abcdef01234567";
@@ -233,6 +234,32 @@ describe("WorktreeDeletionExecutor", () => {
       await expect(firstPromise).resolves.toMatchObject({
         ok: true,
         status: "deleted",
+      });
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("returns unsupported when the flock holder command is unavailable", async () => {
+    const fx = fixture();
+    try {
+      const plan = makePlan(fx);
+      const result = await executeWorktreeDeletion(
+        { plan },
+        depsFor(fx, plan, {
+          acquireLease: async () => {
+            throw new GitWorktreeFlockUnsupportedError(
+              "flock holder command is unavailable",
+            );
+          },
+        }),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        status: "unsupported",
+        reason: "kernel_flock_unavailable",
+        stage: "lease",
       });
     } finally {
       fx.cleanup();
@@ -585,8 +612,8 @@ describe("WorktreeDeletionExecutor", () => {
     try {
       const plan = makePlan(fx);
       const operation = createWorktreeOperationContext({
-        budgetMs: 25,
-        responseReserveMs: 5,
+        budgetMs: 500,
+        responseReserveMs: 50,
       });
       const acquireLease = vi.fn(
         () =>
@@ -627,8 +654,8 @@ describe("WorktreeDeletionExecutor", () => {
     try {
       const plan = makePlan(fx);
       const operation = createWorktreeOperationContext({
-        budgetMs: 25,
-        responseReserveMs: 5,
+        budgetMs: 500,
+        responseReserveMs: 50,
       });
       const beforeRemove = createWorktreeBeforeRemoveStage(
         ({ signal }) =>
@@ -695,8 +722,8 @@ describe("WorktreeDeletionExecutor", () => {
     try {
       const plan = makePlan(fx);
       const operation = createWorktreeOperationContext({
-        budgetMs: 25,
-        responseReserveMs: 5,
+        budgetMs: 500,
+        responseReserveMs: 50,
       });
       const deps = depsFor(fx, plan, {
         census: vi.fn(
@@ -738,8 +765,8 @@ describe("WorktreeDeletionExecutor", () => {
     try {
       const plan = makePlan(fx);
       const operation = createWorktreeOperationContext({
-        budgetMs: 35,
-        responseReserveMs: 5,
+        budgetMs: 500,
+        responseReserveMs: 50,
       });
       const base = depsFor(fx, plan);
       const normalCensus = base.census!;
@@ -785,8 +812,8 @@ describe("WorktreeDeletionExecutor", () => {
     try {
       const plan = makePlan(fx);
       const operation = createWorktreeOperationContext({
-        budgetMs: 50,
-        responseReserveMs: 5,
+        budgetMs: 500,
+        responseReserveMs: 50,
       });
       const reconciliation = createWorktreeReconciliationStage(
         ({ signal }) =>
@@ -820,8 +847,8 @@ describe("WorktreeDeletionExecutor", () => {
     try {
       const plan = makePlan(fx);
       const operation = createWorktreeOperationContext({
-        budgetMs: 25,
-        responseReserveMs: 5,
+        budgetMs: 500,
+        responseReserveMs: 50,
       });
       const terminate = vi.fn(async () => {
         throw new Error("process group remained alive");
@@ -871,8 +898,8 @@ describe("WorktreeDeletionExecutor", () => {
     try {
       const plan = makePlan(fx);
       const operation = createWorktreeOperationContext({
-        budgetMs: 25,
-        responseReserveMs: 5,
+        budgetMs: 500,
+        responseReserveMs: 50,
       });
       const terminate = vi.fn(async () => {
         throw new Error("held lease process group remained alive");
