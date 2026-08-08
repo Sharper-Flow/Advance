@@ -501,7 +501,17 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         join(targetChangesDir, "change.json"),
         JSON.stringify({
           id: targetChangeId,
-          epic_membership: { epic_id: "epic-1" },
+          title: "Other Project Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          epic_membership: {
+            epic_id: "epic-1",
+            entry_id: "entry-1",
+            order: 0,
+            title: "Test Entry",
+            linked_at: "2026-01-01T00:00:00Z",
+          },
         }),
       );
 
@@ -538,7 +548,17 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
         join(targetChangesDir, "change.json"),
         JSON.stringify({
           id: targetChangeId,
-          epic_membership: { epic_id: "epic-1" },
+          title: "Other Project Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          epic_membership: {
+            epic_id: "epic-1",
+            entry_id: "entry-1",
+            order: 0,
+            title: "Test Entry",
+            linked_at: "2026-01-01T00:00:00Z",
+          },
         }),
       );
 

@@ -599,14 +599,10 @@ describe("raw change.json reader boundary", () => {
   // intermittently under load — a structural guard that reds CI at random
   // teaches people to ignore it, so the budget is explicit here.
   it("confines direct change.json reads to the reviewed allowlist", () => {
-    // Every entry below is a KNOWN violation, not an approved one. Approved
-    // readers live in CHANGE_JSON_READ_ALLOWLIST with a written reason.
-    //
-    // - index.ts: reads a cross-project active change.json for epic_membership
-    //   title enrichment via an unchecked cast (best-effort, catch-and-fallback).
-    //   Advisory only — it feeds no gate, persistence, or workflow authority —
-    //   so it is tracked here rather than fixed in this change.
-    expect(findChangeJsonReaders()).toEqual(["index.ts"]);
+    // No violations: every change.json read now routes through the bounded,
+    // ChangeSchema-validated loadChange. The guard catches reintroduction
+    // including aliased imports and local-variable aliases.
+    expect(findChangeJsonReaders()).toEqual([]);
   }, 120_000);
 
   it("detects imported and local aliases of an fs reader", () => {

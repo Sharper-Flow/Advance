@@ -56,6 +56,7 @@ import {
   getRegisteredAdvToolEntries,
 } from "./tool-registry";
 import { loadProjectConfigWithDiagnostics } from "./storage/json";
+import { loadChange } from "./storage/change-projection-reader";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
 import { detectStaleBranchHead } from "./utils/stale-head";
@@ -86,7 +87,6 @@ import {
   PluginBundleGenerationMismatchError,
 } from "./plugin-bundle-manifest";
 import { existsSync } from "fs";
-import { readFile } from "node:fs/promises";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveTargetProject } from "./tools/target-project";
 import { resolveGitSessionContext } from "./utils/git-session";
@@ -704,14 +704,13 @@ const advancePluginImpl: Plugin = async (input) => {
             // Best-effort per DDC5; failures fall back to bare changeId title.
             let epicId: string | undefined;
             try {
-              const raw = await readFile(
-                join(targetChangesDir, String(args.changeId), "change.json"),
-                "utf8",
+              const projected = await loadChange(
+                targetChangesDir,
+                String(args.changeId),
               );
-              const parsed = JSON.parse(raw) as {
-                epic_membership?: { epic_id?: string };
-              };
-              epicId = parsed.epic_membership?.epic_id;
+              if (projected.success) {
+                epicId = projected.data?.epic_membership?.epic_id;
+              }
             } catch (err) {
               debugLog(
                 `handleToolExecuteBefore: cross-project change.json parse failed for ${args.changeId}: ${err}`,

@@ -20,16 +20,6 @@ describe("slop-scan Knip coverage", () => {
     );
 
     expect(unusedFiles.has("src/cli/projection-boundary.ts")).toBe(false);
-    expect([...unusedFiles].sort()).toEqual([
-      "src/storage/_artifact-size-validation.ts",
-      "src/storage/disk-operations.ts",
-      "src/utils/archive-summary.ts",
-      "src/utils/banner.ts",
-      "src/utils/error-text.ts",
-      "src/utils/mutation-outcomes.ts",
-      "src/utils/query-predicate.ts",
-      "src/utils/spec-deltas.ts",
-      "src/utils/wisdom-append.ts",
-    ]);
+    expect([...unusedFiles].sort()).toEqual([]);
   }, 30_000);
 });
