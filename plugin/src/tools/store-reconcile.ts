@@ -6,6 +6,8 @@ import {
   buildReconcilePlan,
   runStoreResidueScan,
   runReconcileApply,
+  readReconcileProgress,
+  reconcileExitCode,
   ReconcileRefusalError,
   type ReconcilePlan,
 } from "../storage";
@@ -84,12 +86,22 @@ export const storeReconcileTools = {
     ): Promise<string> => {
       const mutation = args.mode === "apply";
       const run = async (targetStore: Store, targetContext?: unknown) => {
+        const resumeProgress = args.resume_from
+          ? await readReconcileProgress(
+              `${targetStore.paths.reconcileDir}/runs/${args.resume_from}`,
+            )
+          : null;
+        const resumeAfter =
+          typeof resumeProgress?.continuation_cursor === "string"
+            ? resumeProgress.continuation_cursor
+            : undefined;
         const scan = await runStoreResidueScan({
           paths: targetStore.paths,
           ...(args.max_records !== undefined && {
             maxRecords: args.max_records,
           }),
           ...(args.budget_ms !== undefined && { budgetMs: args.budget_ms }),
+          ...(resumeAfter !== undefined && { resumeAfter }),
         });
         const plan = buildReconcilePlan(scan);
 
@@ -141,17 +153,18 @@ export const storeReconcileTools = {
                 ...(args.budget_ms !== undefined && {
                   budgetMs: args.budget_ms,
                 }),
+                ...(resumeAfter !== undefined && { resumeAfter }),
               }),
           },
         });
         return formatToolOutput(
           {
-            ok: true,
+            ok: report.counters.failed === 0 && report.proof?.complete === true,
             mode: args.mode,
             target: targetContext,
             plan_hash: plan.plan_hash,
             report,
-            exit_code: report.counters.failed > 0 ? 5 : 0,
+            exit_code: reconcileExitCode(report),
           },
           { tool: "adv_store_reconcile" },
         );
@@ -198,6 +211,12 @@ export const storeReconcileTools = {
             error_class: refusal.error_class,
             exit_code: refusal.exit_code,
             error: refusal.message,
+            ...(refusal.resume_from !== undefined && {
+              resume_from: refusal.resume_from,
+            }),
+            ...(refusal.continuation_cursor !== undefined && {
+              continuation_cursor: refusal.continuation_cursor,
+            }),
             zero_mutations: true,
           },
           { tool: "adv_store_reconcile" },

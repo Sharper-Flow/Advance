@@ -338,6 +338,12 @@ describe("store reconciliation integration", () => {
       expect(report.mode).toBe("execute");
       expect(report.interrupted).toBe(false);
       expect(report.records.length).toBe(plan.records.length);
+      expect(report.proof).toMatchObject({
+        before_divergence_count: expect.any(Number),
+        after_divergence_count: expect.any(Number),
+        before: { budget_exceeded: false },
+        after: { budget_exceeded: false, omitted: 0, truncated: false },
+      });
       const applyFailures = report.records.filter(
         (record) => record.status === "failed",
       );

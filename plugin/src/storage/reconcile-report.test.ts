@@ -1,10 +1,11 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import {
   deriveRunStatus,
+  readReconcileProgress,
   rebuildProgressFromReceipts,
   writeReconcileReceipt,
   writeReconcileRunReport,
@@ -43,6 +44,49 @@ describe("reconcile reports", () => {
       await writeFile(join(runDir, "progress.json"), "not-json");
       const progress = await rebuildProgressFromReceipts(runDir);
       expect(progress.applied).toEqual(["change-a"]);
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("corrupt progress can recover a persisted budget cursor from its report", async () => {
+    const root = await createTempDir("adv-reconcile-report-cursor-");
+    try {
+      const runDir = join(root, "runs", "run-1");
+      await mkdir(runDir, { recursive: true });
+      await writeFile(join(runDir, "progress.json"), "not-json");
+      await writeReconcileRunReport(runDir, {
+        schema_version: 1,
+        run_id: "run-1",
+        mode: "execute",
+        started_at: receipt.ts,
+        finished_at: receipt.ts,
+        interrupted: true,
+        records: [],
+        counters: { mutated: 0, skipped: 0, failed: 0 },
+        residuals: ["budget"],
+        continuation_cursor: "cursor-1",
+      });
+      await expect(readReconcileProgress(runDir)).resolves.toMatchObject({
+        continuation_cursor: "cursor-1",
+      });
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("failed receipts are not treated as completed resume progress", async () => {
+    const root = await createTempDir("adv-reconcile-report-failed-");
+    try {
+      const runDir = join(root, "runs", "run-1");
+      await writeReconcileReceipt(runDir, {
+        ...receipt,
+        status: "failed",
+        error_class: "fixture_failure",
+      });
+      const progress = await rebuildProgressFromReceipts(runDir);
+      expect(progress.applied).toEqual([]);
+      expect(progress.last_completed_key).toBeNull();
     } finally {
       await cleanupTempDir(root);
     }

@@ -5,6 +5,10 @@
     "budget_exceeded": {
       "type": "boolean"
     },
+    "continuation_cursor": {
+      "minLength": 1,
+      "type": "string"
+    },
     "counters": {
       "properties": {
         "epic_owner_missing": {
@@ -152,6 +156,9 @@
         "type": "object"
       },
       "type": "array"
+    },
+    "resume_cursor_found": {
+      "type": "boolean"
     },
     "scanned": {
       "maximum": 9007199254740991,

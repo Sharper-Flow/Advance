@@ -61,9 +61,15 @@ import {
   type ReconcileRunReport,
   type StoreResidueScan,
 } from "./reconcile-plan";
+import {
+  computeReconcileCompletionProof,
+  type ReconcileCompletionProof,
+} from "./reconcile-proof";
+import type { SummaryIndexPaths } from "./change-summary-shard";
 import { runStoreResidueScan } from "./store-residue-scan";
 import {
   deriveRunStatus,
+  readReconcileProgress,
   readReconcileReceipts,
   rebuildProgressFromReceipts,
   writeReconcileProgress,
@@ -85,15 +91,25 @@ export type ReconcileErrorClass =
   | "stale_plan"
   | "worker_lock_live"
   | "reconcile_lock_contention"
-  | "corrupt_input";
+  | "corrupt_input"
+  | "budget_exceeded"
+  | "resume_cursor_invalid";
 
 export class ReconcileRefusalError extends Error {
   readonly error_class: ReconcileErrorClass;
-  readonly exit_code: 2 | 3 | 4 | 6;
-  constructor(errorClass: ReconcileErrorClass, message: string) {
+  readonly exit_code: 2 | 3 | 4 | 5 | 6;
+  readonly resume_from?: string;
+  readonly continuation_cursor?: string;
+  constructor(
+    errorClass: ReconcileErrorClass,
+    message: string,
+    details: { resume_from?: string; continuation_cursor?: string } = {},
+  ) {
     super(message);
     this.name = "ReconcileRefusalError";
     this.error_class = errorClass;
+    this.resume_from = details.resume_from;
+    this.continuation_cursor = details.continuation_cursor;
     this.exit_code =
       errorClass === "target_store_resolution"
         ? 2
@@ -101,7 +117,9 @@ export class ReconcileRefusalError extends Error {
           ? 3
           : errorClass === "stale_plan"
             ? 6
-            : 4;
+            : errorClass === "budget_exceeded"
+              ? 5
+              : 4;
   }
 }
 
@@ -332,7 +350,7 @@ export async function saveEpicOptimistic(
 }
 
 export function reconcileExitCode(report: ReconcileRunReport): 0 | 5 {
-  return report.counters.failed > 0 ? 5 : 0;
+  return report.counters.failed > 0 || report.proof?.complete !== true ? 5 : 0;
 }
 
 function runDir(paths: ProjectPaths, runId: string): string {
@@ -344,13 +362,19 @@ function freshPlan(scan: StoreResidueScan): ReconcilePlan {
 }
 
 export interface ReconcileApplyDeps {
-  scan?: (paths: ProjectPaths) => Promise<StoreResidueScan>;
+  scan?: (
+    paths: ProjectPaths,
+    options?: { resumeAfter?: string },
+  ) => Promise<StoreResidueScan>;
   actionExecutors?: Partial<Record<ReconcileAction["action"], ActionExecutor>>;
   auditWriter?: (
     event: ReconcileAuditEvent,
   ) => Promise<ReconcileAuditResult | void>;
   runId?: () => string;
   now?: () => string;
+  completionProof?: (
+    paths: SummaryIndexPaths,
+  ) => Promise<ReconcileCompletionProof>;
 }
 
 export interface RunReconcileApplyOptions {
@@ -402,11 +426,22 @@ export async function runReconcileApply({
     );
   }
 
+  const resumeDir = resumeFromRunId
+    ? runDir(storePaths, resumeFromRunId)
+    : null;
+  const resumeProgress = resumeDir
+    ? await readReconcileProgress(resumeDir)
+    : null;
+  const resumeAfter =
+    typeof resumeProgress?.continuation_cursor === "string"
+      ? resumeProgress.continuation_cursor
+      : undefined;
   let scan: StoreResidueScan;
   try {
-    scan = await (deps.scan ?? ((paths) => runStoreResidueScan({ paths })))(
-      storePaths,
-    );
+    scan = await (
+      deps.scan ??
+      ((paths, options) => runStoreResidueScan({ paths, ...options }))
+    )(storePaths, resumeAfter !== undefined ? { resumeAfter } : undefined);
   } catch (error) {
     throw new ReconcileRefusalError(
       "target_store_resolution",
@@ -418,6 +453,12 @@ export async function runReconcileApply({
     throw new ReconcileRefusalError(
       "stale_plan",
       "fresh residue scan no longer matches the confirmed plan_hash",
+    );
+  }
+  if (scan.resume_cursor_found === false) {
+    throw new ReconcileRefusalError(
+      "resume_cursor_invalid",
+      "resume cursor was not found in the current store scan",
     );
   }
 
@@ -448,9 +489,6 @@ export async function runReconcileApply({
   const now = deps.now ?? (() => new Date().toISOString());
   const runId = deps.runId?.() ?? `reconcile-${randomUUID()}`;
   const currentRunDir = runDir(storePaths, runId);
-  const resumeDir = resumeFromRunId
-    ? runDir(storePaths, resumeFromRunId)
-    : null;
   const completed = resumeDir
     ? new Set((await rebuildProgressFromReceipts(resumeDir)).applied)
     : new Set<string>();
@@ -466,6 +504,43 @@ export async function runReconcileApply({
       deps.auditWriter ??
       ((event: ReconcileAuditEvent) =>
         appendReconcileAudit(join(storePaths.reconcileDir, "audit"), event));
+    if (scan.truncated || scan.budget_exceeded) {
+      const continuationCursor = scan.continuation_cursor;
+      if (!continuationCursor) {
+        throw new ReconcileRefusalError(
+          "budget_exceeded",
+          "bounded reconcile scan exceeded its budget without a continuation cursor",
+          { resume_from: runId },
+        );
+      }
+      const progress = await rebuildProgressFromReceipts(currentRunDir);
+      await writeReconcileProgress(currentRunDir, {
+        ...progress,
+        run_id: runId,
+        continuation_cursor: continuationCursor,
+        budget_exceeded: true,
+      });
+      await writeReconcileRunReport(currentRunDir, {
+        schema_version: 1,
+        run_id: runId,
+        mode: "execute",
+        started_at: startedAt,
+        finished_at: now(),
+        interrupted: true,
+        records: [],
+        counters: { mutated: 0, skipped: 0, failed: 0 },
+        residuals: [
+          `bounded reconcile scan exceeded its budget after ${continuationCursor}`,
+        ],
+        continuation_cursor: continuationCursor,
+      });
+      throw new ReconcileRefusalError(
+        "budget_exceeded",
+        `bounded reconcile scan exceeded its budget; resume from ${runId}`,
+        { resume_from: runId, continuation_cursor: continuationCursor },
+      );
+    }
+
     const ctx: ActionContext = {
       storePaths,
       locksHeld: [reconcileTarget],
@@ -612,11 +687,19 @@ export async function runReconcileApply({
         if (auditResult && !auditResult.ok)
           residuals.push(`${record.record_id}: ${auditResult.warning}`);
       }
-      await writeReconcileProgress(
-        currentRunDir,
-        await rebuildProgressFromReceipts(currentRunDir),
-      );
+      await writeReconcileProgress(currentRunDir, {
+        ...(await rebuildProgressFromReceipts(currentRunDir)),
+        continuation_cursor: null,
+        budget_exceeded: false,
+      });
     }
+    const completionProof = await (
+      deps.completionProof ??
+      ((paths) => computeReconcileCompletionProof({ paths }))
+    )({
+      changesDir: storePaths.changes,
+      summariesDir: storePaths.summariesDir,
+    });
     const report: ReconcileRunReport = {
       schema_version: 1,
       run_id: runId,
@@ -626,7 +709,11 @@ export async function runReconcileApply({
       interrupted: false,
       records: await readReconcileReceipts(currentRunDir),
       counters: { mutated, skipped, failed },
-      residuals,
+      residuals: [
+        ...residuals,
+        ...(completionProof.error ? [completionProof.error] : []),
+      ],
+      proof: completionProof,
     };
     await writeReconcileRunReport(currentRunDir, report);
     return report;

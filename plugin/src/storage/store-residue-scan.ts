@@ -75,6 +75,8 @@ export const StoreResidueScanSchema = z.object({
   omitted: z.number().int().nonnegative(),
   truncated: z.boolean(),
   budget_exceeded: z.boolean(),
+  continuation_cursor: z.string().min(1).optional(),
+  resume_cursor_found: z.boolean().optional(),
 });
 
 export type StoreResidueScan = z.infer<typeof StoreResidueScanSchema>;
@@ -88,7 +90,11 @@ export interface StoreResidueScanOptions {
   paths?: ProjectPaths;
   maxRecords?: number;
   budgetMs?: number;
+  /** Resume after the record id persisted by an interrupted bounded scan. */
+  resumeAfter?: string;
 }
+
+export const RECONCILE_START_CURSOR = "__reconcile_start__";
 
 type Signal = { class: ResidueClass; evidence: string };
 
@@ -493,12 +499,23 @@ export async function runStoreResidueScan(
       ? Number.POSITIVE_INFINITY
       : Date.now() + Math.max(1, options.budgetMs);
   const records: StoreResidueRecord[] = [];
+  let resumeCursorFound =
+    options.resumeAfter === undefined ||
+    options.resumeAfter === RECONCILE_START_CURSOR;
+  let pastResumeCursor = resumeCursorFound;
   const countersByClass = Object.fromEntries(
     ResidueClassSchema.options.map((className) => [className, 0]),
   ) as StoreResidueCounters;
   const shouldStop = () =>
     records.length >= maxRecords || Date.now() >= deadline;
   const add = (record: StoreResidueRecord) => {
+    if (!pastResumeCursor) {
+      if (record.record_id === options.resumeAfter) {
+        pastResumeCursor = true;
+        resumeCursorFound = true;
+      }
+      return;
+    }
     if (records.length >= maxRecords) return;
     records.push(record);
     countersByClass[record.class] += 1;
@@ -517,14 +534,27 @@ export async function runStoreResidueScan(
   await enumerateQuarantine(paths, add, shouldStop);
   await enumerateUnknownStoreNoise(paths, add, shouldStop);
   const budgetExceeded = Date.now() >= deadline;
+  const missingResumeCursor =
+    options.resumeAfter !== undefined && !resumeCursorFound;
   const totalKnown = records.length;
   return {
     schema_version: 1,
     records,
     counters: countersByClass,
     scanned: totalKnown,
-    omitted: budgetExceeded || records.length >= maxRecords ? 1 : 0,
-    truncated: budgetExceeded || records.length >= maxRecords,
+    omitted:
+      missingResumeCursor || budgetExceeded || records.length >= maxRecords
+        ? 1
+        : 0,
+    truncated:
+      missingResumeCursor || budgetExceeded || records.length >= maxRecords,
     budget_exceeded: budgetExceeded,
+    ...(records.length >= maxRecords || budgetExceeded
+      ? {
+          continuation_cursor:
+            records.at(-1)?.record_id ?? RECONCILE_START_CURSOR,
+        }
+      : {}),
+    resume_cursor_found: resumeCursorFound,
   };
 }

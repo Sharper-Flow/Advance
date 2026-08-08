@@ -126,6 +126,7 @@ export const ReconcileRunReportSchema = z.object({
   }),
   residuals: z.array(z.string()),
   proof: z.record(z.string(), z.unknown()).optional(),
+  continuation_cursor: z.string().min(1).optional(),
 });
 
 export type ReconcileRunReport = z.infer<typeof ReconcileRunReportSchema>;

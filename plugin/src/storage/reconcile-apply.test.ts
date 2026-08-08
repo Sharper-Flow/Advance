@@ -5,7 +5,11 @@ import { describe, expect, test, vi } from "vitest";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import { getProjectPaths } from "./json";
 import { buildReconcilePlan, type StoreResidueScan } from "./reconcile-plan";
-import { runReconcileApply, type ActionOutcome } from "./reconcile-apply";
+import {
+  reconcileExitCode,
+  runReconcileApply,
+  type ActionOutcome,
+} from "./reconcile-apply";
 
 const classes = [
   "schema_drift_retired_enum",
@@ -203,6 +207,195 @@ describe("reconcile apply", () => {
         },
       });
       expect(calls).toEqual([]);
+    } finally {
+      await data.cleanup();
+    }
+  });
+
+  test("resume retries failed receipts instead of skipping them", async () => {
+    const data = await fixture();
+    try {
+      const scan = scanFor([residue("failed-first")]);
+      const plan = buildReconcilePlan(scan);
+      const calls: string[] = [];
+      let attempt = 0;
+      const executor = vi.fn(async (record): Promise<ActionOutcome> => {
+        calls.push(record.record_id);
+        attempt += 1;
+        return attempt === 1
+          ? { status: "failed", error_class: "fixture_failure" }
+          : { status: "skipped" };
+      });
+      const first = await runReconcileApply({
+        storePaths: data.paths,
+        plan,
+        planHash: plan.plan_hash,
+        confirmPlanHash: plan.plan_hash,
+        mode: "apply",
+        deps: {
+          scan: async () => scan,
+          actionExecutors: { quarantine_to_trash: executor },
+        },
+      });
+      expect(first.counters.failed).toBe(1);
+
+      calls.length = 0;
+      const resumed = await runReconcileApply({
+        storePaths: data.paths,
+        plan,
+        planHash: plan.plan_hash,
+        confirmPlanHash: plan.plan_hash,
+        mode: "apply",
+        resumeFromRunId: first.run_id,
+        deps: {
+          scan: async () => scan,
+          actionExecutors: { quarantine_to_trash: executor },
+        },
+      });
+      expect(calls).toEqual(["failed-first"]);
+      expect(resumed.counters.failed).toBe(0);
+    } finally {
+      await data.cleanup();
+    }
+  });
+
+  test("budget-limited apply returns a resumable typed outcome", async () => {
+    const data = await fixture();
+    try {
+      const scan = {
+        ...scanFor([residue("budget-first")]),
+        omitted: 1,
+        truncated: true,
+        budget_exceeded: true,
+        continuation_cursor: "budget-first",
+      };
+      const plan = buildReconcilePlan(scan);
+      await expect(
+        runReconcileApply({
+          storePaths: data.paths,
+          plan,
+          planHash: plan.plan_hash,
+          confirmPlanHash: plan.plan_hash,
+          mode: "apply",
+          deps: { scan: async () => scan, runId: () => "budget-run" },
+        }),
+      ).rejects.toMatchObject({
+        error_class: "budget_exceeded",
+        continuation_cursor: "budget-first",
+        resume_from: "budget-run",
+      });
+    } finally {
+      await data.cleanup();
+    }
+  });
+
+  test("resumes a budget-limited apply from its persisted cursor", async () => {
+    const data = await fixture();
+    try {
+      const firstScan = {
+        ...scanFor([residue("budget-first")]),
+        omitted: 1,
+        truncated: true,
+        budget_exceeded: true,
+        continuation_cursor: "budget-first",
+      };
+      const remainingScan = scanFor([residue("budget-second")]);
+      const firstPlan = buildReconcilePlan(firstScan);
+      const executor = vi.fn(
+        async (): Promise<ActionOutcome> => ({
+          status: "skipped",
+        }),
+      );
+      await expect(
+        runReconcileApply({
+          storePaths: data.paths,
+          plan: firstPlan,
+          planHash: firstPlan.plan_hash,
+          confirmPlanHash: firstPlan.plan_hash,
+          mode: "apply",
+          deps: {
+            scan: async () => firstScan,
+            runId: () => "budget-resume-run",
+          },
+        }),
+      ).rejects.toMatchObject({ error_class: "budget_exceeded" });
+
+      const remainingPlan = buildReconcilePlan(remainingScan);
+      const resumed = await runReconcileApply({
+        storePaths: data.paths,
+        plan: remainingPlan,
+        planHash: remainingPlan.plan_hash,
+        confirmPlanHash: remainingPlan.plan_hash,
+        mode: "apply",
+        resumeFromRunId: "budget-resume-run",
+        deps: {
+          scan: async (_paths, options) => {
+            expect(options?.resumeAfter).toBe("budget-first");
+            return remainingScan;
+          },
+          actionExecutors: { quarantine_to_trash: executor },
+        },
+      });
+      expect(resumed.records.map((record) => record.record_id)).toEqual([
+        "budget-second",
+      ]);
+    } finally {
+      await data.cleanup();
+    }
+  });
+
+  test("runs completion proof at apply end and preserves proof failure", async () => {
+    const data = await fixture();
+    try {
+      const scan = scanFor([residue("proof-record")]);
+      const plan = buildReconcilePlan(scan);
+      const proof = {
+        schema_version: 1,
+        status: "error",
+        complete: false,
+        before: {
+          divergences: [],
+          divergence_count: 0,
+          scanned: 0,
+          omitted: 0,
+          truncated: false,
+          budget_exceeded: false,
+        },
+        after: {
+          divergences: [],
+          divergence_count: 0,
+          scanned: 0,
+          omitted: 0,
+          truncated: false,
+          budget_exceeded: false,
+          scan_error: "disk read failed",
+        },
+        before_divergence_count: 0,
+        after_divergence_count: 0,
+        whitelisted_divergence_count: 0,
+        residual_divergences: [],
+        documented_whitelist: [],
+        error: "after proof scan failed: disk read failed",
+      } as never;
+      const report = await runReconcileApply({
+        storePaths: data.paths,
+        plan,
+        planHash: plan.plan_hash,
+        confirmPlanHash: plan.plan_hash,
+        mode: "apply",
+        deps: {
+          scan: async () => scan,
+          actionExecutors: {
+            quarantine_to_trash: async (): Promise<ActionOutcome> => ({
+              status: "skipped",
+            }),
+          },
+          completionProof: async () => proof,
+        },
+      });
+      expect(report.proof).toBe(proof);
+      expect(report.proof?.complete).toBe(false);
+      expect(reconcileExitCode(report)).toBe(5);
     } finally {
       await data.cleanup();
     }

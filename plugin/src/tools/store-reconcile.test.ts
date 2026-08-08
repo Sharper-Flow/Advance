@@ -95,6 +95,7 @@ describe("adv_store_reconcile", () => {
       records: [],
       counters: { mutated: 0, skipped: 0, failed: 0 },
       residuals: [],
+      proof: { complete: true },
     };
 
     reconcileApplyMock.runReconcileApply.mockResolvedValueOnce(report);

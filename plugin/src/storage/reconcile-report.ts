@@ -16,6 +16,8 @@ export interface ReconcileProgress {
   last_completed_key: string | null;
   applied: string[];
   ts: string;
+  continuation_cursor?: string | null;
+  budget_exceeded?: boolean;
 }
 
 export interface DerivedRunStatus {
@@ -76,13 +78,74 @@ export async function rebuildProgressFromReceipts(
   runDir: string,
 ): Promise<ReconcileProgress> {
   const receipts = await loadReceipts(runDir);
-  const applied = receipts.map((receipt) => receipt.record_id);
+  const applied = receipts
+    .filter((receipt) => receipt.status !== "failed")
+    .map((receipt) => receipt.record_id);
+  let continuationCursor: string | null | undefined;
+  let budgetExceeded: boolean | undefined;
+  try {
+    const persisted = JSON.parse(
+      await readFile(join(runDir, "progress.json"), "utf8"),
+    ) as { continuation_cursor?: unknown; budget_exceeded?: unknown };
+    if (
+      persisted.continuation_cursor === null ||
+      typeof persisted.continuation_cursor === "string"
+    ) {
+      continuationCursor = persisted.continuation_cursor;
+    }
+    if (typeof persisted.budget_exceeded === "boolean") {
+      budgetExceeded = persisted.budget_exceeded;
+    }
+  } catch {
+    // Receipts remain the completion source of truth when the checkpoint is torn.
+  }
   return {
     run_id: runIdFromDir(runDir),
     last_completed_key: applied.at(-1) ?? null,
     applied,
     ts: new Date().toISOString(),
+    ...(continuationCursor !== undefined && {
+      continuation_cursor: continuationCursor,
+    }),
+    ...(budgetExceeded !== undefined && { budget_exceeded: budgetExceeded }),
   };
+}
+
+export async function readReconcileProgress(
+  runDir: string,
+): Promise<ReconcileProgress | null> {
+  try {
+    const value = JSON.parse(
+      await readFile(join(runDir, "progress.json"), "utf8"),
+    ) as ReconcileProgress;
+    if (
+      value &&
+      typeof value === "object" &&
+      typeof value.run_id === "string"
+    ) {
+      return value;
+    }
+  } catch {
+    // Fall through to the interrupted report's durable cursor.
+  }
+  try {
+    const report = ReconcileRunReportSchema.safeParse(
+      JSON.parse(await readFile(join(runDir, "report.json"), "utf8")),
+    );
+    if (report.success && report.data.continuation_cursor) {
+      return {
+        run_id: report.data.run_id,
+        last_completed_key: null,
+        applied: [],
+        ts: report.data.finished_at ?? new Date().toISOString(),
+        continuation_cursor: report.data.continuation_cursor,
+        budget_exceeded: true,
+      };
+    }
+  } catch {
+    // A missing or corrupt checkpoint/report is recoverable from receipts.
+  }
+  return null;
 }
 
 export async function writeReconcileProgress(
