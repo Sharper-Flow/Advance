@@ -31,6 +31,10 @@ import {
 } from "../../utils/worktree-operation";
 import { stableStringify } from "../../utils/digest";
 import { isWorktreeInUse } from "./in-use";
+import {
+  LocalBranchIntegrationDeadline,
+  proveLocalBranchIntegration,
+} from "../../utils/branch-integration";
 
 /** Dependency seams keep the destructive boundary testable without bypassing Git. */
 export interface WorktreeDeletionExecutorDeps {
@@ -369,13 +373,27 @@ export class WorktreeDeletionExecutor {
       if (
         !branchFact ||
         !integration ||
-        branchFact.headSha !== integration.head ||
-        (!branchFact.merged && !this.deps.integrationProof)
+        branchFact.headSha !== integration.head
       )
         return failure("drifted", "integration_fact_changed", stage);
       if (this.deps.integrationProof) {
         const currentProof = await runBounded(stage, () =>
           this.deps.integrationProof!(
+            plan.facts.branch ?? "",
+            actual.head,
+            integration.defaultBranch,
+            plan.repository,
+            operation,
+          ),
+        );
+        if (!sameProof(integration, currentProof))
+          return failure("drifted", "integration_proof_changed", stage);
+      } else if (branchFact.merged) {
+        if (integration.kind !== "merged_to_default")
+          return failure("drifted", "integration_proof_changed", stage);
+      } else {
+        const currentProof = await runBounded(stage, () =>
+          proveLocalBranchIntegration(
             plan.facts.branch ?? "",
             actual.head,
             integration.defaultBranch,
@@ -624,6 +642,12 @@ export class WorktreeDeletionExecutor {
         );
       if (error instanceof WorktreeDeletionStageDeadline)
         return failure("deadline_exceeded", error.message, error.stage);
+      if (error instanceof LocalBranchIntegrationDeadline)
+        return failure(
+          "deadline_exceeded",
+          error.message,
+          operation.currentStage,
+        );
       if (
         error instanceof Error &&
         /unsupported.*platform/i.test(error.message)

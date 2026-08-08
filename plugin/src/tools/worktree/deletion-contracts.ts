@@ -35,7 +35,7 @@ export type WorktreeDeletionFacts = z.infer<typeof WorktreeDeletionFactsSchema>;
 
 export const WorktreeDeletionIntegrationProofSchema = z
   .object({
-    kind: z.enum(["merged_to_default", "pr_merged"]),
+    kind: z.enum(["merged_to_default", "patch_equivalent", "pr_merged"]),
     branch: NonEmptyTextSchema,
     defaultBranch: NonEmptyTextSchema,
     head: z.string().regex(HEX_SHA_RE),

@@ -21,6 +21,11 @@ import {
   type WorktreeStageTiming,
 } from "../../utils/worktree-operation";
 import { getDefaultBranch } from "../../utils/git";
+import { isValidGitBranchRef } from "../../utils/git-ref";
+import {
+  proveLocalBranchIntegration,
+  type LocalBranchIntegrationProof,
+} from "../../utils/branch-integration";
 import { getExternalRootForProject } from "../../utils/project-id";
 
 /** A plan is intentionally short-lived and self-contained. */
@@ -42,6 +47,7 @@ export type WorktreeDeletionRefusalReason =
   | "git_corrupt"
   | "bare_worktree"
   | "branch_not_merged"
+  | "invalid_ref"
   | "terminal_proof_required";
 
 export type WorktreeDeletionRepairReason =
@@ -340,8 +346,24 @@ export class WorktreeDeletionPlanner {
           { target },
         );
       }
+      if (!isValidGitBranchRef(branch)) {
+        return refusal(
+          "invalid_ref",
+          "The requested branch is not a valid local Git branch name.",
+          operation,
+          { target },
+        );
+      }
       const defaultBranch =
         input.defaultBranch ?? (await getDefaultBranch(target.repository));
+      if (!isValidGitBranchRef(defaultBranch)) {
+        return refusal(
+          "invalid_ref",
+          "The default branch is not a valid local Git branch name.",
+          operation,
+          { target },
+        );
+      }
 
       operation.startStage("git_census");
       let census: GitWorkspaceFacts;
@@ -495,14 +517,6 @@ export class WorktreeDeletionPlanner {
           operation,
           { facts, target },
         );
-      if (!branchFact.merged && !this.deps.integrationProof)
-        return refusal(
-          "branch_not_merged",
-          `Branch ${branch} is not integrated into ${defaultBranch}.`,
-          operation,
-          { facts, target },
-        );
-
       operation.startStage("integration_proof");
       let integration: WorktreeDeletionIntegrationProof | undefined;
       try {
@@ -516,13 +530,21 @@ export class WorktreeDeletionPlanner {
                 operation,
               ),
             )
-          : {
-              kind: "merged_to_default",
-              branch,
-              defaultBranch,
-              head: candidate.headSha,
-              evidence: `git branch --merged ${defaultBranch}`,
-            });
+          : branchFact.merged
+            ? {
+                kind: "merged_to_default" as const,
+                branch,
+                defaultBranch,
+                head: candidate.headSha,
+                evidence: `git branch --merged ${defaultBranch}`,
+              }
+            : ((await proveLocalBranchIntegration(
+                branch,
+                candidate.headSha,
+                defaultBranch,
+                target.repository,
+                operation,
+              )) as LocalBranchIntegrationProof | undefined));
       } catch (error) {
         if (isTimeoutError(error) || operation.remainingMs() <= 0)
           return this.deadline(operation, "integration_proof", error, target);

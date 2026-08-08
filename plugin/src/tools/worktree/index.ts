@@ -30,6 +30,7 @@ import {
 } from "node:fs/promises";
 import * as path from "node:path";
 import { execFileGitCb } from "../../utils/git-binary";
+import { isValidGitBranchRef } from "../../utils/git-ref";
 import { boundedRetry } from "../../utils/fs";
 import { type Plugin, tool } from "@opencode-ai/plugin";
 import type {
@@ -113,6 +114,8 @@ import {
 import type { Store } from "../../storage/store";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 import { execGh } from "../../integrations/gh-cli";
+import { proveLocalBranchIntegration } from "../../utils/branch-integration";
+import type { WorktreeOperationContext } from "../../utils/worktree-operation";
 
 export { advWorktreeDetachBatch } from "./detach";
 export {
@@ -196,17 +199,6 @@ const Result = {
  * Git branch name validation - blocks invalid refs and shell metacharacters
  * Characters blocked: control chars (0x00-0x1f, 0x7f), ~^:?*[]\\, and shell metacharacters
  */
-function isValidBranchName(name: string): boolean {
-  // Check for control characters
-  for (let i = 0; i < name.length; i++) {
-    const code = name.charCodeAt(i);
-    if (code <= 0x1f || code === 0x7f) return false;
-  }
-  // Check for invalid git ref characters and shell metacharacters
-  if (/[~^:?*[\]\\;&|`$()]/.test(name)) return false;
-  return true;
-}
-
 const branchNameSchema = z
   .string()
   .min(1, "Branch name cannot be empty")
@@ -231,7 +223,7 @@ const branchNameSchema = z
   })
   .max(255, "Branch name too long")
   .refine(
-    (name) => isValidBranchName(name),
+    (name) => isValidGitBranchRef(name),
     "Contains invalid git ref characters",
   )
   .refine(
@@ -1785,13 +1777,35 @@ async function advWorktreeDeleteShared(
     };
   };
   const integrationProof =
-    deps.prMergeEvidence || deps.mergedBranches
+    deps.integrationCheck || deps.prMergeEvidence || deps.mergedBranches
       ? async (
           branchName: string,
           head: string,
           defaultBranch: string,
           repository: string,
+          operation: WorktreeOperationContext,
         ) => {
+          if (deps.integrationCheck) {
+            const checked = await deps.integrationCheck(
+              branchName,
+              repository,
+              {},
+              {
+                registry: deps.registry,
+                mergedBranches: deps.mergedBranches,
+              },
+            );
+            if (checked.ok) {
+              return {
+                kind: "merged_to_default" as const,
+                branch: branchName,
+                defaultBranch,
+                head,
+                evidence: "legacy integration check",
+              };
+            }
+            if (checked.reason !== "branch_not_merged") return undefined;
+          }
           if (deps.mergedBranches) {
             const merged = await deps.mergedBranches(defaultBranch, repository);
             if (
@@ -1807,20 +1821,29 @@ async function advWorktreeDeleteShared(
                 evidence: `git branch --merged ${defaultBranch}`,
               };
           }
-          if (!deps.prMergeEvidence) return undefined;
-          const proof = await deps.prMergeEvidence(branchName, repository);
-          if (!proof.ok) return undefined;
-          appendDebugLog(
-            "worktree-delete",
-            `verified squash PR merge for ${branchName} via PR #${proof.prNumber} (${proof.proof})`,
-          );
-          return {
-            kind: "pr_merged" as const,
-            branch: branchName,
-            defaultBranch,
+          if (deps.prMergeEvidence) {
+            const proof = await deps.prMergeEvidence(branchName, repository);
+            if (proof.ok) {
+              appendDebugLog(
+                "worktree-delete",
+                `verified squash PR merge for ${branchName} via PR #${proof.prNumber} (${proof.proof})`,
+              );
+              return {
+                kind: "pr_merged" as const,
+                branch: branchName,
+                defaultBranch,
+                head,
+                evidence: `merged PR #${proof.prNumber}${proof.prUrl ? ` (${proof.prUrl})` : ""}`,
+              };
+            }
+          }
+          return proveLocalBranchIntegration(
+            branchName,
             head,
-            evidence: `merged PR #${proof.prNumber}${proof.prUrl ? ` (${proof.prUrl})` : ""}`,
-          };
+            defaultBranch,
+            repository,
+            operation,
+          );
         }
       : undefined;
   const planner =
