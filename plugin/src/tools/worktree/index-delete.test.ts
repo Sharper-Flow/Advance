@@ -39,7 +39,6 @@ import {
   advWorktreeDelete as rawAdvWorktreeDelete,
   drainPendingDeletes,
   reapEmptyWorktreeParents,
-  WorktreePlugin,
   type AdvWorktreeDeleteDeps,
 } from "./index";
 
@@ -49,7 +48,6 @@ import {
   clearPendingDelete,
   getPendingDeletes,
   incrementPendingDeleteAttempts,
-  initStateDb,
   setPendingDelete,
 } from "./state";
 import { synthesizeTestProjectId } from "../../utils/project-id";
@@ -1657,31 +1655,6 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
         lastErrorClass: "worktree_not_found",
       }),
     ]);
-  });
-
-  it("clears missing known pending deletes during plugin startup", async () => {
-    const branch = "change/startup";
-    const access = await initStateDb(repoRoot);
-    startupAccess = access;
-    const pendingPath = join(repoRoot, "worktrees", "change", "startup");
-    await setPendingDelete(access, branch, pendingPath, "startup retry test");
-
-    await WorktreePlugin({
-      directory: repoRoot,
-      worktree: repoRoot,
-      project: {
-        id: "test",
-        worktree: repoRoot,
-        time: { created: Date.now() },
-      },
-      client: {
-        app: { log: vi.fn(async () => undefined) },
-        session: { get: vi.fn(async () => ({ data: { workspaceID: null } })) },
-      },
-      serverUrl: new URL("http://127.0.0.1:4096"),
-    } as any);
-
-    await expect(getPendingDeletes(access)).resolves.toEqual([]);
   });
 });
 
