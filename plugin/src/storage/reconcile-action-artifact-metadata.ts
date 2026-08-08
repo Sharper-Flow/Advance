@@ -26,7 +26,7 @@ import type {
   ActionContext,
   ActionExecutor,
   ActionOutcome,
-} from "./reconcile-apply";
+} from "./reconcile-action-types";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
 
 type JsonRecord = Record<string, unknown>;

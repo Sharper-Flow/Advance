@@ -71,11 +71,11 @@ import {
   getWorktreeRecord,
   getWorktreePath,
   findBranchOwnersAcrossChanges,
-  inferChangeIdFromBranch,
   initStateDb,
   recordPendingDeleteFailure,
   setPendingDelete,
 } from "./state";
+import { inferChangeIdFromBranch } from "./branch-parser";
 import { openTerminal } from "./terminal";
 import { scanGitWorkspaceFacts } from "./census";
 import {

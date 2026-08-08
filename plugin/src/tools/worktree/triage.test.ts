@@ -1,7 +1,7 @@
 /**
  * Tests for triage.ts (T18 — Q9, KD-5 #3+#4).
  *
- * Mocks state.ts + stale-head.ts to inject deterministic fixtures.
+ * Mocks state.ts, branch-parser.ts, and stale-head.ts to inject deterministic fixtures.
  * Covers the current disk-authority scenarios:
  *   - clean state (no orphans)
  *   - stale_head detected
@@ -15,7 +15,7 @@ import { mkdtempSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
 import { execFileSync } from "child_process";
 
-// Mock state.ts BEFORE importing triage.
+// Mock state.ts and branch-parser.ts BEFORE importing triage.
 vi.mock("./state", () => ({
   initStateDb: vi.fn(async () => ({
     projectDir: "/test",
@@ -30,6 +30,9 @@ vi.mock("./state", () => ({
   listWorktrees: vi.fn(async () => []),
   getChangeSummaries: vi.fn(async () => ({})),
   getPendingDeletes: vi.fn(async () => []),
+}));
+
+vi.mock("./branch-parser", () => ({
   inferChangeIdFromBranch: vi.fn((branch: string) =>
     branch.startsWith("change/") ? branch.slice("change/".length) : null,
   ),

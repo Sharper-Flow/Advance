@@ -19,7 +19,7 @@ import {
   rebuildSummaryShardExecutor,
 } from "./reconcile-action-summary";
 import { getProjectPaths, saveChange } from "./json";
-import type { ActionContext } from "./reconcile-apply";
+import type { ActionContext } from "./reconcile-action-types";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
 
 const roots: string[] = [];

@@ -557,6 +557,11 @@ describe("writer allowlist", () => {
 });
 
 describe("raw change.json reader boundary", () => {
+  // findChangeJsonReaders builds a ts.Program over the whole of src, which
+  // takes several seconds on its own and longer when the suite runs in
+  // parallel. The 5s default timeout is not enough and made this guard fail
+  // intermittently under load — a structural guard that reds CI at random
+  // teaches people to ignore it, so the budget is explicit here.
   it("confines direct change.json reads to the reviewed allowlist", () => {
     // Every entry below is a KNOWN violation, not an approved one. Approved
     // readers live in CHANGE_JSON_READ_ALLOWLIST with a written reason.
@@ -566,5 +571,5 @@ describe("raw change.json reader boundary", () => {
     //   Advisory only — it feeds no gate, persistence, or workflow authority —
     //   so it is tracked here rather than fixed in this change.
     expect(findChangeJsonReaders()).toEqual(["index.ts"]);
-  });
+  }, 120_000);
 });

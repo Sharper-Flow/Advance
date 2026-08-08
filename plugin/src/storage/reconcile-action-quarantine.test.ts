@@ -9,7 +9,7 @@ import {
 } from "../__tests__/setup";
 import { ChangeSchema } from "../types";
 import { getProjectPaths, type ProjectPaths } from "./json";
-import type { ActionContext } from "./reconcile-apply";
+import type { ActionContext } from "./reconcile-action-types";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
 import {
   normalizeAndRestoreExecutor,

@@ -8,7 +8,7 @@ import {
   advanceLegacyToCanonicalExecutor,
   reportOnlyExecutor,
 } from "./reconcile-action-legacy-envelope";
-import type { ActionContext } from "./reconcile-apply";
+import type { ActionContext } from "./reconcile-action-types";
 import type { ReconcilePlanRecord } from "./reconcile-plan";
 
 const changeId = "legacy-envelope-change";
