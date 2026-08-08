@@ -38,6 +38,9 @@ import type {
 } from "./schema";
 import type { CapabilityRelationship } from "./registry";
 import { scanDebtMarkers } from "./helpers/debt-marker";
+import { SCAN_IGNORE_DIRS } from "../scan-ignore";
+
+export { SCAN_IGNORE_DIRS } from "../scan-ignore";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -101,23 +104,6 @@ function escalateSeverity(s: CapabilitySeverity): CapabilitySeverity {
     Math.min(idx + 1, SEVERITY_ESCALATION_ORDER.length - 1)
   ];
 }
-
-/**
- * Directory names pruned from every glob traversal. Kept conservative: only
- * the well-known build/cache/vendor roots that should never participate in
- * capability evidence.
- */
-const SCAN_IGNORE_DIRS: ReadonlySet<string> = new Set([
-  "node_modules",
-  ".git",
-  "dist",
-  "build",
-  "coverage",
-  ".next",
-  ".cache",
-  ".turbo",
-  ".adv",
-]);
 
 /**
  * Files above this size are skipped during intent declaration scans to keep
