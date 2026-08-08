@@ -310,6 +310,43 @@ function bindTool<TArgs, TStore>(
   );
 }
 
+export const EXPLICITLY_BOUND = new Set([
+  "adv_spec",
+  "adv_wip_state",
+  "adv_change_archive",
+  "adv_task_cancel",
+  "adv_task_reclassify_tdd",
+  "adv_gate_complete",
+  "adv_run_test",
+  "adv_task_checkpoint",
+  "adv_worktree_create",
+  "adv_worktree_delete",
+  "adv_worktree_cleanup",
+  "adv_worktree_detach",
+  "adv_worktree_triage",
+  "adv_tool_invoke",
+]);
+
+function bindGroup(
+  group: Record<
+    string,
+    {
+      description: string;
+      args: ToolArgsSchema;
+      transportArgs?: ToolArgsSchema;
+      execute: unknown;
+    }
+  >,
+  store: Store,
+): Record<string, ReturnType<typeof registerTool>> {
+  const result: Record<string, ReturnType<typeof registerTool>> = {};
+  for (const [name, def] of Object.entries(group)) {
+    if (EXPLICITLY_BOUND.has(name)) continue;
+    result[name] = bindTool(def as ToolDef<never, Store>, name, store);
+  }
+  return result;
+}
+
 /**
  * Bind adv_spec to a store instance while threading SDK execution context
  * (worktree/directory) so spec reads can resolve the calling worktree's
@@ -357,52 +394,16 @@ export function createToolMap(
 ) {
   const baseToolMap = {
     // Spec Tools
+    ...bindGroup(specTools, store),
     adv_spec: bindToolWithContext(specTools.adv_spec, "adv_spec", store),
 
     // Spec Delta Writer (addSpecDeltaWriter / roadmap #64): append-only
     // add-operation delta under change.deltas[capability]. Archive remains
     // the sole global-spec writer; this tool only mutates the change-owned
     // durable delta record.
-    adv_delta_add: bindTool(
-      specDeltaTools.adv_delta_add,
-      "adv_delta_add",
-      store,
-    ),
-    adv_delta_modify: bindTool(
-      specDeltaTools.adv_delta_modify,
-      "adv_delta_modify",
-      store,
-    ),
-    adv_delta_amend: bindTool(
-      specDeltaTools.adv_delta_amend,
-      "adv_delta_amend",
-      store,
-    ),
-    adv_delta_retract: bindTool(
-      specDeltaTools.adv_delta_retract,
-      "adv_delta_retract",
-      store,
-    ),
-    adv_delta_remove: bindTool(
-      specDeltaTools.adv_delta_remove,
-      "adv_delta_remove",
-      store,
-    ),
-    adv_delta_rename: bindTool(
-      specDeltaTools.adv_delta_rename,
-      "adv_delta_rename",
-      store,
-    ),
-    adv_delta_list: bindTool(
-      specDeltaTools.adv_delta_list,
-      "adv_delta_list",
-      store,
-    ),
-    adv_delta_show: bindTool(
-      specDeltaTools.adv_delta_show,
-      "adv_delta_show",
-      store,
-    ),
+    ...bindGroup(specDeltaTools, store),
+
+    ...bindGroup(backlogTools, store),
 
     // adv_wip_state — fixTriageTimeouts.
     //
@@ -443,73 +444,10 @@ export function createToolMap(
     ),
 
     // Backlog Shell Tools
-    adv_backlog_add: bindTool(
-      backlogShellTools.adv_backlog_add,
-      "adv_backlog_add",
-      store,
-    ),
-    adv_backlog_list: bindTool(
-      backlogShellTools.adv_backlog_list,
-      "adv_backlog_list",
-      store,
-    ),
-    adv_backlog_show: bindTool(
-      backlogShellTools.adv_backlog_show,
-      "adv_backlog_show",
-      store,
-    ),
-    adv_backlog_promote: bindTool(
-      backlogShellTools.adv_backlog_promote,
-      "adv_backlog_promote",
-      store,
-    ),
-    adv_backlog_archive: bindTool(
-      backlogShellTools.adv_backlog_archive,
-      "adv_backlog_archive",
-      store,
-    ),
+    ...bindGroup(backlogShellTools, store),
 
     // Change Tools
-    adv_change_list: bindTool(
-      changeTools.adv_change_list,
-      "adv_change_list",
-      store,
-    ),
-    adv_change_show: bindTool(
-      changeTools.adv_change_show,
-      "adv_change_show",
-      store,
-    ),
-    adv_change_create: bindTool(
-      changeTools.adv_change_create,
-      "adv_change_create",
-      store,
-    ),
-    adv_change_update: bindTool(
-      changeTools.adv_change_update,
-      "adv_change_update",
-      store,
-    ),
-    adv_change_set_release_notes: bindTool(
-      changeTools.adv_change_set_release_notes,
-      "adv_change_set_release_notes",
-      store,
-    ),
-    adv_change_close: bindTool(
-      changeTools.adv_change_close,
-      "adv_change_close",
-      store,
-    ),
-    adv_change_bulk_close: bindTool(
-      changeTools.adv_change_bulk_close,
-      "adv_change_bulk_close",
-      store,
-    ),
-    adv_change_validate: bindTool(
-      changeTools.adv_change_validate,
-      "adv_change_validate",
-      store,
-    ),
+    ...bindGroup(changeTools, store),
     // adv_change_archive — fixArchiveTerminalProjection SC3/AC4 +
     // rq-toolTimeoutOverride01. Heavy-tier outer budget: the inner git
     // push alone defaults to 300s (DEFAULT_GIT_PUSH_TIMEOUT_MS in
@@ -552,139 +490,26 @@ export function createToolMap(
         ),
       ),
     ),
-    adv_archive_purge: bindTool(
-      changeTools.adv_archive_purge,
-      "adv_archive_purge",
-      store,
-    ),
-    adv_change_update_issues: bindTool(
-      changeTools.adv_change_update_issues,
-      "adv_change_update_issues",
-      store,
-    ),
-    adv_change_reenter: bindTool(
-      changeTools.adv_change_reenter,
-      "adv_change_reenter",
-      store,
-    ),
 
     // Epic Tools
-    adv_epic_create: bindTool(
-      epicTools.adv_epic_create,
-      "adv_epic_create",
-      store,
-    ),
-    adv_epic_show: bindTool(epicTools.adv_epic_show, "adv_epic_show", store),
-    adv_epic_list: bindTool(epicTools.adv_epic_list, "adv_epic_list", store),
-    adv_epic_update: bindTool(
-      epicTools.adv_epic_update,
-      "adv_epic_update",
-      store,
-    ),
-    adv_epic_add_shell: bindTool(
-      epicTools.adv_epic_add_shell,
-      "adv_epic_add_shell",
-      store,
-    ),
-    adv_epic_promote_shell: bindTool(
-      epicTools.adv_epic_promote_shell,
-      "adv_epic_promote_shell",
-      store,
-    ),
-    adv_epic_link_change: bindTool(
-      epicTools.adv_epic_link_change,
-      "adv_epic_link_change",
-      store,
-    ),
-    adv_epic_unlink_change: bindTool(
-      epicTools.adv_epic_unlink_change,
-      "adv_epic_unlink_change",
-      store,
-    ),
-    adv_epic_move_change: bindTool(
-      epicTools.adv_epic_move_change,
-      "adv_epic_move_change",
-      store,
-    ),
-    adv_epic_reorder: bindTool(
-      epicTools.adv_epic_reorder,
-      "adv_epic_reorder",
-      store,
-    ),
-    adv_epic_retire: bindTool(
-      epicTools.adv_epic_retire,
-      "adv_epic_retire",
-      store,
-    ),
+    ...bindGroup(epicTools, store),
 
     // Ops Follow-up Promotion Tool
-    adv_followup_promote: bindTool(
-      followupTools.adv_followup_promote,
-      "adv_followup_promote",
-      store,
-    ),
+    ...bindGroup(followupTools, store),
 
     // Report Follow-Up Promotion Tool
-    adv_report_followup_promote: bindTool(
-      reportFollowupTools.adv_report_followup_promote,
-      "adv_report_followup_promote",
-      store,
-    ),
+    ...bindGroup(reportFollowupTools, store),
 
     // Ops Evidence Append Tool
-    adv_ops_evidence_add: bindTool(
-      opsEvidenceTools.adv_ops_evidence_add,
-      "adv_ops_evidence_add",
-      store,
-    ),
-    adv_ops_followup_resolution_upsert: bindTool(
-      opsEvidenceTools.adv_ops_followup_resolution_upsert,
-      "adv_ops_followup_resolution_upsert",
-      store,
-    ),
-    adv_ops_run_upsert: bindTool(
-      opsEvidenceTools.adv_ops_run_upsert,
-      "adv_ops_run_upsert",
-      store,
-    ),
-    adv_ops_run_evidence_add: bindTool(
-      opsEvidenceTools.adv_ops_run_evidence_add,
-      "adv_ops_run_evidence_add",
-      store,
-    ),
+    ...bindGroup(opsEvidenceTools, store),
 
     // Contract Tools
-    adv_contract_mint: bindTool(
-      contractTools.adv_contract_mint,
-      "adv_contract_mint",
-      store,
-    ),
-    adv_contract_review_matrix_set: bindTool(
-      contractTools.adv_contract_review_matrix_set,
-      "adv_contract_review_matrix_set",
-      store,
-    ),
-    adv_design_concern_disposition: bindTool(
-      designConcernTools.adv_design_concern_disposition,
-      "adv_design_concern_disposition",
-      store,
-    ),
-    adv_verification_evidence_disposition: bindTool(
-      verificationEvidenceTools.adv_verification_evidence_disposition,
-      "adv_verification_evidence_disposition",
-      store,
-    ),
+    ...bindGroup(contractTools, store),
+    ...bindGroup(designConcernTools, store),
+    ...bindGroup(verificationEvidenceTools, store),
 
     // Task Tools
-    adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
-    adv_task_list: bindTool(taskTools.adv_task_list, "adv_task_list", store),
-    adv_task_ready: bindTool(taskTools.adv_task_ready, "adv_task_ready", store),
-    adv_task_update: bindTool(
-      taskTools.adv_task_update,
-      "adv_task_update",
-      store,
-    ),
-    adv_task_add: bindTool(taskTools.adv_task_add, "adv_task_add", store),
+    ...bindGroup(taskTools, store),
 
     // Task cancel — needs Record<string,string> type coercion
     adv_task_cancel: registerTool(
@@ -740,84 +565,39 @@ export function createToolMap(
     ),
 
     // Sub-agent Report Tools
-    adv_subagent_report_submit: bindTool(
-      subagentReportTools.adv_subagent_report_submit,
-      "adv_subagent_report_submit",
-      store,
-    ),
+    ...bindGroup(subagentReportTools, store),
 
     // Wisdom Tools — adv_project_wisdom_list was removed by
     // consolidateAdvToolSurface2 (tk-11d902254d63); its project-only listing
     // folded into adv_wisdom_list behind project_only + bounded maxEntries.
-    adv_wisdom_add: bindTool(
-      wisdomTools.adv_wisdom_add,
-      "adv_wisdom_add",
-      store,
-    ),
-    adv_wisdom_list: bindTool(
-      wisdomTools.adv_wisdom_list,
-      "adv_wisdom_list",
-      store,
-    ),
+    ...bindGroup(wisdomTools, store),
 
     // Status Tool
-    adv_status: bindTool(statusTools.adv_status, "adv_status", store),
+    ...bindGroup(statusTools, store),
 
     // Resume Projection Tool (pure-read, orchestrator class)
-    adv_resume_projection: bindTool(
-      resumeProjectionTools.adv_resume_projection,
-      "adv_resume_projection",
-      store,
-    ),
+    ...bindGroup(resumeProjectionTools, store),
 
     // Launcher Projection Rebuild Tool (producer-only, disk-only)
-    adv_launcher_projection_rebuild: bindTool(
-      launcherProjectionTools.adv_launcher_projection_rebuild,
-      "adv_launcher_projection_rebuild",
-      store,
-    ),
+    ...bindGroup(launcherProjectionTools, store),
 
     // Change Projection Quarantine Tool (operator-only repair surface)
-    adv_change_projection_quarantine: bindTool(
-      changeProjectionQuarantineTools.adv_change_projection_quarantine,
-      "adv_change_projection_quarantine",
-      store,
-    ),
+    ...bindGroup(changeProjectionQuarantineTools, store),
 
     // Snapshot Health Tool
-    adv_snapshot_health: bindTool(
-      snapshotHealthTools.adv_snapshot_health,
-      "adv_snapshot_health",
-      store,
-    ),
+    ...bindGroup(snapshotHealthTools, store),
 
     // Store Cleanup Tool — legacy Agenda cleanup (scan/dry_run read-only; execute approval-gated)
-    adv_store_cleanup: bindTool(
-      storeCleanupTools.adv_store_cleanup,
-      "adv_store_cleanup",
-      store,
-    ),
+    ...bindGroup(storeCleanupTools, store),
 
     // Store Reconcile Tool — dry-run plan / approval-gated apply
-    adv_store_reconcile: bindTool(
-      storeReconcileTools.adv_store_reconcile,
-      "adv_store_reconcile",
-      store,
-    ),
+    ...bindGroup(storeReconcileTools, store),
 
     // Project Metadata Tool
-    adv_project_metadata: bindTool(
-      projectMetadataTools.adv_project_metadata,
-      "adv_project_metadata",
-      store,
-    ),
+    ...bindGroup(projectMetadataTools, store),
 
     // Project Tools
-    adv_project_context: bindTool(
-      projectTools.adv_project_context,
-      "adv_project_context",
-      store,
-    ),
+    ...bindGroup(projectTools, store),
 
     // Operator tools
     // rq-doctorConsolidation01 / rq-recoverySurfaceParity01
@@ -827,14 +607,10 @@ export function createToolMap(
     // fix→verify entry point; unsafe escalations (suspect lock reclaim,
     // wrong-type SAs, ambiguous ownership) return typed approval-required
     // proposals instead of being separate tool surfaces.
-    adv_doctor: bindTool(doctorTools.adv_doctor, "adv_doctor", store),
+    ...bindGroup(doctorTools, store),
 
     // Gate Tools
-    adv_gate_status: bindTool(
-      gateTools.adv_gate_status,
-      "adv_gate_status",
-      store,
-    ),
+    ...bindGroup(gateTools, store),
     // adv_gate_complete uses a longer safety-net because the durable write
     // may have landed while the agent sees a ToolExecutionTimeout. The
     // classifier returns a typed "may have landed — verify via
@@ -865,6 +641,7 @@ export function createToolMap(
     ),
 
     // Test Tools — adv_run_test takes (args, store, directory)
+    ...bindGroup(testTools, store),
     //
     // Outer safety-net timeout must exceed the inner subprocess budget.
     // The inner subprocess accepts timeoutMs up to the schema max (300_000
@@ -893,6 +670,7 @@ export function createToolMap(
     ),
 
     // Checkpoint Tool — adv_task_checkpoint takes (args, store, directory)
+    ...bindGroup(checkpointTools, store),
     //
     // Outer safety-net timeout must exceed the inner git subprocess budget
     // (DEFAULT_TIMEOUT_MS = 30s in checkpoint.ts) so the subprocess is the
@@ -920,19 +698,10 @@ export function createToolMap(
     ),
 
     // Reflection Tool
-    adv_reflection_list: bindTool(
-      reflectionTools.adv_reflection_list,
-      "adv_reflection_list",
-      store,
-    ),
-    adv_reflect: bindTool(reflectionTools.adv_reflect, "adv_reflect", store),
+    ...bindGroup(reflectionTools, store),
 
     // Lightweight Change Profile Tool
-    adv_lightweight_profile_evaluate: bindTool(
-      lightweightProfileTools.adv_lightweight_profile_evaluate,
-      "adv_lightweight_profile_evaluate",
-      store,
-    ),
+    ...bindGroup(lightweightProfileTools, store),
 
     // Conformance Tool — adv_conformance takes (args, store).
     // Switched from bindToolSimple to bindTool in change
@@ -940,13 +709,10 @@ export function createToolMap(
     // fireSignalAndRefresh (rq-cacheRefresh01) when firing conformance
     // signals to change workflows. projectDir and externalRoot are
     // derived inside the execute function from store.paths.{root,external}.
-    adv_conformance: bindTool(
-      conformanceTools.adv_conformance,
-      "adv_conformance",
-      store,
-    ),
+    ...bindGroup(conformanceTools, store),
 
     // Worktree Tools
+    ...bindGroup(advWorktreeTools, store),
     adv_worktree_create: registerTool(
       advWorktreeTools.adv_worktree_create.description,
       advWorktreeTools.adv_worktree_create.args,
@@ -968,11 +734,6 @@ export function createToolMap(
           "adv_worktree_create",
         ),
       ),
-    ),
-    adv_worktree_resume: bindTool(
-      advWorktreeTools.adv_worktree_resume,
-      "adv_worktree_resume",
-      store,
     ),
     adv_worktree_delete: registerTool(
       advWorktreeTools.adv_worktree_delete.description,
@@ -1051,29 +812,31 @@ export function createToolMap(
     ),
 
     // Session Tools
-    adv_session_list: bindTool(
-      advSessionTools.adv_session_list,
-      "adv_session_list",
-      store,
-    ),
-    adv_session_show: bindTool(
-      advSessionTools.adv_session_show,
-      "adv_session_show",
-      store,
-    ),
+    ...bindGroup(advSessionTools, store),
 
     // Tool Catalog / Describe (addAdvanceMetadata AC3/C3/C4)
-    adv_tool_catalog: bindTool(
-      toolCatalogTools.adv_tool_catalog,
-      "adv_tool_catalog",
-      store,
-    ),
-    adv_tool_describe: bindTool(
-      toolCatalogTools.adv_tool_describe,
-      "adv_tool_describe",
-      store,
-    ),
+    ...bindGroup(toolCatalogTools, store),
   };
+
+  const publicNames = new Set(PUBLIC_TOOL_ENTRIES.map((entry) => entry.name));
+  const missingExplicitNames = [...EXPLICITLY_BOUND].filter(
+    (name) => !publicNames.has(name),
+  );
+  if (missingExplicitNames.length > 0) {
+    throw new Error(
+      `Explicitly bound tools missing from PUBLIC_TOOL_ENTRIES: ${missingExplicitNames.join(", ")}`,
+    );
+  }
+
+  const missingBaseNames = PUBLIC_TOOL_ENTRIES.filter(
+    (entry) =>
+      !EXPLICITLY_BOUND.has(entry.name) && !(entry.name in baseToolMap),
+  ).map((entry) => entry.name);
+  if (missingBaseNames.length > 0) {
+    throw new Error(
+      `Public tools missing from baseToolMap: ${missingBaseNames.join(", ")}`,
+    );
+  }
 
   // Tool Invoke Facade (addProviderToolSearch AC1-AC4).
   // Dispatches to the same wrapped ToolDefinition.execute used by direct
@@ -1126,14 +889,11 @@ export function createToolMap(
  * public ADV tool surface. Canonical names (ADV_TOOL_NAMES) and the
  * warrant-visible argument surface (getToolSurface) are BOTH derived from it,
  * so discovery metadata can no longer drift from the exported `*Tools`
- * groups. `createToolMap` above stays explicit — runtime registration
- * preserves special bind, timeout, and context behavior — and deterministic
- * parity tests (tool-registry.inventory.test.ts) fail if the explicit map,
- * the degraded map, or the warrant surface diverges from this inventory.
- *
- * The inventory includes the backlog-shell and store-cleanup groups so warrant
- * visibility matches registration (the pre-consolidation surface omitted
- * them).
+ * groups. `createToolMap` above uses `bindGroup` for group-granular
+ * registration — each group is explicitly named, preserving independent
+ * authorship so parity tests (tool-registry.inventory.test.ts) catch a
+ * forgotten group — while the 14 tools carrying non-default bind, timeout,
+ * or context behavior remain individually explicit (EXPLICITLY_BOUND).
  */
 
 /**
