@@ -3,17 +3,47 @@ import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 
 import {
   acquireGitWorktreeFlock,
   acquireGitWorktreeProcessLease,
   GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE,
+  GitWorktreeLegacyLockError,
   GitWorktreeFlockUnsupportedError,
+  LEGACY_GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE,
+  migrateLegacyGitWorktreeLock,
   releaseGitWorktreeFlock,
+  resolveGitWorktreeLeaseDir,
 } from "./git-worktree-flock";
 
 const dirs: string[] = [];
+
+function git(cwd: string, ...args: string[]): string {
+  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+}
+
+function makeGitRepo(prefix: string): string {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  dirs.push(repo);
+  git(repo, "init", "-q", "-b", "trunk");
+  fs.writeFileSync(path.join(repo, "README"), "fixture\n");
+  git(repo, "add", "README");
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=ADV test",
+      "-c",
+      "user.email=adv@example.test",
+      "commit",
+      "-qm",
+      "fixture",
+    ],
+    { cwd: repo },
+  );
+  return repo;
+}
 
 afterEach(() => {
   for (const dir of dirs.splice(0))
@@ -187,5 +217,146 @@ describe("git worktree repository lease", () => {
     await expect(
       acquireGitWorktreeProcessLease(dir, { platform: "darwin" }),
     ).rejects.toThrow(/requires Linux/);
+  });
+
+  it("shares the canonical administrative lease across main and linked worktrees", async () => {
+    const repo = makeGitRepo("adv-common-dir-");
+    const linked = path.join(repo, "linked");
+    git(repo, "worktree", "add", "-q", "-b", "linked", linked);
+
+    const mainLeaseDir = await resolveGitWorktreeLeaseDir(repo);
+    const linkedLeaseDir = await resolveGitWorktreeLeaseDir(linked);
+    expect(linkedLeaseDir).toBe(mainLeaseDir);
+    expect(mainLeaseDir).toBe(path.join(repo, ".git", "advance"));
+
+    const first = await acquireGitWorktreeProcessLease(mainLeaseDir);
+    expect(first.owned).toBe(true);
+    if (!first.owned) return;
+    try {
+      await expect(
+        acquireGitWorktreeProcessLease(linkedLeaseDir),
+      ).resolves.toMatchObject({ owned: false });
+      expect(first.lockPath).toBe(
+        path.join(repo, ".git", "advance", "git-worktree.lock"),
+      );
+    } finally {
+      await first.terminate("test");
+    }
+  });
+
+  it("keeps administrative lease paths independent across separate clones", async () => {
+    const first = makeGitRepo("adv-clone-a-");
+    const second = makeGitRepo("adv-clone-b-");
+    await expect(resolveGitWorktreeLeaseDir(first)).resolves.not.toBe(
+      await resolveGitWorktreeLeaseDir(second),
+    );
+  });
+
+  it("removes an unlocked known legacy artifact and leaves .adv otherwise untouched", async () => {
+    const repo = makeGitRepo("adv-legacy-empty-");
+    const advDir = path.join(repo, ".adv");
+    const lockPath = path.join(advDir, "git-worktree.lock");
+    fs.mkdirSync(advDir);
+    fs.writeFileSync(lockPath, "");
+    fs.writeFileSync(path.join(advDir, "keep.txt"), "keep\n");
+
+    await expect(migrateLegacyGitWorktreeLock(repo)).resolves.toMatchObject({
+      removed: true,
+      lockPath,
+    });
+    expect(fs.existsSync(lockPath)).toBe(false);
+    expect(fs.existsSync(path.join(advDir, "keep.txt"))).toBe(true);
+  });
+
+  it("removes a bounded JSON legacy artifact", async () => {
+    const repo = makeGitRepo("adv-legacy-json-");
+    const lockPath = path.join(repo, ".adv", "git-worktree.lock");
+    fs.mkdirSync(path.dirname(lockPath));
+    fs.writeFileSync(
+      lockPath,
+      JSON.stringify({
+        pid: process.pid,
+        worker_id: "worker",
+        owner_token: "token",
+        acquired_at: new Date().toISOString(),
+      }),
+    );
+    await expect(migrateLegacyGitWorktreeLock(repo)).resolves.toMatchObject({
+      removed: true,
+    });
+    expect(fs.existsSync(lockPath)).toBe(false);
+  });
+
+  it("preserves and refuses a held legacy artifact with the distinct conflict code", async () => {
+    const repo = makeGitRepo("adv-legacy-held-");
+    const advDir = path.join(repo, ".adv");
+    const lockPath = path.join(advDir, "git-worktree.lock");
+    fs.mkdirSync(advDir);
+    fs.writeFileSync(lockPath, "");
+    const holder = await acquireGitWorktreeProcessLease(advDir);
+    expect(holder.owned).toBe(true);
+    if (!holder.owned) return;
+    try {
+      await expect(migrateLegacyGitWorktreeLock(repo)).rejects.toMatchObject({
+        name: "GitWorktreeLegacyLockError",
+        failure: "held",
+        lockPath,
+      } satisfies Partial<GitWorktreeLegacyLockError>);
+      expect(fs.existsSync(lockPath)).toBe(true);
+      expect(LEGACY_GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE).not.toBe(
+        GIT_WORKTREE_FLOCK_CONFLICT_EXIT_CODE,
+      );
+    } finally {
+      await holder.terminate("test");
+    }
+  });
+
+  it("preserves and refuses malformed legacy artifacts", async () => {
+    const repo = makeGitRepo("adv-legacy-malformed-");
+    const lockPath = path.join(repo, ".adv", "git-worktree.lock");
+    fs.mkdirSync(path.dirname(lockPath));
+    fs.writeFileSync(lockPath, JSON.stringify({ unexpected: true }));
+    await expect(migrateLegacyGitWorktreeLock(repo)).rejects.toMatchObject({
+      name: "GitWorktreeLegacyLockError",
+      failure: "malformed",
+      lockPath,
+    });
+    expect(fs.existsSync(lockPath)).toBe(true);
+  });
+
+  it("refuses legacy symlink paths without traversing outside the repository", async () => {
+    const repo = makeGitRepo("adv-legacy-symlink-");
+    const external = fs.mkdtempSync(
+      path.join(os.tmpdir(), "adv-legacy-external-"),
+    );
+    dirs.push(external);
+    const externalLock = path.join(external, "git-worktree.lock");
+    fs.writeFileSync(externalLock, "");
+    fs.symlinkSync(external, path.join(repo, ".adv"));
+
+    await expect(migrateLegacyGitWorktreeLock(repo)).rejects.toMatchObject({
+      name: "GitWorktreeLegacyLockError",
+      failure: "malformed",
+    });
+    expect(fs.existsSync(externalLock)).toBe(true);
+  });
+
+  it("preserves a symlinked legacy artifact without following it", async () => {
+    const repo = makeGitRepo("adv-legacy-lock-symlink-");
+    const external = fs.mkdtempSync(
+      path.join(os.tmpdir(), "adv-legacy-external-"),
+    );
+    dirs.push(external);
+    const externalLock = path.join(external, "git-worktree.lock");
+    fs.writeFileSync(externalLock, "");
+    const legacyDir = path.join(repo, ".adv");
+    fs.mkdirSync(legacyDir);
+    fs.symlinkSync(externalLock, path.join(legacyDir, "git-worktree.lock"));
+
+    await expect(migrateLegacyGitWorktreeLock(repo)).rejects.toMatchObject({
+      name: "GitWorktreeLegacyLockError",
+      failure: "malformed",
+    });
+    expect(fs.existsSync(externalLock)).toBe(true);
   });
 });

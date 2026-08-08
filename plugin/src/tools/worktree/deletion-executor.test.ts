@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -17,7 +18,11 @@ import {
   type WorktreeDeletionExecutorDeps,
   type WorktreeBeforeRemoveStage,
 } from "./deletion-executor";
-import { GitWorktreeFlockUnsupportedError } from "../../utils/git-worktree-flock";
+import {
+  acquireGitWorktreeProcessLease,
+  GitWorktreeFlockUnsupportedError,
+  resolveGitWorktreeLeaseDir,
+} from "../../utils/git-worktree-flock";
 import { createWorktreeOperationContext } from "../../utils/worktree-operation";
 
 const sha = "0123456789abcdef0123456789abcdef01234567";
@@ -32,6 +37,21 @@ function fixture(): {
   const worktree = join(repository, "linked");
   mkdirSync(worktree);
   writeFileSync(join(repository, "root"), "root\n");
+  execFileSync("git", ["init", "-q", "-b", "trunk"], { cwd: repository });
+  execFileSync("git", ["add", "root"], { cwd: repository });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=ADV test",
+      "-c",
+      "user.email=adv@example.test",
+      "commit",
+      "-qm",
+      "fixture",
+    ],
+    { cwd: repository },
+  );
   return {
     repository,
     worktree,
@@ -186,15 +206,90 @@ describe("WorktreeDeletionExecutor", () => {
       const result = await executeWorktreeDeletion(
         { plan },
         depsFor(fx, plan, {
+          repositoryLeaseDir: undefined,
           acquireLease: undefined,
           releaseLease: undefined,
         }),
       );
 
       expect(result).toMatchObject({ ok: true, status: "deleted" });
-      expect(existsSync(join(fx.repository, "git-worktree.lock"))).toBe(true);
+      const leaseDir = await resolveGitWorktreeLeaseDir(fx.repository);
+      expect(existsSync(join(leaseDir, "git-worktree.lock"))).toBe(true);
+      expect(
+        execFileSync("git", ["status", "--short"], {
+          cwd: fx.repository,
+          encoding: "utf8",
+        }),
+      ).toBe("");
     } finally {
       fx.cleanup();
+    }
+  });
+
+  it("migrates an unlocked legacy lock only through deletion", async () => {
+    const fx = fixture();
+    try {
+      const legacyPath = join(fx.repository, ".adv", "git-worktree.lock");
+      mkdirSync(join(fx.repository, ".adv"), { recursive: true });
+      writeFileSync(legacyPath, "");
+      const plan = makePlan(fx);
+      const result = await executeWorktreeDeletion(
+        { plan },
+        depsFor(fx, plan, {
+          repositoryLeaseDir: undefined,
+          acquireLease: undefined,
+          releaseLease: undefined,
+        }),
+      );
+      expect(result).toMatchObject({ ok: true, status: "deleted" });
+      expect(existsSync(legacyPath)).toBe(false);
+      expect(
+        execFileSync("git", ["status", "--short"], {
+          cwd: fx.repository,
+          encoding: "utf8",
+        }),
+      ).toBe("");
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("refuses held and malformed legacy locks with typed repair reasons", async () => {
+    for (const mode of ["held", "malformed"] as const) {
+      const fx = fixture();
+      let holder:
+        | Awaited<ReturnType<typeof acquireGitWorktreeProcessLease>>
+        | undefined;
+      try {
+        const legacyDir = join(fx.repository, ".adv");
+        const legacyPath = join(legacyDir, "git-worktree.lock");
+        mkdirSync(legacyDir, { recursive: true });
+        writeFileSync(legacyPath, mode === "held" ? "" : '{"unexpected":true}');
+        if (mode === "held") {
+          holder = await acquireGitWorktreeProcessLease(legacyDir);
+          if (!holder.owned) throw new Error("legacy holder was not acquired");
+        }
+        const plan = makePlan(fx);
+        const result = await executeWorktreeDeletion(
+          { plan },
+          depsFor(fx, plan, {
+            repositoryLeaseDir: undefined,
+            acquireLease: undefined,
+            releaseLease: undefined,
+          }),
+        );
+        expect(result).toMatchObject({
+          ok: false,
+          status: "repair_required",
+          reason: `legacy_lock_${mode}`,
+          stage: "lease",
+        });
+        expect(existsSync(legacyPath)).toBe(true);
+        expect(exists(fx.worktree)).toBe(true);
+      } finally {
+        if (holder?.owned) await holder.terminate("test");
+        fx.cleanup();
+      }
     }
   });
 

@@ -303,7 +303,7 @@ Multi-session is the supported design center. Per-change filesystem advisory loc
 **Operational model:**
 
 - Each mutating execution session owns its own worktree; read-only/status sessions may run from the main checkout.
-- ADV change mutations are serialized by per-change filesystem advisory locks acquired inside `commitChangeProjection` (15s budget, jittered exponential backoff, stale-PID reclaim). A lock timeout fails closed as `operator_required`. Mutations to DIFFERENT changes are unconstrained — they touch disjoint files. Cross-session `git worktree add/remove` is serialized separately by a per-project `git-worktree.lock` (1.5s retry budget).
+- ADV change mutations are serialized by per-change filesystem advisory locks acquired inside `commitChangeProjection` (15s budget, jittered exponential backoff, stale-PID reclaim). A lock timeout fails closed as `operator_required`. Mutations to DIFFERENT changes are unconstrained — they touch disjoint files. Cross-session `git worktree add/remove` is serialized separately by a kernel `git-worktree.lock` under the repository's canonical `git-common-dir/advance` administrative state (1.5s retry budget); it never lives in a checkout or `.adv`.
 - Git filesystem ops (`git worktree add/remove`) coordinate via narrow per-repo flock (~50ms hold)
 - ADV-managed worktree paths are tool-owned. Agents must not invent repo-specific
   directories such as `~/dev/<repo>-wt` for ADV changes. Use

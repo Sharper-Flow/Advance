@@ -1678,7 +1678,6 @@ async function advWorktreeDeleteShared(
     },
     {
       repository: deps.projectRoot,
-      repositoryLeaseDir: path.join(deps.projectRoot, ".adv"),
       cwd: process.cwd(),
       hooks: hooks.preDelete,
       budgetMs: deps.operationTimeoutMs,
