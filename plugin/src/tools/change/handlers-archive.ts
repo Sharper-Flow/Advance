@@ -89,6 +89,80 @@ function getArchiveDeltaRepairApprovalBlockers(
   });
 }
 
+function isClosedLifecycle(change: Change): boolean {
+  return change.status === "closed" || change.lifecycleState === "closed";
+}
+
+function hasPriorPhase9ArchiveEvidence(change: Change): boolean {
+  const status = change.phase9_status?.status;
+  return status === "failed" || status === "pending_merge";
+}
+
+async function verifyExistingBundleIdentity(
+  existingBundlePath: string,
+  change: Change,
+): Promise<
+  | { ok: true; manifest: Awaited<ReturnType<typeof readProjectionManifest>> }
+  | { ok: false; reason: string }
+> {
+  const manifest = await readProjectionManifest(existingBundlePath);
+  if (!manifest) {
+    return {
+      ok: false,
+      reason: "Archive bundle has no valid projection manifest",
+    };
+  }
+  if (manifest.change_id !== change.id) {
+    return {
+      ok: false,
+      reason: `Bundle change_id ${manifest.change_id} does not match ${change.id}`,
+    };
+  }
+  const expectedDeltaSha = canonicalSha256(change.deltas);
+  if (manifest.delta_set_sha256 !== expectedDeltaSha) {
+    return {
+      ok: false,
+      reason: "Bundle delta_set_sha256 does not match accepted deltas",
+    };
+  }
+  const expectedCapabilities = Object.entries(change.deltas)
+    .filter(([, deltas]) => deltas.length > 0)
+    .map(([capability, deltas]) => ({
+      capability,
+      deltaIds: deltas
+        .map((delta) => delta.id)
+        .sort((left, right) => left.localeCompare(right)),
+    }))
+    .sort((left, right) => left.capability.localeCompare(right.capability));
+  const manifestCapabilities = [...manifest.capabilities]
+    .map((capability) => ({
+      capability: capability.capability,
+      deltaIds: capability.dispositions
+        .map((disposition) => disposition.deltaId)
+        .sort((left, right) => left.localeCompare(right)),
+    }))
+    .sort((left, right) => left.capability.localeCompare(right.capability));
+  if (
+    manifestCapabilities.length !== expectedCapabilities.length ||
+    manifestCapabilities.some(
+      (capability, index) =>
+        capability.capability !== expectedCapabilities[index]?.capability ||
+        capability.deltaIds.length !==
+          expectedCapabilities[index]?.deltaIds.length ||
+        capability.deltaIds.some(
+          (deltaId, deltaIndex) =>
+            deltaId !== expectedCapabilities[index]?.deltaIds[deltaIndex],
+        ),
+    )
+  ) {
+    return {
+      ok: false,
+      reason: "Bundle does not account for the exact accepted delta IDs",
+    };
+  }
+  return { ok: true, manifest };
+}
+
 export const advChangeArchiveHandler = async (
   {
     changeId,
@@ -322,111 +396,205 @@ export const advChangeArchiveHandler = async (
         requirement: "rq-releaseFinalization01",
         changeId,
       });
-    if (
-      !dryRun &&
-      change.status === "archived" &&
-      existingBundlePath &&
-      hasAcceptedDeltas
-    ) {
-      const manifest = await readProjectionManifest(existingBundlePath);
-      const release = verifyReleaseEvidenceFromMain({
-        store: activeStore,
-        changeId,
-        archiveMode,
-        change,
-      });
-      let projectionFailure: unknown;
-      if (
-        !manifest ||
-        release.status !== "shipped" ||
-        !release.releasedCommitSha
-      ) {
-        projectionFailure = {
-          code: !manifest ? "MANIFEST_UNREADABLE" : "RELEASE_PROOF_MISSING",
-          message: !manifest
-            ? "Archive bundle has no valid projection manifest"
-            : "Archive has no immutable released commit proof",
-        };
-      } else {
-        const proof = await verifyProjectionAtGitCommit({
-          manifest,
-          repo: release.repoRoot,
-          releasedCommitSha: release.releasedCommitSha,
-          manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
-          expectedChangeId: change.id,
-          expectedDeltaSetSha256: canonicalSha256(change.deltas),
-          expectedDeltaIdsByCapability: Object.fromEntries(
-            Object.entries(change.deltas).map(([capability, deltas]) => [
-              capability,
-              deltas.map((delta) => delta.id),
-            ]),
-          ),
+    const isArchiveDeltaRepairCandidate =
+      !dryRun && existingBundlePath && hasAcceptedDeltas;
+
+    if (isArchiveDeltaRepairCandidate) {
+      if (change.status === "archived") {
+        const manifest = await readProjectionManifest(existingBundlePath);
+        const release = verifyReleaseEvidenceFromMain({
+          store: activeStore,
+          changeId,
+          archiveMode,
+          change,
         });
-        if (proof.ok) {
-          return reconcileArchivedBundleRetry({
-            store: activeStore,
-            change,
+        let projectionFailure: unknown;
+        if (
+          !manifest ||
+          release.status !== "shipped" ||
+          !release.releasedCommitSha
+        ) {
+          projectionFailure = {
+            code: !manifest ? "MANIFEST_UNREADABLE" : "RELEASE_PROOF_MISSING",
+            message: !manifest
+              ? "Archive bundle has no valid projection manifest"
+              : "Archive has no immutable released commit proof",
+          };
+        } else {
+          const proof = await verifyProjectionAtGitCommit({
+            manifest,
+            repo: release.repoRoot,
+            releasedCommitSha: release.releasedCommitSha,
+            manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
+            expectedChangeId: change.id,
+            expectedDeltaSetSha256: canonicalSha256(change.deltas),
+            expectedDeltaIdsByCapability: Object.fromEntries(
+              Object.entries(change.deltas).map(([capability, deltas]) => [
+                capability,
+                deltas.map((delta) => delta.id),
+              ]),
+            ),
+          });
+          if (proof.ok) {
+            return reconcileArchivedBundleRetry({
+              store: activeStore,
+              change,
+              changeId,
+              archiveMode,
+              phase9,
+              existingBundlePath,
+              openOpsObligationsPayload,
+              validationWarnings: validationResult.warnings,
+            });
+          }
+          projectionFailure = proof;
+        }
+
+        if (phase9 !== "run")
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archived delta repair requires phase9=run so the repaired projection is released and re-proven.",
+            requirement: "rq-archiveDeltaReconciliation01",
             changeId,
-            archiveMode,
-            phase9,
-            existingBundlePath,
-            openOpsObligationsPayload,
-            validationWarnings: validationResult.warnings,
+            archivePath: existingBundlePath,
+            projectionFailure,
+          });
+        const approvalBlockers = getArchiveDeltaRepairApprovalBlockers(
+          gateState.effectiveGates,
+        );
+        if (approvalBlockers.length > 0)
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archived delta repair requires durable sign-off and release approval evidence.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+            approvalBlockers,
+            projectionFailure,
+          });
+        if (!worktreePath)
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archived delta repair requires an explicit trusted repair worktree.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+            projectionFailure,
+          });
+        const repairValidation = validateArchiveDeltaRepairWorktree(
+          worktreePath,
+          changeId,
+          activeStore.paths.root,
+        );
+        if (!repairValidation.valid)
+          return formatToolOutput({
+            success: false,
+            error: "Archived delta repair refused before writes.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+            repairValidation,
+            projectionFailure,
+          });
+        archiveDeltaRepair = repairValidation;
+      } else {
+        if (isClosedLifecycle(change)) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archive delta repair refused: lifecycle is closed, cancelled, or superseded.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
           });
         }
-        projectionFailure = proof;
+        const identity = await verifyExistingBundleIdentity(
+          existingBundlePath,
+          change,
+        );
+        if (!identity.ok) {
+          return formatToolOutput({
+            success: false,
+            error: `Archive delta repair refused: ${identity.reason}`,
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+          });
+        }
+        if (!hasPriorPhase9ArchiveEvidence(change)) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archive delta repair refused: no prior Phase 9 or archive attempt evidence.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+          });
+        }
+        const approvalBlockers = getArchiveDeltaRepairApprovalBlockers(
+          gateState.effectiveGates,
+        );
+        if (approvalBlockers.length > 0) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archived delta repair requires durable sign-off and release approval evidence.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+            approvalBlockers,
+          });
+        }
+        if (!confirmationEvidence?.trim()) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archive delta repair refused: explicit archived-delta repair approval evidence is required.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+          });
+        }
+        if (phase9 !== "run") {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archived delta repair requires phase9=run so the repaired projection is released and re-proven.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+          });
+        }
+        if (!worktreePath) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archived delta repair requires an explicit trusted repair worktree.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+          });
+        }
+        const repairValidation = validateArchiveDeltaRepairWorktree(
+          worktreePath,
+          changeId,
+          activeStore.paths.root,
+        );
+        if (!repairValidation.valid) {
+          return formatToolOutput({
+            success: false,
+            error: "Archived delta repair refused before writes.",
+            requirement: "rq-archiveDeltaReconciliation01",
+            changeId,
+            archivePath: existingBundlePath,
+            repairValidation,
+          });
+        }
+        archiveDeltaRepair = repairValidation;
       }
-
-      if (phase9 !== "run")
-        return formatToolOutput({
-          success: false,
-          error:
-            "Archived delta repair requires phase9=run so the repaired projection is released and re-proven.",
-          requirement: "rq-archiveDeltaReconciliation01",
-          changeId,
-          archivePath: existingBundlePath,
-          projectionFailure,
-        });
-      const approvalBlockers = getArchiveDeltaRepairApprovalBlockers(
-        gateState.effectiveGates,
-      );
-      if (approvalBlockers.length > 0)
-        return formatToolOutput({
-          success: false,
-          error:
-            "Archived delta repair requires durable sign-off and release approval evidence.",
-          requirement: "rq-archiveDeltaReconciliation01",
-          changeId,
-          archivePath: existingBundlePath,
-          approvalBlockers,
-          projectionFailure,
-        });
-      if (!worktreePath)
-        return formatToolOutput({
-          success: false,
-          error:
-            "Archived delta repair requires an explicit trusted repair worktree.",
-          requirement: "rq-archiveDeltaReconciliation01",
-          changeId,
-          archivePath: existingBundlePath,
-          projectionFailure,
-        });
-      const repairValidation = validateArchiveDeltaRepairWorktree(
-        worktreePath,
-        changeId,
-        activeStore.paths.root,
-      );
-      if (!repairValidation.valid)
-        return formatToolOutput({
-          success: false,
-          error: "Archived delta repair refused before writes.",
-          requirement: "rq-archiveDeltaReconciliation01",
-          changeId,
-          archivePath: existingBundlePath,
-          repairValidation,
-          projectionFailure,
-        });
-      archiveDeltaRepair = repairValidation;
     }
     if (!dryRun && worktreePath && !archiveDeltaRepair) {
       const worktreeValidation = validateChangeWorktree(
