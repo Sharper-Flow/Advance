@@ -1,7 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "src/index.ts"
+    "src/index.ts",
+    "src/cli/projection-boundary.ts"
   ],
   "project": ["src/**/*.ts"],
   "ignore": ["src/__mocks__/**", "src/__tests__/**", "**/*.test.ts", "dist/**"],

@@ -22,6 +22,7 @@ import {
 } from "./adapters/go-deadcode";
 import { buildAstGrepCommand, normalizeAstGrepJson } from "./adapters/ast-grep";
 import { buildJscpdCommand, normalizeJscpdJson } from "./adapters/jscpd";
+import { toRepoRelative } from "./adapters/_paths";
 import { normalizeSemgrepExternalCoverage } from "./adapters/external-ci";
 import { readSlopScanConfig } from "./config";
 import {
@@ -471,6 +472,7 @@ export async function runSlopScan(
           options.repoRoot,
           absoluteTarget,
         );
+        const eslintCoverage: DetectorCoverage[] = [];
         for (const { target } of targets.covered) {
           const result = await runner.run({
             detectorId: detector.id,
@@ -487,8 +489,41 @@ export async function runSlopScan(
             result,
             () => normalizeEslintJson(result.stdout, options.repoRoot),
             findings,
-            coverage,
+            eslintCoverage,
           );
+        }
+
+        if (targets.covered.length === 0) {
+          coverage.push({
+            id: detector.id,
+            label: detector.label,
+            state: "unavailable",
+            reason: `no eslint.config.* reachable from any region under ${options.requestedPath}`,
+            important: detector.important,
+          });
+        } else {
+          const ran = eslintCoverage.find((entry) => entry.state === "run");
+          coverage.push(
+            ran ??
+              eslintCoverage[0] ?? {
+                id: detector.id,
+                label: detector.label,
+                state: "unavailable",
+                reason: `no eslint.config.* reachable from any region under ${options.requestedPath}`,
+                important: detector.important,
+              },
+          );
+        }
+
+        for (const uncovered of targets.uncovered) {
+          const relativePath = toRepoRelative(uncovered, options.repoRoot);
+          coverage.push({
+            id: `${detector.id}:${relativePath}`,
+            label: detector.label,
+            state: "unavailable",
+            reason: `no eslint.config.* reachable from ${relativePath}; region not linted`,
+            important: false,
+          });
         }
         break;
       }

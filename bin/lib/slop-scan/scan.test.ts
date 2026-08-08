@@ -200,6 +200,101 @@ describe("slop-scan detector dispatch", () => {
     expect(eslintCalls).toHaveLength(1);
     expect(eslintCalls[0]?.command.at(-1)).toBe(join(repoRoot, "plugin"));
     expect(report.coverage.detectors.find((detector) => detector.id === "eslint")?.state).toBe("run");
+
+    const uncovered = report.coverage.detectors.find(
+      (detector) => detector.id === "eslint:bin",
+    );
+    expect(uncovered).toMatchObject({
+      id: "eslint:bin",
+      important: false,
+      state: "unavailable",
+    });
+    expect(uncovered?.reason).toBe(
+      "no eslint.config.* reachable from bin; region not linted",
+    );
+  });
+
+  test("fails closed when every eslint region is uncovered", async () => {
+    const uncoveredRepo = await mkdtemp(
+      join(tmpdir(), "slop-scan-eslint-uncovered-"),
+    );
+    try {
+      await mkdir(join(uncoveredRepo, "bin", "src"), { recursive: true });
+      await writeFile(
+        join(uncoveredRepo, "package.json"),
+        JSON.stringify({ name: "uncovered", type: "module" }),
+      );
+      await writeFile(
+        join(uncoveredRepo, "bin", "src", "a.ts"),
+        "export const a = 1;\n",
+      );
+
+      const { runner } = makeFakeRunner();
+      const report = await runSlopScan({
+        repoRoot: uncoveredRepo,
+        requestedPath: ".",
+        runner,
+      });
+      const eslint = report.coverage.detectors.filter(
+        (detector) => detector.id === "eslint",
+      );
+
+      expect(eslint).toHaveLength(1);
+      expect(eslint[0]).toMatchObject({
+        id: "eslint",
+        important: true,
+        state: "unavailable",
+        reason: "no eslint.config.* reachable from any region under .",
+      });
+      expect(report.failure?.code).toBe("SLOP_SCAN_DEGRADED");
+    } finally {
+      await rm(uncoveredRepo, { recursive: true, force: true });
+    }
+  });
+
+  test("emits one primary eslint coverage entry across multiple covered regions", async () => {
+    const multiRegionRepo = await mkdtemp(
+      join(tmpdir(), "slop-scan-eslint-regions-"),
+    );
+    try {
+      await writeFile(
+        join(multiRegionRepo, "package.json"),
+        JSON.stringify({ name: "multi-region", type: "module" }),
+      );
+      for (const region of ["one", "two"]) {
+        await mkdir(join(multiRegionRepo, "packages", region, "src"), {
+          recursive: true,
+        });
+        await writeFile(
+          join(multiRegionRepo, "packages", region, "src", "index.ts"),
+          `export const ${region} = 1;\n`,
+        );
+        await writeFile(
+          join(multiRegionRepo, "packages", region, "eslint.config.js"),
+          "export default [];\n",
+        );
+      }
+
+      const { runner } = makeFakeRunner();
+      const report = await runSlopScan({
+        repoRoot: multiRegionRepo,
+        requestedPath: "packages",
+        runner,
+      });
+
+      expect(
+        report.coverage.detectors.filter(
+          (detector) => detector.id === "eslint",
+        ),
+      ).toHaveLength(1);
+      expect(
+        report.coverage.detectors.filter((detector) =>
+          detector.id.startsWith("eslint:"),
+        ),
+      ).toHaveLength(0);
+    } finally {
+      await rm(multiRegionRepo, { recursive: true, force: true });
+    }
   });
 
   test("fails with actionable error when multiple nested package.json roots exist", async () => {
