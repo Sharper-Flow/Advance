@@ -259,85 +259,71 @@ describe("reconcile apply", () => {
     }
   });
 
-  test("budget-limited apply returns a resumable typed outcome", async () => {
+  test("budget-limited apply executes the bounded page before continuation", async () => {
     const data = await fixture();
     try {
       const scan = {
-        ...scanFor([residue("budget-first")]),
+        ...scanFor([residue("budget-first"), residue("budget-second")]),
         omitted: 1,
         truncated: true,
         budget_exceeded: true,
-        continuation_cursor: "budget-first",
+        continuation_cursor: "budget-second",
       };
       const plan = buildReconcilePlan(scan);
-      await expect(
-        runReconcileApply({
-          storePaths: data.paths,
-          plan,
-          planHash: plan.plan_hash,
-          confirmPlanHash: plan.plan_hash,
-          mode: "apply",
-          deps: { scan: async () => scan, runId: () => "budget-run" },
-        }),
-      ).rejects.toMatchObject({
-        error_class: "budget_exceeded",
-        continuation_cursor: "budget-first",
-        resume_from: "budget-run",
+      const calls: string[] = [];
+      const executor = vi.fn(async (record): Promise<ActionOutcome> => {
+        calls.push(record.record_id);
+        return { status: "mutated" };
       });
-    } finally {
-      await data.cleanup();
-    }
-  });
-
-  test("resumes a budget-limited apply from its persisted cursor", async () => {
-    const data = await fixture();
-    try {
-      const firstScan = {
-        ...scanFor([residue("budget-first")]),
-        omitted: 1,
-        truncated: true,
-        budget_exceeded: true,
-        continuation_cursor: "budget-first",
-      };
-      const remainingScan = scanFor([residue("budget-second")]);
-      const firstPlan = buildReconcilePlan(firstScan);
-      const executor = vi.fn(
-        async (): Promise<ActionOutcome> => ({
-          status: "skipped",
-        }),
+      const firstOutcome = await runReconcileApply({
+        storePaths: data.paths,
+        plan,
+        planHash: plan.plan_hash,
+        confirmPlanHash: plan.plan_hash,
+        mode: "apply",
+        deps: {
+          scan: async () => scan,
+          runId: () => "budget-run",
+          actionExecutors: { quarantine_to_trash: executor },
+        },
+      }).then(
+        () => null,
+        (error: unknown) => error,
       );
-      await expect(
-        runReconcileApply({
-          storePaths: data.paths,
-          plan: firstPlan,
-          planHash: firstPlan.plan_hash,
-          confirmPlanHash: firstPlan.plan_hash,
-          mode: "apply",
-          deps: {
-            scan: async () => firstScan,
-            runId: () => "budget-resume-run",
-          },
-        }),
-      ).rejects.toMatchObject({ error_class: "budget_exceeded" });
+      expect(firstOutcome).toMatchObject({
+        error_class: "budget_exceeded",
+        continuation_cursor: "budget-second",
+        resume_from: "budget-run",
+        report: {
+          interrupted: true,
+          continuation_cursor: "budget-second",
+          counters: { mutated: 2 },
+        },
+      });
+      expect(calls).toEqual(["budget-first", "budget-second"]);
 
+      const remainingScan = scanFor([residue("budget-third")]);
       const remainingPlan = buildReconcilePlan(remainingScan);
+      calls.length = 0;
       const resumed = await runReconcileApply({
         storePaths: data.paths,
         plan: remainingPlan,
         planHash: remainingPlan.plan_hash,
         confirmPlanHash: remainingPlan.plan_hash,
         mode: "apply",
-        resumeFromRunId: "budget-resume-run",
+        resumeFromRunId: "budget-run",
         deps: {
           scan: async (_paths, options) => {
-            expect(options?.resumeAfter).toBe("budget-first");
+            expect(options?.resumeAfter).toBe("budget-second");
             return remainingScan;
           },
           actionExecutors: { quarantine_to_trash: executor },
         },
       });
+      expect(calls).toEqual(["budget-third"]);
+      expect(resumed.interrupted).toBe(false);
       expect(resumed.records.map((record) => record.record_id)).toEqual([
-        "budget-second",
+        "budget-third",
       ]);
     } finally {
       await data.cleanup();

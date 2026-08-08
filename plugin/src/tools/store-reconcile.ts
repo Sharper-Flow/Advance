@@ -217,7 +217,10 @@ export const storeReconcileTools = {
             ...(refusal.continuation_cursor !== undefined && {
               continuation_cursor: refusal.continuation_cursor,
             }),
-            zero_mutations: true,
+            ...(refusal.report !== undefined && { report: refusal.report }),
+            zero_mutations:
+              refusal.report === undefined ||
+              refusal.report.counters.mutated === 0,
           },
           { tool: "adv_store_reconcile" },
         );

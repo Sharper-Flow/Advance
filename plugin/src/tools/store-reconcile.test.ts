@@ -24,6 +24,7 @@ vi.mock("../storage/store-residue-scan", async () => {
   };
 });
 
+import { ReconcileRefusalError } from "../storage/reconcile-apply";
 import { buildReconcilePlan } from "../storage/reconcile-plan";
 import { storeReconcileTools } from "./store-reconcile";
 
@@ -110,5 +111,46 @@ describe("adv_store_reconcile", () => {
     const output = parseOutput(result);
 
     expect(output).toMatchObject({ ok: true, mode: "apply", report });
+  });
+
+  test("apply surfaces a budget continuation after the page has mutated", async () => {
+    const plan = buildReconcilePlan(scan);
+    const report = {
+      schema_version: 1,
+      run_id: "reconcile-budget",
+      mode: "execute",
+      started_at: "2026-08-07T00:00:00.000Z",
+      finished_at: "2026-08-07T00:00:01.000Z",
+      interrupted: true,
+      records: [],
+      counters: { mutated: 2, skipped: 0, failed: 0 },
+      residuals: ["page complete"],
+      continuation_cursor: "record-2",
+    };
+    reconcileApplyMock.runReconcileApply.mockRejectedValueOnce(
+      new ReconcileRefusalError("budget_exceeded", "resume required", {
+        resume_from: report.run_id,
+        continuation_cursor: report.continuation_cursor,
+        report,
+      }),
+    );
+
+    const result = await storeReconcileTools.adv_store_reconcile.execute(
+      {
+        mode: "apply",
+        confirm_plan_hash: plan.plan_hash,
+      },
+      store,
+    );
+    const output = parseOutput(result);
+
+    expect(output).toMatchObject({
+      ok: false,
+      error_class: "budget_exceeded",
+      continuation_cursor: "record-2",
+      resume_from: "reconcile-budget",
+      report,
+      zero_mutations: false,
+    });
   });
 });

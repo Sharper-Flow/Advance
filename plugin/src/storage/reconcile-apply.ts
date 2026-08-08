@@ -100,16 +100,22 @@ export class ReconcileRefusalError extends Error {
   readonly exit_code: 2 | 3 | 4 | 5 | 6;
   readonly resume_from?: string;
   readonly continuation_cursor?: string;
+  readonly report?: ReconcileRunReport;
   constructor(
     errorClass: ReconcileErrorClass,
     message: string,
-    details: { resume_from?: string; continuation_cursor?: string } = {},
+    details: {
+      resume_from?: string;
+      continuation_cursor?: string;
+      report?: ReconcileRunReport;
+    } = {},
   ) {
     super(message);
     this.name = "ReconcileRefusalError";
     this.error_class = errorClass;
     this.resume_from = details.resume_from;
     this.continuation_cursor = details.continuation_cursor;
+    this.report = details.report;
     this.exit_code =
       errorClass === "target_store_resolution"
         ? 2
@@ -461,6 +467,16 @@ export async function runReconcileApply({
       "resume cursor was not found in the current store scan",
     );
   }
+  const now = deps.now ?? (() => new Date().toISOString());
+  const runId = deps.runId?.() ?? `reconcile-${randomUUID()}`;
+  const currentRunDir = runDir(storePaths, runId);
+  if ((scan.truncated || scan.budget_exceeded) && !scan.continuation_cursor) {
+    throw new ReconcileRefusalError(
+      "budget_exceeded",
+      "bounded reconcile scan exceeded its budget without a continuation cursor",
+      { resume_from: runId },
+    );
+  }
 
   const worker = await probeWorkerLock(storePaths);
   if (worker.live === true) {
@@ -486,9 +502,6 @@ export async function runReconcileApply({
     );
   }
 
-  const now = deps.now ?? (() => new Date().toISOString());
-  const runId = deps.runId?.() ?? `reconcile-${randomUUID()}`;
-  const currentRunDir = runDir(storePaths, runId);
   const completed = resumeDir
     ? new Set((await rebuildProgressFromReceipts(resumeDir)).applied)
     : new Set<string>();
@@ -504,43 +517,6 @@ export async function runReconcileApply({
       deps.auditWriter ??
       ((event: ReconcileAuditEvent) =>
         appendReconcileAudit(join(storePaths.reconcileDir, "audit"), event));
-    if (scan.truncated || scan.budget_exceeded) {
-      const continuationCursor = scan.continuation_cursor;
-      if (!continuationCursor) {
-        throw new ReconcileRefusalError(
-          "budget_exceeded",
-          "bounded reconcile scan exceeded its budget without a continuation cursor",
-          { resume_from: runId },
-        );
-      }
-      const progress = await rebuildProgressFromReceipts(currentRunDir);
-      await writeReconcileProgress(currentRunDir, {
-        ...progress,
-        run_id: runId,
-        continuation_cursor: continuationCursor,
-        budget_exceeded: true,
-      });
-      await writeReconcileRunReport(currentRunDir, {
-        schema_version: 1,
-        run_id: runId,
-        mode: "execute",
-        started_at: startedAt,
-        finished_at: now(),
-        interrupted: true,
-        records: [],
-        counters: { mutated: 0, skipped: 0, failed: 0 },
-        residuals: [
-          `bounded reconcile scan exceeded its budget after ${continuationCursor}`,
-        ],
-        continuation_cursor: continuationCursor,
-      });
-      throw new ReconcileRefusalError(
-        "budget_exceeded",
-        `bounded reconcile scan exceeded its budget; resume from ${runId}`,
-        { resume_from: runId, continuation_cursor: continuationCursor },
-      );
-    }
-
     const ctx: ActionContext = {
       storePaths,
       locksHeld: [reconcileTarget],
@@ -692,6 +668,50 @@ export async function runReconcileApply({
         continuation_cursor: null,
         budget_exceeded: false,
       });
+    }
+    if (scan.truncated || scan.budget_exceeded) {
+      const continuationCursor = scan.continuation_cursor;
+      // The cursor was validated before acquiring the mutation lock. Keep
+      // this guard for type narrowing if scan implementations are injected.
+      if (!continuationCursor) {
+        throw new ReconcileRefusalError(
+          "budget_exceeded",
+          "bounded reconcile scan exceeded its budget without a continuation cursor",
+          { resume_from: runId },
+        );
+      }
+      const progress = await rebuildProgressFromReceipts(currentRunDir);
+      await writeReconcileProgress(currentRunDir, {
+        ...progress,
+        run_id: runId,
+        continuation_cursor: continuationCursor,
+        budget_exceeded: true,
+      });
+      const report: ReconcileRunReport = {
+        schema_version: 1,
+        run_id: runId,
+        mode: "execute",
+        started_at: startedAt,
+        finished_at: now(),
+        interrupted: true,
+        records: await readReconcileReceipts(currentRunDir),
+        counters: { mutated, skipped, failed },
+        residuals: [
+          ...residuals,
+          `bounded reconcile scan exceeded its budget after ${continuationCursor}`,
+        ],
+        continuation_cursor: continuationCursor,
+      };
+      await writeReconcileRunReport(currentRunDir, report);
+      throw new ReconcileRefusalError(
+        "budget_exceeded",
+        `bounded reconcile scan exceeded its budget; resume from ${runId}`,
+        {
+          resume_from: runId,
+          continuation_cursor: continuationCursor,
+          report,
+        },
+      );
     }
     const completionProof = await (
       deps.completionProof ??
