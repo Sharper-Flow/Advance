@@ -7,6 +7,7 @@
  */
 
 import { commitChangeProjectionWithSummary } from "../storage/change-summary-shard";
+import { refreshLauncherAggregateAfterCommit } from "../storage/launcher-projection";
 import type { ProjectionCommitVerifyResult } from "../storage/change-projection-transaction";
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
@@ -113,6 +114,14 @@ async function executeDiskPath<T>({
     commit.audit &&
     commit.revision !== undefined
   ) {
+    // ADR 0009 piggyback replacement: best-effort aggregate launcher
+    // projection refresh after every verified per-change commit. The old
+    // Temporal writeChangeProjection activity rebuilt the aggregate here;
+    // with Temporal gone this restores that automatic refresh on the
+    // disk-only path. Fire-and-forget — the launcher reads live state first
+    // and only falls back to the aggregate cache; a lag or failure here
+    // never affects the per-change projection (the authoritative store).
+    void refreshLauncherAggregateAfterCommit(changesDir);
     return {
       kind: "verified",
       value: commit.value as T,
