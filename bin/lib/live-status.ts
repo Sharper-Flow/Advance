@@ -10,12 +10,9 @@ import {
   computeLastActivity,
   countTasks,
   firstIncompleteGate,
+  GATE_ORDER,
 } from "./changes";
-import type {
-  ChangeRecord,
-  ChangeSummary,
-  LiveStatusPayload,
-} from "./types";
+import type { ChangeRecord, ChangeSummary, LiveStatusPayload } from "./types";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveAdvStateSubdir } from "./adv-state-paths";
@@ -139,45 +136,71 @@ export async function loadLiveSummaries(
 }
 
 /**
- * Read active change summaries from disk projections.
- * Reads schemaVersion: 2 projection envelopes from the changes directory.
+ * Derive a gate-progress string from the summary shard's phase field.
+ * The phase is the first incomplete gate; all gates before it are done.
+ */
+function gateProgressFromPhase(phase: string): string {
+  const idx = GATE_ORDER.indexOf(phase as (typeof GATE_ORDER)[number]);
+  if (idx === -1) return GATE_ORDER.map(() => "✓").join(" ");
+  return GATE_ORDER.map((_, i) => (i < idx ? "✓" : "○")).join(" ");
+}
+
+/**
+ * Read active change summaries from summary pointers.
+ *
+ * Summary pointers (summaries/{id}/current.json → immutable shard) are the
+ * current, mutation-backed projection. They replaced frozen flat files
+ * (changes/{id}.json) which were written by the removed Temporal signal
+ * path and are no longer updated. Reading summary pointers keeps the CLI
+ * in sync with the aggregate launcher projection.
  */
 function loadSummariesFromDisk(projectId: string, now: Date): ChangeSummary[] {
   try {
-    const dir = resolveAdvStateSubdir(projectId, "changes");
-    const files = readdirSync(dir).filter((f: string) => f.endsWith(".json"));
+    const summariesDir = resolveAdvStateSubdir(projectId, "summaries");
+    const entries = readdirSync(summariesDir);
     const summaries: ChangeSummary[] = [];
-    for (const f of files) {
+    for (const entry of entries) {
+      if (entry.startsWith(".")) continue;
       try {
-        const raw = JSON.parse(readFileSync(join(dir, f), "utf8"));
-        const state = raw.state ?? raw;
-        if (state.status === "archived" || state.status === "closed") continue;
-        const id = String(state.id ?? f.replace(/\.json$/, ""));
-        const change = {
-          id,
-          title: String(state.title ?? id),
-          status: String(state.status ?? "draft"),
-          lifecycleState: state.lifecycleState,
-          created_at: String(
-            state.created_at ??
-              state.createdAt ??
-              state.updatedAt ??
-              raw.projectedAt ??
-              now.toISOString(),
+        const pointer = JSON.parse(
+          readFileSync(join(summariesDir, entry, "current.json"), "utf8"),
+        );
+        if (!pointer.shard_path) continue;
+        const shard = JSON.parse(readFileSync(pointer.shard_path, "utf8"));
+        if (shard.status === "archived" || shard.status === "closed") continue;
+
+        const lastActivityAt = String(
+          shard.last_activity_at ?? shard.created_at ?? now.toISOString(),
+        );
+        const minutesSinceActivity = Math.max(
+          0,
+          Math.floor(
+            (now.getTime() - new Date(lastActivityAt).getTime()) / 60000,
           ),
-          tasks: Array.isArray(state.tasks) ? state.tasks : [],
-          gates: state.gates && typeof state.gates === "object" ? state.gates : {},
-          wisdom: Array.isArray(state.wisdom) ? state.wisdom : [],
-          fast_follow_of: state.fast_follow_of,
-          epic_membership: state.epic_membership,
-          lastSignalAt: state.lastSignalAt,
-        } as ChangeRecord;
-        const summary = summarizeLiveChanges([change], now)[0];
-        if (summary) summaries.push(summary);
-      } catch (_e) {
-        // skip malformed projections
+        );
+        const phase = String(shard.phase ?? "proposal");
+
+        summaries.push({
+          id: String(shard.id ?? entry),
+          title: String(shard.title ?? shard.id ?? entry),
+          status: String(shard.status ?? "draft"),
+          lifecycleState: "open",
+          recency: classifyRecency(minutesSinceActivity),
+          lastActivityAt,
+          minutesSinceActivity,
+          tasksDone: Number(shard.completed_tasks ?? 0),
+          tasksTotal: Number(shard.task_count ?? 0),
+          firstIncompleteGate: phase,
+          gateProgressStr: gateProgressFromPhase(phase),
+          ...(shard.epic_membership?.epic_id
+            ? { epicId: String(shard.epic_membership.epic_id) }
+            : {}),
+        });
+      } catch {
+        // skip malformed summary pointer or shard
       }
     }
+    summaries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
     return summaries;
   } catch {
     return [];
