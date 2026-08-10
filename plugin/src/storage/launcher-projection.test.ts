@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   buildLauncherProjection,
+  refreshLauncherAggregateAfterCommit,
   LauncherProjectionSchema,
 } from "./launcher-projection";
 import type { ChangeSummaryShard } from "./change-summary-shard";
@@ -120,5 +124,99 @@ describe("buildLauncherProjection", () => {
     ).rejects.toThrow(
       "Unable to read launcher summary pointers: pointer corrupt",
     );
+  });
+});
+
+async function seedSummaryPointer(
+  summariesDir: string,
+  changesDir: string,
+  changeId: string,
+): Promise<void> {
+  const changeDir = join(summariesDir, changeId);
+  const revDir = join(changeDir, "revisions");
+  await mkdir(revDir, { recursive: true });
+  const shardPath = join(revDir, "1.json");
+  const pointerPath = join(changeDir, "current.json");
+  const shard = {
+    schema_version: 1,
+    id: changeId,
+    title: `Title ${changeId}`,
+    status: "draft",
+    phase: "proposal",
+    created_at: "2026-07-23T10:00:00.000Z",
+    last_activity_at: "2026-07-23T11:00:00.000Z",
+    task_count: 0,
+    completed_tasks: 0,
+    state_revision: 0,
+    operation_id: "test",
+    projection_revision: 1,
+    capabilities: [],
+  };
+  const pointer = {
+    schema_version: 1,
+    change_id: changeId,
+    state_revision: 0,
+    projection_revision: 1,
+    operation_id: "test",
+    shard_path: shardPath,
+    snapshot_path: join(changesDir, changeId, "change.json"),
+    committed_at: "2026-07-23T11:00:00.000Z",
+  };
+  await writeFile(shardPath, JSON.stringify(shard, null, 2));
+  await writeFile(pointerPath, JSON.stringify(pointer, null, 2));
+}
+
+describe("refreshLauncherAggregateAfterCommit", () => {
+  test("writes the aggregate from on-disk summary pointers after a commit", async () => {
+    const root = await mkdtemp(join(tmpdir(), "launcher-agg-refresh-"));
+    try {
+      const changesDir = join(root, "changes");
+      const summariesDir = join(root, "summaries");
+      await mkdir(changesDir, { recursive: true });
+      await mkdir(summariesDir, { recursive: true });
+      await seedSummaryPointer(summariesDir, changesDir, "change-a");
+      await seedSummaryPointer(summariesDir, changesDir, "change-b");
+
+      await refreshLauncherAggregateAfterCommit(changesDir);
+
+      const aggregate = JSON.parse(
+        await readFile(join(root, "active-launcher-state.json"), "utf8"),
+      );
+      expect(aggregate.schema_version).toBe(1);
+      expect(aggregate.source).toBe("disk_projection");
+      expect(aggregate.active_count).toBe(2);
+      expect(aggregate.changes.map((c: { id: string }) => c.id).sort()).toEqual(
+        ["change-a", "change-b"],
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("swallows errors silently when the store is missing (best-effort)", async () => {
+    // ADR 0009: a failure to write the aggregate must never propagate —
+    // the per-change projection is authoritative, the aggregate is a cache.
+    await expect(
+      refreshLauncherAggregateAfterCommit("/nonexistent/store/changes"),
+    ).resolves.toBeUndefined();
+  });
+
+  test("produces an empty-but-valid aggregate when no summaries exist", async () => {
+    const root = await mkdtemp(join(tmpdir(), "launcher-agg-empty-"));
+    try {
+      const changesDir = join(root, "changes");
+      await mkdir(changesDir, { recursive: true });
+
+      await refreshLauncherAggregateAfterCommit(changesDir);
+
+      const aggregate = JSON.parse(
+        await readFile(join(root, "active-launcher-state.json"), "utf8"),
+      );
+      expect(aggregate.schema_version).toBe(1);
+      expect(aggregate.active_count).toBe(0);
+      expect(aggregate.changes).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

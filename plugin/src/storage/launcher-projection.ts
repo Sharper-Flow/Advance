@@ -1,3 +1,4 @@
+import { dirname, join } from "node:path";
 import { z } from "zod";
 import {
   listSummaryChanges,
@@ -5,6 +6,10 @@ import {
   type ProjectionDocumentWarning,
 } from "./change-summary-shard-reader";
 import { hasArchiveBundle } from "./json";
+import { writeLauncherProjection } from "./launcher-projection-writer";
+import { createLogger } from "../utils/debug-log";
+
+const launcherLog = createLogger("launcher-projection");
 
 export const LauncherChangeSummarySchema = z.object({
   id: z.string(),
@@ -148,4 +153,45 @@ export async function buildLauncherProjection(
       ? { warnings: summaries.warnings }
       : {}),
   };
+}
+
+/**
+ * Best-effort aggregate launcher-projection refresh after a per-change
+ * projection commit.
+ *
+ * Replaces the Temporal-activity piggyback removed with Temporal deletion
+ * (ADR 0009). The old `writeChangeProjection` activity rebuilt the aggregate
+ * after each per-change write; with Temporal gone, nothing rebuilt it and
+ * `active-launcher-state.json` froze. This helper restores that automatic
+ * refresh on the disk-only commit path.
+ *
+ * Derives the aggregate path, summaries dir, and archive dir from `changesDir`
+ * (the per-change projection directory), rebuilds the aggregate from existing
+ * summary pointers, and writes it. Summary pointers are assumed fresh —
+ * callers invoke this after `commitChangeProjectionWithSummary`, which
+ * publishes the mutated change's pointer immediately before this runs.
+ *
+ * Best-effort: any failure is logged and swallowed. The per-change projection
+ * is authoritative; the aggregate is a downstream cache (ADR 0009).
+ */
+export async function refreshLauncherAggregateAfterCommit(
+  changesDir: string,
+): Promise<void> {
+  try {
+    const externalRoot = dirname(changesDir);
+    const aggregatePath = join(externalRoot, "active-launcher-state.json");
+    const projection = await buildLauncherProjection({
+      changesDir,
+      summariesDir: join(externalRoot, "summaries"),
+      archiveDir: join(externalRoot, "archive"),
+      generatedAt: new Date().toISOString(),
+      degradedThresholdMs: 300_000,
+    });
+    await writeLauncherProjection(aggregatePath, projection);
+  } catch (err) {
+    launcherLog.warn("launcher-aggregate-refresh-failed", {
+      changesDir,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
