@@ -20,9 +20,14 @@ describe("dead-code ratchet wiring", () => {
 
   test("runs the package command as a mandatory CI step", () => {
     const workflow = readFileSync(WORKFLOW_PATH, "utf8");
+    const bunSetup = workflow.indexOf("- name: Install Bun");
+    const ratchet = workflow.indexOf("- name: Dead-code ratchet");
+
     expect(workflow).toContain("- name: Dead-code ratchet");
     expect(workflow).toContain("run: pnpm run dead-code:check");
     expect(workflow).toContain("working-directory: plugin");
+    expect(bunSetup).toBeGreaterThanOrEqual(0);
+    expect(bunSetup).toBeLessThan(ratchet);
   });
 
   test("command has no baseline write or replacement options", () => {

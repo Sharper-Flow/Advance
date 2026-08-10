@@ -37,6 +37,13 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: plugin
 
+      - name: Install Bun
+        # dead-code:check and opencode-session-debt.test.ts require `bun` on PATH.
+        # Installing it before the ratchet makes the mandatory check runnable.
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+
       - name: Dead-code ratchet
         run: pnpm run dead-code:check
         working-directory: plugin
@@ -67,15 +74,6 @@ jobs:
         run: |
           git config --global user.name "CI"
           git config --global user.email "ci@test.local"
-
-      - name: Install Bun
-        # opencode-session-debt.test.ts shells out to `bun` to seed a bun:sqlite
-        # database under the OpenCode debt-doctor scenario. Without bun on PATH
-        # the test fails with `spawnSync bun ENOENT`. Bun is OpenCode's runtime;
-        # keeping it on the CI runner mirrors the production environment.
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: latest
 
       - name: Test
         run: pnpm test
