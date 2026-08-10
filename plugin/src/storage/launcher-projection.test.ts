@@ -185,10 +185,9 @@ describe("refreshLauncherAggregateAfterCommit", () => {
       expect(aggregate.schema_version).toBe(1);
       expect(aggregate.source).toBe("disk_projection");
       expect(aggregate.active_count).toBe(2);
-      expect(aggregate.changes.map((c: { id: string }) => c.id).sort()).toEqual([
-        "change-a",
-        "change-b",
-      ]);
+      expect(aggregate.changes.map((c: { id: string }) => c.id).sort()).toEqual(
+        ["change-a", "change-b"],
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }
