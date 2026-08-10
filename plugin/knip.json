@@ -1,8 +1,19 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
+    "scripts/bench-adv-latency.ts",
+    "scripts/build-plugin.ts",
+    "scripts/check-frontmatter.ts",
+    "scripts/check-lockfile-policy.ts",
+    "scripts/check-sdk-parity.ts",
+    "scripts/check-test-isolation.ts",
+    "scripts/generate-agent-manifests.ts",
+    "scripts/generate-json-schemas.ts",
+    "scripts/write-build-identity.ts",
+    "src/cli/projection-boundary.ts",
     "src/index.ts",
-    "src/cli/projection-boundary.ts"
+    "src/mcp-server/index.ts",
+    "src/reconcile-cli.ts"
   ],
   "project": ["src/**/*.ts"],
   "ignore": ["src/__mocks__/**", "src/__tests__/**", "**/*.test.ts", "dist/**"],
