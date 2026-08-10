@@ -459,6 +459,10 @@ async function enumerateUnknownStoreNoise(
     paths.snapshotRepairAudit,
     paths.quarantineChanges,
     paths.reconcileDir,
+    // Launcher aggregate projection (ADR 0009) — a known top-level store
+    // file, not noise. Written by the mutation coordinator piggyback and
+    // the adv_launcher_projection_rebuild tool.
+    join(storeRoot, "active-launcher-state.json"),
   ];
   for (const entry of await listEntries(storeRoot)) {
     if (shouldStop()) return;

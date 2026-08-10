@@ -118,10 +118,12 @@ async function executeDiskPath<T>({
     // projection refresh after every verified per-change commit. The old
     // Temporal writeChangeProjection activity rebuilt the aggregate here;
     // with Temporal gone this restores that automatic refresh on the
-    // disk-only path. Fire-and-forget — the launcher reads live state first
-    // and only falls back to the aggregate cache; a lag or failure here
-    // never affects the per-change projection (the authoritative store).
-    void refreshLauncherAggregateAfterCommit(changesDir);
+    // disk-only path. Awaited (not fire-and-forget) so the write completes
+    // before the caller observes the commit — eliminates a TOCTOU race
+    // where the async write could outlive a test's afterEach cleanup.
+    // Best-effort: refreshLauncherAggregateAfterCommit swallows all errors
+    // internally, so this await never fails the commit.
+    await refreshLauncherAggregateAfterCommit(changesDir);
     return {
       kind: "verified",
       value: commit.value as T,
