@@ -766,13 +766,20 @@ Add the following entry in the `rules:` map (P35 recommended):
 ```yaml
 P35:
   name: architecture-over-hacks
-  rule: Before proposing symlinks, env-var overrides, shell aliases, wrapper
-    scripts, manual file shuffling, chmod/chown overrides, sed/awk rewrites of
-    generated files, or hand-editing deployed artifacts, identify the
-    architectural fix that would make the workaround unnecessary. Prefer that
-    fix. If too expensive now, state that and present both the proper fix and
-    temporary workaround. Legitimate symlinks are allowed only when produced
-    and repaired by the owning build/package/system.
+  rule: >-
+    Prefer a clean change to the owning mechanism over a bespoke branch,
+    duplicate path, one-off adapter, local exception, wrapper, override, or
+    manual state manipulation. Before using an interim repair, name the
+    structural end-state and explain why it cannot land immediately. Interim
+    containment is allowed only when needed to reach or safely await that
+    end-state; record a named follow-up and remove the interim path when the
+    structural fix lands. Do not use “structural” to justify an unrelated
+    rewrite: preserve approved scope and choose the smallest cohesive
+    mechanism that resolves the full problem. This includes source-of-truth
+    bypasses such as ad-hoc symlinks, environment overrides, shell aliases,
+    generated-file rewrites, or hand-edited deployed artifacts. Legitimate
+    indirection remains allowed when produced and repaired by its owning
+    build, package, or runtime system.
   tags: [architecture, maintainability, source-of-truth, anti-hack]
   hint: architecture_over_hacks
   priority: 8
@@ -1014,6 +1021,79 @@ work, not price-refresh work. Real rate: 1.01 passes per card. The agent had
 the data needed to disprove this and never ran `COUNT(DISTINCT)`. A
 plausible-looking ratio (3×) derived from mismatched populations is more
 dangerous than an obviously wrong one because it survives review.
+
+Restart OpenCode after editing.
+
+---
+
+## Root-Cause-First Rule (P40)
+
+ADV recommends a priority-9 defect-repair rule that requires causal evidence
+before compensating for observed unintended behavior. Its scope is limited to
+correcting observed defects in agent or application code; it does not widen
+into general implementation guidance.
+
+Like P29-P39, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P40 recommended):
+
+```yaml
+P40:
+  name: root-cause-first
+  scope: >-
+    Correcting observed unintended behavior in agent/application code.
+  rule: >-
+    Establish a causal path or executable reproduction before compensating an
+    unexplained defect. Repair the owning invariant or mechanism before
+    introducing a fallback, retry, duplicate validation, suppression,
+    compatibility shim, or catch-all guard. Do not merely mask or bypass
+    unexplained behavior. Defense-in-depth is permitted only for an
+    independently stated failure mode that already has a primary control and
+    verification; it must never replace a known-cause repair. Emergency
+    containment is allowed only when paired with a named root-cause follow-up.
+  tags: [correctness, root-cause, remediation, reliability, security]
+  hint: root_cause_first
+  priority: 9
+```
+
+Restart OpenCode after editing.
+
+---
+
+## Subtractive-First Rule (P41)
+
+ADV recommends a priority-8 maintenance rule that prefers removing superseded
+constructs and demonstrably dead code when structural evidence supports it.
+
+Like P29-P40, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P41 recommended):
+
+```yaml
+P41:
+  name: subtractive-first
+  scope: >-
+    Editing existing code. Governs removal of constructs a change supersedes
+    and demonstrably dead code in the touched subsystem. Complements P40,
+    which covers causal repair of observed defects.
+  rule: >-
+    Default to subtraction when editing existing code. Remove the construct a
+    change supersedes in the same change, or name and justify its retention.
+    Remove other dead code in the touched subsystem only when structural
+    evidence establishes no static or configured caller, dynamic, reflective,
+    registry, public API, generated-entry, test-only, or plugin-discovered use;
+    analyzer findings are leads, never sole authority, and uncertainty means
+    retain and surface. Prohibited: Guard-and-Go, which hides superseded code
+    behind a guard, fallback, feature flag, or compatibility shim; and
+    Clone-instead-of-call, which copies an implementation instead of invoking
+    or extracting it. Never delete tests, validation, error handling, or
+    observability merely to reduce code. This is not a line-count target.
+  tags: [maintainability, refactor, deletion, accretion, code-quality]
+  hint: subtractive_first
+  priority: 8
+```
 
 Restart OpenCode after editing.
 
