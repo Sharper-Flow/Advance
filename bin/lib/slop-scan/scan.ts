@@ -69,6 +69,7 @@ export interface SlopScanOptions {
   repoRoot: string;
   requestedPath: string;
   runner?: ToolRunner;
+  timeoutMs?: number;
 }
 
 async function collectLanguages(
@@ -517,7 +518,7 @@ export async function runSlopScan(
               maxDepth: config.nesting_depth_threshold,
             }),
             cwd: packageRoot,
-            timeoutMs: config.ast_timeout_ms,
+            timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
             findingsExitCodes: [1],
           });
           appendParsed(
@@ -580,7 +581,7 @@ export async function runSlopScan(
           detectorId: detector.id,
           command: buildKnipCommand(),
           cwd: packageRoot,
-          timeoutMs: config.ast_timeout_ms,
+          timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
           findingsExitCodes: [1],
         });
         appendParsed(
@@ -597,7 +598,7 @@ export async function runSlopScan(
           detectorId: detector.id,
           command: buildRadonCommand(absoluteTarget),
           cwd: options.repoRoot,
-          timeoutMs: config.ast_timeout_ms,
+          timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
         });
         appendParsed(
           detector,
@@ -613,7 +614,7 @@ export async function runSlopScan(
           detectorId: detector.id,
           command: buildVultureCommand(absoluteTarget),
           cwd: options.repoRoot,
-          timeoutMs: config.ast_timeout_ms,
+          timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
           findingsExitCodes: [1, 3],
         });
         appendParsed(
@@ -633,7 +634,7 @@ export async function runSlopScan(
             config.complexity_threshold,
           ),
           cwd: options.repoRoot,
-          timeoutMs: config.ast_timeout_ms,
+          timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
           findingsExitCodes: [1],
         });
         appendParsed(
@@ -650,7 +651,7 @@ export async function runSlopScan(
           detectorId: detector.id,
           command: buildGoDeadcodeCommand("./..."),
           cwd: options.repoRoot,
-          timeoutMs: config.ast_timeout_ms,
+          timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
           findingsExitCodes: [1],
         });
         appendParsed(
@@ -667,7 +668,7 @@ export async function runSlopScan(
           detectorId: detector.id,
           command: buildAstGrepCommand(absoluteTarget),
           cwd: packageRoot,
-          timeoutMs: config.ast_timeout_ms,
+          timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
           findingsExitCodes: [1],
         });
         appendParsed(
@@ -686,7 +687,7 @@ export async function runSlopScan(
           detectorId: detector.id,
           command: buildJscpdCommand(absoluteTarget, outputDir),
           cwd: packageRoot,
-          timeoutMs: config.ast_timeout_ms,
+          timeoutMs: options.timeoutMs ?? config.ast_timeout_ms,
           findingsExitCodes: [1],
         });
         appendParsed(
