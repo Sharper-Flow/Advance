@@ -92,11 +92,6 @@
         "searchcode_*=true"
       ]
     },
-    "adv-temporal-repair": {
-      "bytes": 6887,
-      "mcpCapable": true,
-      "grants": ["lgrep_get_file_outline=true", "lgrep_search_text=true"]
-    },
     "adv-tron": {
       "bytes": 13155,
       "mcpCapable": true,

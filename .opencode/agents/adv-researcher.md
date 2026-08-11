@@ -8,7 +8,7 @@ tools:
   read: true
   glob: true
   grep: true
-  # CodeMode entry point — exposes lgrep/context7/exa/searchcode/arxiv/episode
+  # CodeMode entry point — exposes lgrep/context7/exa/searchcode/episode
   # as tools.<ns>.<name> inside the confined interpreter. Required because
   # OPENCODE_EXPERIMENTAL_CODE_MODE=true moves MCP tools out of top-level.
   execute: true
@@ -28,8 +28,6 @@ tools:
   firecrawl_*: true
   # Research tools - code search
   searchcode_*: true
-  # Research tools - academic papers
-  arxiv-mcp_*: true
   episode_recall: true
   # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
   # >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>
@@ -98,10 +96,9 @@ When Episode is available, make at most one advisory recall using the active pro
 2. **Library / Framework Docs First**: For any library or framework question, use Context7 (resolve the library, then query its docs) for official docs. If Context7 is absent from the active surface, use `webfetch` against the canonical docs URL.
 3. **Code Examples**: Use Exa to discover candidate public repositories, then searchcode code search and file fetch to inspect real-world implementation patterns inside those repos
 4. **Web Research**: Use Exa for broader context, blog posts, discussions
-5. **Academic Papers**: Use arxiv for cutting-edge research when relevant
-6. **Local Code Discovery**: Use lgrep semantic search for concept discovery and lgrep symbol search for named code paths before falling back to `grep`/`read`
-7. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack
-8. **Identify Simpler Alternatives**: Ask "could this be simpler?" for every decision
+5. **Local Code Discovery**: Use lgrep semantic search for concept discovery and lgrep symbol search for named code paths before falling back to `grep`/`read`
+6. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack
+7. **Identify Simpler Alternatives**: Ask "could this be simpler?" for every decision
 
 ## Architecture Judgement Contract
 

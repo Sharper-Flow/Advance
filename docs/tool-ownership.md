@@ -274,7 +274,7 @@ This visibility profile governs the host-plugin `adv_*` surface. Separately, und
    `adv-visual-review`) also carries the three facade tools as explicit
    `allow` entries immediately after the deny wildcard so last-match-wins
    resolves them as visible. Agents without an `adv_*: deny` rule in
-   `opencode.jsonc` (`adv-tron`, `adv-temporal-repair`, `adv-verifier`,
+   `opencode.jsonc` (`adv-tron`, `adv-verifier`,
    `plan`, `build`, `general`, `explore`) inherit ADV visibility from
    their agent YAML manifests alone; no `opencode.jsonc` edit is
    required for them. The orchestrator (`adv`) keeps no `adv_*: deny`

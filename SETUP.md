@@ -182,7 +182,6 @@ unavailable:
 | Exa                                            | `exa_*` grants; Exa web-search/fetch capabilities | `adv-researcher`                              | Web search unavailable                                                      |
 | searchcode                                     | `searchcode_*` grants; searchcode code-search/file-fetch capabilities              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
 | ADV MCP (`adv-advance`, port 6298)             | `tools.adv.*` grants; 13 Tier-4 read tools (status, spec, wisdom_list, tool_catalog, etc.)    | `plan`, `build`, `adv-researcher`, `adv-tron` | Tier-4 ADV read/query tools unavailable inside `execute`                    |
-| arXiv MCP                                      | `arxiv-mcp_*` grants; call exact names from active schema                                     | `adv-researcher`                              | Academic paper search unavailable                                           |
 
 The ADV MCP server is a per-project Vision entry (`adv-advance` on port 6298) wired via `mcp.adv` in `.opencode/opencode.json`.
 

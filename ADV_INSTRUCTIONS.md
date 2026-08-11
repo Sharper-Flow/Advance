@@ -916,7 +916,7 @@ After each phase, `adv_change_update` records compact summaries. Do not duplicat
 
 ### Agent Tiers
 
-Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-temporal-repair`, `adv-visual-review`; repo-local `adv-tron`, `adv-verifier`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
+Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-visual-review`; repo-local `adv-tron`, `adv-verifier`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 
@@ -927,7 +927,6 @@ Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explo
 | `adv-engineer`   | Delegated ADV code-writing (backend/state/API/business logic); must use packet `workdir`; submits typed `ENGINEER_REPORT`                                                                                               |
 | `adv-designer`   | Apply-phase frontend/component follow-up specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match) after engineer or inline receipt; write-only, never review/harden owner; submits typed `DESIGNER_REPORT` per `.opencode/agents/adv-designer.md` |
 | `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report. Reviewer packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes                                                  |
-| `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom triage; packet anchors include WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, VERIFICATION; returns classification + primary-ADV next actions |
 | `adv-visual-review`  | Image analysis (screenshots, UI captures) for text-only model orchestrators                                                                                                                                            |
 | `adv-verifier`       | Verify-only bursts and structured local verification triage; returns strict Verification Triage Result JSON; no edits or ADV mutation                                                                                  |
 | `general`            | Generic multi-step work and unavailable-runtime fallback for verify bursts                                                                                                                                              |
