@@ -183,15 +183,6 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
 
 For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
-## Local Code Exploration Priority
-
-1. **Intent/concept discovery** — lgrep semantic search
-2. **Symbol lookup** — lgrep symbol search
-3. **Exact text/regex lookup** — lgrep text search or `grep`
-4. **Known file inspection** — `read`
-
-If `lgrep` fails or times out once, fall back immediately to `glob`/`grep`/`read` for that turn.
-
 ## Web Research Tools
 
 Use `webfetch` and `firecrawl` for web content extraction:

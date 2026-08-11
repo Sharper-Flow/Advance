@@ -166,19 +166,6 @@ When scope is complete:
 
 For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
-## Local Code Exploration Priority
-
-1. **Intent/concept discovery** — lgrep semantic search
-2. **Symbol lookup** — lgrep symbol search
-3. **Exact text/regex lookup** — lgrep text search or `grep`
-4. **Known file inspection** — `read`
-
-## Editing Tool Priority
-
-1. **Large, scattered, or whitespace-sensitive edits** — `morph_edit`
-2. **Small exact replacements** — `edit`
-3. **New files** — `write` only when truly necessary
-
 ## Output Format
 
 ```

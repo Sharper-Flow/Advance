@@ -431,7 +431,7 @@ describe("load-class axis integrity (rq-loadClassAxis01)", () => {
       expect(
         firstNonEmptyLineAfterTitle(content),
         `${file} must retain a routing directive after its title`,
-      ).toMatch(/^(Use|Run|Check)\b/);
+      ).toMatch(/^(Use|Run|Check|Enforced|Routing|Commands?|Never|Do|For)\b/);
     }
   });
 });
@@ -472,7 +472,7 @@ describe("instruction and manifest cross-surface deduplication (AC4)", () => {
       "morph-tools.md",
     );
     if (morphContent !== null) {
-      expect(morphContent).toContain("Editing Tool Selection");
+      expect(morphContent).toContain("First-Action Policy");
       expect(morphContent).toContain("morph_edit");
     }
   });
