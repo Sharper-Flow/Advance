@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.33.0
-> **Updated:** 2026-08-05
+> **Version:** 1.34.0
+> **Updated:** 2026-08-11
 
 ## Purpose
 
@@ -2634,5 +2634,54 @@ The generation embedded in the loaded ADV bundle is the authority for whether th
 - The patch marker is skipped silently and the guarantee does not hold
 - The guarantee is paired with the generation guard so only current code serves the affected traffic
 - The patch marker alone is treated as insufficient evidence of durability
+
+---
+
+### Inner Waits Nest Inside the Remaining Tool Budget
+
+**ID:** `rq-toolBudgetNesting01` | **Priority:** **[MUST]**
+
+A host tool invocation runs under a bounded wall-clock budget enforced by a safety-net timeout. Any blocking wait performed inside that invocation — file-lock acquisition, aggregate reads, subprocess waits — MUST size itself from the budget that REMAINS at the moment the wait starts, minus the response reserve, never from the budget the invocation began with. Deriving an inner wait from the total budget is a defect: a wait that starts late can then outlive the outer budget and let the opaque host timeout win instead of a typed failure. The remaining budget MUST be carried structurally for the duration of the invocation rather than by call-site discipline alone, and the derivation MUST live in one place so it can be machine-checked. A caller running outside any tool invocation has no outer deadline and MUST still apply its own bounded default; unbounded waiting is never acceptable. An exhausted remaining budget yields no wait at all rather than a minimum wait.
+
+**Tags:** `meta`, `budgets`, `timeouts`, `correctness`, `safety`
+
+#### Scenarios
+
+**A late inner wait shrinks to the remaining budget** (`rq-toolBudgetNesting01.1`)
+
+**Given:**
+- a host tool invocation running under a bounded budget
+- most of that budget has already been consumed
+
+**When:** the invocation starts a blocking wait
+
+**Then:**
+- the wait budget is derived from the remaining budget minus the response reserve
+- the wait budget never exceeds the remaining budget
+- a typed failure can still be assembled and returned before the safety-net timeout fires
+
+**A caller with no outer deadline stays bounded** (`rq-toolBudgetNesting01.2`)
+
+**Given:**
+- a caller running outside any host tool invocation, such as the CLI or plugin startup
+
+**When:** it performs the same blocking wait
+
+**Then:**
+- no outer deadline is found
+- the caller's own bounded default applies
+- the wait is never unbounded
+
+**An exhausted budget yields no wait** (`rq-toolBudgetNesting01.3`)
+
+**Given:**
+- a host tool invocation whose remaining budget is at or below the response reserve
+
+**When:** the invocation starts a blocking wait
+
+**Then:**
+- the derived wait budget is zero
+- no minimum wait is substituted
+- the invocation proceeds to its typed failure immediately
 
 ---

@@ -1,7 +1,7 @@
 # Store Reconciliation
 
-> **Version:** 1.0.0
-> **Updated:** 2026-08-08
+> **Version:** 1.1.0
+> **Updated:** 2026-08-11
 
 ## Purpose
 
@@ -193,7 +193,7 @@ The reconcile pass MUST probe the target store's worker.lock with a read-only ch
 
 **ID:** `rq-storeReconcileUnboundedProof01` | **Priority:** **[MUST]**
 
-The pass's completion proof MUST be an unbounded full-scan projection-divergence check: the divergence scan is invoked with no budget cap and no record-count cap. The proof returns zero divergences or a documented, whitelisted benign residual set; a budget-capped scan is never acceptable as completion proof. A proof-scan error (I/O failure, distinct from found divergences) MUST fail closed: the run is recorded as not complete and no success is synthesized.
+The pass's completion proof MUST be an unbounded full-scan projection-divergence check: the divergence scan is invoked with no budget cap and no record-count cap. The proof returns zero divergences or a documented, whitelisted benign residual set; a budget-capped scan is never acceptable as completion proof. A proof-scan error (I/O failure, distinct from found divergences) MUST fail closed: the run is recorded as not complete and no success is synthesized. Each migration-completion marker MUST have exactly one owner, and that owner is this reconcile pass. No other subsystem — in particular store initialization, which runs inside a bounded per-call tool budget — may scan projections to decide convergence or write a completion marker. Residue that a different repair action owns MUST NOT permanently block this pass's completion: when a projection is well-formed in the subtree a repair action rewrites, and fails whole-document validation only because of that foreign-owned residue class, it is recorded as a documented benign residual under the whitelist allowance above rather than treated as an unresolved divergence. The residual MUST remain visible in the marker so completion-with-residue is distinguishable from clean completion. Every other read failure, malformed target subtree, and validation failure with no owning action still fails closed.
 
 **Tags:** `store`, `reconciliation`, `proof`, `safety`
 
@@ -220,5 +220,30 @@ The pass's completion proof MUST be an unbounded full-scan projection-divergence
 **Then:**
 - the run is recorded as not complete with the scan error
 - no success result is synthesized
+
+**The reconcile pass is the sole owner of a completion marker** (`rq-storeReconcileUnboundedProof01.3`)
+
+**Given:**
+- a store whose artifact metadata has not converged
+
+**When:** store initialization runs
+
+**Then:**
+- initialization performs no scan of change projections
+- initialization writes no completion marker
+- convergence and the marker remain owned by the operator-driven reconcile pass
+
+**Foreign-owned residue is a whitelisted benign residual, not a blocker** (`rq-storeReconcileUnboundedProof01.4`)
+
+**Given:**
+- a projection that is well-formed in the subtree the running action rewrites
+- the same projection fails whole-document validation only because of a residue class another action owns
+
+**When:** the completion check runs
+
+**Then:**
+- the projection is recorded as a documented benign residual and does not block the completion marker
+- the residual is retained in the marker so completion-with-residue stays distinguishable from clean completion
+- a read failure, a malformed target subtree, or a validation failure with no owning action still fails closed
 
 ---
