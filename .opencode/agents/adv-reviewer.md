@@ -200,21 +200,6 @@ Per `docs/scope-discovery-protocol.md`, only orchestrator issues Tier A inline a
 
 Single declarative drift rule. Applies to every finding, fix, auto-remediation.
 
-## Local Code Exploration Priority
-
-1. **Intent/concept discovery** — lgrep semantic search
-2. **Symbol lookup** — lgrep symbol search
-3. **Exact text/regex lookup** — lgrep text search or `grep`
-4. **Known file inspection** — `read`
-
-If `lgrep` fails or times out once, fall back immediately to `glob`/`grep`/`read` for that turn.
-
-## Editing Tool Priority
-
-1. **Large, scattered, or whitespace-sensitive edits** — `morph_edit`
-2. **Small exact replacements** — `edit`
-3. **New files** — `write` only when truly necessary (review/harden fixes rarely create files)
-
 ## ADV State Access Policy
 
 **NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes any path matching:

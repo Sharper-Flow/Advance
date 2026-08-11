@@ -250,19 +250,6 @@ When scope is complete:
 2. **State what NOT to revisit** — explicitly list things that should be left alone
 3. **Submit DESIGNER_REPORT** — call `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: DESIGNER_REPORT }})` with the structured JSON payload below
 
-## Local Code Exploration Priority
-
-1. **Intent/concept discovery** — lgrep semantic search
-2. **Symbol lookup** — lgrep symbol search
-3. **Exact text/regex lookup** — lgrep text search or `grep`
-4. **Known file inspection** — `read`
-
-## Editing Tool Priority
-
-1. **Large, scattered, or whitespace-sensitive edits** — `morph_edit`
-2. **Small exact replacements** — `edit`
-3. **New files** — `write` only when truly necessary
-
 ## ADV State Access Policy
 
 **NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes any path matching:
