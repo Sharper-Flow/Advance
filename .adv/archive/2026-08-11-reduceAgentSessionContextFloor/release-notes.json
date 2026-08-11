@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "change_id": "reduceAgentSessionContextFloor",
+  "title": "Reduce agent session context floor",
+  "release_notes": {
+    "audience": "internal",
+    "category": "changed",
+    "headline_internal": "Reduced per-session instruction floor by 69% (48KB→15KB for instruction files); added prompt-floor budget regression gate; gated 11 irrelevant skills per agent",
+    "highlights": [
+      "Instruction file floor reduced from 48,345 to ~15,000 bytes (69%) via routing-stub + lazy-skill-body split of rules.yaml and 4 runbook files",
+      "11 Cloudflare/Worker skills denied per-agent at render time via permission.skill deny globs",
+      "Duplicated manifest sections eliminated (LCEP/ETP across 8+ files, ADV State Access Policy across 6 files with canonical promotion)",
+      "New check-prompt-budget.ts wired into pnpm run check: measures byte size AND instruction count, fails on regression",
+      "Dead .opencode/token-budgets.json removed (zero live consumers)",
+      "3 new advance-meta spec requirements staged (eager floor budget, load-class axis, skill deny globs)",
+      "20 new test assertions in manifest-doc-drift.test.ts verifying pointer integrity and cross-surface dedup"
+    ],
+    "area": "agent-instructions",
+    "breaking": {
+      "description": "Config-home instruction files (~/.config/opencode/instructions/) were structurally modified. Agent manifests received permission.skill deny globs. An OpenCode restart is required to load the changes. The instruction files must be synced from the toolbox backup or the advance repo deployment.",
+      "migration": "1. Merge change branch to trunk. 2. Run scripts/deploy-local.sh --fix. 3. Restart OpenCode. 4. Sync ~/.config/opencode/instructions/ from ~/toolbox/backups/dotfiles/opencode/instructions/ if config-home files were not directly edited."
+    },
+    "links": {}
+  }
+}

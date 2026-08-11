@@ -1,0 +1,17 @@
+{
+  "archived_at": "2026-08-11T18:50:03.245Z",
+  "capabilities": [
+    "advance-meta"
+  ],
+  "change_hash": "b315f3437b985826078419421baed5b298e399694e5499d7d168ff517da75a76",
+  "change_id": "reduceAgentSessionContextFloor",
+  "completed_tasks": 11,
+  "created_at": "2026-08-11T08:21:52.005Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-11T18:45:46.234Z",
+  "status": "archived",
+  "summary_hash": "e6c0bf200e845c0984c12e84a54f13f70d0751bf7547ff6ad41cf4ea6d8f158e",
+  "task_count": 11,
+  "title": "Reduce agent session context floor",
+  "version": "1"
+}

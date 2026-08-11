@@ -1,6 +1,6 @@
 # Advance Meta
 
-> **Version:** 1.34.0
+> **Version:** 1.35.0
 > **Updated:** 2026-08-11
 
 ## Purpose
@@ -2683,5 +2683,36 @@ A host tool invocation runs under a bounded wall-clock budget enforced by a safe
 - the derived wait budget is zero
 - no minimum wait is substituted
 - the invocation proceeds to its typed failure immediately
+
+---
+
+### Per-agent skill catalog gating via permission.skill deny globs
+
+**ID:** `rq-skillDenyGlob01` | **Priority:** **[MAY]**
+
+ADV agent manifests MAY declare per-agent permission.skill deny globs to remove structurally irrelevant skills from the rendered catalog at render time. Denied skills vanish from the catalog but remain invocable via the skill tool. deploy-local.sh --check MUST verify deployed frontmatter consistency for declared deny globs.
+
+#### Scenarios
+
+**Render-time removal** (`rq-skillDenyGlob01.1`)
+
+**Given:**
+- An agent manifest carries permission.skill: {cloudflare*: deny} and OpenCode renders the system prompt
+
+**When:** A deny glob is declared and the prompt renders
+
+**Then:**
+- Skills matching cloudflare* are absent from the catalog
+- The skills remain invocable via the skill tool if explicitly requested
+
+**Deploy consistency** (`rq-skillDenyGlob01.2`)
+
+**Given:**
+- deploy-local.sh --check runs against a manifest with declared deny globs
+
+**When:** deploy-local.sh --check runs
+
+**Then:**
+- The deployed frontmatter is consistent and the globs are preserved
 
 ---
