@@ -18,6 +18,14 @@
 | `fix:` | Fixed |
 | `chore:`, `ci:`, `docs:`, `refactor:`, `test:`, `perf:`, `style:`, `build:` | Changed |
 
+### Exclusions
+
+| Prefix | Disposition | Rationale |
+|---|---|---|
+| `chore(adv):` | Excluded from Changed | Internal ADV bookkeeping (checkpoints, backlog records, finding-routing). User-facing impact lives in archived `release-notes.json` sidecars. |
+
+**Note**: Repos using the ADV release-notes sidecar (`release-notes.json`) exclude `chore(adv):` from the Changed section because the curated content lives in the sidecar. Other `chore` scopes (e.g. `chore(deps):`) remain.
+
 ## Setup checklist
 
 - [ ] `.github/workflows/ci.yaml` — lint + test + build matrix.

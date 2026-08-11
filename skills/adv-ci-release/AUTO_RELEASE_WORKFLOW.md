@@ -117,3 +117,27 @@ jobs:
 ```
 
 Adapt binary build loop per stack. Keep tag push, artifact build, and release creation in same workflow.
+
+## Optional: Release-Notes Sidecar Integration
+
+For repos that archive ADV release-notes sidecars (`.adv/archive/*/release-notes.json`), the auto-release workflow can render curated, agent-authored highlights into the release body instead of relying on commit subjects alone.
+
+Add a step before `Create Release` that:
+
+1. Gathers release-notes sidecars added since the last tag:
+   ```bash
+   RN_FILES=$(git diff --name-only "${LAST_TAG}..HEAD" -- '.adv/archive/*/release-notes.json' 2>/dev/null || true)
+   ```
+
+2. Builds a JSON array of envelope contents (validate each with `jq -e .` before appending).
+
+3. Delegates body construction to a tested helper function (recommended: factor the body-construction logic into `scripts/release-body.sh` and `source` it from the workflow). The helper handles:
+   - Per-envelope parsing with `schema_version == "1.0"` guard
+   - `headline_internal // headline_external` fallback
+   - `highlights[]` nesting
+   - Category bucketing (Keep-a-Changelog order: Added, Changed, Deprecated, Removed, Fixed, Security)
+   - Empty-window fallback when no archived changes and no conventional commits exist
+
+4. Filter `^chore\(adv\):` commits from the commit-classification loop. Per ADV convention, the `chore(adv):` scope is reserved for internal bookkeeping (checkpoints, backlog records, finding-routing) — user-facing impact lives in the sidecar.
+
+Reference implementation: see `scripts/release-body.sh` in the Advance repo.
