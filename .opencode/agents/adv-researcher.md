@@ -143,22 +143,6 @@ Consistency rules:
 - If the packet includes `BRIEFING PACKET` (`_briefingPacket`), consume it as the authoritative source for `scope`, `contract`, `affected_files`, `epic_context`, and `durable_facts`; do not reconstruct those sections from prose
 - If the packet includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context only; do not let Epic order override the scoped research objective or expand scope
 
-## ADV State Access Policy
-
-**NEVER** read ADV state files directly using `read`, `glob`, `grep`, `lgrep`, or filesystem paths. Forbidden ADV state artifacts include change.json, proposal.md, problem-statement.md, agreement.md, design.md, executive-summary.md, acceptance.md, wisdom.jsonl, conformance.json, and legacy agenda.jsonl files under external ADV state paths.
-
-**ALWAYS** use ADV tools or packet-provided content instead:
-
-| You want | Use this tool |
-|---|---|
-| Change details + tasks | `adv_change_show` |
-| Artifact content | `adv_change_show include: { proposal/problemStatement/agreement/design/executiveSummary/acceptance: true }` |
-| Specs | `adv_tool_invoke({name: "adv_spec", args: { action: "show", capability: "..." }})` |
-| Project context | `adv_tool_invoke({name: "adv_project_context", args: {}})` |
-| Conformance state | `adv_tool_invoke({name: "adv_conformance", args: { action: "status" }})` |
-
-If a direct read attempt fails (file not found, wrong path), do not retry alternate paths. Stop and call `adv_change_show` with include flags or use inline packet content. Do not dereference `artifacts.*.path` unless metadata explicitly says `readable: true` and the research task truly needs a real file path.
-
 ## Optimized Report Transport
 
 When the orchestrator packet includes these anchors, copy them into the `RESEARCHER_REPORT` exactly before exit:

@@ -250,34 +250,6 @@ When scope is complete:
 2. **State what NOT to revisit** — explicitly list things that should be left alone
 3. **Submit DESIGNER_REPORT** — call `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: DESIGNER_REPORT }})` with the structured JSON payload below
 
-## ADV State Access Policy
-
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes any path matching:
-- `~/.local/share/opencode/plugins/advance/**/change.json`
-- `~/.local/share/opencode/plugins/advance/**/proposal.md`
-- `~/.local/share/opencode/plugins/advance/**/problem-statement.md`
-- `~/.local/share/opencode/plugins/advance/**/agreement.md`
-- `~/.local/share/opencode/plugins/advance/**/design.md`
-- `~/.local/share/opencode/plugins/advance/**/executive-summary.md`
-- `~/.local/share/opencode/plugins/advance/**/acceptance.md`
-- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/conformance.json`
-
-Artifact content comes from packet inline content or `adv_change_show include: { proposal/problemStatement/agreement/design/executiveSummary/acceptance: true }`. Do not dereference `artifacts.*.path` unless metadata explicitly says `readable: true` and the task truly needs a real file path.
-
-**ALWAYS** use the ADV MCP tools instead:
-
-| You want | Use this tool |
-|----------|---------------|
-| Change details + tasks | `adv_change_show` |
-| A specific task + its changeId | `adv_task_show` |
-| Tasks ready to work | `adv_tool_invoke({name: "adv_task_ready", args: { changeId }})` |
-| All tasks for a change | `adv_task_list` |
-| List all active changes | `adv_tool_invoke({name: "adv_change_list", args: {}})` |
-
-Failed direct read: **do not retry another path**; call `adv_change_show`.
-
 ## DESIGNER_REPORT Payload
 
 Build the following JSON object as the `report` argument to `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: DESIGNER_REPORT }})`. All required keys must be present. Do **not** use fenced JSON as the ADV report transport.

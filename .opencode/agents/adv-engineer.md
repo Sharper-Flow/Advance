@@ -189,35 +189,6 @@ Nest the active `implementation_cycle_id` under `report.apply_context` (a top-le
 "apply_context": { "implementation_cycle_id": "ic_<id>", "implementation_provenance": { "kind": "engineer_report", "report_key": "<key>" } }
 ```
 
-## ADV State Access Policy
-
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes any path matching:
-- `~/.local/share/opencode/plugins/advance/**/change.json`
-- `~/.local/share/opencode/plugins/advance/**/proposal.md`
-- `~/.local/share/opencode/plugins/advance/**/problem-statement.md`
-- `~/.local/share/opencode/plugins/advance/**/agreement.md`
-- `~/.local/share/opencode/plugins/advance/**/design.md`
-- `~/.local/share/opencode/plugins/advance/**/executive-summary.md`
-- `~/.local/share/opencode/plugins/advance/**/acceptance.md`
-- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
-- `~/.local/share/opencode/plugins/advance/**/conformance.json`
-
-Artifact content comes from packet inline content or `adv_change_show include: { proposal/problemStatement/agreement/design/executiveSummary/acceptance: true }`. Do not dereference `artifacts.*.path` unless metadata explicitly says `readable: true` and the task truly needs a real file path.
-
-**ALWAYS** use the ADV MCP tools instead:
-
-| You want | Use this tool |
-|----------|---------------|
-| Change details + tasks | `adv_change_show` |
-| A specific task + its changeId | `adv_task_show` |
-| Tasks ready to work | `adv_tool_invoke({name: "adv_task_ready", args: { changeId }})` |
-| All tasks for a change | `adv_task_list` |
-| List all active changes | `adv_tool_invoke({name: "adv_change_list", args: {}})` |
-| Validate a change | `adv_tool_invoke({name: "adv_change_validate", args: { changeId }})` |
-
-If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead.
-
 ## ENGINEER_REPORT Payload
 
 Build the following JSON object as the `report` argument to `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: ENGINEER_REPORT }})`. All required keys must be present. Do **not** use fenced JSON as the ADV report transport.

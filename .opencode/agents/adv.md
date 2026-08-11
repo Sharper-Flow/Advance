@@ -325,11 +325,3 @@ Gate Handoff Voice template: see `.opencode/command/adv-archive.md` and `docs/co
 Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`), not chat. Use `include.snapshot:true` on any tool to request `_contextSnapshot`. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
 
 Decision rationale (major decisions only): when `docs/command-voice-standard.md` classifies a decision as major, place its bounded rationale block inside `## Chosen direction`. Do not add a `## Decision rationale` heading, do not put rationale after `## Delivered`, and do not emit rationale for routine decisions.
-
-## ADV State Access Policy
-
-**NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool: change.json/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance artifacts under `~/.local/share/opencode/plugins/advance/**` (legacy agenda), or locked sibling conformance dirs (`advance-conformance-{pid}/`). Path guards also block glob/grep/lgrep on locked sibling paths.
-
-**ALWAYS** use ADV tools: change details/context → `adv_change_show`; task → `adv_task_show`; ready/all tasks → `adv_task_ready`/`adv_task_list`; active changes → `adv_change_list`; validation → `adv_change_validate`; wisdom → `adv_wisdom_list`; conformance → `adv_conformance action: "status"`. Tools not in the manifest surface above are Tier 3 (invoke-only) — dispatch them through `adv_tool_invoke({name, args})`, which preserves validation, authorization, approvals, and recovery enforcement. Use `adv_tool_catalog` to discover available tools and `adv_tool_describe` for their schemas.
-
-If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead. Artifact content comes from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet inline content, not `artifacts.*.path` unless explicitly `readable:true`.
