@@ -157,10 +157,13 @@ If the user's intent is ambiguous or no change-id is provided, check `adv_change
 > **Defect-origin routing footnote (rq-defectOriginRca01):** When the user's intent describes unintended behavior, route through `/adv-problem` to produce Root Cause Analysis (RCA) evidence before any proposal-creation path. Defect triggers: "fix X", "X is broken", "X fails when", "X doesn't work", "bug in X", "error in X", "regression in X", "X crashes", "X is wrong", "defect in X". Non-defect triggers (proceed normally to `/adv-proposal` or `/adv-task`): "add X", "build X", "support X", "refactor X", "improve X", "optimize X", "migrate X", "create X", "design X". Rule of thumb: user describes unintended behavior → defect; user describes desired new behavior → not defect; ambiguous → default to defect (conservative routing per rq-defectOriginRca01.3). Defect-origin `/adv-proposal` and `/adv-task` invocations MUST carry a `## Root Cause Analysis` section in the persisted proposal.md artifact. `/adv-task` fast-track does NOT bypass RCA for defects.
 
 ## Step 2: Load State
-Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot` (opt-in via `include.snapshot:true`); resume first incomplete. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
+Before each gate: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot` (opt-in via `include.snapshot:true`); resume first incomplete. ADV State Access Policy: see `~/.config/opencode/instructions/adv-state-access.md` — never read ADV state files directly. During discovery, at most one advisory `episode_recall` with project namespace + `top_k: 5`; if unavailable, continue and note it. Recall never completes gates, overrides specs/contracts, or replaces evidence. Never write/delete Episode data.
 
 ### Step 2.5: Resume Freshness Advisory
 Resumes >60m: apply `ADV_INSTRUCTIONS.md § Resume Freshness Advisory`; read-only/current-project/proceed-default; fresh skip. One archived duplicate: one-command accept (copy-paste and run), user evidence; never auto-close.
+
+## ADV State Access Policy
+See `~/.config/opencode/instructions/adv-state-access.md` — never read ADV state files directly; use ADV tools (`adv_change_show`, `adv_task_list`, etc.).
 
 ## Step 3: Gate Machine
 Drive gates sequentially. Each gate has an owning workflow contract; execute it inline, verify, then advance.
@@ -318,7 +321,22 @@ When a change has `epic_membership`:
 
 After any workflow emits a user-facing gate-transition message, use **Gate Handoff Voice** from `docs/command-voice-standard.md`:
 
-Gate Handoff Voice template: see `.opencode/command/adv-archive.md` and `docs/command-voice-standard.md § Gate Handoff Voice`.
+```
+## Problem
+{One-line restatement of the problem this change addresses.}
+
+## Chosen direction
+{Per-stage anchor from voice standard doc.}
+
+## Delivered
+{Concrete artifacts, not process. Bullet list.}
+
+---
+> **{change-id}**
+> {gate} ✓ → {next-gate}
+>
+> → `/adv-{next-command} {change-id}`
+```
 
 **Command binding.** The arrow-prefixed command is not an arbitrary placeholder. It MUST be the command carried by the current actionable phase-plan / directive for the next gate. If the directive is non-actionable (blocked/recovery/approval/terminal) or carries no registered command, the arrow-prefixed row is omitted and the blockquote shows a blocked/recovery/approval status line instead. If a user reaches ADV with the retired `/adv-accept` wording, correct `/adv-accept` to `/adv-review` in returned guidance; do not register `/adv-accept` as a command or alias.
 

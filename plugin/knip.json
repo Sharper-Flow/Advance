@@ -5,6 +5,7 @@
     "scripts/build-plugin.ts",
     "scripts/check-frontmatter.ts",
     "scripts/check-lockfile-policy.ts",
+    "scripts/check-prompt-budget.ts",
     "scripts/check-sdk-parity.ts",
     "scripts/check-test-isolation.ts",
     "scripts/generate-agent-manifests.ts",
