@@ -60,10 +60,7 @@ export const DESIGNER_FIELD_MAX = 4_000;
 const laneFieldBoundsRefine =
   (max: number, lane: string) =>
   (report: unknown, ctx: z.RefinementCtx): void => {
-    const walk = (
-      value: unknown,
-      path: (string | number)[],
-    ): void => {
+    const walk = (value: unknown, path: (string | number)[]): void => {
       if (typeof value === "string") {
         if (value.length > max) {
           ctx.addIssue({
@@ -678,9 +675,7 @@ export const ResearcherSubagentReportSchema =
         });
       }
     })
-    .superRefine(
-      laneFieldBoundsRefine(RESEARCHER_FIELD_MAX, "adv-researcher"),
-    );
+    .superRefine(laneFieldBoundsRefine(RESEARCHER_FIELD_MAX, "adv-researcher"));
 
 // =============================================================================
 // Tron Optimization Candidates (opt-scan integration)

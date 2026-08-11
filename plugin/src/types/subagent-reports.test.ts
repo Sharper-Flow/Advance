@@ -1491,7 +1491,11 @@ describe("per-lane size bounds (AC1/SC2 — boundSubAgentReportContract)", () =>
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) => /architecture_assessment/.test(i.path.join(".")))).toBe(true);
+      expect(
+        result.error.issues.some((i) =>
+          /architecture_assessment/.test(i.path.join(".")),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1505,7 +1509,11 @@ describe("per-lane size bounds (AC1/SC2 — boundSubAgentReportContract)", () =>
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) => /what_ads_needs_to_know/.test(i.path.join(".")))).toBe(true);
+      expect(
+        result.error.issues.some((i) =>
+          /what_ads_needs_to_know/.test(i.path.join(".")),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1516,7 +1524,9 @@ describe("per-lane size bounds (AC1/SC2 — boundSubAgentReportContract)", () =>
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) => /evidence/.test(i.path.join(".")))).toBe(true);
+      expect(
+        result.error.issues.some((i) => /evidence/.test(i.path.join("."))),
+      ).toBe(true);
     }
   });
 
@@ -1527,15 +1537,25 @@ describe("per-lane size bounds (AC1/SC2 — boundSubAgentReportContract)", () =>
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) => /related_scan/.test(i.path.join(".")))).toBe(true);
+      expect(
+        result.error.issues.some((i) => /related_scan/.test(i.path.join("."))),
+      ).toBe(true);
     }
   });
 
   it("accepts the conforming fixtures unchanged (SC2 — no false rejection)", () => {
-    expect(ResearcherSubagentReportSchema.safeParse(researcherReport).success).toBe(true);
-    expect(EngineerSubagentReportSchema.safeParse(engineerReport).success).toBe(true);
-    expect(ReviewerSubagentReportSchema.safeParse(reviewerReport).success).toBe(true);
-    expect(DesignerSubagentReportSchema.safeParse(designerReport).success).toBe(true);
+    expect(
+      ResearcherSubagentReportSchema.safeParse(researcherReport).success,
+    ).toBe(true);
+    expect(EngineerSubagentReportSchema.safeParse(engineerReport).success).toBe(
+      true,
+    );
+    expect(ReviewerSubagentReportSchema.safeParse(reviewerReport).success).toBe(
+      true,
+    );
+    expect(DesignerSubagentReportSchema.safeParse(designerReport).success).toBe(
+      true,
+    );
   });
 
   it("accepts a researcher report at the bound ceiling (12000 chars exactly)", () => {

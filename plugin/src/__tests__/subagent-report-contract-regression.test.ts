@@ -69,9 +69,7 @@ describe("AC8 — over-budget lane dispatch is explicit failure or conforming-af
     expect(result.success).toBe(false);
     // Explicit, named rejection — not a silent acceptance.
     if (!result.success) {
-      const messages = result.error.issues
-        .map((i) => i.message)
-        .join(" ");
+      const messages = result.error.issues.map((i) => i.message).join(" ");
       expect(messages).toMatch(/exceeds.*bound/i);
     }
   });
@@ -104,9 +102,7 @@ describe("AC7 — oversized consumer content is persisted or full-dropped, never
     for (let i = 0; i < 8; i++) {
       messages.push({
         info: { role: "user" },
-        parts: [
-          { type: "tool", tool: "bash", output: over(THRESHOLD + 5000) },
-        ],
+        parts: [{ type: "tool", tool: "bash", output: over(THRESHOLD + 5000) }],
       });
     }
     compactPromptMessages(messages);

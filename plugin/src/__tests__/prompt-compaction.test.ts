@@ -136,7 +136,10 @@ describe("compactToolPart — AC3/AC4 fallback durable sink (oversized protected
   });
 
   test("oversized skill output is also persisted", () => {
-    const part = toolPart({ tool: "skill", output: oversized(THRESHOLD + 2000) });
+    const part = toolPart({
+      tool: "skill",
+      output: oversized(THRESHOLD + 2000),
+    });
     expect(compactToolPart(part)).toBe(true);
     expect(part.output).toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
   });
@@ -153,7 +156,10 @@ describe("compactToolPart — AC3/AC4 fallback durable sink (oversized protected
 
 describe("compactToolPart — AC7 honest full-drop (oversized unprotected content)", () => {
   test("non-protected oversized tool output gets a full-drop marker", () => {
-    const part = toolPart({ tool: "bash", output: oversized(THRESHOLD + 5000) });
+    const part = toolPart({
+      tool: "bash",
+      output: oversized(THRESHOLD + 5000),
+    });
     expect(compactToolPart(part)).toBe(true);
     const out = part.output as string;
     expect(out).toMatch(/\[ADV:OUTPUT_DROPPED\]/);
@@ -162,7 +168,10 @@ describe("compactToolPart — AC7 honest full-drop (oversized unprotected conten
   });
 
   test("full-drop marker is NOT a head-and-tail excerpt", () => {
-    const part = toolPart({ tool: "bash", output: oversized(THRESHOLD + 5000) });
+    const part = toolPart({
+      tool: "bash",
+      output: oversized(THRESHOLD + 5000),
+    });
     compactToolPart(part);
     const out = part.output as string;
     expect(out).not.toContain("first");
@@ -198,17 +207,27 @@ describe("compactPromptMessages — AC5 recency skip", () => {
     const messages = [];
     for (let i = 0; i < 8; i++) {
       messages.push(
-        messageWithParts([toolPart({ tool: "bash", output: oversized(THRESHOLD + 1000) })]),
+        messageWithParts([
+          toolPart({ tool: "bash", output: oversized(THRESHOLD + 1000) }),
+        ]),
       );
     }
     const result = compactPromptMessages(messages);
 
     // Default recency window = 6 → indices 2-7 protected; 0-1 compacted.
     expect(result.compactedToolOutputs).toBe(2);
-    expect((messages[7].parts[0] as ToolPart).output).toBe(oversized(THRESHOLD + 1000));
-    expect((messages[2].parts[0] as ToolPart).output).toBe(oversized(THRESHOLD + 1000));
-    expect((messages[0].parts[0] as ToolPart).output).toMatch(/\[ADV:OUTPUT_DROPPED\]/);
-    expect((messages[1].parts[0] as ToolPart).output).toMatch(/\[ADV:OUTPUT_DROPPED\]/);
+    expect((messages[7].parts[0] as ToolPart).output).toBe(
+      oversized(THRESHOLD + 1000),
+    );
+    expect((messages[2].parts[0] as ToolPart).output).toBe(
+      oversized(THRESHOLD + 1000),
+    );
+    expect((messages[0].parts[0] as ToolPart).output).toMatch(
+      /\[ADV:OUTPUT_DROPPED\]/,
+    );
+    expect((messages[1].parts[0] as ToolPart).output).toMatch(
+      /\[ADV:OUTPUT_DROPPED\]/,
+    );
   });
 
   test("recency protection applies even to oversized protected tool types in the recent window", () => {
@@ -218,11 +237,15 @@ describe("compactPromptMessages — AC5 recency skip", () => {
       messages.push(messageWithParts([]));
     }
     messages.push(
-      messageWithParts([toolPart({ tool: "task", output: oversized(THRESHOLD + 5000) })]),
+      messageWithParts([
+        toolPart({ tool: "task", output: oversized(THRESHOLD + 5000) }),
+      ]),
     );
     const result = compactPromptMessages(messages);
     expect(result.compactedToolOutputs).toBe(0);
-    expect((messages[6].parts[0] as ToolPart).output).toBe(oversized(THRESHOLD + 5000));
+    expect((messages[6].parts[0] as ToolPart).output).toBe(
+      oversized(THRESHOLD + 5000),
+    );
   });
 });
 
@@ -231,7 +254,9 @@ describe("compactPromptMessages — SC1 count preservation (DC7)", () => {
     const messages = [];
     for (let i = 0; i < 8; i++) {
       messages.push(
-        messageWithParts([toolPart({ tool: "bash", output: oversized(THRESHOLD + 100) })]),
+        messageWithParts([
+          toolPart({ tool: "bash", output: oversized(THRESHOLD + 100) }),
+        ]),
       );
     }
     const result = compactPromptMessages(messages);
@@ -239,12 +264,16 @@ describe("compactPromptMessages — SC1 count preservation (DC7)", () => {
   });
 
   test("oversized persisted protected content increments the count (DC7)", () => {
-    process.env.ADV_FALLBACK_SINK_DIR = mkdtempSync(join(tmpdir(), "adv-sink-"));
+    process.env.ADV_FALLBACK_SINK_DIR = mkdtempSync(
+      join(tmpdir(), "adv-sink-"),
+    );
     try {
       const messages = [];
       for (let i = 0; i < 8; i++) {
         messages.push(
-          messageWithParts([toolPart({ tool: "task", output: oversized(THRESHOLD + 5000) })]),
+          messageWithParts([
+            toolPart({ tool: "task", output: oversized(THRESHOLD + 5000) }),
+          ]),
         );
       }
       const result = compactPromptMessages(messages);
@@ -259,7 +288,9 @@ describe("compactPromptMessages — SC1 count preservation (DC7)", () => {
     const messages = [];
     for (let i = 0; i < 8; i++) {
       messages.push(
-        messageWithParts([toolPart({ tool: "task", output: oversized(THRESHOLD - 1) })]),
+        messageWithParts([
+          toolPart({ tool: "task", output: oversized(THRESHOLD - 1) }),
+        ]),
       );
     }
     const result = compactPromptMessages(messages);
@@ -296,13 +327,20 @@ describe("persistFallbackContent + fallbackPersistedMarker — unit", () => {
 
   test("different content → different path", () => {
     const path1 = persistFallbackContent(oversized(1000), sinkDir);
-    const path2 = persistFallbackContent(oversized(1000) + "different", sinkDir);
+    const path2 = persistFallbackContent(
+      oversized(1000) + "different",
+      sinkDir,
+    );
     expect(path1).not.toBe(path2);
   });
 
   test("marker format is AC4-compliant (path + elided count + preview, no head/tail)", () => {
     const content = oversized(29000);
-    const marker = fallbackPersistedMarker("task", content, "/tmp/opencode/fallback-report-abc.md");
+    const marker = fallbackPersistedMarker(
+      "task",
+      content,
+      "/tmp/opencode/fallback-report-abc.md",
+    );
     expect(marker).toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
     expect(marker).toContain("task");
     expect(marker).toContain("29000");

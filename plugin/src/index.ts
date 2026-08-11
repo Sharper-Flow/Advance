@@ -194,7 +194,10 @@ export const persistFallbackContent = (
   dir: string = fallbackSinkDir(),
 ): string | null => {
   try {
-    const hash = createHash("sha256").update(content).digest("hex").slice(0, 16);
+    const hash = createHash("sha256")
+      .update(content)
+      .digest("hex")
+      .slice(0, 16);
     const filePath = join(dir, `fallback-report-${hash}.md`);
     if (!existsSync(filePath)) {
       mkdirSync(dir, { recursive: true });
