@@ -1,21 +1,31 @@
 /**
- * Consumer Containment Tests — `experimental.chat.messages.transform`
+ * Consumer Containment + Fallback Durable Sink Tests
  *
- * Layer 1 of the bound sub-agent report contract (boundSubAgentReportContract).
- * Covers AC5 (recency skip), AC6 (tool-type protection), and AC7 (honest
- * full-drop marker) for the prompt-message compaction path in `index.ts`.
+ * `experimental.chat.messages.transform` path in `index.ts` for the
+ * boundSubAgentReportContract change.
  *
- * These are unit tests against the pure compaction helpers
- * (`compactPromptMessages`, `compactToolPart`). They do NOT exercise the full
- * plugin hook (the existing `compaction.test.ts` covers the compacting-hook
- * enrichment path; this file owns the messages-transform containment path).
+ * Layer 1 (AC5 recency skip, AC6 tool-type protection, AC7 honest full-drop
+ * marker) and Layer 2 (AC3/AC4 fallback durable sink) are both covered here.
  *
- * Contract refs: implements AC5/AC6/AC7; respects SC1 (count preservation),
- * DONT1 (no threshold raise), DONT3 (no silent drop).
+ * The existing `compaction.test.ts` owns the compacting-hook enrichment path;
+ * this file owns the messages-transform containment + sink path.
+ *
+ * Contract refs: implements AC3/AC4/AC5/AC6/AC7; respects SC1 (count
+ * preservation), DONT1 (no threshold raise), DONT3 (no silent drop),
+ * DONT4 (keep the fallback safety valve).
  */
 
-import { describe, test, expect } from "vitest";
-import { compactPromptMessages, compactToolPart } from "../index";
+import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync } from "node:fs";
+import { rm, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  compactPromptMessages,
+  compactToolPart,
+  persistFallbackContent,
+  fallbackPersistedMarker,
+} from "../index";
 
 const THRESHOLD = 24_000;
 const oversized = (n: number): string => "x".repeat(n);
@@ -39,45 +49,113 @@ const messageWithParts = (parts: unknown[]) => ({
   parts,
 });
 
-describe("compactToolPart — AC6 tool-type protection", () => {
-  test("task tool output exceeding threshold is protected (untouched)", () => {
-    const original = oversized(THRESHOLD + 1000);
+describe("compactToolPart — AC6 tool-type protection (conforming returns)", () => {
+  test("task output under threshold is protected (untouched)", () => {
+    const original = oversized(THRESHOLD - 1);
     const part = toolPart({ tool: "task", output: original });
     expect(compactToolPart(part)).toBe(false);
     expect(part.output).toBe(original);
   });
 
-  test("skill tool output exceeding threshold is protected (untouched)", () => {
-    const original = oversized(THRESHOLD + 1000);
+  test("skill output under threshold is protected (untouched)", () => {
+    const original = oversized(1000);
     const part = toolPart({ tool: "skill", output: original });
     expect(compactToolPart(part)).toBe(false);
     expect(part.output).toBe(original);
   });
 
-  test("task tool output is case-insensitive (Task, TASK protected)", () => {
-    for (const name of ["Task", "TASK", "Task"]) {
-      const original = oversized(THRESHOLD + 500);
+  test("protection is case-insensitive (Task, TASK)", () => {
+    for (const name of ["Task", "TASK"]) {
+      const original = oversized(500);
       const part = toolPart({ tool: name, output: original });
       expect(compactToolPart(part)).toBe(false);
       expect(part.output).toBe(original);
     }
   });
 
-  test("task tool output via state.output is also protected", () => {
-    const original = oversized(THRESHOLD + 1000);
+  test("task state.output under threshold is protected", () => {
+    const original = oversized(2000);
     const part = toolPart({ tool: "task", state: { output: original } });
     expect(compactToolPart(part)).toBe(false);
     expect(part.state?.output).toBe(original);
   });
 });
 
-describe("compactToolPart — AC7 honest full-drop marker", () => {
-  test("non-protected oversized tool output is replaced with a full-drop marker", () => {
+describe("compactToolPart — AC3/AC4 fallback durable sink (oversized protected returns)", () => {
+  let sinkDir: string;
+
+  beforeEach(() => {
+    sinkDir = mkdtempSync(join(tmpdir(), "adv-sink-"));
+    process.env.ADV_FALLBACK_SINK_DIR = sinkDir;
+  });
+
+  afterEach(async () => {
+    delete process.env.ADV_FALLBACK_SINK_DIR;
+    await rm(sinkDir, { recursive: true, force: true });
+  });
+
+  test("oversized task output is persisted and replaced with a persisted-marker", () => {
+    const content = oversized(THRESHOLD + 5000);
+    const part = toolPart({ tool: "task", output: content });
+    expect(compactToolPart(part)).toBe(true);
+
+    const out = part.output as string;
+    expect(out).toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
+    expect(out).toContain("task");
+    expect(out).toContain(String(content.length));
+    // Marker carries a path into the configured sink dir.
+    expect(out).toContain(sinkDir);
+  });
+
+  test("marker names the number of chars elided (AC4), not a head-and-tail excerpt", () => {
+    const content = oversized(THRESHOLD + 5000);
+    const part = toolPart({ tool: "task", output: content });
+    compactToolPart(part);
+    const out = part.output as string;
+
+    // AC4: explicit elided count.
+    expect(out).toMatch(/elided/);
+    // Not the deceptive head/tail excerpt format.
+    expect(out).not.toMatch(/first \d+ chars/);
+    expect(out).not.toMatch(/last \d+ chars/);
+  });
+
+  test("persisted file contains the full content", async () => {
+    const content = oversized(THRESHOLD + 1000);
+    const part = toolPart({ tool: "task", output: content });
+    compactToolPart(part);
+    const out = part.output as string;
+
+    // Extract the path from the marker.
+    const pathMatch = out.match(/at (.+\.md)/);
+    expect(pathMatch).not.toBeNull();
+    const filePath = pathMatch![1];
+
+    const persisted = await readFile(filePath, "utf8");
+    expect(persisted).toBe(content);
+  });
+
+  test("oversized skill output is also persisted", () => {
+    const part = toolPart({ tool: "skill", output: oversized(THRESHOLD + 2000) });
+    expect(compactToolPart(part)).toBe(true);
+    expect(part.output).toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
+  });
+
+  test("oversized task state.output is persisted", () => {
+    const part = toolPart({
+      tool: "task",
+      state: { output: oversized(THRESHOLD + 3000) },
+    });
+    expect(compactToolPart(part)).toBe(true);
+    expect(part.state?.output).toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
+  });
+});
+
+describe("compactToolPart — AC7 honest full-drop (oversized unprotected content)", () => {
+  test("non-protected oversized tool output gets a full-drop marker", () => {
     const part = toolPart({ tool: "bash", output: oversized(THRESHOLD + 5000) });
     expect(compactToolPart(part)).toBe(true);
     const out = part.output as string;
-
-    // Honest full-drop: names what was removed and the size.
     expect(out).toMatch(/\[ADV:OUTPUT_DROPPED\]/);
     expect(out).toContain("bash");
     expect(out).toContain(String(THRESHOLD + 5000));
@@ -87,14 +165,12 @@ describe("compactToolPart — AC7 honest full-drop marker", () => {
     const part = toolPart({ tool: "bash", output: oversized(THRESHOLD + 5000) });
     compactToolPart(part);
     const out = part.output as string;
-
-    // The deceptive head/tail format must be gone.
     expect(out).not.toContain("first");
     expect(out).not.toContain("last");
     expect(out).not.toContain("---");
   });
 
-  test("non-protected oversized output via state.output is full-dropped", () => {
+  test("non-protected oversized state.output is full-dropped", () => {
     const part = toolPart({
       tool: "read",
       state: { output: oversized(THRESHOLD + 2000) },
@@ -110,7 +186,6 @@ describe("compactToolPart — AC7 honest full-drop marker", () => {
   });
 
   test("unidentifiable tool output (generic fallback name) is compacted, not protected", () => {
-    // No tool name → falls back to "tool output" → NOT a protected type.
     const part = toolPart({ output: oversized(THRESHOLD + 1000) });
     delete part.tool;
     expect(compactToolPart(part)).toBe(true);
@@ -128,26 +203,20 @@ describe("compactPromptMessages — AC5 recency skip", () => {
     }
     const result = compactPromptMessages(messages);
 
-    // Default recency window = 6 → the 6 most recent (indices 2-7) are
-    // protected; only the 2 oldest (indices 0-1) are compacted.
+    // Default recency window = 6 → indices 2-7 protected; 0-1 compacted.
     expect(result.compactedToolOutputs).toBe(2);
-    // Most-recent message untouched.
     expect((messages[7].parts[0] as ToolPart).output).toBe(oversized(THRESHOLD + 1000));
-    // Boundary of recency window (index 2) untouched.
     expect((messages[2].parts[0] as ToolPart).output).toBe(oversized(THRESHOLD + 1000));
-    // Oldest messages full-dropped.
     expect((messages[0].parts[0] as ToolPart).output).toMatch(/\[ADV:OUTPUT_DROPPED\]/);
     expect((messages[1].parts[0] as ToolPart).output).toMatch(/\[ADV:OUTPUT_DROPPED\]/);
   });
 
-  test("recency protection applies even to protected tool types in the recent window", () => {
-    // A task tool output in the recent window is protected by BOTH recency
-    // and tool-type; an old bash output is full-dropped.
+  test("recency protection applies even to oversized protected tool types in the recent window", () => {
+    // A recent oversized task output is protected by recency and NOT persisted.
     const messages = [];
     for (let i = 0; i < 6; i++) {
       messages.push(messageWithParts([]));
     }
-    // 7th message: recent task output (within last 6).
     messages.push(
       messageWithParts([toolPart({ tool: "task", output: oversized(THRESHOLD + 5000) })]),
     );
@@ -157,9 +226,8 @@ describe("compactPromptMessages — AC5 recency skip", () => {
   });
 });
 
-describe("compactPromptMessages — SC1 count preservation", () => {
-  test("compactedToolOutputs count reflects full-drop events (banner still fires)", () => {
-    // Two old oversized bash outputs (outside recency) + recent ones protected.
+describe("compactPromptMessages — SC1 count preservation (DC7)", () => {
+  test("oversized unprotected content increments the count (banner fires)", () => {
     const messages = [];
     for (let i = 0; i < 8; i++) {
       messages.push(
@@ -167,21 +235,81 @@ describe("compactPromptMessages — SC1 count preservation", () => {
       );
     }
     const result = compactPromptMessages(messages);
-    // 2 old messages full-dropped → count = 2 → SC1 banner condition holds.
-    expect(result.compactedToolOutputs).toBeGreaterThan(0);
     expect(result.compactedToolOutputs).toBe(2);
   });
 
-  test("protected tool-type outputs do not increment the count (nothing sanitized)", () => {
+  test("oversized persisted protected content increments the count (DC7)", () => {
+    process.env.ADV_FALLBACK_SINK_DIR = mkdtempSync(join(tmpdir(), "adv-sink-"));
+    try {
+      const messages = [];
+      for (let i = 0; i < 8; i++) {
+        messages.push(
+          messageWithParts([toolPart({ tool: "task", output: oversized(THRESHOLD + 5000) })]),
+        );
+      }
+      const result = compactPromptMessages(messages);
+      // 2 old task outputs persisted (increment) + 6 recent protected.
+      expect(result.compactedToolOutputs).toBe(2);
+    } finally {
+      delete process.env.ADV_FALLBACK_SINK_DIR;
+    }
+  });
+
+  test("conforming protected outputs do not increment the count", () => {
     const messages = [];
     for (let i = 0; i < 8; i++) {
       messages.push(
-        messageWithParts([toolPart({ tool: "task", output: oversized(THRESHOLD + 1000) })]),
+        messageWithParts([toolPart({ tool: "task", output: oversized(THRESHOLD - 1) })]),
       );
     }
     const result = compactPromptMessages(messages);
-    // All task outputs protected (6 recent by recency + 2 old by tool-type).
     expect(result.compactedToolOutputs).toBe(0);
+  });
+});
+
+describe("persistFallbackContent + fallbackPersistedMarker — unit", () => {
+  let sinkDir: string;
+
+  beforeEach(() => {
+    sinkDir = mkdtempSync(join(tmpdir(), "adv-sink-"));
+  });
+
+  afterEach(async () => {
+    await rm(sinkDir, { recursive: true, force: true });
+  });
+
+  test("writes full content to the sink and returns the path", async () => {
+    const content = oversized(1000);
+    const path = persistFallbackContent(content, sinkDir);
+    expect(path).not.toBeNull();
+    expect(path).toContain(sinkDir);
+    const persisted = await readFile(path!, "utf8");
+    expect(persisted).toBe(content);
+  });
+
+  test("is idempotent (same content → same path)", () => {
+    const content = oversized(2000);
+    const path1 = persistFallbackContent(content, sinkDir);
+    const path2 = persistFallbackContent(content, sinkDir);
+    expect(path1).toBe(path2);
+  });
+
+  test("different content → different path", () => {
+    const path1 = persistFallbackContent(oversized(1000), sinkDir);
+    const path2 = persistFallbackContent(oversized(1000) + "different", sinkDir);
+    expect(path1).not.toBe(path2);
+  });
+
+  test("marker format is AC4-compliant (path + elided count + preview, no head/tail)", () => {
+    const content = oversized(29000);
+    const marker = fallbackPersistedMarker("task", content, "/tmp/opencode/fallback-report-abc.md");
+    expect(marker).toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
+    expect(marker).toContain("task");
+    expect(marker).toContain("29000");
+    expect(marker).toContain("/tmp/opencode/fallback-report-abc.md");
+    expect(marker).toMatch(/elided/);
+    // Small honest preview, not head+tail.
+    expect(marker).not.toMatch(/last/);
   });
 });
 
@@ -203,6 +331,6 @@ describe("compactPromptMessages — edge cases", () => {
       ]),
     ];
     const result = compactPromptMessages(messages);
-    expect(result.compactedToolOutputs).toBe(0); // only 1 message, recency-protected
+    expect(result.compactedToolOutputs).toBe(0); // 1 message, recency-protected
   });
 });
