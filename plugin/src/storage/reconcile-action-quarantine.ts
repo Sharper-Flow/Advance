@@ -12,6 +12,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { ChangeSchema } from "../types";
 import { atomicWriteFile, acquireFileLock } from "../utils/fs";
 import { publishSummaryForChange } from "./change-summary-shard";
+import { isRetiredEvidenceValue } from "./retired-evidence";
 import type {
   ActionContext,
   ActionExecutor,
@@ -172,7 +173,7 @@ function mapRetiredEvidence(value: unknown): {
     if (
       key === "evidence_kind" &&
       typeof nested === "string" &&
-      (nested === "build_worker" || nested === "replay_determinism")
+      isRetiredEvidenceValue(nested)
     ) {
       mapped[key] = "other";
       replacements += 1;
