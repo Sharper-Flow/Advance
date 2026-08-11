@@ -55,6 +55,19 @@ assert_regex_absent() {
   fi
 }
 
+assert_before() {
+  local haystack="$1" first="$2" second="$3" msg="$4"
+  local first_line second_line
+  first_line=$(printf '%s\n' "$haystack" | grep -nF -- "$first" | head -1 | cut -d: -f1)
+  second_line=$(printf '%s\n' "$haystack" | grep -nF -- "$second" | head -1 | cut -d: -f1)
+  if [ -z "$first_line" ] || [ -z "$second_line" ] || [ "$first_line" -ge "$second_line" ]; then
+    echo "FAIL: $msg" >&2
+    echo "--- haystack ---" >&2
+    echo "$haystack" >&2
+    exit 1
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Case 1: populated window — feat + fix + chore(adv) (filtered) + chore(deps)
 #         + two archived ADV changes with release-notes.json sidecars.
@@ -112,6 +125,10 @@ assert_contains "$BODY_1" "- resolve bar" \
   "fix commit subject must appear under Fixed"
 assert_contains "$BODY_1" "bump qux" \
   "chore(deps) commit subject must appear under Changed"
+assert_before "$BODY_1" "**Change A**: Foo feature now works end-to-end" "- add foo" \
+  "curated Added entry must precede feat commit subject"
+assert_before "$BODY_1" "**Change B**: Bar bug squashed" "- resolve bar" \
+  "curated Fixed entry must precede fix commit subject"
 
 # chore(adv) commits filtered entirely.
 assert_regex_absent "$BODY_1" '^chore\(adv\)' \
@@ -201,5 +218,68 @@ BODY_4=$(render_body "$COMMITS_4" "$RN_JSON_4")
 
 assert_absent "$BODY_4" "No Headline" \
   "envelope without headline fields must be skipped"
+
+# ---------------------------------------------------------------------------
+# Case 5: external-only fallback and remaining release-note categories.
+# ---------------------------------------------------------------------------
+
+COMMITS_5=""
+
+RN_JSON_5='[
+  {
+    "schema_version": "1.0",
+    "title": "External Only",
+    "release_notes": {
+      "category": "security",
+      "headline_external": "Closes an externally visible security gap"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "title": "Deprecated API",
+    "release_notes": {
+      "category": "deprecated",
+      "headline_internal": "Marks the legacy API for removal"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "title": "Changed API",
+    "release_notes": {
+      "category": "changed",
+      "headline_internal": "Updates the supported API behavior"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "title": "Removed API",
+    "release_notes": {
+      "category": "removed",
+      "headline_internal": "Removes the legacy API"
+    }
+  }
+]'
+
+BODY_5=$(render_body "$COMMITS_5" "$RN_JSON_5")
+
+assert_contains "$BODY_5" "**External Only**: Closes an externally visible security gap" \
+  "headline_external must render when headline_internal is absent"
+assert_contains "$BODY_5" "### Deprecated" \
+  "deprecated release-note category must render its section"
+assert_contains "$BODY_5" "**Changed API**: Updates the supported API behavior" \
+  "changed release-note category must render its curated entry"
+assert_contains "$BODY_5" "### Removed" \
+  "removed release-note category must render its section"
+assert_contains "$BODY_5" "### Security" \
+  "security release-note category must render its section"
+
+# ---------------------------------------------------------------------------
+# Case 6: malformed aggregate JSON must not abort rendering commit subjects.
+# ---------------------------------------------------------------------------
+
+BODY_6=$(render_body "fix: still renders" '{not valid json')
+
+assert_contains "$BODY_6" "- still renders" \
+  "malformed sidecar aggregate must be ignored without dropping commits"
 
 echo "PASS: all release-body assertions ($BODY_1 $BODY_2 $BODY_3 $BODY_4 had expected content)"
