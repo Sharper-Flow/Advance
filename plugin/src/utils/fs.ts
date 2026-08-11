@@ -12,10 +12,9 @@ import { dirname } from "path";
 // Constants
 // =============================================================================
 
-const DEFAULT_LOCK_TIMEOUT_MS = 15000;
+export const DEFAULT_LOCK_TIMEOUT_MS = 15000;
 const LOCK_INITIAL_WAIT_MS = 25;
 const LOCK_MAX_WAIT_MS = 500;
-const LOCK_COEFFICIENT = 2;
 const STALE_LOCK_MS = 30000;
 
 // =============================================================================
@@ -181,33 +180,45 @@ export async function syncDir(dirPath: string): Promise<void> {
  *
  * The lock file contains the PID and timestamp. Stale locks (>30s) are
  * automatically removed on the next acquire attempt.
+ *
+ * The wait is always bounded: `timeoutMs` defaults to `DEFAULT_LOCK_TIMEOUT_MS`
+ * so a caller with no deadline can never wait indefinitely. Callers running
+ * under an outer budget derive `timeoutMs` from what remains of it — see
+ * `deriveLockBudgetMs` in `tool-budgets.ts`. Retry/backoff is owned by the
+ * shared `boundedRetry` primitive above.
  */
 export async function acquireFileLock(
   filePath: string,
   timeoutMs = DEFAULT_LOCK_TIMEOUT_MS,
 ): Promise<() => Promise<void>> {
   const lockPath = `${filePath}.lock`;
-  const startTime = Date.now();
-  let attempt = 0;
+  const budgetMs = Math.max(0, timeoutMs);
 
-  while (Date.now() - startTime < timeoutMs) {
-    try {
-      // Try to create lock file exclusively
-      await writeFile(lockPath, `${process.pid}\n${Date.now()}`, {
-        flag: "wx",
-      });
+  const result = await boundedRetry<() => Promise<void>>({
+    budgetMs,
+    baseMs: LOCK_INITIAL_WAIT_MS,
+    capMs: LOCK_MAX_WAIT_MS,
+    attempt: async () => {
+      try {
+        // Try to create lock file exclusively
+        await writeFile(lockPath, `${process.pid}\n${Date.now()}`, {
+          flag: "wx",
+        });
 
-      // Lock acquired
-      return async () => {
-        try {
-          await unlink(lockPath);
-        } catch {
-          // Ignore unlock errors
-        }
-      };
-    } catch (e) {
-      const error = e as NodeJS.ErrnoException;
-      if (error.code === "EEXIST") {
+        return {
+          ok: true,
+          value: async () => {
+            try {
+              await unlink(lockPath);
+            } catch {
+              // Ignore unlock errors
+            }
+          },
+        };
+      } catch (e) {
+        const error = e as NodeJS.ErrnoException;
+        if (error.code !== "EEXIST") throw error;
+
         // Lock exists, check if stale
         try {
           const content = await readFile(lockPath, "utf-8");
@@ -215,9 +226,7 @@ export async function acquireFileLock(
           const pid = parseInt(parts[0] ?? "", 10);
           const timestamp = parseInt(parts[1] ?? "", 10);
 
-          if (isNaN(timestamp)) {
-            // Malformed lock file — can't determine staleness, retry
-          } else if (Date.now() - timestamp > STALE_LOCK_MS) {
+          if (!isNaN(timestamp) && Date.now() - timestamp > STALE_LOCK_MS) {
             // Check if PID is still alive (signal 0 = existence check)
             let processAlive = false;
             if (!isNaN(pid) && pid > 0) {
@@ -229,32 +238,24 @@ export async function acquireFileLock(
               }
             }
             if (!processAlive) {
-              // Stale lock from dead process, remove it
+              // Stale lock from dead process, remove it. The shared retry
+              // primitive owns the subsequent bounded retry and backoff.
               try {
                 await unlink(lockPath);
               } catch {
                 // Another process already removed it
               }
-              continue;
             }
           }
         } catch {
           // Can't read lock, try again
         }
 
-        // Wait and retry with jittered exponential backoff
-        attempt += 1;
-        const base = Math.min(
-          LOCK_MAX_WAIT_MS,
-          LOCK_INITIAL_WAIT_MS * LOCK_COEFFICIENT ** (attempt - 1),
-        );
-        const delay = Math.random() * base;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
+        return { ok: false };
       }
-      throw error;
-    }
-  }
+    },
+  });
 
-  throw new Error(`Failed to acquire lock on ${filePath} after ${timeoutMs}ms`);
+  if (result.ok) return result.value;
+  throw new Error(`Failed to acquire lock on ${filePath} after ${budgetMs}ms`);
 }

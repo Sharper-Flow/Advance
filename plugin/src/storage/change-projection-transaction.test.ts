@@ -244,6 +244,77 @@ describe("commitChangeProjection", () => {
     }
   });
 
+  it("AC5: sizes the lock wait from the remaining outer tool budget", async () => {
+    const changeId = "locked-under-tool-deadline";
+    await seedChange(changesDir, makeChange(changeId));
+
+    const { acquireFileLock } = await import("../utils/fs");
+    const { withToolDeadline } = await import("../utils/tool-deadline");
+    const { TOOL_RESPONSE_HEADROOM_MS } = await import("../utils/tool-budgets");
+    const release = await acquireFileLock(
+      join(changesDir, changeId, "change.json"),
+    );
+
+    // Remaining outer budget is far below the 15s default, so the derived wait
+    // must shrink to it rather than outliving the invocation.
+    const outerBudgetMs = TOOL_RESPONSE_HEADROOM_MS + 100;
+    try {
+      const startedAt = Date.now();
+      const result = await withToolDeadline(outerBudgetMs, () =>
+        commitChangeProjection({
+          changesDir,
+          changeId,
+          authority: RECOVERY_AUTHORITY,
+          mutationKind: "test:lock-budget-derivation",
+          mutateLatest: (latest) => ({ ...latest, title: "no-write" }),
+          verify: () => true,
+        }),
+      );
+      const elapsed = Date.now() - startedAt;
+
+      expect(result.kind).toBe("lock_timeout");
+      if (result.kind !== "lock_timeout") return;
+      expect(result.timeoutMs).toBeLessThanOrEqual(outerBudgetMs);
+      expect(result.timeoutMs).toBeLessThanOrEqual(100);
+      expect(elapsed).toBeLessThan(outerBudgetMs);
+    } finally {
+      await release();
+    }
+  });
+
+  it("AC6: keeps a bounded default wait with no outer deadline", async () => {
+    const changeId = "locked-without-deadline";
+    await seedChange(changesDir, makeChange(changeId));
+
+    const { acquireFileLock } = await import("../utils/fs");
+    const { DEFAULT_LOCK_BUDGET_MS } = await import("../utils/tool-budgets");
+    const release = await acquireFileLock(
+      join(changesDir, changeId, "change.json"),
+    );
+
+    try {
+      const result = await commitChangeProjection({
+        changesDir,
+        changeId,
+        authority: RECOVERY_AUTHORITY,
+        mutationKind: "test:lock-default-budget",
+        mutateLatest: (latest) => ({ ...latest, title: "no-write" }),
+        verify: () => true,
+        lockTimeoutMs: 40,
+      });
+
+      expect(result.kind).toBe("lock_timeout");
+      if (result.kind !== "lock_timeout") return;
+      // Explicit caller timeout is honored, and the no-argument path would
+      // still be bounded by the default rather than waiting indefinitely.
+      expect(result.timeoutMs).toBe(40);
+      expect(DEFAULT_LOCK_BUDGET_MS).toBeGreaterThan(0);
+      expect(Number.isFinite(DEFAULT_LOCK_BUDGET_MS)).toBe(true);
+    } finally {
+      await release();
+    }
+  });
+
   it("returns committed_unverified when postcondition fails", async () => {
     const changeId = "unverified";
     await seedChange(changesDir, makeChange(changeId));

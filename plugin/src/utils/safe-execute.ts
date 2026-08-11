@@ -23,6 +23,7 @@ import {
   ADV_SESSION_NOT_READY_KIND,
 } from "./readiness-envelope";
 import { DEFAULT_TOOL_TIMEOUT_MS } from "./tool-budgets";
+import { withToolDeadline } from "./tool-deadline";
 
 /**
  * Optional enrichment context. All fields are additive — no existing
@@ -432,7 +433,7 @@ export function safeExecute<TArgs, TContext>(
     const startedAt = performance.now();
     try {
       const result = await raceWithTimeout(
-        fn(args, context),
+        withToolDeadline(timeoutMs, () => fn(args, context)),
         toolName,
         timeoutMs,
       );
@@ -512,7 +513,7 @@ export function safeExecuteSimple<TArgs, TExtra>(
     const startedAt = performance.now();
     try {
       const result = await raceWithTimeout(
-        fn(args, extra),
+        withToolDeadline(timeoutMs, () => fn(args, extra)),
         toolName,
         timeoutMs,
       );

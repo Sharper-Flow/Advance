@@ -62,7 +62,7 @@ describe("acquireFileLock", () => {
     const target = join(dir, "jitter-test.json");
     const lockPath = `${target}.lock`;
 
-    // Fix random at 0.5 so delay = 0.5 * base
+    // Fix random at 0.5 so boundedRetry's delay = 0.75 * base.
     vi.spyOn(Math, "random").mockReturnValue(0.5);
 
     const delays: number[] = [];
@@ -84,15 +84,16 @@ describe("acquireFileLock", () => {
       /Failed to acquire lock/,
     );
 
-    // With jittered exponential: attempt 1 delay = 0.5 * min(500, 25*2^0) = 0.5*25 = 12.5
-    // With old fixed retry: all delays are exactly 50
-    // So first delay should be 12.5, NOT 50
+    // boundedRetry owns the backoff: attempt 1 delay =
+    // (0.5 + 0.5 * 0.5) * min(500, 25*2^0) = 0.75*25 = 18.75.
+    // A fixed retry loop would produce exactly 50 every time, so the delay
+    // being jittered and exponential is what this asserts.
     expect(delays.length).toBeGreaterThanOrEqual(1);
-    expect(delays[0]).toBe(12.5);
+    expect(delays[0]).toBe(18.75);
 
-    // Second delay = 0.5 * min(500, 25*2^1) = 0.5*50 = 25
+    // Second delay = 0.75 * min(500, 25*2^1) = 0.75*50 = 37.5
     if (delays.length >= 2) {
-      expect(delays[1]).toBe(25);
+      expect(delays[1]).toBe(37.5);
     }
 
     await import("fs/promises").then((fs) =>

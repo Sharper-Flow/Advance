@@ -28,3 +28,42 @@ export const TOOL_RESPONSE_HEADROOM_MS = 199;
  */
 export const STATUS_READ_DEADLINE_BUDGET_MS =
   DEFAULT_TOOL_TIMEOUT_MS - TOOL_RESPONSE_HEADROOM_MS;
+
+/**
+ * Ceiling for a lock wait started at the very beginning of a host-tool
+ * invocation. The lock must leave the same response headroom as other bounded
+ * tool work so a timeout can be reported before the host safety-net fires.
+ *
+ * This is only the ceiling. A wait that starts later in the invocation is sized
+ * against the *remaining* budget by `deriveLockBudgetMs`.
+ */
+export const LOCK_ACQUISITION_DEADLINE_BUDGET_MS =
+  DEFAULT_TOOL_TIMEOUT_MS - TOOL_RESPONSE_HEADROOM_MS;
+
+/** Bounded default wait for a lock caller with no outer deadline. */
+export const DEFAULT_LOCK_BUDGET_MS = 15_000;
+
+/**
+ * Derives the wait budget for a file-lock acquisition.
+ *
+ * Inside a host-tool invocation the budget is derived from what remains of the
+ * outer budget, minus the response reserve, so the inner wait can never exceed
+ * the outer budget (AC5). Outside one — CLI, plugin startup — no outer deadline
+ * exists and the caller's own bounded default applies (AC6). An explicit
+ * caller-supplied timeout only ever lowers the result.
+ *
+ * @param requestedMs caller-supplied timeout, if any
+ * @param remainingOuterBudgetMs remaining outer tool budget, if inside a tool
+ */
+export function deriveLockBudgetMs(
+  requestedMs: number | undefined,
+  remainingOuterBudgetMs: number | undefined,
+): number {
+  const requested = requestedMs ?? DEFAULT_LOCK_BUDGET_MS;
+  if (remainingOuterBudgetMs === undefined) return Math.max(0, requested);
+  const ceiling = Math.min(
+    LOCK_ACQUISITION_DEADLINE_BUDGET_MS,
+    remainingOuterBudgetMs - TOOL_RESPONSE_HEADROOM_MS,
+  );
+  return Math.max(0, Math.min(requested, ceiling));
+}

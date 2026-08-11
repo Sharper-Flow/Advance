@@ -22,6 +22,8 @@ import { acquireFileLock, atomicWriteFile } from "../utils/fs";
 import { loadChange } from "./json";
 import { readBoundedProjectionDocument } from "./change-projection-reader";
 import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-detector";
+import { deriveLockBudgetMs } from "../utils/tool-budgets";
+import { getRemainingToolBudgetMs } from "../utils/tool-deadline";
 import {
   ChangeSchema,
   type Change,
@@ -308,13 +310,21 @@ export async function commitChangeProjection(
 
   let releaseLock: (() => Promise<void>) | undefined;
 
+  // Inside a host tool the lock wait is sized against what is left of the outer
+  // tool budget, so it can never outlive it; outside one the bounded default
+  // applies.
+  const effectiveLockTimeoutMs = deriveLockBudgetMs(
+    lockTimeoutMs,
+    getRemainingToolBudgetMs(),
+  );
+
   try {
-    releaseLock = await acquireFileLock(changePath, lockTimeoutMs);
+    releaseLock = await acquireFileLock(changePath, effectiveLockTimeoutMs);
   } catch {
     return {
       kind: "lock_timeout",
       lockPath,
-      timeoutMs: lockTimeoutMs ?? 15000,
+      timeoutMs: effectiveLockTimeoutMs,
     };
   }
 

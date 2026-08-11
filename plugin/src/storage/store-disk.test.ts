@@ -415,10 +415,7 @@ describe("store-disk — init does not run artifact-metadata migration", () => {
     ).rejects.toMatchObject({ code: "ENOENT" });
     // And the legacy artifact source must remain unchanged.
     const after = JSON.parse(
-      await readFile(
-        join(changesDir, "legacy-change", "change.json"),
-        "utf-8",
-      ),
+      await readFile(join(changesDir, "legacy-change", "change.json"), "utf-8"),
     );
     expect(after.artifacts.proposal.source).toBe("temporal");
   });
