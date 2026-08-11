@@ -1480,3 +1480,69 @@ describe("apply_context doc↔schema drift guard (DDC2/SC1)", () => {
     ).toBe(true);
   });
 });
+
+describe("per-lane size bounds (AC1/SC2 — boundSubAgentReportContract)", () => {
+  const over = (n: number): string => "x".repeat(n);
+
+  it("rejects an adv-researcher report whose architecture_assessment exceeds the lane bound (12000)", () => {
+    const result = ResearcherSubagentReportSchema.safeParse({
+      ...researcherReport,
+      architecture_assessment: over(12001),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => /architecture_assessment/.test(i.path.join(".")))).toBe(true);
+    }
+  });
+
+  it("rejects an adv-engineer report whose context_update exceeds the lane bound (4000)", () => {
+    const result = EngineerSubagentReportSchema.safeParse({
+      ...engineerReport,
+      context_update_for_adv: {
+        ...engineerReport.context_update_for_adv,
+        what_ads_needs_to_know: over(4001),
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => /what_ads_needs_to_know/.test(i.path.join(".")))).toBe(true);
+    }
+  });
+
+  it("rejects an adv-reviewer report whose verification.evidence exceeds the lane bound (4000)", () => {
+    const result = ReviewerSubagentReportSchema.safeParse({
+      ...reviewerReport,
+      verification: { ...reviewerReport.verification, evidence: over(4001) },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => /evidence/.test(i.path.join(".")))).toBe(true);
+    }
+  });
+
+  it("rejects an adv-designer report whose related_scan exceeds the lane bound (4000)", () => {
+    const result = DesignerSubagentReportSchema.safeParse({
+      ...designerReport,
+      related_scan: over(4001),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => /related_scan/.test(i.path.join(".")))).toBe(true);
+    }
+  });
+
+  it("accepts the conforming fixtures unchanged (SC2 — no false rejection)", () => {
+    expect(ResearcherSubagentReportSchema.safeParse(researcherReport).success).toBe(true);
+    expect(EngineerSubagentReportSchema.safeParse(engineerReport).success).toBe(true);
+    expect(ReviewerSubagentReportSchema.safeParse(reviewerReport).success).toBe(true);
+    expect(DesignerSubagentReportSchema.safeParse(designerReport).success).toBe(true);
+  });
+
+  it("accepts a researcher report at the bound ceiling (12000 chars exactly)", () => {
+    const result = ResearcherSubagentReportSchema.safeParse({
+      ...researcherReport,
+      architecture_assessment: over(12000),
+    });
+    expect(result.success).toBe(true);
+  });
+});
