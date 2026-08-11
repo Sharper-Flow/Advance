@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
@@ -112,6 +112,55 @@ function record(
     evidence: ["fixture"],
     actions: [{ class: className, action } as ReconcileAction],
   } as ReconcilePlanRecord;
+}
+
+/** Retired evidence enum owned by the schema-drift reconcile action. */
+const RETIRED_TEST_RUNS = {
+  "tk-retired": [
+    {
+      runId: "tr-retired",
+      exitCode: 0,
+      classification: "pass",
+      command: "pnpm test",
+      durationMs: 10,
+      evidence_kind: "build_worker",
+      recordedAt: "2026-08-07T00:00:00.000Z",
+    },
+  ],
+};
+
+const DISK_ARTIFACTS = {
+  proposal: { source: "disk", updatedAt: "2026-08-07T00:00:00.000Z" },
+};
+
+const TEMPORAL_ARTIFACTS = {
+  proposal: {
+    source: "temporal",
+    updatedAt: "2026-08-07T00:00:00.000Z",
+    readable: true,
+  },
+};
+
+/**
+ * Writes a projection document that the current ChangeSchema may reject, so
+ * completion-gate behavior can be exercised against real residue shapes.
+ */
+async function writeRawProjection(
+  changesDir: string,
+  id: string,
+  document: unknown,
+): Promise<void> {
+  const dir = join(changesDir, id);
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "change.json"), JSON.stringify(document, null, 2));
+}
+
+async function markerOrNull(path: string): Promise<unknown | null> {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
 }
 
 describe("artifact metadata reconcile action executors", () => {
@@ -265,5 +314,145 @@ describe("artifact metadata reconcile action executors", () => {
     expect(
       JSON.parse(await readFile(data.sourcePath, "utf8")).worktree_auto_managed,
     ).toBe(false);
+  });
+
+  test("records foreign-owned residue as a benign residual without blocking the marker", async () => {
+    const data = await fixture("artifact-foreign-sibling", {
+      artifacts: TEMPORAL_ARTIFACTS,
+    });
+    await writeRawProjection(data.paths.changes, "sibling-retired-enum", {
+      ...changeFixture("sibling-retired-enum", { artifacts: DISK_ARTIFACTS }),
+      test_runs: RETIRED_TEST_RUNS,
+    });
+
+    const outcome = await migrateRecordExecutor(
+      record(
+        "artifact-foreign-sibling",
+        "unmigrated_artifact_metadata",
+        "migrate_record",
+        data.sourcePath,
+      ),
+      { class: "unmigrated_artifact_metadata", action: "migrate_record" },
+      data.ctx,
+    );
+
+    expect(outcome.status).toBe("mutated");
+    expect(
+      await markerOrNull(data.paths.artifactMetadataMigrationMarker),
+    ).toMatchObject({
+      dispositions: {
+        "artifact-foreign-sibling": "migrated",
+        "sibling-retired-enum": "benign_residual_foreign_owned",
+      },
+    });
+  });
+
+  test("fails closed on an unreadable sibling projection", async () => {
+    const data = await fixture("artifact-unreadable-sibling", {
+      artifacts: TEMPORAL_ARTIFACTS,
+    });
+    await mkdir(join(data.paths.changes, "sibling-corrupt"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(data.paths.changes, "sibling-corrupt", "change.json"),
+      "{ not-json\n",
+    );
+
+    const outcome = await migrateRecordExecutor(
+      record(
+        "artifact-unreadable-sibling",
+        "unmigrated_artifact_metadata",
+        "migrate_record",
+        data.sourcePath,
+      ),
+      { class: "unmigrated_artifact_metadata", action: "migrate_record" },
+      data.ctx,
+    );
+
+    expect(outcome.status).toBe("mutated");
+    expect(
+      await markerOrNull(data.paths.artifactMetadataMigrationMarker),
+    ).toBeNull();
+  });
+
+  test("fails closed when a sibling is invalid for a reason no action owns", async () => {
+    const data = await fixture("artifact-unowned-sibling", {
+      artifacts: TEMPORAL_ARTIFACTS,
+    });
+    await writeRawProjection(data.paths.changes, "sibling-unowned", {
+      ...changeFixture("sibling-unowned", { artifacts: DISK_ARTIFACTS }),
+      status: "not-a-status",
+    });
+
+    const outcome = await migrateRecordExecutor(
+      record(
+        "artifact-unowned-sibling",
+        "unmigrated_artifact_metadata",
+        "migrate_record",
+        data.sourcePath,
+      ),
+      { class: "unmigrated_artifact_metadata", action: "migrate_record" },
+      data.ctx,
+    );
+
+    expect(outcome.status).toBe("mutated");
+    expect(
+      await markerOrNull(data.paths.artifactMetadataMigrationMarker),
+    ).toBeNull();
+  });
+
+  test("classifies a terminal no-op whose document carries foreign-owned residue", async () => {
+    const data = await fixture("artifact-foreign-noop", {
+      artifacts: DISK_ARTIFACTS,
+    });
+    await writeRawProjection(data.paths.changes, "artifact-foreign-noop", {
+      ...changeFixture("artifact-foreign-noop", { artifacts: DISK_ARTIFACTS }),
+      test_runs: RETIRED_TEST_RUNS,
+    });
+
+    const outcome = await classifyTerminalNoopExecutor(
+      record(
+        "artifact-foreign-noop",
+        "unmigrated_artifact_metadata",
+        "classify_terminal_noop",
+        data.sourcePath,
+      ),
+      {
+        class: "unmigrated_artifact_metadata",
+        action: "classify_terminal_noop",
+      },
+      data.ctx,
+    );
+
+    expect(outcome.status).toBe("skipped");
+    expect(outcome.error_class).toBeUndefined();
+  });
+
+  test("keeps whole-document validation on the worktree-marker path", async () => {
+    const data = await fixture("worktree-marker-foreign");
+    await writeRawProjection(data.paths.changes, "worktree-marker-foreign", {
+      ...changeFixture("worktree-marker-foreign"),
+      test_runs: RETIRED_TEST_RUNS,
+    });
+
+    const outcome = await setMarkerLegacyExecutor(
+      record(
+        "worktree-marker-foreign",
+        "unmigrated_worktree_marker",
+        "set_marker_legacy",
+        data.sourcePath,
+      ),
+      {
+        class: "unmigrated_worktree_marker",
+        action: "set_marker_legacy",
+      },
+      data.ctx,
+    );
+
+    expect(outcome).toMatchObject({
+      status: "failed",
+      error_class: "projection_validation_failed",
+    });
   });
 });

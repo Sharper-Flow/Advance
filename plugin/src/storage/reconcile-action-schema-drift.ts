@@ -6,9 +6,8 @@ import { readFile } from "node:fs/promises";
 import { ChangeSchema, type Change } from "../types";
 import { getProjectId } from "../utils/project-id";
 import { executeQuarantine } from "../tools/change-projection-quarantine";
+import { RETIRED_EVIDENCE_VALUES } from "./retired-evidence";
 import type { ActionExecutor, ActionOutcome } from "./reconcile-action-types";
-
-const RETIRED_EVIDENCE_VALUES = new Set(["build_worker", "replay_determinism"]);
 
 type MutableRecord = Record<string, unknown>;
 

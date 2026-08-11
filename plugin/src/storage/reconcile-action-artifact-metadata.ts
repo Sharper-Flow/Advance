@@ -7,10 +7,20 @@
  * archive path has no active-projection transaction, so it uses the same
  * atomic-write/readback shape as the storage-owned migration. Neither path
  * synthesizes a projection when its current bytes cannot be validated.
+ *
+ * The artifact-metadata rewrite touches exactly one leaf (`artifacts.*.source`),
+ * so its read precondition validates that subtree rather than the whole
+ * document. A whole-document failure attributable solely to residue owned by a
+ * different action (retired evidence enums, owned by the schema-drift action)
+ * is recorded as a documented, whitelisted benign residual and does not block
+ * the completion marker — the allowance already granted by
+ * `rq-storeReconcileUnboundedProof01`. Every other read or validation failure
+ * still fails closed. The write path keeps whole-document validation, which is
+ * why a record carrying both residue classes converges over two runs.
  */
 
 import { mkdir, readFile, readdir } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative } from "node:path";
+import { basename, dirname, isAbsolute, join, relative } from "node:path";
 
 import { ChangeSchema, type Change } from "../types";
 import {
@@ -22,6 +32,7 @@ import {
   normalizeProjectionDocument,
   readBoundedProjectionDocument,
 } from "./change-projection-reader";
+import { isRetiredEvidenceValue } from "./retired-evidence";
 import type {
   ActionContext,
   ActionExecutor,
@@ -33,15 +44,30 @@ type JsonRecord = Record<string, unknown>;
 type ArtifactDisposition =
   | "migrated"
   | "classified_terminal_noop"
-  | "quarantined";
+  | "quarantined"
+  | "benign_residual_foreign_owned";
 
 type ExtendedOutcome = ActionOutcome & {
   disposition?: ArtifactDisposition;
   marker_written?: boolean;
 };
 
+/**
+ * Whole-document standing of a projection whose mutated subtree is already
+ * known to be well-formed.
+ */
+type DocumentValidity =
+  | { kind: "valid" }
+  | { kind: "foreign_owned_residue"; reason: string }
+  | { kind: "invalid"; reason: string };
+
 type ProjectionRead =
-  | { kind: "ok"; bytes: Buffer; raw: JsonRecord }
+  | {
+      kind: "ok";
+      bytes: Buffer;
+      raw: JsonRecord;
+      documentValidity: DocumentValidity;
+    }
   | { kind: "failed"; error_class: string; residual: string };
 
 function dispositionLedgerPath(ctx: ActionContext): string {
@@ -88,6 +114,53 @@ function invalidContext(
   return null;
 }
 
+function valueAtPath(root: unknown, path: readonly PropertyKey[]): unknown {
+  let current: unknown = root;
+  for (const key of path) {
+    if (Array.isArray(current) && typeof key === "number") {
+      current = current[key];
+      continue;
+    }
+    if (!isRecord(current)) return undefined;
+    current = current[String(key)];
+  }
+  return current;
+}
+
+/**
+ * Classifies a whole-document validation failure. The failure is foreign-owned
+ * only when every reported issue lands on a retired `evidence_kind` leaf — the
+ * residue class the schema-drift action owns. Any other issue keeps the
+ * document `invalid`, so genuine corruption still fails closed.
+ */
+function classifyDocument(normalized: unknown): DocumentValidity {
+  const parsed = ChangeSchema.safeParse(normalized);
+  if (parsed.success) return { kind: "valid" };
+
+  const issues = parsed.error.issues;
+  const foreignOwned =
+    issues.length > 0 &&
+    issues.every((issue) => {
+      const path = issue.path;
+      return (
+        path.length > 0 &&
+        path[path.length - 1] === "evidence_kind" &&
+        isRetiredEvidenceValue(valueAtPath(normalized, path))
+      );
+    });
+  if (foreignOwned) {
+    return {
+      kind: "foreign_owned_residue",
+      reason:
+        "whole-document validation fails only on retired evidence enums owned by the schema-drift action",
+    };
+  }
+  return {
+    kind: "invalid",
+    reason: `projection failed ChangeSchema validation (${issues[0]?.path.join(".") || "root"})`,
+  };
+}
+
 async function readProjection(path: string): Promise<ProjectionRead> {
   const bounded = await readBoundedProjectionDocument(path);
   if (bounded.kind !== "ok") {
@@ -120,11 +193,13 @@ async function readProjection(path: string): Promise<ProjectionRead> {
   }
 
   const [normalized] = normalizeProjectionDocument(parsed);
-  const parsedChange = ChangeSchema.safeParse(normalized);
-  if (!parsedChange.success) {
+  // Subtree-scoped precondition: the rewrite touches only `artifacts.*.source`,
+  // so a malformed artifacts subtree is the only shape that blocks the read.
+  const subtree = artifactMap(normalized);
+  if (subtree.kind === "invalid") {
     return readFailed(
       "projection_validation_failed",
-      `${path}: projection failed ChangeSchema validation`,
+      `${path}: ${subtree.reason}`,
     );
   }
 
@@ -137,7 +212,12 @@ async function readProjection(path: string): Promise<ProjectionRead> {
       `${path}: read failed: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  return { kind: "ok", bytes, raw: parsed };
+  return {
+    kind: "ok",
+    bytes,
+    raw: parsed,
+    documentValidity: classifyDocument(normalized),
+  };
 }
 
 function artifactMap(
@@ -199,7 +279,8 @@ function isDisposition(value: unknown): value is ArtifactDisposition {
   return (
     value === "migrated" ||
     value === "classified_terminal_noop" ||
-    value === "quarantined"
+    value === "quarantined" ||
+    value === "benign_residual_foreign_owned"
   );
 }
 
@@ -265,13 +346,24 @@ async function writeMarkerIfComplete(
   }
 
   const unresolved: string[] = [];
+  const benignResiduals: string[] = [];
   for (const path of projectionPaths) {
     const current = await readProjection(path);
     if (current.kind === "failed") {
       unresolved.push(path);
       continue;
     }
-    if (hasTemporalMetadata(current.raw)) unresolved.push(path);
+    if (hasTemporalMetadata(current.raw)) {
+      unresolved.push(path);
+      continue;
+    }
+    // Residue this action cannot touch must not permanently block completion,
+    // but it is recorded so the marker never hides it (DDC3).
+    if (current.documentValidity.kind === "foreign_owned_residue") {
+      benignResiduals.push(basename(dirname(path)));
+      continue;
+    }
+    if (current.documentValidity.kind === "invalid") unresolved.push(path);
   }
   if (unresolved.length > 0 || projectionPaths.length === 0) {
     return { complete: false };
@@ -302,6 +394,9 @@ async function writeMarkerIfComplete(
     }
   }
 
+  for (const residualId of benignResiduals) {
+    dispositions[residualId] = "benign_residual_foreign_owned";
+  }
   dispositions[recordId] = disposition;
   try {
     await mkdir(dirname(markerPath), { recursive: true });
@@ -540,6 +635,14 @@ async function setMarker(
   const source = await readProjection(record.source_path);
   if (source.kind === "failed") {
     return failed(source.error_class, source.residual);
+  }
+  // The worktree-marker rewrite is not scoped to the artifacts subtree, so this
+  // path keeps the whole-document precondition it has always had.
+  if (source.documentValidity.kind !== "valid") {
+    return failed(
+      "projection_validation_failed",
+      `${record.record_id}: ${source.documentValidity.reason}`,
+    );
   }
   const current = source.raw.worktree_auto_managed;
   if (current === true || current === false) return { status: "skipped" };

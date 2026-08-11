@@ -29,6 +29,7 @@ import {
   extractProjectionCounters,
   readLegacyCounters,
 } from "./projection-counters";
+import { RETIRED_EVIDENCE_VALUES } from "./retired-evidence";
 
 export const ResidueClassSchema = z.enum([
   "schema_drift_retired_enum",
@@ -112,8 +113,6 @@ const PRIMARY_PRECEDENCE: readonly ResidueClass[] = [
   "store_artifact_missing",
   "healthy",
 ];
-
-const RETIRED_EVIDENCE_VALUES = new Set(["build_worker", "replay_determinism"]);
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
