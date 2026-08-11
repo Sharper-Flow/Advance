@@ -357,6 +357,7 @@ Build the following JSON object as the `report` argument to `adv_tool_invoke({na
 - Before final response, call `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: DESIGNER_REPORT }})`.
 - On tool-call failure, retry up to 3 total attempts with exponential backoff.
 - If all submit attempts fail, final response must contain only the submit failure summary and the intended report payload for orchestrator recovery.
+- **Size bound & repair-on-reject (AC2):** Every free-text field in your report must stay within the per-lane size bound of **4000 chars**. If your report submission is rejected for a size-bound error naming an offending field, condense that field within your own context and retry the submit **exactly once**. If it is still rejected after that one repair pass, return an explicit failure naming the rejected field — do **not** silently truncate or head/tail-excerpt the field to force acceptance.
 
 ### Example
 

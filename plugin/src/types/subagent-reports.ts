@@ -33,6 +33,58 @@ export const SUBAGENT_REPORT_SCHEMA_VERSION = "1.0";
 export const SUBAGENT_REPORT_MAX_RETRIES = 3;
 
 /**
+ * Per-lane maximum size (chars) for any single free-text field in a typed
+ * sub-agent report (AC1, boundSubAgentReportContract). Bounds are declared
+ * per lane (C3) and confirmed by measurement of 2,791 real persisted reports
+ * (SC2 — no currently-conforming report is rejected). Observed maxima:
+ * researcher architecture_assessment 8,257; engineer context_update 2,627;
+ * reviewer verification.evidence 2,238. Bounds grant 45-80% headroom.
+ *
+ * Enforced via superRefine (not per-field .max()) because heavy fields are
+ * shared across lanes via sub-schemas (SubagentDecisionSchema,
+ * SubagentSourceReferenceSchema, ReviewerFindingSchema), so per-field .max()
+ * cannot express different bounds per lane. The walker checks every string
+ * field against the lane max and names the offending field path in the
+ * rejection (AC1 "naming the offending fields").
+ */
+export const RESEARCHER_FIELD_MAX = 12_000;
+export const ENGINEER_FIELD_MAX = 4_000;
+export const REVIEWER_FIELD_MAX = 4_000;
+export const DESIGNER_FIELD_MAX = 4_000;
+
+/**
+ * Build a superRefine that rejects any report whose free-text fields exceed
+ * the lane max. Recursively walks the report value, checking each string
+ * field. Returns the bound function for `.superRefine(...)` chaining.
+ */
+const laneFieldBoundsRefine =
+  (max: number, lane: string) =>
+  (report: unknown, ctx: z.RefinementCtx): void => {
+    const walk = (value: unknown, path: (string | number)[]): void => {
+      if (typeof value === "string") {
+        if (value.length > max) {
+          ctx.addIssue({
+            code: "custom",
+            path,
+            message: `${lane} field "${path.join(".")}" exceeds ${max}-char lane size bound (${value.length} chars)`,
+          });
+        }
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((v, i) => walk(v, [...path, i]));
+        return;
+      }
+      if (value && typeof value === "object") {
+        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+          walk(v, path.length > 0 ? [...path, k] : [k]);
+        }
+      }
+    };
+    walk(report, []);
+  };
+
+/**
  * Recovery audit shape persisted on sub-agent reports when a poisoned or
  * completed-workflow recovery write lands on the disk projection via
  * saveRecoveredSubagentReport. Mirrors GateRecoveryAuditSchema with the
@@ -353,7 +405,8 @@ export const EngineerSubagentReportSchema =
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   })
     .strict()
-    .superRefine(requireTypedRunIds);
+    .superRefine(requireTypedRunIds)
+    .superRefine(laneFieldBoundsRefine(ENGINEER_FIELD_MAX, "adv-engineer"));
 
 export const DesignerDesignDimensionSchema = z.enum(["pass", "concern", "n/a"]);
 
@@ -428,7 +481,8 @@ export const DesignerSubagentReportSchema =
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   })
     .strict()
-    .superRefine(requireTypedRunIds);
+    .superRefine(requireTypedRunIds)
+    .superRefine(laneFieldBoundsRefine(DESIGNER_FIELD_MAX, "adv-designer"));
 
 export const ReviewerFindingSchema = z
   .object({
@@ -487,7 +541,9 @@ const ReviewerReportFields = {
 };
 
 export const ReviewerSubagentReportSchema =
-  TaskScopedBaseSubagentReportSchema.extend(ReviewerReportFields).strict();
+  TaskScopedBaseSubagentReportSchema.extend(ReviewerReportFields)
+    .strict()
+    .superRefine(laneFieldBoundsRefine(REVIEWER_FIELD_MAX, "adv-reviewer"));
 
 /**
  * Change-scoped reviewer report for independent acceptance/release summaries.
@@ -495,7 +551,9 @@ export const ReviewerSubagentReportSchema =
  * shape; this variant uses `review:acceptance` or `harden:release` scope keys.
  */
 export const ChangeScopedReviewerSubagentReportSchema =
-  ChangeScopedBaseSubagentReportSchema.extend(ReviewerReportFields).strict();
+  ChangeScopedBaseSubagentReportSchema.extend(ReviewerReportFields)
+    .strict()
+    .superRefine(laneFieldBoundsRefine(REVIEWER_FIELD_MAX, "adv-reviewer"));
 
 export const SubagentSourceReferenceSchema = z
   .object({
@@ -616,7 +674,8 @@ export const ResearcherSubagentReportSchema =
             "design validation requires applicable architecture judgement",
         });
       }
-    });
+    })
+    .superRefine(laneFieldBoundsRefine(RESEARCHER_FIELD_MAX, "adv-researcher"));
 
 // =============================================================================
 // Tron Optimization Candidates (opt-scan integration)
