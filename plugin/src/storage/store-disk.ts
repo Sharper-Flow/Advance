@@ -287,7 +287,7 @@ export async function createDiskStore(
           } satisfies NonNullable<ProjectConfig["features"]>,
         });
       }
-      // rq-migrationMarkerSingleOwner01: artifact-metadata convergence is
+      // rq-storeReconcileUnboundedProof01.3: artifact-metadata convergence is
       // owned by the reconciler (reconcile-action-artifact-metadata), not by
       // store initialization. init() must not scan projections, rewrite
       // artifact sources, or gate on the migration marker. Running a

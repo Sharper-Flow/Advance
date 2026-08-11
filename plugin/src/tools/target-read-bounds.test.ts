@@ -127,7 +127,7 @@ describe("target-path read bounds", () => {
     );
     expect(showOutput.id).toBe("change-0000");
 
-    // rq-migrationMarkerSingleOwner01: explicit init() must not write the
+    // rq-storeReconcileUnboundedProof01.3: explicit init() must not write the
     // artifact-metadata completion marker; convergence is reconciler-owned.
     await targetStoreRef.current.init();
     await expect(

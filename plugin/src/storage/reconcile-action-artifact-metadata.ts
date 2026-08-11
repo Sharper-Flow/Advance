@@ -14,7 +14,7 @@
  * different action (retired evidence enums, owned by the schema-drift action)
  * is recorded as a documented, whitelisted benign residual and does not block
  * the completion marker — the allowance already granted by
- * `rq-storeReconcileUnboundedProof01`. Every other read or validation failure
+ * `rq-storeReconcileUnboundedProof01.4`. Every other read or validation failure
  * still fails closed. The write path keeps whole-document validation, which is
  * why a record carrying both residue classes converges over two runs.
  */

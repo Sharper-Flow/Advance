@@ -46,6 +46,8 @@ export const DEFAULT_LOCK_BUDGET_MS = 15_000;
 /**
  * Derives the wait budget for a file-lock acquisition.
  *
+ * Single derivation point for `rq-toolBudgetNesting01`.
+ *
  * Inside a host-tool invocation the budget is derived from what remains of the
  * outer budget, minus the response reserve, so the inner wait can never exceed
  * the outer budget (AC5). Outside one — CLI, plugin startup — no outer deadline

@@ -373,7 +373,7 @@ describe("store-disk — bundle-dominant terminal self-heal (rq-terminalProjecti
 });
 
 describe("store-disk — init does not run artifact-metadata migration", () => {
-  // rq-migrationMarkerSingleOwner01: store initialization must not scan
+  // rq-storeReconcileUnboundedProof01.3: store initialization must not scan
   // projections or write the artifact-metadata completion marker. Convergence
   // is owned by the reconciler (reconcile-action-artifact-metadata), not init.
   test("init() leaves legacy temporal artifact sources untouched and writes no marker", async () => {
