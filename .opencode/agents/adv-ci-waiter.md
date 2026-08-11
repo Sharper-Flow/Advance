@@ -2,6 +2,19 @@
 description: Poll GitHub CI for a PR, SHA, or oc-ci-wait watch until terminal status. Use when user asks to wait for CI or an ADV release/archive workflow needs terminal CI/PR status.
 mode: subagent
 permission:
+  skill:
+    "cloudflare*": "deny"
+    "agents-sdk": "deny"
+    "sandbox-sdk": "deny"
+    "wrangler": "deny"
+    "durable-objects": "deny"
+    "cloudflare-email-service": "deny"
+    "turnstile-spin": "deny"
+    "web-perf": "deny"
+    "workers-best-practices": "deny"
+    "cloudflare-one*": "deny"
+    "cloudflare-one-migrations": "deny"
+    "firecrawl": "deny"
   edit: deny
   morph_edit: deny
   task: deny

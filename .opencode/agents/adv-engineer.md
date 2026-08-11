@@ -56,6 +56,20 @@ tools:
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   # <<< ADV-GENERATED adv_* tools <<<
   task: false
+permission:
+  skill:
+    "cloudflare*": "deny"
+    "agents-sdk": "deny"
+    "sandbox-sdk": "deny"
+    "wrangler": "deny"
+    "durable-objects": "deny"
+    "cloudflare-email-service": "deny"
+    "turnstile-spin": "deny"
+    "web-perf": "deny"
+    "workers-best-practices": "deny"
+    "cloudflare-one*": "deny"
+    "cloudflare-one-migrations": "deny"
+    "firecrawl": "deny"
 ---
 > **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.
 

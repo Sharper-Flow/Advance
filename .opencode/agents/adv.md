@@ -75,6 +75,19 @@ tools:
   firecrawl_*: true
   webfetch: true
 permission:
+  skill:
+    "cloudflare*": "deny"
+    "agents-sdk": "deny"
+    "sandbox-sdk": "deny"
+    "wrangler": "deny"
+    "durable-objects": "deny"
+    "cloudflare-email-service": "deny"
+    "turnstile-spin": "deny"
+    "web-perf": "deny"
+    "workers-best-practices": "deny"
+    "cloudflare-one*": "deny"
+    "cloudflare-one-migrations": "deny"
+    "firecrawl": "deny"
   # adv-tron is command-only (/adv-tron). A `task` deny removes the subagent
   # from the Task tool description entirely, so no orchestrator can spawn it.
   # Must live here: agent-file frontmatter overrides opencode.json agent
