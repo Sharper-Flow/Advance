@@ -111,6 +111,25 @@ export const ReconcileReceiptSchema = z.object({
 
 export type ReconcileReceipt = z.infer<typeof ReconcileReceiptSchema>;
 
+/**
+ * Announcement that the store cannot converge in a single run.
+ *
+ * `PRIMARY_PRECEDENCE` assigns exactly one repair class per record, and
+ * `schema_drift_retired_enum` outranks `unmigrated_artifact_metadata`. A record
+ * carrying both therefore gets only its retired-enum repair in this run; its
+ * artifact metadata can only be migrated once the projection validates as a
+ * whole document, which happens after that repair lands. Without this
+ * announcement an operator seeing leftover artifact-metadata residue would
+ * reasonably conclude the run failed.
+ */
+export const ReconcileFollowUpRunsSchema = z.object({
+  reason: z.literal("dual_residue_requires_second_run"),
+  message: z.string().min(1),
+  record_ids: z.array(z.string()).min(1),
+});
+
+export type ReconcileFollowUpRuns = z.infer<typeof ReconcileFollowUpRunsSchema>;
+
 export const ReconcileRunReportSchema = z.object({
   schema_version: z.literal(1),
   run_id: z.string(),
@@ -127,6 +146,7 @@ export const ReconcileRunReportSchema = z.object({
   residuals: z.array(z.string()),
   proof: z.record(z.string(), z.unknown()).optional(),
   continuation_cursor: z.string().min(1).optional(),
+  follow_up_runs_required: ReconcileFollowUpRunsSchema.optional(),
 });
 
 export type ReconcileRunReport = z.infer<typeof ReconcileRunReportSchema>;
@@ -165,6 +185,37 @@ function hashPlan(value: Omit<ReconcilePlan, "plan_hash">): string {
   return createHash("sha256")
     .update(JSON.stringify(canonicalize(value)))
     .digest("hex");
+}
+
+/**
+ * Detects records whose residue spans both the retired-enum repair and the
+ * artifact-metadata migration, which cannot converge in one run.
+ *
+ * Pure: derived from the scan alone, so plan, dry-run, and apply all report the
+ * same answer. Returns `undefined` when a single run suffices.
+ */
+export function detectFollowUpRuns(
+  scan: StoreResidueScan,
+): ReconcileFollowUpRuns | undefined {
+  const affected = scan.records
+    .filter((record) => {
+      const classes = new Set<ResidueClass>([
+        record.class,
+        ...record.also_matches,
+      ]);
+      return (
+        classes.has("schema_drift_retired_enum") &&
+        classes.has("unmigrated_artifact_metadata")
+      );
+    })
+    .map((record) => record.record_id);
+
+  if (affected.length === 0) return undefined;
+  return {
+    reason: "dual_residue_requires_second_run",
+    message: `${affected.length} record(s) carry both retired-evidence and artifact-metadata residue. This run repairs the retired evidence only; run plan and apply a second time to migrate their artifact metadata.`,
+    record_ids: affected,
+  };
 }
 
 export function buildReconcilePlan(scan: StoreResidueScan): ReconcilePlan {

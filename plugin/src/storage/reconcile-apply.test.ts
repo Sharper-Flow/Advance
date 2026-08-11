@@ -392,6 +392,50 @@ describe("reconcile apply", () => {
     }
   });
 
+  test("AC4: the run report announces that a second run is required", async () => {
+    const data = await fixture();
+    try {
+      const scan = scanFor([
+        {
+          record_id: "dual-residue",
+          source_path: "/fixture/dual-residue",
+          class: "schema_drift_retired_enum" as const,
+          also_matches: ["unmigrated_artifact_metadata" as const],
+          evidence: ["fixture"],
+        },
+      ]);
+      const plan = buildReconcilePlan(scan);
+      const report = await runReconcileApply({
+        storePaths: data.paths,
+        plan,
+        planHash: plan.plan_hash,
+        confirmPlanHash: plan.plan_hash,
+        mode: "apply",
+        deps: {
+          scan: async () => scan,
+          actionExecutors: {
+            normalize_enum_mapping: async (): Promise<ActionOutcome> => ({
+              status: "skipped",
+            }),
+            quarantine_record: async (): Promise<ActionOutcome> => ({
+              status: "skipped",
+            }),
+          },
+        },
+      });
+
+      expect(report.follow_up_runs_required).toBeDefined();
+      expect(report.follow_up_runs_required?.reason).toBe(
+        "dual_residue_requires_second_run",
+      );
+      expect(report.follow_up_runs_required?.record_ids).toEqual([
+        "dual-residue",
+      ]);
+    } finally {
+      await data.cleanup();
+    }
+  });
+
   test("corrupt migration input aborts before mutation", async () => {
     const data = await fixture();
     try {

@@ -55,6 +55,7 @@ import {
   type ReconcilePlanRecord,
   type ReconcileReceipt,
   type ReconcileRunReport,
+  detectFollowUpRuns,
   type StoreResidueScan,
 } from "./reconcile-plan";
 import {
@@ -416,6 +417,9 @@ export async function runReconcileApply({
     );
   }
   const verifiedPlan = freshPlan(scan);
+  // Derived from the same verified scan the plan is, so every report of this
+  // run agrees on whether a second run is required.
+  const followUpRuns = detectFollowUpRuns(scan);
   if (verifiedPlan.plan_hash !== confirmPlanHash) {
     throw new ReconcileRefusalError(
       "stale_plan",
@@ -504,6 +508,7 @@ export async function runReconcileApply({
         counters: { mutated, skipped, failed },
         residuals: [failure.error ?? "before proof scan failed"],
         proof: failure,
+        ...(followUpRuns && { follow_up_runs_required: followUpRuns }),
       };
       await writeReconcileRunReport(currentRunDir, report);
       return report;
@@ -696,6 +701,7 @@ export async function runReconcileApply({
           `bounded reconcile scan exceeded its budget after ${continuationCursor}`,
         ],
         continuation_cursor: continuationCursor,
+        ...(followUpRuns && { follow_up_runs_required: followUpRuns }),
       };
       await writeReconcileRunReport(currentRunDir, report);
       throw new ReconcileRefusalError(
@@ -731,6 +737,7 @@ export async function runReconcileApply({
         ...(completionProof.error ? [completionProof.error] : []),
       ],
       proof: completionProof,
+      ...(followUpRuns && { follow_up_runs_required: followUpRuns }),
     };
     await writeReconcileRunReport(currentRunDir, report);
     return report;

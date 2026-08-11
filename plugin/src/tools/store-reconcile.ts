@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   buildReconcilePlan,
+  detectFollowUpRuns,
   type ReconcilePlan,
 } from "../storage/reconcile-plan";
 import {
@@ -108,6 +109,7 @@ export const storeReconcileTools = {
         const plan = buildReconcilePlan(scan);
 
         if (!mutation) {
+          const followUpRuns = detectFollowUpRuns(scan);
           return formatToolOutput(
             {
               ok: true,
@@ -117,6 +119,7 @@ export const storeReconcileTools = {
               plan,
               plan_hash: plan.plan_hash,
               zero_mutations: true,
+              ...(followUpRuns && { follow_up_runs_required: followUpRuns }),
             },
             { tool: "adv_store_reconcile" },
           );

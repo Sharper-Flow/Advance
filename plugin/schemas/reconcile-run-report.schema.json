@@ -41,6 +41,31 @@
         }
       ]
     },
+    "follow_up_runs_required": {
+      "properties": {
+        "message": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason": {
+          "const": "dual_residue_requires_second_run",
+          "type": "string"
+        },
+        "record_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "reason",
+        "message",
+        "record_ids"
+      ],
+      "type": "object"
+    },
     "interrupted": {
       "type": "boolean"
     },

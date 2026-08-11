@@ -2,7 +2,9 @@ import { describe, expect, test } from "vitest";
 
 import {
   buildReconcilePlan,
+  detectFollowUpRuns,
   ReconcileActionSchema,
+  ReconcileFollowUpRunsSchema,
   ReconcilePlanSchema,
   type StoreResidueScan,
 } from "./reconcile-plan";
@@ -138,5 +140,53 @@ describe("buildReconcilePlan", () => {
   test("does not perform filesystem work", () => {
     const plan = buildReconcilePlan(scan([base("healthy", "healthy")]));
     expect(plan.plan_hash).toMatch(/^[a-f0-9]{64}$/);
+  });
+});
+
+describe("detectFollowUpRuns", () => {
+  const dualResidue = (record_id: string) => ({
+    ...base("schema_drift_retired_enum", record_id),
+    also_matches: ["unmigrated_artifact_metadata" as const],
+  });
+
+  test("announces a second run for records carrying both residue classes", () => {
+    const result = detectFollowUpRuns(
+      scan([
+        base("summary_pointer_missing", "unrelated"),
+        dualResidue("dual-one"),
+        dualResidue("dual-two"),
+      ]),
+    );
+
+    expect(result).toBeDefined();
+    expect(ReconcileFollowUpRunsSchema.safeParse(result).success).toBe(true);
+    expect(result?.reason).toBe("dual_residue_requires_second_run");
+    expect(result?.record_ids).toEqual(["dual-one", "dual-two"]);
+    expect(result?.message).toMatch(/second/i);
+  });
+
+  test("detects the overlap regardless of which class is primary", () => {
+    const result = detectFollowUpRuns(
+      scan([
+        {
+          ...base("unmigrated_artifact_metadata", "artifact-primary"),
+          also_matches: ["schema_drift_retired_enum" as const],
+        },
+      ]),
+    );
+
+    expect(result?.record_ids).toEqual(["artifact-primary"]);
+  });
+
+  test("stays silent when no record carries both residue classes", () => {
+    expect(
+      detectFollowUpRuns(
+        scan([
+          base("schema_drift_retired_enum", "schema-only"),
+          base("unmigrated_artifact_metadata", "artifact-only"),
+          base("healthy", "healthy"),
+        ]),
+      ),
+    ).toBeUndefined();
   });
 });
