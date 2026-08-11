@@ -16,7 +16,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -152,6 +152,28 @@ describe("compactToolPart — AC3/AC4 fallback durable sink (oversized protected
     expect(compactToolPart(part)).toBe(true);
     expect(part.state?.output).toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
   });
+
+  test("sink-write failure falls back to an honest full-drop marker", () => {
+    // A file cannot be used as a directory, so persistence returns null.
+    // The replacement must still be an explicit full drop rather than an
+    // exception or a retained oversized protected return.
+    process.env.ADV_FALLBACK_SINK_DIR = join(sinkDir, "not-a-directory");
+    const part = toolPart({
+      tool: "task",
+      output: oversized(THRESHOLD + 3000),
+    });
+    // Make the configured sink path a file by persisting it through the
+    // existing test helper's temporary directory.
+    const sinkPath = process.env.ADV_FALLBACK_SINK_DIR;
+    writeFileSync(sinkPath, "not a directory");
+
+    expect(compactToolPart(part)).toBe(true);
+    const out = part.output as string;
+    expect(out).toMatch(/\[ADV:OUTPUT_DROPPED\]/);
+    expect(out).not.toMatch(/\[ADV:FALLBACK_RESULT_PERSISTED\]/);
+    expect(out).not.toMatch(/first \d+ chars/i);
+    expect(out).not.toMatch(/last \d+ chars/i);
+  });
 });
 
 describe("compactToolPart — AC7 honest full-drop (oversized unprotected content)", () => {
@@ -245,6 +267,31 @@ describe("compactPromptMessages — AC5 recency skip", () => {
     expect(result.compactedToolOutputs).toBe(0);
     expect((messages[6].parts[0] as ToolPart).output).toBe(
       oversized(THRESHOLD + 5000),
+    );
+  });
+
+  test("blank-message splicing does not consume a recency-protected slot", () => {
+    const messages = [];
+    for (let i = 0; i < 7; i++) {
+      messages.push(
+        messageWithParts([
+          toolPart({ tool: "bash", output: oversized(THRESHOLD + 1000) }),
+        ]),
+      );
+    }
+    // This is the exact blank shape removed by the consumer transform.
+    messages.push({ info: { role: "assistant", finish: null }, parts: [] });
+
+    const result = compactPromptMessages(messages);
+
+    // Six non-blank messages remain protected; the seventh is compacted.
+    expect(result.droppedBlank).toBe(1);
+    expect(result.compactedToolOutputs).toBe(1);
+    expect((messages[0].parts[0] as ToolPart).output).toMatch(
+      /\[ADV:OUTPUT_DROPPED\]/,
+    );
+    expect((messages[1].parts[0] as ToolPart).output).toBe(
+      oversized(THRESHOLD + 1000),
     );
   });
 });
