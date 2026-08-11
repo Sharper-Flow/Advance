@@ -11,7 +11,8 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { readFileSync, readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
+import { homedir } from "os";
 import { join, resolve } from "path";
 import { COMMAND_MANIFEST } from "./manifest";
 
@@ -20,6 +21,40 @@ const PLUGIN_ROOT = resolve(__dirname, "../..");
 const COMMAND_DIR = join(PLUGIN_ROOT, ".opencode/command");
 const README_PATH = join(PLUGIN_ROOT, "README.md");
 const ADV_INSTRUCTIONS_PATH = join(PLUGIN_ROOT, "ADV_INSTRUCTIONS.md");
+const INSTRUCTION_DIR = join(homedir(), ".config/opencode/instructions");
+const AGENT_DIR = join(PLUGIN_ROOT, ".opencode/agents");
+
+function readOptionalSurface(path: string, label: string): string | null {
+  if (!existsSync(path)) {
+    console.warn(`Skipping ${label}: file not found at ${path}`);
+    return null;
+  }
+  return readFileSync(path, "utf8");
+}
+
+function listAgentMarkdownFiles(): string[] | null {
+  if (!existsSync(AGENT_DIR)) {
+    console.warn(
+      `Skipping agent dedup checks: directory not found at ${AGENT_DIR}`,
+    );
+    return null;
+  }
+  return readdirSync(AGENT_DIR)
+    .filter((file) => file.endsWith(".md"))
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function firstNonEmptyLineAfterTitle(content: string): string {
+  const lines = content.split(/\r?\n/);
+  const titleIndex = lines.findIndex((line) => /^#\s+/.test(line));
+  if (titleIndex < 0) return "";
+  return (
+    lines
+      .slice(titleIndex + 1)
+      .find((line) => line.trim() !== "")
+      ?.trim() ?? ""
+  );
+}
 
 function assertContainsAllSnippets(
   content: string,
@@ -358,5 +393,87 @@ describe("prose-load-reduction section structural caps (rq-proseReduction02)", (
     expect(match).not.toBeNull();
     const sectionLines = match![1].split("\n").length;
     expect(sectionLines).toBeLessThanOrEqual(80);
+  });
+});
+
+// =============================================================================
+// Load-class axis integrity (rq-loadClassAxis01)
+// =============================================================================
+
+const POINTER_EXPECTATIONS = [
+  { file: "rules.yaml", skill: "adv-rule-rationale" },
+  { file: "trunk-worktree-isolation.md", skill: "adv-runbook-git" },
+  { file: "git-freshness.md", skill: "adv-runbook-git" },
+  { file: "oc-ci-wait.md", skill: "adv-runbook-ci" },
+  { file: "oc-test-gate.md", skill: "adv-runbook-ci" },
+];
+
+const RUNBOOK_STUBS = [
+  "trunk-worktree-isolation.md",
+  "git-freshness.md",
+  "oc-ci-wait.md",
+  "oc-test-gate.md",
+];
+
+describe("load-class axis integrity (rq-loadClassAxis01)", () => {
+  test("demoted instruction stubs point to their skill bodies", () => {
+    for (const { file, skill } of POINTER_EXPECTATIONS) {
+      const content = readOptionalSurface(join(INSTRUCTION_DIR, file), file);
+      if (content === null) continue;
+      expect(content, `${file} must point to skill ${skill}`).toContain(skill);
+    }
+  });
+
+  test("runbook stubs retain eager routing triggers", () => {
+    for (const file of RUNBOOK_STUBS) {
+      const content = readOptionalSurface(join(INSTRUCTION_DIR, file), file);
+      if (content === null) continue;
+      expect(
+        firstNonEmptyLineAfterTitle(content),
+        `${file} must retain a routing directive after its title`,
+      ).toMatch(/^(Use|Run|Check)\b/);
+    }
+  });
+});
+
+describe("instruction and manifest cross-surface deduplication (AC4)", () => {
+  test("canonical guidance remains eager while agent manifests do not duplicate it", () => {
+    const agentFiles = listAgentMarkdownFiles();
+    if (agentFiles === null) return;
+
+    const duplicatedSections: string[] = [];
+    for (const file of agentFiles) {
+      const content = readFileSync(join(AGENT_DIR, file), "utf8");
+      for (const heading of [
+        "## Local Code Exploration Priority",
+        "## Editing Tool Priority",
+      ]) {
+        if (content.includes(heading))
+          duplicatedSections.push(`${file}: ${heading}`);
+      }
+    }
+
+    expect(
+      duplicatedSections,
+      "agent manifests must not duplicate always-on editing/exploration guidance",
+    ).toEqual([]);
+
+    const lgrepContent = readOptionalSurface(
+      join(INSTRUCTION_DIR, "lgrep-tools.md"),
+      "lgrep-tools.md",
+    );
+    if (lgrepContent !== null) {
+      expect(lgrepContent).toContain("Local Code Exploration");
+      expect(lgrepContent).toContain("lgrep");
+    }
+
+    const morphContent = readOptionalSurface(
+      join(INSTRUCTION_DIR, "morph-tools.md"),
+      "morph-tools.md",
+    );
+    if (morphContent !== null) {
+      expect(morphContent).toContain("Editing Tool Selection");
+      expect(morphContent).toContain("morph_edit");
+    }
   });
 });
