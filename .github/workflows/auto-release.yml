@@ -95,65 +95,34 @@ jobs:
           set -euo pipefail
           LAST_TAG="${{ steps.last_tag.outputs.tag }}"
 
-          FEAT_ENTRIES=""
-          FIX_ENTRIES=""
-          OTHER_ENTRIES=""
-
+          # Gather commits since last tag.
           COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"%s")
 
-          # Collect executive-summary highlights from archived ADV changes
-          HIGHLIGHTS=""
-          ARCHIVE_FILES=$(git diff --name-only "${LAST_TAG}..HEAD" -- '.adv/archive/*/executive-summary.md' 2>/dev/null || true)
-          if [ -n "$ARCHIVE_FILES" ]; then
-            while IFS= read -r archive_file; do
-              BUNDLE_NAME=$(dirname "$archive_file" | xargs basename)
-              CHANGE_TITLE=$(echo "$BUNDLE_NAME" | sed -E 's/^[0-9]+-//')
-              CONTENT=$(git show "HEAD:$archive_file" 2>/dev/null | head -20 || true)
-              if [ -n "$CONTENT" ]; then
-                HIGHLIGHTS="${HIGHLIGHTS}
-          - **${CHANGE_TITLE}**: $(echo "$CONTENT" | head -1 | sed 's/^#* *//')"
+          # Gather typed release-notes sidecars from archived ADV changes.
+          # Build a JSON array of envelopes; render_body (scripts/release-body.sh)
+          # handles per-envelope parsing, schema_version guard, headline fallback,
+          # category bucketing, chore(adv) commit filtering, and section ordering.
+          RN_FILES=$(git diff --name-only "${LAST_TAG}..HEAD" -- '.adv/archive/*/release-notes.json' 2>/dev/null || true)
+          RN_JSON="["
+          RN_SEP=""
+          if [ -n "$RN_FILES" ]; then
+            while IFS= read -r rn_file; do
+              if [ -z "$rn_file" ]; then continue; fi
+              CONTENT=$(git show "HEAD:$rn_file" 2>/dev/null || true)
+              if [ -z "$CONTENT" ]; then continue; fi
+              # Validate as JSON before appending; skip on parse failure.
+              if echo "$CONTENT" | jq -e . >/dev/null 2>&1; then
+                RN_JSON="${RN_JSON}${RN_SEP}${CONTENT}"
+                RN_SEP=","
               fi
-            done <<< "$ARCHIVE_FILES"
+            done <<< "$RN_FILES"
           fi
+          RN_JSON="${RN_JSON}]"
 
-          while IFS= read -r line; do
-            MSG=$(echo "$line" | sed -E 's/^[a-z]+(\(.+\))?:\s*//')
-            if echo "$line" | grep -qE '^feat(\(.+\))?:'; then
-              FEAT_ENTRIES="${FEAT_ENTRIES}
-          - ${MSG}"
-            elif echo "$line" | grep -qE '^fix(\(.+\))?:'; then
-              FIX_ENTRIES="${FIX_ENTRIES}
-          - ${MSG}"
-            elif echo "$line" | grep -qE '^(chore|ci|docs|refactor|test|perf|style|build)(\(.+\))?:'; then
-              SCOPE=$(echo "$line" | sed -E 's/^([a-z]+)(\((.+)\))?:.*/\3/' | head -1)
-              PREFIX=$(echo "$line" | sed -E 's/^([a-z]+)(\(.+\))?:.*/\1/')
-              if [ -n "$SCOPE" ] && [ "$SCOPE" != "$PREFIX" ]; then
-                OTHER_ENTRIES="${OTHER_ENTRIES}
-          - ${MSG} (${PREFIX}: ${SCOPE})"
-              else
-                OTHER_ENTRIES="${OTHER_ENTRIES}
-          - ${MSG} (${PREFIX})"
-              fi
-            fi
-          done <<< "$COMMITS"
-
-          BODY=""
-          [ -n "$FEAT_ENTRIES" ] && BODY="${BODY}
-          ### Added
-          ${FEAT_ENTRIES}
-          "
-          [ -n "$FIX_ENTRIES" ] && BODY="${BODY}
-          ### Fixed
-          ${FIX_ENTRIES}
-          "
-          [ -n "$OTHER_ENTRIES" ] && BODY="${BODY}
-          ### Changed
-          ${OTHER_ENTRIES}
-          "
-          [ -n "$HIGHLIGHTS" ] && BODY="${BODY}
-          ### Change Highlights
-          ${HIGHLIGHTS}
-          "
+          # Delegate body construction to the tested helper.
+          # See scripts/release-body.sh and scripts/test-release-body.sh.
+          source scripts/release-body.sh
+          BODY=$(render_body "$COMMITS" "$RN_JSON")
 
           {
             echo "body<<NOTES_EOF"
