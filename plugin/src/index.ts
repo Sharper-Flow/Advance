@@ -110,6 +110,23 @@ const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
 const MAX_PROMPT_DIFF_CHARS = 24_000;
 const PROMPT_EXCERPT_CHARS = 2_000;
 
+/**
+ * Number of most-recent non-blank messages protected from any content
+ * truncation (AC5 recency skip). Mirrors the host prune turn-protection
+ * discipline (~3 turns). See boundSubAgentReportContract KD2/DC1.
+ */
+const RECENCY_PROTECTED_MESSAGES = 6;
+
+/**
+ * Tool types whose outputs are sub-agent (task) or skill returns and must
+ * never be head/tail-sliced by the consumer transform (AC6 tool-type
+ * protection). Matches the host protected-tools discipline. See KD2/DC3.
+ */
+const PROTECTED_TOOL_TYPES = new Set(["task", "skill"]);
+
+const isProtectedToolType = (toolName: string): boolean =>
+  toolName.length > 0 && PROTECTED_TOOL_TYPES.has(toolName.toLowerCase());
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
@@ -138,7 +155,20 @@ const compactLargeText = (
   ].join("\n");
 };
 
-const compactToolPart = (part: unknown): boolean => {
+/**
+ * Honest full-drop marker for oversized unprotected tool output (AC7).
+ * Unlike `compactLargeText` (head/tail excerpt — retained for DIFF patches,
+ * which have no durable sink), this names what was removed without
+ * preserving a deceptive slice that reads as complete. Layer 2 (fallback
+ * durable sink) extends oversized Task/skill returns with a persisted-content
+ * path; this marker handles the genuinely-untyped, unpersisted case.
+ * See boundSubAgentReportContract KD1/DC4.
+ */
+const dropToolOutput = (source: string, text: string): string =>
+  `[ADV:OUTPUT_DROPPED] ${source} produced ${text.length} chars. ` +
+  `Full content removed from model prompt to keep the session resumable.`;
+
+export const compactToolPart = (part: unknown): boolean => {
   if (!isRecord(part) || part.type !== "tool") return false;
   const toolName =
     typeof part.tool === "string"
@@ -146,12 +176,18 @@ const compactToolPart = (part: unknown): boolean => {
       : typeof part.callID === "string"
         ? part.callID
         : "tool output";
+
+  // AC6: protect sub-agent (task) and skill returns from consumer-side
+  // truncation. These are bounded at the producer (Layer 3) and persisted
+  // when oversized (Layer 2); the consumer never head/tail-slices them.
+  if (isProtectedToolType(toolName)) return false;
+
   let compacted = false;
 
   if (isRecord(part.state) && typeof part.state.output === "string") {
     const output = part.state.output;
     if (output.length > MAX_PROMPT_TOOL_OUTPUT_CHARS) {
-      part.state.output = compactLargeText("TOOL_OUTPUT", toolName, output);
+      part.state.output = dropToolOutput(toolName, output);
       compacted = true;
     }
   }
@@ -159,7 +195,7 @@ const compactToolPart = (part: unknown): boolean => {
   if (typeof part.output === "string") {
     const output = part.output;
     if (output.length > MAX_PROMPT_TOOL_OUTPUT_CHARS) {
-      part.output = compactLargeText("TOOL_OUTPUT", toolName, output);
+      part.output = dropToolOutput(toolName, output);
       compacted = true;
     }
   }
@@ -193,7 +229,7 @@ const isBlankUnfinishedAssistantMessage = (message: {
   return message.info.finish == null;
 };
 
-const compactPromptMessages = (
+export const compactPromptMessages = (
   messages: Array<{ info?: unknown; parts?: unknown[] }>,
 ): {
   droppedBlank: number;
@@ -203,6 +239,7 @@ const compactPromptMessages = (
   let droppedBlank = 0;
   let compactedToolOutputs = 0;
   let compactedDiffs = 0;
+  let recentProtected = 0;
 
   for (let index = messages.length - 1; index >= 0; index--) {
     const message = messages[index];
@@ -210,6 +247,14 @@ const compactPromptMessages = (
     if (isBlankUnfinishedAssistantMessage(message)) {
       messages.splice(index, 1);
       droppedBlank++;
+      continue;
+    }
+
+    // AC5: protect the most recent N non-blank messages from any content
+    // truncation (matches host prune turn-protection). Counting non-blank
+    // messages from the end is robust to blank-message splicing above.
+    if (recentProtected < RECENCY_PROTECTED_MESSAGES) {
+      recentProtected++;
       continue;
     }
 
