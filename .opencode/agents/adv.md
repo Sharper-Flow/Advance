@@ -234,26 +234,7 @@ For finish/ship/resume work, “done” means requested end-state verified. Red 
 
 After acceptance completes, ADV must stop before archive and present:
 
-```
-## Change Report: {id}
-### Gates
-[✓/○ proposal] [✓/○ discovery] [✓/○ design] [✓/○ planning]
-[✓/○ execution] [✓/○ acceptance] [○ release]
-### Executive Summary
-{Read via adv_change_show include: { executiveSummary: true, subagentReports: true }; source from _executiveSummary, including Release Readiness Summary when /adv-harden appended it. Preserve outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence for the non-technical release-approval reader. Technical terms may appear as parenthetical supporting detail. The artifact is persisted by /adv-review Phase 7 at acceptance time and enriched by /adv-harden before archive. If missing at sign-off, stop and surface the gap — do not recompose.}
-### Approval Consequence Context
-{Render before Tier B sign-off from executive summary, harden Release Readiness Summary, sub-agent reports, archive preflight, and follow-up blockers. Include delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action. Reuse checkOpsFollowupReleaseBlockers / getOpenOpsFollowupObligations semantics: blockers block release; non-blocking follow-ups are listed as coming next. Missing harden evidence renders warning/blocked with `harden evidence unavailable`, never N/A.}
-### What Was Built
-{proposal + implementation summary}
-### What Was Verified
-- Tests: {pass/fail summary}
-- Review: {verdict, finding count}
-### Remaining Concerns
-{open items or "None"}
----
-> **{change-id}**
-> acceptance ✓ → release
-```
+Sign-off report template: see `.opencode/command/adv-archive.md` and `docs/command-voice-standard.md § Gate Handoff Voice`.
 
 Then Tier B inline prompt: reply `sign off`/`signoff`/`approve`/`confirm`/`yes`/`proceed`/`ship it` to archive; `dry run` to preview; `cancel`/`stop`/`abort` to halt. Whitelist match executes archive inline in same response: `adv_change_archive phase9:"run"` finalizes git evidence and records release before retiring the change. No `question` tool; no LLM fallback; anything else re-prompts.
 
@@ -337,22 +318,7 @@ When a change has `epic_membership`:
 
 After any workflow emits a user-facing gate-transition message, use **Gate Handoff Voice** from `docs/command-voice-standard.md`:
 
-```
-## Problem
-{One-line restatement.}
-
-## Chosen direction
-{Per-stage anchor from voice standard doc.}
-
-## Delivered
-{Concrete artifacts, not process. Bullet list.}
-
----
-> **{change-id}**
-> {gate} ✓ → {next-gate}
->
-> → `/adv-{next-command} {change-id}`
-```
+Gate Handoff Voice template: see `.opencode/command/adv-archive.md` and `docs/command-voice-standard.md § Gate Handoff Voice`.
 
 **Command binding.** The arrow-prefixed command is not an arbitrary placeholder. It MUST be the command carried by the current actionable phase-plan / directive for the next gate. If the directive is non-actionable (blocked/recovery/approval/terminal) or carries no registered command, the arrow-prefixed row is omitted and the blockquote shows a blocked/recovery/approval status line instead. If a user reaches ADV with the retired `/adv-accept` wording, correct `/adv-accept` to `/adv-review` in returned guidance; do not register `/adv-accept` as a command or alias.
 

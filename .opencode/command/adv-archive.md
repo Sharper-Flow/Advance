@@ -72,9 +72,55 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ---
 
+## Sign-Off Report Template
+
+Render this report after acceptance and before the Tier B approval prompt:
+
+```
+## Change Report: {id}
+### Gates
+[✓/○ proposal] [✓/○ discovery] [✓/○ design] [✓/○ planning]
+[✓/○ execution] [✓/○ acceptance] [○ release]
+### Executive Summary
+{Read via adv_change_show include: { executiveSummary: true, subagentReports: true }; source from _executiveSummary, including Release Readiness Summary when /adv-harden appended it. Preserve outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence for the non-technical release-approval reader. Technical terms may appear as parenthetical supporting detail. The artifact is persisted by /adv-review Phase 7 at acceptance time and enriched by /adv-harden before archive. If missing at sign-off, stop and surface the gap — do not recompose.}
+### Approval Consequence Context
+{Render before Tier B sign-off from executive summary, harden Release Readiness Summary, sub-agent reports, archive preflight, and follow-up blockers. Include delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action. Reuse checkOpsFollowupReleaseBlockers / getOpenOpsFollowupObligations semantics: blockers block release; non-blocking follow-ups are listed as coming next. Missing harden evidence renders warning/blocked with `harden evidence unavailable`, never N/A.}
+### What Was Built
+{proposal + implementation summary}
+### What Was Verified
+- Tests: {pass/fail summary}
+- Review: {verdict, finding count}
+### Remaining Concerns
+{open items or "None"}
+---
+> **{change-id}**
+> acceptance ✓ → release
+```
+
+## Gate Handoff Voice Template
+
+Use this rendering spine for user-facing gate-transition messages:
+
+```
+## Problem
+{One-line restatement.}
+
+## Chosen direction
+{Per-stage anchor from voice standard doc.}
+
+## Delivered
+{Concrete artifacts, not process. Bullet list.}
+
+---
+> **{change-id}**
+> {gate} ✓ → {next-gate}
+>
+> → `/adv-{next-command} {change-id}`
+```
+
 ## Phase 5: User Signoff (Inline — Tier B)
 
-Present change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes archive workflow inline in same response (no separate confirmation-echo turn).
+Present the **Sign-Off Report Template** above, followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes archive workflow inline in same response (no separate confirmation-echo turn).
 
 Before the Tier B prompt, render archive-time `Approval Consequence Context` from the current executive summary, harden `Release Readiness Summary`, `adv_change_show include:{subagentReports:true}`, archive preflight results, and follow-up blockers. Preserve the improved summary context at approval time: outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence remain visible before sign-off. Reuse the shared renderer/model contract (`buildApprovalConsequenceContext`) for all 8 categories. Use `checkOpsFollowupReleaseBlockers` and `getOpenOpsFollowupObligations` semantics for follow-up rows: blocking obligations block release; non-blocking obligations are shown as coming next / needs done after closure.
 
