@@ -9,12 +9,7 @@ import {
 } from "../__tests__/setup";
 import type { Store } from "../storage/store";
 
-const mockMigrateArtifactMetadataProjections = vi.hoisted(() => vi.fn());
 const targetStoreRef = vi.hoisted(() => ({ current: null as Store | null }));
-
-vi.mock("../storage/artifact-metadata-migration", () => ({
-  migrateArtifactMetadataProjections: mockMigrateArtifactMetadataProjections,
-}));
 
 vi.mock("./target-project", async () => {
   const actual =
@@ -103,7 +98,6 @@ describe("target-path read bounds", () => {
     currentStore = await createDiskStore(currentRoot);
     targetStoreRef.current = await createDiskStore(targetRoot);
 
-    expect(mockMigrateArtifactMetadataProjections).not.toHaveBeenCalled();
     await expect(
       access(
         join(targetRoot, ".adv", "artifact-metadata-migration-complete.json"),
@@ -132,9 +126,14 @@ describe("target-path read bounds", () => {
       ),
     );
     expect(showOutput.id).toBe("change-0000");
-    expect(mockMigrateArtifactMetadataProjections).not.toHaveBeenCalled();
 
+    // rq-migrationMarkerSingleOwner01: explicit init() must not write the
+    // artifact-metadata completion marker; convergence is reconciler-owned.
     await targetStoreRef.current.init();
-    expect(mockMigrateArtifactMetadataProjections).toHaveBeenCalledTimes(1);
+    await expect(
+      access(
+        join(targetRoot, ".adv", "artifact-metadata-migration-complete.json"),
+      ),
+    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

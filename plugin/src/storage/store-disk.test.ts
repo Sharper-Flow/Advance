@@ -371,3 +371,55 @@ describe("store-disk — bundle-dominant terminal self-heal (rq-terminalProjecti
     expect(result.error).toContain("Change not found");
   });
 });
+
+describe("store-disk — init does not run artifact-metadata migration", () => {
+  // rq-migrationMarkerSingleOwner01: store initialization must not scan
+  // projections or write the artifact-metadata completion marker. Convergence
+  // is owned by the reconciler (reconcile-action-artifact-metadata), not init.
+  test("init() leaves legacy temporal artifact sources untouched and writes no marker", async () => {
+    const dir = await makeTempProject();
+    // Seed a legacy projection with a temporal artifact source that the
+    // removed storage-owned migration would have rewritten + marked complete.
+    const changesDir = join(dir, ".adv", "changes");
+    await mkdir(join(changesDir, "legacy-change"), { recursive: true });
+    await writeFile(
+      join(changesDir, "legacy-change", "change.json"),
+      JSON.stringify({
+        id: "legacy-change",
+        title: "legacy-change",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        documents: { proposal: "legacy artifact content" },
+        artifacts: {
+          proposal: {
+            path: "/legacy/legacy-change/proposal.md",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+            source: "temporal",
+            readable: true,
+          },
+        },
+      }),
+    );
+
+    const store = await createDiskStore(dir);
+    await store.init();
+
+    // init() must not write the artifact-metadata completion marker.
+    await expect(
+      readFile(
+        join(dir, ".adv", "artifact-metadata-migration-complete.json"),
+        "utf-8",
+      ),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+    // And the legacy artifact source must remain unchanged.
+    const after = JSON.parse(
+      await readFile(
+        join(changesDir, "legacy-change", "change.json"),
+        "utf-8",
+      ),
+    );
+    expect(after.artifacts.proposal.source).toBe("temporal");
+  });
+});

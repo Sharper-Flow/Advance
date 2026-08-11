@@ -287,16 +287,14 @@ export async function createDiskStore(
           } satisfies NonNullable<ProjectConfig["features"]>,
         });
       }
-      // Repair pre-disk artifact metadata only on the authoritative
-      // initialization path. Snapshot reads must not scan or rewrite the
-      // target project's projections while constructing a read store.
-      const { migrateArtifactMetadataProjections } =
-        await import("./artifact-metadata-migration");
-      await migrateArtifactMetadataProjections(
-        paths.changes,
-        paths.archive,
-        paths.artifactMetadataMigrationMarker,
-      );
+      // rq-migrationMarkerSingleOwner01: artifact-metadata convergence is
+      // owned by the reconciler (reconcile-action-artifact-metadata), not by
+      // store initialization. init() must not scan projections, rewrite
+      // artifact sources, or gate on the migration marker. Running a
+      // project-wide one-time migration here charged an O(N) scan to every
+      // cross-project mutation's tool budget and latched permanently on
+      // foreign-owned residue (retired evidence values owned by the
+      // schema-drift action).
     },
     sync: async () => {
       // No-op — disk is the source of truth in this backend.
