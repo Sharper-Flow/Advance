@@ -48,13 +48,7 @@ const sorted = (names: Iterable<string>): string[] =>
 /**
  * Registered backlog-shell tools retained by the typed inventory.
  */
-const BACKLOG_SHELL_AND_STORE_TOOLS = [
-  "adv_backlog_add",
-  "adv_backlog_list",
-  "adv_backlog_show",
-  "adv_backlog_promote",
-  "adv_backlog_archive",
-] as const;
+const BACKLOG_SHELL_AND_STORE_TOOLS = [] as const;
 
 /**
  * Public tools whose addition is contracted to LATER changes after the
@@ -234,13 +228,9 @@ describe("public tool inventory — DDC3 argument parity", () => {
 });
 
 describe("public tool inventory — backlog-shell/store coverage", () => {
-  test.each(BACKLOG_SHELL_AND_STORE_TOOLS)(
-    "%s is on the canonical list and the warrant surface",
-    (name) => {
-      expect(ADV_TOOL_NAMES).toContain(name);
-      expect(getToolSurface().has(name)).toBe(true);
-    },
-  );
+  test("obsolete backlog tools are not registered", () => {
+    expect(BACKLOG_SHELL_AND_STORE_TOOLS).toEqual([]);
+  });
 });
 
 describe("public tool inventory — title parity (AC5)", () => {
@@ -267,7 +257,7 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // The current source surface contains 53 tools after the contracted
     // removals and dead-wrapper removals in this branch. Pin the observable
     // registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(53);
+    expect(ADV_TOOL_NAMES.length).toBe(35);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

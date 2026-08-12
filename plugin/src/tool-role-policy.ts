@@ -85,26 +85,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
   // task checkpoint/update/cancel, projection repair, cross-project trust
   // boundaries) stay distinct — no universal router (DONT1/DONT3).
-  adv_backlog_add: {
-    class: "orchestrator",
-    rationale: "Backlog item capture.",
-  },
-  adv_backlog_archive: {
-    class: "orchestrator",
-    rationale: "Soft-delete (archive) of a backlog item.",
-  },
-  adv_backlog_list: {
-    class: "orchestrator",
-    rationale: "Backlog read.",
-  },
-  adv_backlog_promote: {
-    class: "orchestrator",
-    rationale: "Promotion to change/Epic shell.",
-  },
-  adv_backlog_show: {
-    class: "orchestrator",
-    rationale: "Backlog read.",
-  },
   adv_change_archive: {
     class: "orchestrator",
     rationale: "Release-gate archive workflow.",
@@ -132,58 +112,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_change_update: {
     class: "orchestrator",
     rationale: "Change update.",
-  },
-  adv_contract_mint: {
-    class: "orchestrator",
-    rationale: "ChangeContract minting from approved agreement.",
-  },
-  adv_epic_add_shell: {
-    class: "orchestrator",
-    rationale: "Shell entry add.",
-  },
-  adv_epic_create: {
-    class: "orchestrator",
-    rationale: "Epic creation.",
-  },
-  adv_epic_link_change: {
-    class: "orchestrator",
-    rationale: "Link existing change.",
-  },
-  adv_epic_list: {
-    class: "orchestrator",
-    rationale: "Epic read.",
-  },
-  adv_epic_move_change: {
-    class: "orchestrator",
-    rationale: "Move change between Epics.",
-  },
-  adv_epic_promote_shell: {
-    class: "orchestrator",
-    rationale: "Shell promotion to change.",
-  },
-  adv_epic_reorder: {
-    class: "orchestrator",
-    rationale: "Advisory reorder.",
-  },
-  adv_epic_retire: {
-    class: "orchestrator",
-    rationale: "Terminal Epic retirement with evidence.",
-  },
-  adv_epic_show: {
-    class: "orchestrator",
-    rationale: "Epic read.",
-  },
-  adv_epic_unlink_change: {
-    class: "orchestrator",
-    rationale: "Unlink change entry.",
-  },
-  adv_epic_update: {
-    class: "orchestrator",
-    rationale: "Title/narrative update with optimistic concurrency.",
-  },
-  adv_followup_promote: {
-    class: "orchestrator",
-    rationale: "Ops follow-up promotion to child change.",
   },
   adv_gate_complete: {
     class: "orchestrator",

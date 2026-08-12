@@ -229,7 +229,6 @@ export interface ToolMetadataV1 {
 // =============================================================================
 
 export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
-  adv_followup_promote: "followup",
   adv_subagent_report_submit: "report",
   adv_run_test: "test",
   adv_spec: "spec",
@@ -277,12 +276,8 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_subagent_report_submit: "metadata",
 
   // Read surface
-  adv_backlog_list: "read",
-  adv_backlog_show: "read",
   adv_change_list: "read",
   adv_change_show: "read",
-  adv_epic_list: "read",
-  adv_epic_show: "read",
   adv_gate_status: "read",
   adv_project_context: "read",
   adv_reflection_list: "read",
@@ -298,12 +293,8 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_worktree_triage: "read",
 
   // Lifecycle transitions
-  adv_backlog_promote: "lifecycle",
   adv_change_archive: "lifecycle",
   adv_change_reenter: "lifecycle",
-  adv_epic_add_shell: "lifecycle",
-  adv_epic_promote_shell: "lifecycle",
-  adv_followup_promote: "lifecycle",
   adv_gate_complete: "lifecycle",
 
   // Bulk operations

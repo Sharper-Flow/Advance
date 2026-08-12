@@ -59,13 +59,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
       show: `Show spec${suffix(args, "capability")}`,
       search: `Search specs${suffix(args, "query")}`,
     }),
-  adv_backlog_add: (args) => write(`Add backlog item${suffix(args, "title")}`),
-  adv_backlog_list: () => read("List backlog"),
-  adv_backlog_show: (args) => read(`Show backlog item${suffix(args, "id")}`),
-  adv_backlog_promote: (args) =>
-    write(`Promote backlog item${suffix(args, "id")}`),
-  adv_backlog_archive: (args) =>
-    write(`Archive backlog item${suffix(args, "id")}`),
   adv_change_show: (args) => read(`Show change${suffix(args, "changeId")}`),
   adv_change_create: (args) => write(`Create change${suffix(args, "summary")}`),
   adv_change_update: (args) =>
@@ -77,30 +70,10 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Terminate change workflow${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
-  adv_epic_create: (args) => write(`Create Epic${suffix(args, "epic_id")}`),
-  adv_epic_show: (args) => read(`Show Epic${suffix(args, "epic_id")}`),
-  adv_epic_list: () => read("List Epics"),
-  adv_epic_update: (args) => write(`Update Epic${suffix(args, "epic_id")}`),
-  adv_epic_add_shell: (args) =>
-    write(`Add Epic shell${suffix(args, "epic_id")}`),
-  adv_epic_promote_shell: (args) =>
-    write(`Promote Epic shell${suffix(args, "epic_id")}`),
-  adv_epic_link_change: (args) =>
-    write(`Link Epic change${suffix(args, "epic_id")}`),
-  adv_epic_unlink_change: (args) =>
-    write(`Unlink Epic change${suffix(args, "epic_id")}`),
-  adv_epic_move_change: (args) =>
-    write(`Move Epic change${suffix(args, "change_id")}`),
-  adv_epic_reorder: (args) => write(`Reorder Epic${suffix(args, "epic_id")}`),
-  adv_epic_retire: (args) => write(`Retire Epic${suffix(args, "epic_id")}`),
-  adv_followup_promote: (args) =>
-    write(`Promote follow-up${suffix(args, "source_change_id")}`),
   adv_ops_run_upsert: (args) =>
     write(`Upsert ops run${suffix(args, "changeId", "runId")}`),
   adv_ops_run_evidence_add: (args) =>
     write(`Add ops run evidence${suffix(args, "changeId", "runId")}`),
-  adv_contract_mint: (args) =>
-    write(`Mint contract${suffix(args, "changeId")}`),
   adv_task_show: (args) => read(`Show task${suffix(args, "taskId")}`),
   adv_task_list: (args) => read(`List tasks${suffix(args, "changeId")}`),
   adv_task_update: (args) => write(`Update task${suffix(args, "taskId")}`),

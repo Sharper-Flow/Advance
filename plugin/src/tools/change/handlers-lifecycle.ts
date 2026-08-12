@@ -54,6 +54,18 @@ import {
 import { includeSnapshotSchema } from "../shared-args";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
 import { logger, formatD3Error } from "./helpers";
+import { epicTools } from "../epic";
+
+async function dispatchEpicTool(
+  name: string,
+  args: Record<string, unknown>,
+  store: Store,
+): Promise<string> {
+  const definition = epicTools[name as keyof typeof epicTools] as {
+    execute: (args: unknown, store: Store) => Promise<string>;
+  };
+  return definition.execute(args, store);
+}
 
 export const advChangeCreateHandler = async (
   {
@@ -84,6 +96,9 @@ export const advChangeCreateHandler = async (
     origin_source_artifact,
     forceRecreate,
     include,
+    kind = "change",
+    parent_epic_id,
+    shell,
   }: {
     summary: string;
     capability?: string;
@@ -112,11 +127,42 @@ export const advChangeCreateHandler = async (
     origin_source_artifact?: string;
     forceRecreate?: boolean;
     include?: { snapshot?: boolean };
+    kind?: "epic" | "change";
+    parent_epic_id?: string;
+    shell?: boolean;
   },
   store: Store,
   _maybeOverridePath?: string,
   providers: ChangeCreateProviders = {},
 ) => {
+  if (kind === "epic") {
+    return dispatchEpicTool(
+      "adv_epic_create",
+      {
+        epic_id: summary,
+        title: summary,
+        narrative: proposal ?? capability ?? summary,
+      },
+      store,
+    );
+  }
+  if (shell) {
+    if (!parent_epic_id) {
+      return formatToolOutput({
+        error: "parent_epic_id is required when shell is true",
+        code: "EPIC_PARENT_REQUIRED",
+      });
+    }
+    return dispatchEpicTool(
+      "adv_epic_add_shell",
+      {
+        epic_id: parent_epic_id,
+        title: summary,
+        success_hint: proposal ?? capability ?? summary,
+      },
+      store,
+    );
+  }
   if (isSyntheticValidationDraftSummary(summary)) {
     return formatToolOutput(buildSyntheticValidationDraftError(summary));
   }
@@ -432,6 +478,23 @@ export const advChangeCreateHandler = async (
       );
     }
   }
+  if (parent_epic_id) {
+    const created = await dispatchEpicTool(
+      "adv_epic_link_change",
+      {
+        epic_id: parent_epic_id,
+        change_id: result.changeId,
+        link_evidence: "change created with parent_epic_id",
+      },
+      store,
+    );
+    try {
+      const linked = JSON.parse(created) as Record<string, unknown>;
+      if (linked.success === false) return created;
+    } catch {
+      return created;
+    }
+  }
   return formatToolOutput(output);
 };
 export const advChangeUpdateHandler = async (
@@ -447,6 +510,9 @@ export const advChangeUpdateHandler = async (
     target_confirmed,
     confirmationEvidence,
     priorApprovalEvidence,
+    link_change,
+    unlink_change,
+    reorder_entries,
   }: {
     changeId: string;
     proposal?: string;
@@ -459,9 +525,60 @@ export const advChangeUpdateHandler = async (
     target_confirmed?: true;
     confirmationEvidence?: string;
     priorApprovalEvidence?: string;
+    link_change?: string;
+    unlink_change?: string;
+    reorder_entries?: string[];
   },
   store: Store,
 ) => {
+  if (link_change || unlink_change || reorder_entries) {
+    const existing = await store.changes.get(changeId);
+    if (existing.success && existing.data) {
+      return formatToolOutput({
+        error: `Change ${changeId} is not an Epic`,
+        code: "EPIC_REQUIRED",
+      });
+    }
+    const epic = await store.epics.get(changeId);
+    if (!epic.success || !epic.data) {
+      return formatToolOutput({
+        error: `Epic not found: ${changeId}`,
+        code: "EPIC_REQUIRED",
+      });
+    }
+    const evidence = priorApprovalEvidence ?? "change facade Epic operation";
+    if (link_change) {
+      return dispatchEpicTool(
+        "adv_epic_link_change",
+        {
+          epic_id: changeId,
+          change_id: link_change,
+          link_evidence: evidence,
+        },
+        store,
+      );
+    }
+    if (unlink_change) {
+      return dispatchEpicTool(
+        "adv_epic_unlink_change",
+        {
+          epic_id: changeId,
+          change_id: unlink_change,
+          unlink_evidence: evidence,
+        },
+        store,
+      );
+    }
+    return dispatchEpicTool(
+      "adv_epic_reorder",
+      {
+        epic_id: changeId,
+        entry_ids: reorder_entries,
+        expected_version: epic.data.version,
+      },
+      store,
+    );
+  }
   const runUpdate = async (
     activeStore: Store,
     projectContext?: TargetProjectOutputContext,
@@ -653,6 +770,22 @@ export const advChangeCloseHandler = async (
         changeId,
         hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
       });
+    }
+    const epic = activeStore.epics
+      ? await activeStore.epics.get(changeId)
+      : undefined;
+    if (epic?.success && epic.data) {
+      return dispatchEpicTool(
+        "adv_epic_retire",
+        {
+          epic_id: changeId,
+          expected_version: epic.data.version,
+          evidence: approvalEvidence,
+          retired_by: "agent",
+          dryRun,
+        },
+        activeStore,
+      );
     }
     if (dryRun) {
       return formatToolOutput({
@@ -931,6 +1064,9 @@ export const lifecycleChangeTools = {
         .describe(
           "Bypass duplicate detection when the existing active change's workflow is poisoned and a new change is required. Only allowed when the duplicate is poisoned.",
         ),
+      kind: z.enum(["epic", "change"]).default("change").optional(),
+      parent_epic_id: z.string().optional(),
+      shell: z.boolean().optional(),
       ...includeSnapshotSchema.shape,
     },
     execute: advChangeCreateHandler,
@@ -998,6 +1134,9 @@ export const lifecycleChangeTools = {
         .describe(
           "Optional prior user approval evidence for audit continuity when recovery follows a gate/acceptance approval.",
         ),
+      link_change: z.string().optional(),
+      unlink_change: z.string().optional(),
+      reorder_entries: z.array(z.string()).optional(),
     },
     execute: advChangeUpdateHandler,
   },

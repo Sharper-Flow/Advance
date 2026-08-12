@@ -68,6 +68,20 @@ import {
 } from "./helpers";
 import { CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS } from "./helpers";
 import { listPeerSessions } from "../session";
+import { epicTools } from "../epic";
+import { backlogShellTools } from "../backlog-shell";
+
+async function dispatchFacadeRead(
+  group: Record<string, unknown>,
+  name: string,
+  args: unknown,
+  store: Store,
+): Promise<string> {
+  const definition = group[name] as {
+    execute: (args: unknown, store: Store) => Promise<string>;
+  };
+  return definition.execute(args, store);
+}
 
 export const advChangeShowHandler = async (
   {
@@ -106,6 +120,7 @@ export const advChangeShowHandler = async (
       briefingPacket?: boolean;
       briefingPacketLane?: BriefingPacketLane;
       briefingPacketRequest?: string;
+      entries?: boolean;
     };
     outputMode?: "compact" | "pretty";
     validate?: boolean;
@@ -114,6 +129,15 @@ export const advChangeShowHandler = async (
   },
   store: Store,
 ) => {
+  const epic = store.epics ? await store.epics.get(changeId) : undefined;
+  if (epic?.success && epic.data) {
+    return dispatchFacadeRead(
+      epicTools as Record<string, unknown>,
+      "adv_epic_show",
+      { epic_id: changeId, view: include?.entries ? "full" : "compact" },
+      store,
+    );
+  }
   const requestedKinds: ArtifactKind[] = [];
   if (include?.proposal) requestedKinds.push("proposal");
   if (include?.problemStatement) requestedKinds.push("problemStatement");
@@ -583,6 +607,7 @@ export const advChangeListHandler = async (
     offset,
     target_path,
     scope = "repo",
+    filter,
   }: {
     status?: string;
     includeArchived?: boolean;
@@ -592,9 +617,26 @@ export const advChangeListHandler = async (
     offset?: number;
     target_path?: string;
     scope?: "repo" | "product";
+    filter?: { kind?: "epic" | "change"; status?: string };
   },
   store: Store,
 ) => {
+  if (filter?.kind === "epic") {
+    return dispatchFacadeRead(
+      epicTools as Record<string, unknown>,
+      "adv_epic_list",
+      { status: filter.status === "backlog" ? "active" : filter.status },
+      store,
+    );
+  }
+  if (filter?.status === "backlog") {
+    return dispatchFacadeRead(
+      backlogShellTools as Record<string, unknown>,
+      "adv_backlog_list",
+      {},
+      store,
+    );
+  }
   // Reject "active"/"pending" at the boundary — they are never stored on
   // changes and would silently return an empty list. The Zod schema also
   // rejects them at parse time; this check is defense-in-depth for direct
@@ -984,6 +1026,10 @@ export const queryChangeTools = {
             .describe(
               "Optional request context included in the generated packet metadata.",
             ),
+          entries: z
+            .boolean()
+            .optional()
+            .describe("Include Epic child entries when changeId is an Epic."),
         })
         .optional()
         .describe(
@@ -1054,6 +1100,13 @@ export const queryChangeTools = {
         .describe(
           "Product-linked visibility scope. `repo` (default) shows changes scoped to the current repo; `product` shows all product changes.",
         ),
+      filter: z
+        .object({
+          kind: z.enum(["epic", "change"]).optional(),
+          status: z.string().optional(),
+        })
+        .optional()
+        .describe("Facade filter for Epic or backlog reads."),
     },
     execute: advChangeListHandler,
   },

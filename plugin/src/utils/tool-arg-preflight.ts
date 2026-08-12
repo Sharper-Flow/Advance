@@ -109,15 +109,14 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     entry_id: { blank: "omit", sentinels: "omit" },
     epic_title: { blank: "omit", sentinels: "omit" },
     epic_order: { zero: "omit" },
+    kind: { blank: "omit" },
+    parent_epic_id: { blank: "omit" },
     // rq-toolPlaceholderPolicy01.5: strict-mode providers fill optional
     // .positive() int placeholders with 0. Normalize to omitted so cross-
     // field origin matrix and Zod .positive() never see the placeholder.
     origin_issue_number: { zero: "omit" },
   },
   adv_change_list: {
-    target_path: { blank: "omit" },
-  },
-  adv_change_show: {
     target_path: { blank: "omit" },
   },
   adv_change_update: {
@@ -138,6 +137,11 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // necessary to avoid strict-mode deadlock (rq-toolPlaceholderPolicy01.6).
     confirmationEvidence: { blank: "omit" },
     priorApprovalEvidence: { blank: "omit" },
+    link_change: { blank: "omit" },
+    unlink_change: { blank: "omit" },
+  },
+  adv_change_show: {
+    target_path: { blank: "omit" },
   },
   adv_change_archive: {
     worktreePath: { blank: "omit" },
@@ -235,12 +239,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // Optional archived-branch restriction; handler treats blank as unset.
     changeId: { blank: "omit" },
   },
-  adv_contract_mint: {
-    approvedAt: { blank: "omit" }, // optional ISO timestamp
-    priorApprovalEvidence: { blank: "omit" }, // optional audit context
-    target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
   adv_tool_catalog: {
     // Optional page limit: strict-mode providers fill optional positive ints
     // with 0; normalize to omitted so the handler default (50) applies.
@@ -287,100 +285,10 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     health_verification: { blank: "omit" },
     rollback_or_cleanup_disposition: { blank: "omit" },
   },
-  adv_epic_create: {
-    owner_project_id: { blank: "omit" },
-    owner_repo_id: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_show: {
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_list: {
-    // tk-6ff82311335f: optional .positive() page limit; strict-mode 0 → omit.
-    limit: { zero: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_update: {
-    title: { blank: "omit" },
-    narrative: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_add_shell: {
-    backlog_ref: { blank: "omit" },
-    title: { blank: "omit" },
-    success_hint: { blank: "omit" },
-    entry_id: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_promote_shell: {
-    change_id: { blank: "omit" },
-    promoted_by: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_link_change: {
-    title: { blank: "omit" },
-    entry_id: { blank: "omit" },
-    repo_id: { blank: "omit" },
-    linked_by: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_unlink_change: {
-    entry_id: { blank: "omit" },
-    change_id: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_move_change: {
-    from_entry_id: { blank: "omit" },
-    to_entry_id: { blank: "omit" },
-    repo_id: { blank: "omit" },
-    moved_by: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_reorder: {
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
-  adv_epic_retire: {
-    retired_by: { blank: "omit" },
-    epic_owner_target_path: { blank: "omit" },
-    epic_owner_target_confirmed: { blank: "omit" },
-    epic_owner_confirmationEvidence: { blank: "omit" },
-  },
   // tk-6ff82311335f: read-tool page-limit fields surfaced by the schema-backed
   // coverage guard. Each is an optional .positive() int; strict-mode providers
   // fill it with 0 instead of omitting. 0 means "no limit provided" for these
   // read tools, so normalize to omitted before Zod .positive() sees it.
-  adv_backlog_list: {
-    tail_limit: { zero: "omit" },
-  },
   adv_wisdom_list: {
     maxEntries: { zero: "omit" },
   },

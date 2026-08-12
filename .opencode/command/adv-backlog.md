@@ -49,11 +49,11 @@ Use typed tools only:
 
 | Purpose                       | Tool                |
 | ----------------------------- | ------------------- |
-| List active backlog items     | `adv_backlog_list`  |
-| Show one backlog item         | `adv_backlog_show`  |
-| Add a new item                | `adv_backlog_add`   |
-| Promote an item               | `adv_backlog_promote` |
-| Archive an item               | `adv_backlog_archive` |
+| List active backlog items     | `adv_change_list filter: {status: "backlog"}`  |
+| Show one backlog item         | `adv_change_show`  |
+| Add a new item                | `adv_change_create status: "backlog"`   |
+| Promote an item               | `adv_change_create` |
+| Archive an item               | `adv_change_close` |
 
 Rules:
 

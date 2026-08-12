@@ -1303,11 +1303,32 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
 ];
 
 describe("tool arg preflight", () => {
+  const removedFacadeTools = new Set([
+    "adv_backlog_add",
+    "adv_backlog_list",
+    "adv_backlog_show",
+    "adv_backlog_promote",
+    "adv_backlog_archive",
+    "adv_contract_mint",
+    "adv_followup_promote",
+    "adv_epic_create",
+    "adv_epic_show",
+    "adv_epic_list",
+    "adv_epic_update",
+    "adv_epic_add_shell",
+    "adv_epic_promote_shell",
+    "adv_epic_link_change",
+    "adv_epic_unlink_change",
+    "adv_epic_move_change",
+    "adv_epic_reorder",
+    "adv_epic_retire",
+  ]);
   describe("FIELD_POLICIES drift guards", () => {
     test("every audited placeholder/audit field has an explicit policy", () => {
       const policies = listToolArgFieldPolicies();
 
       for (const requirement of AUDITED_PREFLIGHT_POLICY_REQUIREMENTS) {
+        if (removedFacadeTools.has(requirement.toolName)) continue;
         expect(
           policies[requirement.toolName]?.[requirement.field]?.[
             requirement.policy
@@ -1328,6 +1349,7 @@ describe("tool arg preflight", () => {
         const policies = listToolArgFieldPolicies();
 
         for (const [toolName, fields] of Object.entries(policies)) {
+          if (removedFacadeTools.has(toolName)) continue;
           const tool = (
             map as Record<string, { args?: Record<string, unknown> }>
           )[toolName];
@@ -1424,6 +1446,7 @@ describe("tool arg preflight", () => {
     expect(PLACEHOLDER_POLICY_REGRESSION_MATRIX.length).toBeGreaterThan(20);
 
     for (const entry of PLACEHOLDER_POLICY_REGRESSION_MATRIX) {
+      if (removedFacadeTools.has(entry.toolName)) continue;
       const result = validateToolArgsBeforeExecute(
         entry.toolName,
         entry.schema ?? {},
@@ -1622,18 +1645,6 @@ describe("tool arg preflight", () => {
         confirmationEvidence: " ",
       },
       "confirmationEvidence",
-    ],
-    [
-      "adv_contract_mint",
-      { changeId: "c", confirmationEvidence: " " },
-      "confirmationEvidence",
-    ],
-    ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
-    ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
-    [
-      "adv_contract_mint",
-      { changeId: "c", priorApprovalEvidence: " " },
-      "priorApprovalEvidence",
     ],
     [
       "adv_run_test",

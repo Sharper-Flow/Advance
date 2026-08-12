@@ -71,9 +71,7 @@ import {
 
 import { specTools } from "./tools/spec";
 import { backlogTools, WIP_CALLER_TIMEOUT_MS } from "./tools/backlog";
-import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
-import { followupTools } from "./tools/followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractPublicTools } from "./tools/contract";
 import { verificationEvidenceTools } from "./tools/verification-evidence";
@@ -89,7 +87,6 @@ import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
 import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
 import { reflectionTools } from "./tools/reflection";
 import { advWorktreeTools } from "./tools/adv-worktree";
-import { epicTools } from "./tools/epic";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
 import { advInvokeTools } from "./tools/adv-invoke";
 type ToolExecute<TArgs> = (
@@ -422,9 +419,6 @@ export function createToolMap(
       ),
     ),
 
-    // Backlog Shell Tools
-    ...bindGroup(backlogShellTools, store),
-
     // Change Tools
     ...bindGroup(changeTools, store),
     // adv_change_archive — fixArchiveTerminalProjection SC3/AC4 +
@@ -469,12 +463,6 @@ export function createToolMap(
         ),
       ),
     ),
-
-    // Epic Tools
-    ...bindGroup(epicTools, store),
-
-    // Ops Follow-up Promotion Tool
-    ...bindGroup(followupTools, store),
 
     // Ops Evidence Append Tool
     ...bindGroup(opsEvidenceTools, store),
@@ -898,9 +886,7 @@ export const toolCatalogTools = {
 const PUBLIC_TOOL_GROUPS = [
   specTools,
   backlogTools,
-  backlogShellTools,
   changeTools,
-  followupTools,
   opsEvidenceTools,
   verificationEvidenceTools,
   taskTools,
@@ -915,7 +901,6 @@ const PUBLIC_TOOL_GROUPS = [
   reflectionTools,
   lightweightProfileTools,
   advWorktreeTools,
-  epicTools,
   toolCatalogTools,
   advInvokeTools,
 ] as const satisfies readonly PublicToolGroup[];
