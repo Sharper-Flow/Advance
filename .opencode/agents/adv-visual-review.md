@@ -26,12 +26,12 @@ tools:
   adv_*: false
   # ADV tools - read-only spec/change queries + own report submit
   adv_change_archive: true
+  adv_change_close: true
+  adv_change_create: true
+  adv_change_list: true
   adv_change_show: true
+  adv_change_update: true
   adv_gate_complete: true
-  adv_gate_status: true
-  adv_task_checkpoint: true
-  adv_task_list: true
-  adv_task_show: true
 
   # Disabled - Visual Review is read-only
   write: false
@@ -41,9 +41,14 @@ tools:
   task: false
 
   # Disabled - no ADV orchestration mutations beyond own optimized report submit
+  adv_gate_status: true
+  adv_run_test: true
+  adv_subagent_report_submit: true
+  adv_task_add: true
+  adv_task_checkpoint: true
+  adv_task_list: true
   adv_task_update: true
   adv_tool_catalog: true
-  adv_tool_describe: true
   adv_tool_invoke: true
   # <<< ADV-GENERATED adv_* tools <<<
 
@@ -55,7 +60,7 @@ tools:
   searchcode_*: false
   playwright_*: false
 ---
-> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via tools.adv.* Code Mode; invoke-only schemas are available through the invoke facade.
 
 You are `adv-visual-review`, a specialized image-analysis sub-agent for the ADV (Advance) spec-driven development system.
 

@@ -128,7 +128,6 @@ const REQUIRED_ALLOWED_TOOLS = [
   "playwright_*",
   // ADV reads
   "adv_change_show",
-  "adv_task_show",
   "adv_task_list",
   "adv_gate_status",
   // Evidence + wisdom emission
@@ -139,15 +138,11 @@ const REQUIRED_ALLOWED_TOOLS = [
 const REQUIRED_BLOCKED_TOOLS = [
   // Nested delegation
   "task",
-  // Tier 2/3 change mutations (Tier 1 adv_change_show/archive ARE granted)
-  "adv_change_create",
-  "adv_change_update",
+  // Invoke-only lifecycle tools remain blocked in this reviewer asset.
   "adv_change_reenter",
-  "adv_change_close",
   "adv_change_update_issues",
   "adv_change_validate",
-  // Tier 2/3 task mutations (Tier 1 adv_task_list/show/update/checkpoint ARE granted)
-  "adv_task_add",
+  // Tier 1 task mutations are directly granted.
   "adv_task_cancel",
   "adv_task_reclassify_tdd",
   // Worktree mutations

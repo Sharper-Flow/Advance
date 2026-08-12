@@ -5,7 +5,8 @@ import {
   ADV_TOOL_NAMES,
   collectPublicToolEntries,
   createDegradedToolMap,
-  createToolMap,
+  createFullToolMap,
+  DIRECT_TOOL_NAMES,
   getToolSurface,
 } from "./tool-registry";
 import { hasExplicitAdvToolTitle } from "./utils/tool-title";
@@ -143,7 +144,7 @@ describe("public tool inventory — DDC1 name-set parity", () => {
     const store = await createDiskStore(tempDir);
     await store.init();
     try {
-      const map = createToolMap(store, tempDir, store.paths.agenda);
+      const map = createFullToolMap(store, tempDir, store.paths.agenda);
       expect(sorted(Object.keys(map))).toEqual(sorted(ADV_TOOL_NAMES));
     } finally {
       store.close();
@@ -152,7 +153,7 @@ describe("public tool inventory — DDC1 name-set parity", () => {
 
   test("degraded createDegradedToolMap keys exactly equal derived inventory names", () => {
     const degraded = createDegradedToolMap(new Error("init failure"), "/tmp/x");
-    expect(sorted(Object.keys(degraded))).toEqual(sorted(ADV_TOOL_NAMES));
+    expect(sorted(Object.keys(degraded))).toEqual(sorted(DIRECT_TOOL_NAMES));
   });
 
   test("warrant-surface names exactly equal derived inventory names", () => {
@@ -211,10 +212,11 @@ describe("public tool inventory — DDC3 argument parity", () => {
     const store = await createDiskStore(tempDir);
     await store.init();
     try {
-      const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
-        string,
-        { args: Record<string, unknown> }
-      >;
+      const map = createFullToolMap(
+        store,
+        tempDir,
+        store.paths.agenda,
+      ) as Record<string, { args: Record<string, unknown> }>;
       const surface = getToolSurface();
       for (const name of ADV_TOOL_NAMES) {
         const bound = sorted(Object.keys(map[name]?.args ?? {}));

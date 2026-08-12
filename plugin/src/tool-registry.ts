@@ -368,7 +368,7 @@ function bindToolWithContext<TArgs>(
  * Uses bindTool for store-based tools. Special cases (type coercion, extra
  * args) use registerTool directly.
  */
-export function createToolMap(
+export function createFullToolMap(
   store: Store,
   directory: string,
   serverUrl?: URL,
@@ -758,15 +758,65 @@ export function createToolMap(
   };
 }
 
+/** Tools registered directly in the SDK-facing OpenCode surface (Tier 1). */
+export const DIRECT_TOOL_NAMES: readonly string[] = Object.freeze([
+  "adv_change_archive",
+  "adv_change_close",
+  "adv_change_create",
+  "adv_change_list",
+  "adv_change_show",
+  "adv_change_update",
+  "adv_gate_complete",
+  "adv_gate_status",
+  "adv_run_test",
+  "adv_subagent_report_submit",
+  "adv_task_add",
+  "adv_task_checkpoint",
+  "adv_task_list",
+  "adv_task_update",
+  "adv_tool_catalog",
+  "adv_tool_invoke",
+]);
+
+/** Build the reduced SDK-facing map; invoke-only tools stay in the full map. */
+export function createToolMap(
+  store: Store,
+  directory: string,
+  serverUrl?: URL,
+  client?: OpencodeClient,
+) {
+  const fullToolMap = createFullToolMap(
+    store,
+    directory,
+    serverUrl,
+    client,
+  ) as Record<string, ReturnType<typeof registerTool>>;
+  const direct = Object.fromEntries(
+    DIRECT_TOOL_NAMES.map((name) => [name, fullToolMap[name]]),
+  ) as Record<string, ReturnType<typeof registerTool>>;
+  // Keep invoke-only definitions available to in-process callers and tests
+  // without making them enumerable SDK registrations.
+  for (const [name, definition] of Object.entries(fullToolMap)) {
+    if (name in direct) continue;
+    Object.defineProperty(direct, name, {
+      value: definition,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    });
+  }
+  return direct;
+}
+
 /**
  * Typed inventory of retained public tool groups
  * (consolidateAdvToolSurface2 — SC1/SC2/AC5/C5, DDC1/DDC2/DDC3).
  *
  * This readonly, type-checked inventory is the single source of truth for the
- * public ADV tool surface. Canonical names (ADV_TOOL_NAMES) and the
+ * full canonical ADV tool surface. Canonical names (ADV_TOOL_NAMES) and the
  * warrant-visible argument surface (getToolSurface) are BOTH derived from it,
  * so discovery metadata can no longer drift from the exported `*Tools`
- * groups. `createToolMap` above uses `bindGroup` for group-granular
+ * groups. `createFullToolMap` above uses `bindGroup` for group-granular
  * registration — each group is explicitly named, preserving independent
  * authorship so parity tests (tool-registry.inventory.test.ts) catch a
  * forgotten group — while the 14 tools carrying non-default bind, timeout,
@@ -954,7 +1004,7 @@ export const ADV_TOOL_METADATA: Readonly<Record<string, ToolMetadataV1>> =
  * discover the real cause through any tool call rather than seeing the
  * tools silently disappear from the session.
  *
- * Keeps parity with createToolMap's tool names via ADV_TOOL_NAMES.
+ * Keeps parity with createFullToolMap's tool names via ADV_TOOL_NAMES.
  */
 export function createDegradedToolMap(
   initError: Error,
@@ -984,7 +1034,7 @@ export function createDegradedToolMap(
   const stubExecute = async (_args: unknown): Promise<string> => payload;
 
   const map: Record<string, ReturnType<typeof registerTool>> = {};
-  for (const name of ADV_TOOL_NAMES) {
+  for (const name of DIRECT_TOOL_NAMES) {
     map[name] = registerTool(
       `[ADV plugin init failed — ${name} stub] ${initError.message.slice(0, 160)} (readiness hint: when initialized, mutation tools may be gated by session readiness; set ADV_SESSION_READINESS_BYPASS=1 to skip)`,
       {} as ToolArgsSchema,

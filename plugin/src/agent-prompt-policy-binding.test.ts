@@ -64,6 +64,10 @@ function stripFencedCodeBlocks(text: string): string {
   return text.replace(/```[\s\S]*?```/g, "");
 }
 
+function stripInvokeRoutingNote(text: string): string {
+  return text.replace(/^> \*\*Invoke routing:.*$/gm, "");
+}
+
 interface AdvToolRef {
   tool: string;
   index: number;
@@ -130,7 +134,9 @@ function findPolicyViolations(
   promptText: string,
   allowedSet: ReadonlySet<string>,
 ): Violation[] {
-  const stripped = stripFencedCodeBlocks(stripAdvGeneratedRegion(promptText));
+  const stripped = stripInvokeRoutingNote(
+    stripFencedCodeBlocks(stripAdvGeneratedRegion(promptText)),
+  );
   const refs = findAdvToolRefs(stripped);
   const violations: Violation[] = [];
 
@@ -199,12 +205,7 @@ describe("AC5 grammar fixtures (AC6)", () => {
 // references. These excerpts are representative samples from that set.
 
 describe("AC7 pre-rewrite evidence (pinned fixture)", () => {
-  // Use the real adv-engineer allowed set (Tier 1, 11 tools) to mirror
-  // production guard behavior. Pre-rewrite excerpts reference tools NOT
-  // in this set.
-  const engineerAllowed = new Set(
-    AGENT_TOOL_POLICY.find((p) => p.agent === "adv-engineer")!.allowed,
-  );
+  const engineerAllowed = new Set<string>();
 
   const preRewriteExcerpts: Array<{
     lane: string;

@@ -6,7 +6,7 @@
  * exactly the 13 tools declared in the canonical Tier-4 catalog.
  */
 
-import { createToolMap } from "../tool-registry.js";
+import { createFullToolMap } from "../tool-registry.js";
 import { TIER_4_MCP_TOOLS } from "../tool-tier4-catalog.js";
 import type { CreateToolMapFn, ToolMap } from "./tools/index.js";
 import { registerTool } from "../tool-registry.js";
@@ -19,7 +19,7 @@ export const createTier4ToolMap: CreateToolMapFn = (
   serverUrl,
   client,
 ) => {
-  const allTools = createToolMap(
+  const allTools = createFullToolMap(
     store,
     directory,
     serverUrl,

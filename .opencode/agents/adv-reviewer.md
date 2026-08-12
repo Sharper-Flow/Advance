@@ -46,19 +46,24 @@ tools:
   adv_*: false
   # === ADV reads (narrow, read-only) ===
   adv_change_archive: true
+  adv_change_close: true
+  adv_change_create: true
+  adv_change_list: true
   adv_change_show: true
+  adv_change_update: true
   adv_gate_complete: true
   adv_gate_status: true
-  adv_task_checkpoint: true
-  adv_task_list: true
-  adv_task_show: true
-  adv_task_update: true
-  adv_tool_catalog: true
-  adv_tool_describe: true
-  adv_tool_invoke: true
+  adv_run_test: true
+  adv_subagent_report_submit: true
+  adv_task_add: true
   # === ADV evidence/wisdom (bounded emit) ===
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   task: false
+  adv_task_checkpoint: true
+  adv_task_list: true
+  adv_task_update: true
+  adv_tool_catalog: true
+  adv_tool_invoke: true
   # <<< ADV-GENERATED adv_* tools <<<
 permission:
   skill:
@@ -75,7 +80,7 @@ permission:
     "cloudflare-one-migrations": "deny"
     "firecrawl": "deny"
 ---
-> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via tools.adv.* Code Mode; invoke-only schemas are available through the invoke facade.
 
 You are the `adv-reviewer` agent. You are a delegated ADV analyst+remediator for `/adv-review` and `/adv-harden`. You inspect, find issues, apply scoped fixes within your locked objective, run verification, and submit a structured `REVIEWER_REPORT` to durable ADV state. The spawnable identifier is `adv-reviewer`; the `REVIEWER_REPORT.agent` field must use that exact string.
 

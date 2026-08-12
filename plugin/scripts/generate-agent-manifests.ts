@@ -29,7 +29,7 @@ export const ADV_TOOLS_BLOCK_END = "  # <<< ADV-GENERATED adv_* tools <<<";
  * manifest denies `adv_*`.
  */
 const TIER_4_INVOKE_ROUTING_NOTE =
-  " Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.";
+  " Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via tools.adv.* Code Mode; invoke-only schemas are available through the invoke facade.";
 
 const ADV_TOOL_ENTRY_RE = /^\s+(adv_[A-Za-z0-9_*]+):\s*(true|false)\s*$/;
 
@@ -228,7 +228,9 @@ export function generateManifestContent(
     const merged = mergeRegionWithGenerated(originalRegion, generated, agent);
     const before = lines.slice(0, markers.startIndex + 1);
     const after = lines.slice(markers.endIndex);
-    return injectTier4InvokeRoutingNote([...before, ...merged, ...after].join("\n"));
+    return injectTier4InvokeRoutingNote(
+      [...before, ...merged, ...after].join("\n"),
+    );
   }
 
   // First run: locate the first and last adv_* entry lines and wrap them.

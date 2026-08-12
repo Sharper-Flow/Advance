@@ -11,7 +11,9 @@ import { z } from "zod";
 import {
   ADV_TOOL_NAMES,
   createDegradedToolMap,
+  createFullToolMap,
   createToolMap,
+  DIRECT_TOOL_NAMES,
   registerTool,
 } from "./tool-registry";
 import {
@@ -74,7 +76,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     await store.init();
     try {
       const realToolNames = Object.keys(
-        createToolMap(store, tempDir, store.paths.agenda),
+        createFullToolMap(store, tempDir, store.paths.agenda),
       ).sort((a, b) => a.localeCompare(b));
       const stubToolNames = [...ADV_TOOL_NAMES].sort((a, b) =>
         a.localeCompare(b),
@@ -96,10 +98,10 @@ describe("createDegradedToolMap parity with createToolMap", () => {
 
   test("createDegradedToolMap registers a stub for every name in ADV_TOOL_NAMES", () => {
     const map = createDegradedToolMap(new Error("test init failure"), "/tmp/x");
-    for (const name of ADV_TOOL_NAMES) {
+    for (const name of DIRECT_TOOL_NAMES) {
       expect(map).toHaveProperty(name);
     }
-    expect(Object.keys(map).length).toBe(ADV_TOOL_NAMES.length);
+    expect(Object.keys(map).length).toBe(DIRECT_TOOL_NAMES.length);
   });
 
   test("degraded tool map stubs include an informational session-readiness hint (not a gate)", async () => {

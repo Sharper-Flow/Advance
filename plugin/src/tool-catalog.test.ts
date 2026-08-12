@@ -4,7 +4,7 @@ import {
   ADV_TOOL_METADATA,
   ADV_TOOL_NAMES,
   createDegradedToolMap,
-  createToolMap,
+  createFullToolMap,
   getToolSurface,
   renderToolInputSchema,
   toolCatalogTools,
@@ -219,7 +219,7 @@ describe("tool catalog registration parity", () => {
     const store = await createDiskStore(tempDir);
     await store.init();
     try {
-      const map = createToolMap(store, tempDir, store.paths.agenda);
+      const map = createFullToolMap(store, tempDir, store.paths.agenda);
       expect(map).toHaveProperty("adv_tool_catalog");
       expect(map).toHaveProperty("adv_tool_describe");
     } finally {
@@ -230,7 +230,7 @@ describe("tool catalog registration parity", () => {
   test("new tools are in the degraded tool map", () => {
     const map = createDegradedToolMap(new Error("test"), "/tmp/x");
     expect(map).toHaveProperty("adv_tool_catalog");
-    expect(map).toHaveProperty("adv_tool_describe");
+    expect(Object.keys(map)).not.toContain("adv_tool_describe");
   });
 
   test("new tools are on the warrant-visible surface", () => {

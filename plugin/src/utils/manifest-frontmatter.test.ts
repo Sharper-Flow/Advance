@@ -138,18 +138,23 @@ describe("assertPolicyMatch", () => {
 
   it("passes when grants match the declared policy", () => {
     // Build a doc that matches adv-verifier's policy exactly
-    // adv-verifier gets TIER_1_ALLOWLIST: 11 tools + adv_*: false
+    // adv-verifier gets the 16-tool Tier-1 allowlist + adv_*: false
     const tier1 = [
       "adv_change_archive",
+      "adv_change_close",
+      "adv_change_create",
+      "adv_change_list",
       "adv_change_show",
+      "adv_change_update",
       "adv_gate_complete",
       "adv_gate_status",
+      "adv_run_test",
+      "adv_subagent_report_submit",
+      "adv_task_add",
       "adv_task_checkpoint",
       "adv_task_list",
-      "adv_task_show",
       "adv_task_update",
       "adv_tool_catalog",
-      "adv_tool_describe",
       "adv_tool_invoke",
     ];
     const tools: Record<string, boolean> = { "adv_*": false };

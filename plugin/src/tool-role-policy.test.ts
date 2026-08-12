@@ -180,11 +180,7 @@ describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
     // the three Advance-owned facade tools. adv-ci-waiter is the only
     // exception: it is a bash-only CI poller with no ADV responsibility,
     // so it keeps an empty allowlist with the deny wildcard.
-    const FACADE_TOOLS = [
-      "adv_tool_catalog",
-      "adv_tool_describe",
-      "adv_tool_invoke",
-    ] as const;
+    const FACADE_TOOLS = ["adv_tool_catalog", "adv_tool_invoke"] as const;
     const EXPECTED_FACADE_HOLDER = new Set<string>(FACADE_TOOLS);
     for (const policy of AGENT_TOOL_POLICY) {
       if (policy.agent === "adv-ci-waiter") {
@@ -207,7 +203,7 @@ describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
     // Sanity: the expected facade set is exactly the three Advance-owned
     // facade tools (no more, no less). Updates here require a corresponding
     // AC / design update.
-    expect(EXPECTED_FACADE_HOLDER.size).toBe(3);
+    expect(EXPECTED_FACADE_HOLDER.size).toBe(2);
   });
 
   test("committed manifests equal generated output for every agent (AC2/AC3)", () => {
@@ -249,19 +245,23 @@ function parseMode(manifestContent: string): string | undefined {
 describe("tool role policy — runtime blockable set derivation (AC5)", () => {
   const EXPECTED_UNION_FLOOR = Object.freeze([
     // Tier 1 — always top-level for every spawnable sub-agent
-    // (slimMutationToolSurface). All other ADV tools are invoke-only
+    // (tierToolsReduceUpfrontSurface). All other ADV tools are invoke-only
     // (Tier 3), routed through adv_tool_invoke.
     "adv_change_archive",
+    "adv_change_close",
+    "adv_change_create",
+    "adv_change_list",
     "adv_change_show",
+    "adv_change_update",
     "adv_gate_complete",
     "adv_gate_status",
+    "adv_run_test",
+    "adv_subagent_report_submit",
+    "adv_task_add",
     "adv_task_checkpoint",
     "adv_task_list",
-    "adv_task_show",
     "adv_task_update",
-    // Facade tools: discovery + dispatch surface for Tier 3 tools.
     "adv_tool_catalog",
-    "adv_tool_describe",
     "adv_tool_invoke",
   ]);
 
@@ -283,7 +283,7 @@ describe("tool role policy — runtime blockable set derivation (AC5)", () => {
     for (const tool of OPERATOR_ONLY_TOOL_NAMES) {
       expect(blockable.has(tool)).toBe(true);
     }
-    expect(blockable.has("adv_change_create")).toBe(true);
+    expect(blockable.has("adv_change_create")).toBe(false);
     for (const tool of ADV_TOOL_NAMES.filter((name) =>
       name.startsWith("adv_epic_"),
     )) {

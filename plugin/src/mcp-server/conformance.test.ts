@@ -79,13 +79,13 @@ describe("DDC5 — conformance corpus (parity vs plugin)", () => {
     const mcpText = extractText(mcpResult);
 
     // Direct plugin call via the full tool map (baseline for parity).
-    const { createToolMap } = await import("../tool-registry.js");
+    const { createFullToolMap } = await import("../tool-registry.js");
     const { createDiskStore } = await import("../storage/store-disk.js");
     const cwd = process.cwd();
     const store = await createDiskStore(cwd);
     let pluginText: string;
     try {
-      const tools = createToolMap(store, cwd);
+      const tools = createFullToolMap(store, cwd);
       const result = await tools.adv_project_context.execute({});
       pluginText =
         typeof result === "string"

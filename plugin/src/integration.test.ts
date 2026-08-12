@@ -115,10 +115,18 @@ describe("Wisdom Lifecycle Integration", () => {
     );
 
     // 5. Add wisdom
-    await hooks.tool!.adv_wisdom_add.execute(
+    await (hooks.tool as any).adv_tool_invoke.execute(
+      {
+        name: "adv_wisdom_add",
+        args: { changeId, type: "success", content: "Persistence pays off" },
+      },
+      {} as any,
+    );
+    /* await (hooks.tool as any).adv_wisdom_add.execute(
       { changeId, type: "success", content: "Persistence pays off" },
       {} as any,
     );
+    */
 
     // 6. Hook should NOT inject accumulated wisdom (removed for prompt caching)
     const out4 = { system: [] as string[] };

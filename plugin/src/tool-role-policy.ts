@@ -264,40 +264,33 @@ export interface AgentToolPolicy {
 }
 
 /**
- * Tier 1 — always top-level for every agent (11 tools).
+ * Tier 1 — always top-level for every agent (16 tools).
  * Core workflow reads/mutations + facade discovery surface.
  * slimMutationToolSurface: SC1/AC1/AC2/DDC1/DDC2.
  */
 const TIER_1_ALLOWLIST: readonly string[] = Object.freeze([
   "adv_change_archive",
+  "adv_change_close",
+  "adv_change_create",
+  "adv_change_list",
   "adv_change_show",
+  "adv_change_update",
   "adv_gate_complete",
   "adv_gate_status",
+  "adv_run_test",
+  "adv_subagent_report_submit",
+  "adv_task_add",
   "adv_task_checkpoint",
   "adv_task_list",
-  "adv_task_show",
   "adv_task_update",
   "adv_tool_catalog",
-  "adv_tool_describe",
   "adv_tool_invoke",
 ]);
 
 /**
- * Tier 2 — orchestrator-only top-level (8 tools).
- * Change lifecycle and task creation surface driven by the orchestrator
- * through gate/command workflows. Sub-agents invoke these via
- * adv_tool_invoke when needed.
+ * No Tier 2 host-plugin tools remain. The full canonical tool set is
+ * available through adv_tool_invoke.
  */
-const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
-  "adv_change_close",
-  "adv_change_create",
-  "adv_change_list",
-  "adv_change_update",
-  "adv_run_test",
-  "adv_task_add",
-  "adv_task_ready",
-]);
-
 /**
  * Tier 4 — MCP read surface (13 unprefixed tools, see `TIER_4_MCP_TOOLS`).
  * These tools are additionally reachable via `tools.adv.*` under Code Mode
@@ -310,7 +303,7 @@ const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
 /**
  * Intended ADV tool surface per shipped agent manifest.
  *
- * slimMutationToolSurface: ~66 low-frequency tools (Tier 3) are routed
+ * tierToolsReduceUpfrontSurface: invoke-only tools (Tier 3) are routed
  * through adv_tool_invoke instead of appearing in any manifest. The
  * orchestrator gets Tier 1 + Tier 2 (18 entries); sub-agents get Tier 1
  * only (11 entries). Operator-only tools are invoke-only — their
@@ -320,11 +313,11 @@ const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
 export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
   {
     agent: "adv",
-    allowed: [...TIER_1_ALLOWLIST, ...TIER_2_ALLOWLIST],
+    allowed: [...TIER_1_ALLOWLIST],
     explicitBlocked: [],
     denyWildcard: true,
     rationale:
-      "ADV orchestrator: Tier 1 + Tier 2 (18 entries). All other ADV tools (Tier 3 ~66) dispatched through adv_tool_invoke. Operator-only tools rely on their own approvedByUser + approvalEvidence gates (C6).",
+      "ADV orchestrator: Tier 1 direct surface (16 entries). All other ADV tools dispatched through adv_tool_invoke.",
   },
   {
     agent: "adv-ci-waiter",

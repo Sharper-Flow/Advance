@@ -181,8 +181,8 @@ describe("resolveBlockableSet", () => {
     expect(blockable.has("adv_gate_complete")).toBe(false);
     expect(blockable.has("adv_tool_invoke")).toBe(false);
     // Representative Tier 2/3 tools MUST be blockable.
-    expect(blockable.has("adv_run_test")).toBe(true);
-    expect(blockable.has("adv_change_create")).toBe(true);
+    expect(blockable.has("adv_run_test")).toBe(false);
+    expect(blockable.has("adv_worktree_create")).toBe(true);
     expect(usedFallback).toBe(false);
   });
 
@@ -197,7 +197,7 @@ describe("resolveBlockableSet", () => {
     // TIER_1 union-floor tools remain allowed; everything else is blocked.
     expect(blockable.has("adv_change_show")).toBe(false);
     expect(blockable.has("adv_task_list")).toBe(false);
-    expect(blockable.has("adv_run_test")).toBe(true);
+    expect(blockable.has("adv_run_test")).toBe(false);
   });
 
   it("fails closed to the union floor when blockable derivation yields empty", () => {
@@ -207,17 +207,17 @@ describe("resolveBlockableSet", () => {
     const { blockable, usedFallback } = resolveBlockableSet();
     expect(usedFallback).toBe(true);
     expect(blockable.has("adv_change_show")).toBe(false);
-    expect(blockable.has("adv_run_test")).toBe(true);
+    expect(blockable.has("adv_run_test")).toBe(false);
   });
 
   it("fails closed to the union floor when blockable derivation is incomplete", () => {
     vi.spyOn(policyModule, "blockableFromSubAgentSession").mockReturnValue(
-      Object.freeze(["adv_change_create"]),
+      Object.freeze(["adv_worktree_create"]),
     );
     const { blockable, usedFallback } = resolveBlockableSet();
     expect(usedFallback).toBe(true);
     expect(blockable.has("adv_change_show")).toBe(false);
-    expect(blockable.has("adv_run_test")).toBe(true);
+    expect(blockable.has("adv_run_test")).toBe(false);
   });
 });
 
@@ -245,7 +245,7 @@ describe("roleFirewallCheck predicate", () => {
   it("allows blockable tools from the main session", () => {
     expect(() =>
       roleFirewallCheck({
-        toolName: "adv_change_create",
+        toolName: "adv_worktree_create",
         callerSessionID: "main-session",
         mainSessionId: "main-session",
       }),
@@ -255,7 +255,7 @@ describe("roleFirewallCheck predicate", () => {
   it("blocks blockable tools from sub-agent sessions", () => {
     expect(() =>
       roleFirewallCheck({
-        toolName: "adv_change_create",
+        toolName: "adv_worktree_create",
         callerSessionID: "sub-agent",
         mainSessionId: "main-session",
       }),
@@ -265,7 +265,7 @@ describe("roleFirewallCheck predicate", () => {
   it("blocks blockable tools when mainSessionId is unresolved", () => {
     expect(() =>
       roleFirewallCheck({
-        toolName: "adv_change_create",
+        toolName: "adv_worktree_create",
         callerSessionID: "anything",
       }),
     ).toThrow(RoleFirewallError);
@@ -274,7 +274,7 @@ describe("roleFirewallCheck predicate", () => {
   it("blocks blockable tools when callerSessionID is missing", () => {
     expect(() =>
       roleFirewallCheck({
-        toolName: "adv_change_create",
+        toolName: "adv_worktree_create",
         mainSessionId: "main-session",
       }),
     ).toThrow(RoleFirewallError);
@@ -386,11 +386,11 @@ describe("Runtime role firewall in tool.execute.before", () => {
     return hooks["tool.execute.before"]!(input, { args } as any);
   };
 
-  it("blocks orchestrator-only adv_change_create from a sub-agent session", async () => {
+  it("blocks invoke-only adv_worktree_create from a sub-agent session", async () => {
     await createPlugin();
     await setMainSession("main");
     await expect(
-      callToolBefore("adv_change_create", "sub-agent", { summary: "x" }),
+      callToolBefore("adv_worktree_create", "sub-agent", { changeId: "x" }),
     ).rejects.toThrow(RoleFirewallError);
   });
 
@@ -414,14 +414,14 @@ describe("Runtime role firewall in tool.execute.before", () => {
     await createPlugin();
     await setMainSession("main");
     await expect(
-      callToolBefore("adv_change_create", "main", { summary: "x" }),
+      callToolBefore("adv_worktree_create", "main", { changeId: "x" }),
     ).resolves.toBeUndefined();
   });
 
   it("allows the root orchestrator before any system transform runs", async () => {
     await createPlugin();
     await expect(
-      callToolBefore("adv_change_create", "main", { summary: "x" }),
+      callToolBefore("adv_worktree_create", "main", { changeId: "x" }),
     ).resolves.toBeUndefined();
   });
 
@@ -433,17 +433,19 @@ describe("Runtime role firewall in tool.execute.before", () => {
     );
 
     await expect(
-      callToolBefore("adv_change_create", "main", { summary: "x" }),
+      callToolBefore("adv_worktree_create", "main", { changeId: "x" }),
     ).resolves.toBeUndefined();
     await expect(
-      callToolBefore("adv_change_create", "sub-agent", { summary: "x" }),
+      callToolBefore("adv_worktree_create", "sub-agent", { changeId: "x" }),
     ).rejects.toThrow(RoleFirewallError);
   });
 
   it("blocks blockable tools when session ancestry cannot be resolved", async () => {
     await createPlugin();
     await expect(
-      callToolBefore("adv_change_create", "unknown-session", { summary: "x" }),
+      callToolBefore("adv_worktree_create", "unknown-session", {
+        changeId: "x",
+      }),
     ).rejects.toThrow(RoleFirewallError);
   });
 
@@ -458,7 +460,7 @@ describe("Runtime role firewall in tool.execute.before", () => {
     await createPlugin();
     await setMainSession("main");
     await expect(
-      callToolBefore("adv_change_create", undefined, { summary: "x" }),
+      callToolBefore("adv_worktree_create", undefined, { changeId: "x" }),
     ).rejects.toThrow(RoleFirewallError);
   });
 
@@ -466,8 +468,8 @@ describe("Runtime role firewall in tool.execute.before", () => {
     await createPlugin();
     await setMainSession("main");
     await expect(
-      callToolBefore("adv_change_create", "sub-agent", {
-        summary: "x",
+      callToolBefore("adv_worktree_create", "sub-agent", {
+        changeId: "x",
         role: "orchestrator",
       }),
     ).rejects.toThrow(RoleFirewallError);
@@ -478,13 +480,15 @@ describe("Runtime role firewall in tool.execute.before", () => {
     await setMainSession("main");
     let caught: RoleFirewallError | undefined;
     try {
-      await callToolBefore("adv_change_create", "sub-agent", { summary: "x" });
+      await callToolBefore("adv_worktree_create", "sub-agent", {
+        changeId: "x",
+      });
     } catch (e) {
       caught = e as RoleFirewallError;
     }
     expect(caught).toBeInstanceOf(RoleFirewallError);
     expect(caught?.code).toBe("ROLE_FIREWALL_BLOCK");
-    expect(caught?.tool).toBe("adv_change_create");
+    expect(caught?.tool).toBe("adv_worktree_create");
     expect(caught?.resolution).toBe("sub_agent");
     expect(caught?.message).toMatch(/^Role firewall:/);
   });
@@ -496,7 +500,7 @@ describe("Runtime role firewall in tool.execute.before", () => {
     await hooks["tool.execute.after"]!(
       { tool: "adv_change_create" } as any,
       {
-        args: { summary: "coexistence" },
+        args: { changeId: "coexistence" },
         output: JSON.stringify({ changeId: "coexistence" }),
       } as any,
     );
