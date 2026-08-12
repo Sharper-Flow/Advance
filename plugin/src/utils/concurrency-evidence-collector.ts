@@ -390,7 +390,6 @@ function classifyOrchestrator(
   if (Array.isArray(toolHistory)) {
     const orchestratorTools = new Set([
       "adv_change_create",
-      "adv_change_validate",
       "adv_change_archive",
       "adv_task_update",
       "adv_gate_complete",

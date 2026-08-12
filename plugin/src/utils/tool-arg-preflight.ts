@@ -283,41 +283,15 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // Optional archived-branch restriction; handler treats blank as unset.
     changeId: { blank: "omit" },
   },
-  adv_conformance: {
-    user: { blank: "reject" }, // audit identity
-    reason: { blank: "reject" }, // audit
-    spec: { blank: "omit" }, // optional per-action
-    artifact_path: { blank: "omit" }, // optional per-action
-  },
   adv_contract_mint: {
     approvedAt: { blank: "omit" }, // optional ISO timestamp
     priorApprovalEvidence: { blank: "omit" }, // optional audit context
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
-  adv_doctor: {
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" }, // handler validates when target_path present
-  },
-  adv_snapshot_health: {
-    repair_actions: { emptyArray: "reject" },
-    approvalEvidence: { blank: "reject" }, // audit
-    // audit_history page limit: strict-mode providers fill optional positive
-    // ints with 0; normalize to omitted so the handler default applies.
-    limit: { zero: "omit" },
-  },
   adv_tool_catalog: {
     // Optional page limit: strict-mode providers fill optional positive ints
     // with 0; normalize to omitted so the handler default (50) applies.
-    limit: { zero: "omit" },
-  },
-  adv_store_cleanup: {
-    data_home_root: { blank: "omit" },
-    dry_run_plan_hash: { blank: "reject" }, // required for execute
-    approvalEvidence: { blank: "reject" }, // audit
-    // dry_run page limit: strict-mode providers fill optional positive ints
-    // with 0; normalize to omitted so the handler default (20) applies.
     limit: { zero: "omit" },
   },
   adv_status: {

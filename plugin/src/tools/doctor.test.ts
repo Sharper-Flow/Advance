@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { doctorTools, setDoctorPointerRepairProvider } from "./doctor";
+import { doctorHandler, setDoctorPointerRepairProvider } from "./doctor";
 import type { Store } from "../storage/store";
 import { ChangeSchema } from "../types";
 import { SAMPLE_CHANGE } from "../__tests__/setup";
@@ -110,15 +110,9 @@ describe("adv_doctor disk diagnostics", () => {
     await rm(root, { recursive: true, force: true });
   });
 
-  test("description identifies diagnosis, safe repair, and verification", () => {
-    expect(doctorTools.adv_doctor.description).toMatch(/diagnos/i);
-    expect(doctorTools.adv_doctor.description).toMatch(/safe .*repair/i);
-    expect(doctorTools.adv_doctor.description).toMatch(/reports/i);
-  });
-
   test("healthy disk state returns verified predicates without fixes", async () => {
     const store = makeStore(root);
-    const parsed = JSON.parse(await doctorTools.adv_doctor.execute({}, store));
+    const parsed = JSON.parse(await doctorHandler({}, store));
 
     expect(parsed.success).toBe(true);
     expect(parsed.findings).toEqual(
@@ -148,9 +142,7 @@ describe("adv_doctor disk diagnostics", () => {
       );
     }
 
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const parsed = JSON.parse(await doctorHandler({}, makeStore(root)));
 
     expect(parsed.success).toBe(false);
     expect(parsed.verification.canonical_projection_consistent).toBe(false);
@@ -165,7 +157,7 @@ describe("adv_doctor disk diagnostics", () => {
     (store.status as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("projection unreadable"),
     );
-    const parsed = JSON.parse(await doctorTools.adv_doctor.execute({}, store));
+    const parsed = JSON.parse(await doctorHandler({}, store));
 
     expect(parsed.success).toBe(false);
     expect(parsed.verification.projection_readable).toBe(false);
@@ -187,9 +179,7 @@ describe("adv_doctor disk diagnostics", () => {
       "{ malformed json",
     );
 
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const parsed = JSON.parse(await doctorHandler({}, makeStore(root)));
 
     expect(parsed.success).toBe(false);
     expect(parsed.verification.healthy).toBe(false);
@@ -219,9 +209,7 @@ describe("adv_doctor disk diagnostics", () => {
       JSON.stringify({ id: changeId }),
     );
 
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const parsed = JSON.parse(await doctorHandler({}, makeStore(root)));
 
     expect(parsed.success).toBe(false);
     expect(parsed.verification.healthy).toBe(false);
@@ -268,9 +256,7 @@ describe("adv_doctor disk diagnostics", () => {
       }),
     );
 
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const parsed = JSON.parse(await doctorHandler({}, makeStore(root)));
     expect(parsed.success).toBe(false);
     expect(parsed.verification.healthy).toBe(false);
     expect(parsed.verification.canonical_projection_consistent).toBe(false);
@@ -289,9 +275,7 @@ describe("adv_doctor disk diagnostics", () => {
     const lockPath = join(lockDir, "worker.lock");
     await writeFile(lockPath, JSON.stringify({ pid: 999999999 }));
 
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const parsed = JSON.parse(await doctorHandler({}, makeStore(root)));
     expect(parsed.fixes_applied).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ action: "remove_dead_worker_lock" }),
@@ -312,9 +296,7 @@ describe("adv_doctor disk diagnostics", () => {
     };
     setDoctorPointerRepairProvider(provider);
 
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const parsed = JSON.parse(await doctorHandler({}, makeStore(root)));
 
     expect(provider.clearActivePointer).toHaveBeenCalledTimes(1);
     expect(parsed.fixes_applied).toEqual(
@@ -339,9 +321,7 @@ describe("adv_doctor disk diagnostics", () => {
     };
     setDoctorPointerRepairProvider(provider);
 
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore(root)),
-    );
+    const parsed = JSON.parse(await doctorHandler({}, makeStore(root)));
 
     expect(provider.clearActivePointer).not.toHaveBeenCalled();
     expect(parsed.fixes_applied).toEqual([]);
@@ -364,7 +344,7 @@ describe("adv_doctor disk diagnostics", () => {
     });
     setDoctorPointerRepairProvider(provider);
 
-    const parsed = JSON.parse(await doctorTools.adv_doctor.execute({}, store));
+    const parsed = JSON.parse(await doctorHandler({}, store));
 
     expect(provider.clearActivePointer).not.toHaveBeenCalled();
     expect(parsed.success).toBe(false);
@@ -378,19 +358,9 @@ describe("adv_doctor disk diagnostics", () => {
     );
   });
 
-  test("doctor args expose no unsafe approval bypass", () => {
-    expect(doctorTools.adv_doctor.args).not.toHaveProperty("approvedByUser");
-    expect(doctorTools.adv_doctor.args).not.toHaveProperty(
-      "approvedLockReclaim",
-    );
-  });
-
   test("rejects an untrusted target_path without confirmation", async () => {
     await expect(
-      doctorTools.adv_doctor.execute(
-        { target_path: "/target/project" },
-        makeStore(root),
-      ),
+      doctorHandler({ target_path: "/target/project" }, makeStore(root)),
     ).rejects.toThrow(/target_confirmed.*confirmationEvidence/i);
     expect(mockWithTargetPathStore).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -408,7 +378,7 @@ describe("adv_doctor disk diagnostics", () => {
     targetStoreRef.current = targetStore;
 
     const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute(
+      await doctorHandler(
         {
           target_path: "/target/project",
           target_confirmed: true,
@@ -444,7 +414,7 @@ describe("adv_doctor disk diagnostics", () => {
     targetStoreRef.current = makeStore(join(root, "foreign-target"));
 
     const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute(
+      await doctorHandler(
         {
           target_path: "/foreign/project",
           target_confirmed: true,

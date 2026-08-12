@@ -1,7 +1,7 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { mkdir, writeFile, access, readdir } from "fs/promises";
 import { join } from "path";
-import { changeTools } from "./change";
+import { advArchivePurgeHandler } from "./change/handlers-archive";
 import type { Change } from "../types";
 import type { Store } from "../storage/store";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
@@ -89,7 +89,7 @@ describe("adv_archive_purge", () => {
       changes: changesDir,
     });
 
-    const result = await changeTools.adv_archive_purge.execute(
+    const result = await advArchivePurgeHandler(
       {
         changeId: "ghost",
         approvedByUser: true,
@@ -111,7 +111,7 @@ describe("adv_archive_purge", () => {
         changes: changesDir,
       });
 
-      const result = await changeTools.adv_archive_purge.execute(
+      const result = await advArchivePurgeHandler(
         {
           changeId: "purgedChange",
           approvedByUser: true,
@@ -133,7 +133,7 @@ describe("adv_archive_purge", () => {
       changes: changesDir,
     });
 
-    const result = await changeTools.adv_archive_purge.execute(
+    const result = await advArchivePurgeHandler(
       {
         changeId: "purgedChange",
         approvedByUser: true,
@@ -153,7 +153,7 @@ describe("adv_archive_purge", () => {
       changes: changesDir,
     });
 
-    const result = await changeTools.adv_archive_purge.execute(
+    const result = await advArchivePurgeHandler(
       {
         changeId: "purgedChange",
         approvedByUser: false as unknown as true,
@@ -175,7 +175,7 @@ describe("adv_archive_purge", () => {
     });
     const bundleDir = await seedArchiveBundle(archiveDir, change.id);
 
-    const result = await changeTools.adv_archive_purge.execute(
+    const result = await advArchivePurgeHandler(
       {
         changeId: change.id,
         approvedByUser: true,
@@ -208,7 +208,7 @@ describe("adv_archive_purge", () => {
     const flatProjection = join(changesDir, `${change.id}.json`);
     await writeFile(flatProjection, JSON.stringify({ schemaVersion: 2 }));
 
-    const result = await changeTools.adv_archive_purge.execute(
+    const result = await advArchivePurgeHandler(
       {
         changeId: change.id,
         includeDiskBundle: true,

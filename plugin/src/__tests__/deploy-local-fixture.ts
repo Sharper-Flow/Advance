@@ -24,6 +24,7 @@ const SEED_CONTENTS = {
   index: "// fresh plugin index\n",
   mcpServer: "// fake mcp server\n",
   reconcileCli: "// fake reconcile cli\n",
+  doctorCli: "// fake doctor cli\n",
   worker: "// fresh worker\n",
   workflows: "// fresh workflows\n",
 } as const;
@@ -34,6 +35,7 @@ const SEED_HASHES = {
   reconcileCli: createHash("sha256")
     .update(SEED_CONTENTS.reconcileCli)
     .digest("hex"),
+  doctorCli: createHash("sha256").update(SEED_CONTENTS.doctorCli).digest("hex"),
   worker: createHash("sha256").update(SEED_CONTENTS.worker).digest("hex"),
   workflows: createHash("sha256").update(SEED_CONTENTS.workflows).digest("hex"),
 } as const;
@@ -45,6 +47,7 @@ const PLUGIN_BUNDLE_MANIFEST = JSON.stringify({
     index: SEED_HASHES.index,
     "mcp-server": SEED_HASHES.mcpServer,
     "reconcile-cli": SEED_HASHES.reconcileCli,
+    "doctor-cli": SEED_HASHES.doctorCli,
   },
   built_at: SEED_BUILT_AT,
 });
@@ -98,6 +101,7 @@ function seedDist(worktree: string): void {
   writeFileSync(join(distPath, "index.js"), SEED_CONTENTS.index);
   writeFileSync(join(distPath, "mcp-server.js"), SEED_CONTENTS.mcpServer);
   writeFileSync(join(distPath, "reconcile-cli.js"), SEED_CONTENTS.reconcileCli);
+  writeFileSync(join(distPath, "doctor-cli.js"), SEED_CONTENTS.doctorCli);
   writeFileSync(join(temporalDistPath, "worker.js"), SEED_CONTENTS.worker);
   writeFileSync(
     join(temporalDistPath, "workflows.js"),
@@ -116,6 +120,7 @@ function seedDist(worktree: string): void {
     join(distPath, "index.js"),
     join(distPath, "mcp-server.js"),
     join(distPath, "reconcile-cli.js"),
+    join(distPath, "doctor-cli.js"),
     join(temporalDistPath, "worker.js"),
     join(temporalDistPath, "workflows.js"),
     join(distPath, "plugin-bundle-manifest.json"),
@@ -142,6 +147,7 @@ mkdir -p "$PWD/dist/temporal"
 printf '${bashLiteral(SEED_CONTENTS.index)}' > "$PWD/dist/index.js"
 printf '${bashLiteral(SEED_CONTENTS.mcpServer)}' > "$PWD/dist/mcp-server.js"
 printf '${bashLiteral(SEED_CONTENTS.reconcileCli)}' > "$PWD/dist/reconcile-cli.js"
+printf '${bashLiteral(SEED_CONTENTS.doctorCli)}' > "$PWD/dist/doctor-cli.js"
 printf '${bashLiteral(SEED_CONTENTS.worker)}' > "$PWD/dist/temporal/worker.js"
 printf '${bashLiteral(SEED_CONTENTS.workflows)}' > "$PWD/dist/temporal/workflows.js"
 printf '${bashLiteral(TEMPORAL_BUNDLE_MANIFEST)}' > "$PWD/dist/temporal/bundle-manifest.json"
@@ -149,6 +155,7 @@ printf '${bashLiteral(PLUGIN_BUNDLE_MANIFEST)}' > "$PWD/dist/plugin-bundle-manif
 touch "$PWD/dist/index.js"
 touch "$PWD/dist/mcp-server.js"
 touch "$PWD/dist/reconcile-cli.js"
+touch "$PWD/dist/doctor-cli.js"
 touch "$PWD/dist/temporal/worker.js"
 touch "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/temporal/bundle-manifest.json"

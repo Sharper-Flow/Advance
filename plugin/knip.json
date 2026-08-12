@@ -12,6 +12,7 @@
     "scripts/generate-json-schemas.ts",
     "scripts/write-build-identity.ts",
     "src/cli/projection-boundary.ts",
+    "src/doctor-cli.ts",
     "src/index.ts",
     "src/mcp-server/index.ts",
     "src/reconcile-cli.ts"

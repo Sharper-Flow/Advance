@@ -778,134 +778,67 @@ export async function executeCleanup(
 // Tool definition
 // =============================================================================
 
-export const storeCleanupTools = {
-  adv_store_cleanup: {
-    description:
-      "Maintenance-only legacy Agenda cleanup across discoverable local ADV stores. " +
-      "action 'scan' (default, read-only) inventories every store holding legacy agenda data, classifying safety. " +
-      "action 'dry_run' emits the per-store legacy agenda cleanup plan with zero mutations: bounded summary counts " +
-      "plus optional offset/limit/outcome paging for review; plan_hash always covers the full plan content " +
-      "(including paginated-out stores). " +
-      "action 'execute' applies the exact dry-run plan: approval-gated, manifest-before-delete, " +
-      "retains unsafe stores for retry, and refuses when worker.lock is live or a consolidation " +
-      "ledger with legacy agenda_row entries exists. Retained indefinitely as operator-only maintenance.",
-    args: {
-      action: z
-        .enum(["scan", "dry_run", "execute"])
-        .default("scan")
-        .describe(
-          "scan = inventory stores (read-only); dry_run = per-store plan (read-only); execute = apply plan (approval-gated)",
-        ),
-      data_home_root: z
-        .string()
-        .optional()
-        .describe(
-          "Data-home root holding opencode/ and opencode-projects/. Injected for tests; defaults to the resolved XDG data home.",
-        ),
-      offset: z
-        .number()
-        .int()
-        .nonnegative()
-        .optional()
-        .describe(
-          "dry_run only: page offset into the plan stores (default 0). plan_hash is unaffected by paging.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(CLEANUP_PLAN_MAX_LIMIT)
-        .optional()
-        .describe(
-          `dry_run only: page size for plan stores (default ${CLEANUP_PLAN_DEFAULT_LIMIT}, max ${CLEANUP_PLAN_MAX_LIMIT}). plan_hash always covers the full plan.`,
-        ),
-      outcome: z
-        .enum(["delete", "skip", "retain"])
-        .optional()
-        .describe(
-          "dry_run only: restrict review data to one outcome (e.g. 'delete' for delete-only review). plan_hash still covers the full plan.",
-        ),
-      dry_run_plan_hash: z
-        .string()
-        .optional()
-        .describe(
-          "Required for execute. The plan_hash from the matching dry_run output.",
-        ),
-      approvedByUser: z
-        .boolean()
-        .optional()
-        .describe("Required for execute. Must be true."),
-      approvalEvidence: z
-        .string()
-        .optional()
-        .describe("Required for execute. Audit evidence of user approval."),
-    },
-    execute: async (
-      args: {
-        action: "scan" | "dry_run" | "execute";
-        data_home_root?: string;
-        offset?: number;
-        limit?: number;
-        outcome?: "delete" | "skip" | "retain";
-        dry_run_plan_hash?: string;
-        approvedByUser?: boolean;
-        approvalEvidence?: string;
-      },
-      _store: Store,
-    ) => {
-      const dataHomeRoot = args.data_home_root ?? defaultDataHomeRoot();
-
-      if (args.action === "scan") {
-        const result = await scanStoresForCleanup({ dataHomeRoot });
-        return formatToolOutput(result, { tool: "adv_store_cleanup" });
-      }
-
-      if (args.action === "dry_run") {
-        try {
-          const plan = await buildCleanupPlan({ dataHomeRoot });
-          // AC9: bounded, paged review render. The full plan (and its hash)
-          // is computed first; paging never changes what execute applies.
-          const render = paginateCleanupPlan(plan, {
-            offset: args.offset,
-            limit: args.limit,
-            outcome: args.outcome,
-          });
-          return formatToolOutput(render, { tool: "adv_store_cleanup" });
-        } catch (error) {
-          return formatToolOutput(
-            {
-              success: false,
-              action: "dry_run",
-              error: error instanceof Error ? error.message : String(error),
-            },
-            { tool: "adv_store_cleanup" },
-          );
-        }
-      }
-
-      // action === "execute"
-      try {
-        const report = await executeCleanup({
-          dataHomeRoot,
-          approvedByUser: args.approvedByUser === true,
-          approvalEvidence: args.approvalEvidence ?? "",
-          dry_run_plan_hash: args.dry_run_plan_hash ?? "",
-        });
-        return formatToolOutput(report, { tool: "adv_store_cleanup" });
-      } catch (error) {
-        return formatToolOutput(
-          {
-            success: false,
-            action: "execute",
-            error_code:
-              error instanceof StoreCleanupError
-                ? error.code
-                : "execute_failed",
-            error: error instanceof Error ? error.message : String(error),
-          },
-          { tool: "adv_store_cleanup" },
-        );
-      }
-    },
+export const storeCleanupHandler = async (
+  args: {
+    action: "scan" | "dry_run" | "execute";
+    data_home_root?: string;
+    offset?: number;
+    limit?: number;
+    outcome?: "delete" | "skip" | "retain";
+    dry_run_plan_hash?: string;
+    approvedByUser?: boolean;
+    approvalEvidence?: string;
   },
+  _store: Store,
+) => {
+  const dataHomeRoot = args.data_home_root ?? defaultDataHomeRoot();
+  if (args.action === "scan") {
+    return formatToolOutput(await scanStoresForCleanup({ dataHomeRoot }), {
+      tool: "adv_store_cleanup",
+    });
+  }
+  if (args.action === "dry_run") {
+    try {
+      const plan = await buildCleanupPlan({ dataHomeRoot });
+      return formatToolOutput(
+        paginateCleanupPlan(plan, {
+          offset: args.offset,
+          limit: args.limit,
+          outcome: args.outcome,
+        }),
+        { tool: "adv_store_cleanup" },
+      );
+    } catch (error) {
+      return formatToolOutput(
+        {
+          success: false,
+          action: "dry_run",
+          error: error instanceof Error ? error.message : String(error),
+        },
+        { tool: "adv_store_cleanup" },
+      );
+    }
+  }
+  try {
+    return formatToolOutput(
+      await executeCleanup({
+        dataHomeRoot,
+        approvedByUser: args.approvedByUser === true,
+        approvalEvidence: args.approvalEvidence ?? "",
+        dry_run_plan_hash: args.dry_run_plan_hash ?? "",
+      }),
+      { tool: "adv_store_cleanup" },
+    );
+  } catch (error) {
+    return formatToolOutput(
+      {
+        success: false,
+        action: "execute",
+        error_code:
+          error instanceof StoreCleanupError ? error.code : "execute_failed",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { tool: "adv_store_cleanup" },
+    );
+  }
 };

@@ -54,42 +54,17 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   // Maintenance/recovery tools with destructive, wedged-state, or store-level
   // blast radius. Grantable only to the ADV orchestrator, which invokes them
   // solely on explicit operator instruction with approval evidence (C6).
-  adv_archive_purge: {
-    class: "operator-only",
-    rationale:
-      "Purges archived disk projections; opt-in includeDiskBundle recursively deletes the archive bundle (approvedByUser + approvalEvidence).",
-  },
-  adv_store_cleanup: {
-    class: "operator-only",
-    rationale:
-      "Deletes legacy agenda stores; manifest-before-delete with approvedByUser + approvalEvidence + dry-run plan_hash.",
-  },
-
   // ── Dual (8) ─────────────────────────────────────────────────────────
   // Read actions agent-reachable; mutation/refresh surfaces operator-owned.
   // Action-level distinctions mirror docs/tool-ownership.md, including the
   // action-qualified operator-only rows for snapshot_health (#repair) and
   // conformance (#override).
-  adv_conformance: {
-    class: "dual",
-    rationale:
-      "Spec conformance: status/init/lock/unlock/run stay orchestrator-reachable; override is an audit-escape hatch requiring user + reason + re_verify_deadline.",
-    agentActions: ["status", "init", "lock", "unlock", "run"],
-    operatorActions: ["override"],
-  },
   adv_session_list: {
     class: "dual",
     rationale:
       "Privacy-defensive peer session inventory read; no agent mutation surface — session lifecycle is owned by the oc wrapper/operator.",
     agentActions: ["read"],
     operatorActions: [],
-  },
-  adv_snapshot_health: {
-    class: "dual",
-    rationale:
-      "Snapshot-store corruption scan/audit_history are agent-readable diagnostics; repair deletes corrupt objects and requires approvedByUser + approvalEvidence + repair_actions whitelist.",
-    agentActions: ["scan", "audit_history"],
-    operatorActions: ["repair"],
   },
   adv_status: {
     class: "dual",
@@ -169,10 +144,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_change_update: {
     class: "orchestrator",
     rationale: "Change update.",
-  },
-  adv_change_validate: {
-    class: "orchestrator",
-    rationale: "Validation read.",
   },
   adv_contract_mint: {
     class: "orchestrator",
@@ -331,11 +302,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_task_update: {
     class: "orchestrator",
     rationale: "Task mutation.",
-  },
-  adv_doctor: {
-    class: "orchestrator",
-    rationale:
-      "Single diagnose→safe-fix→verify entry point for routine infrastructure recovery. Orchestrator-reachable because every fix is gated on a proven safe-subset and every escalation refuses with a typed approval-required proposal.",
   },
   adv_wisdom_add: {
     class: "orchestrator",

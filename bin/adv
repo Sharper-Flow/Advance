@@ -100,6 +100,27 @@ async function runReconcile(argv: string[]): Promise<number> {
   }
 }
 
+/** Load the generated standalone doctor bundle, never plugin source. */
+async function runDoctor(argv: string[]): Promise<number> {
+  const bundlePath =
+    process.env.ADV_DOCTOR_CLI_BUNDLE ??
+    join(import.meta.dir, "../plugin/dist/doctor-cli.js");
+  try {
+    const bundle = (await import(pathToFileURL(bundlePath).href)) as {
+      runDoctorCli?: (args: string[]) => Promise<number>;
+    };
+    if (typeof bundle.runDoctorCli !== "function") {
+      throw new Error("bundle does not export runDoctorCli");
+    }
+    return await bundle.runDoctorCli(argv);
+  } catch (error) {
+    process.stderr.write(
+      `doctor: standalone bundle unavailable at ${bundlePath}: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    return 2;
+  }
+}
+
 // =============================================================================
 // Subcommands
 // =============================================================================
@@ -606,6 +627,7 @@ SUBCOMMANDS:
   epic list            Show active Epic IDs from disk projections (JSON-only)
   census               Audit machine-wide ADV stores (read-only)
   reconcile            Reconcile store residue (plan/dry-run/apply)
+  doctor               Diagnose and repair local ADV store state
 
 FLAGS (global):
   -h, --help              Show this help
@@ -632,7 +654,17 @@ FLAGS (reconcile):
       --confirm-plan-hash <hash>     Required approval hash for apply
       --resume-from <run-id>        Resume an interrupted run
       --max-records <N>             Bound the residue scan
-      --budget-ms <N>               Bound the residue scan time
+       --budget-ms <N>               Bound the residue scan time
+
+FLAGS (doctor):
+       --quarantine <changeId>       Quarantine a corrupt change projection
+       --snapshot                    Scan snapshot health
+       --repair --confirm            Repair snapshot health findings
+       --cleanup-legacy              Preview legacy agenda cleanup
+       --cleanup-legacy --execute --confirm
+                                    Apply legacy agenda cleanup
+       --purge-archive <changeId> --confirm
+                                    Purge an archived change bundle
 
 EXIT CODES:
   0  Success
@@ -758,6 +790,10 @@ async function main(argv: string[]): Promise<number> {
 
   if (subcommand === "reconcile") {
     return runReconcile(argv.slice(1));
+  }
+
+  if (subcommand === "doctor") {
+    return runDoctor(argv.slice(1));
   }
 
   if (subcommand === "epic") {

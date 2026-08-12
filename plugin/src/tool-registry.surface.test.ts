@@ -178,12 +178,4 @@ describe("getToolSurface (live surface)", () => {
     expect(args?.has("epic_owner_target_confirmed")).toBe(true);
     expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
   });
-
-  test("exposes target_path lifecycle args on adv_doctor (rq-doctorConsolidation01)", () => {
-    const args = surface.get("adv_doctor");
-    expect(args).toBeDefined();
-    expect(args?.has("target_path")).toBe(true);
-    expect(args?.has("target_confirmed")).toBe(true);
-    expect(args?.has("confirmationEvidence")).toBe(true);
-  });
 });

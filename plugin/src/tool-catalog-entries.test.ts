@@ -84,12 +84,12 @@ describe("tool-catalog-entries — exported API", () => {
     expect(meta.recoveryOnly).toBe(false);
   });
 
-  it("deriveToolMetadata classifies repair tools as operator/recoveryOnly", async () => {
+  it("deriveToolMetadata classifies retained write tools", async () => {
     const { deriveToolMetadata } = await import("./tool-catalog-entries");
-    const meta = deriveToolMetadata("adv_archive_purge");
-    expect(meta.group).toBe("repair");
-    expect(meta.risk).toBe("operator");
-    expect(meta.recoveryOnly).toBe(true);
+    const meta = deriveToolMetadata("adv_change_archive");
+    expect(meta.group).toBe("lifecycle");
+    expect(meta.risk).toBe("low");
+    expect(meta.recoveryOnly).toBe(false);
   });
 });
 

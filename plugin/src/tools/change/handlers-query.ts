@@ -76,6 +76,9 @@ export const advChangeShowHandler = async (
     target_path,
     include,
     outputMode,
+    validate,
+    strict,
+    strictWarnings,
   }: {
     changeId: string;
     limit?: number;
@@ -103,6 +106,9 @@ export const advChangeShowHandler = async (
       briefingPacketRequest?: string;
     };
     outputMode?: "compact" | "pretty";
+    validate?: boolean;
+    strict?: boolean;
+    strictWarnings?: boolean;
   },
   store: Store,
 ) => {
@@ -133,6 +139,28 @@ export const advChangeShowHandler = async (
       artifacts: await normalizeArtifactMetadataForReadback(change.artifacts),
       gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
     };
+    let validationOutput: unknown;
+    if (validate) {
+      const validation = await advChangeValidateHandler(
+        { changeId, strict, strictWarnings },
+        activeStore,
+      );
+      try {
+        validationOutput = JSON.parse(validation);
+        if (
+          validationOutput &&
+          typeof validationOutput === "object" &&
+          "passed" in validationOutput
+        ) {
+          validationOutput = {
+            ...validationOutput,
+            valid: (validationOutput as { passed: boolean }).passed,
+          };
+        }
+      } catch {
+        validationOutput = { raw: validation };
+      }
+    }
     if (include?.artifactOnly) {
       const output: Record<string, unknown> = {
         id: displayChange.id,
@@ -140,6 +168,7 @@ export const advChangeShowHandler = async (
         status: displayChange.status,
         artifacts: displayChange.artifacts,
         _artifactOnly: true,
+        ...(validate ? { validation: validationOutput } : {}),
         ...(projectContext ? { _projectContext: projectContext } : {}),
       };
       if (requestedKinds.length > 0) {
@@ -178,6 +207,7 @@ export const advChangeShowHandler = async (
       _taskPagination: paged.pagination,
       ...(projectContext ? { _projectContext: projectContext } : {}),
     };
+    if (validate) output.validation = validationOutput;
     // Surface linked ops follow-up state structurally. The full profile
     // remains on the change; this just guarantees it is visible even when
     // downstream formatters would otherwise drop undefined keys.
@@ -938,6 +968,20 @@ export const queryChangeTools = {
           "Output mode: compact (default) or pretty. Overrides ADV_TOOL_OUTPUT_MODE env var for this call.",
         ),
     },
+    validate: z
+      .boolean()
+      .optional()
+      .describe("When true, include the standalone change validation result."),
+    strict: z
+      .boolean()
+      .optional()
+      .describe("Run strict validation checks when validate is true."),
+    strictWarnings: z
+      .boolean()
+      .optional()
+      .describe(
+        "Treat warnings as blocking failures when validate and strict are true.",
+      ),
     execute: advChangeShowHandler,
   },
   adv_change_list: {
@@ -984,23 +1028,5 @@ export const queryChangeTools = {
         ),
     },
     execute: advChangeListHandler,
-  },
-  adv_change_validate: {
-    description:
-      "Validate change against existing specs (specs as laws) and check for conflicts with other active changes",
-    args: {
-      changeId: z.string().describe("Change ID to validate"),
-      strict: z
-        .boolean()
-        .optional()
-        .describe("Run strict validation checks; only errors block by default"),
-      strictWarnings: z
-        .boolean()
-        .optional()
-        .describe(
-          "Opt in to treating warnings as blocking failures during strict validation",
-        ),
-    },
-    execute: advChangeValidateHandler,
   },
 };

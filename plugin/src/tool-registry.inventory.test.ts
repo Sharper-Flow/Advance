@@ -46,10 +46,7 @@ const sorted = (names: Iterable<string>): string[] =>
   [...names].sort((a, b) => a.localeCompare(b));
 
 /**
- * Registered tools that the pre-consolidation warrant surface omitted
- * because getToolSurface iterated a hand-maintained group list missing
- * backlogShellTools and storeCleanupTools. The typed inventory must cover them
- * so warrant visibility matches registration.
+ * Registered backlog-shell tools retained by the typed inventory.
  */
 const BACKLOG_SHELL_AND_STORE_TOOLS = [
   "adv_backlog_add",
@@ -57,7 +54,6 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
   "adv_backlog_show",
   "adv_backlog_promote",
   "adv_backlog_archive",
-  "adv_store_cleanup",
 ] as const;
 
 /**
@@ -79,8 +75,6 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_tool_catalog",
   "adv_tool_describe",
   "adv_tool_invoke",
-  // replaceRecoveryToolSprawl added the consolidated doctor entry point:
-  "adv_doctor",
   // resume-projection Phase E added the resume-projection MCP tool + bin
   // adapter (feat 9f39317e); a legitimate registered public tool that was
   // never recorded in this reintroduction-guard accounting.
@@ -277,10 +271,10 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    // The current source surface contains 69 tools after the contracted
+    // The current source surface contains 63 tools after the contracted
     // removals and dead-wrapper removals in this branch. Pin the observable
     // registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(69);
+    expect(ADV_TOOL_NAMES.length).toBe(63);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

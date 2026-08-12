@@ -323,92 +323,27 @@ async function actionRun(
 // Tool Definition
 // =============================================================================
 
-export const conformanceTools = {
-  adv_conformance: {
-    description:
-      "External CI-isolated spec conformance: status, init (scaffold subfolder default or sibling repo), lock, unlock, override (audit), run (read CI verdict artifact). Single structured verdict; apply-phase agent blocked by role guard.",
-    args: {
-      action: ActionSchema.describe(
-        "Action: status | init | lock | unlock | override | run",
-      ),
-      mode: z
-        .enum(["subfolder", "sibling"])
-        .optional()
-        .describe(
-          "init mode: subfolder (default, in-repo .adv/specs/_conformance) or sibling (opt-in, external advance-conformance-{projectId})",
-        ),
-      projectId: z
-        .string()
-        .optional()
-        .describe("Required for init mode='sibling'"),
-      spec: z
-        .string()
-        .optional()
-        .describe(
-          "Spec name for lock/unlock/override/run (e.g. 'advance-workflow')",
-        ),
-      change_id: z
-        .string()
-        .optional()
-        .describe(
-          "Change-id that triggered the lock; recorded in locked_at_archive",
-        ),
-      user: z
-        .string()
-        .optional()
-        .describe("Audit field for unlock/override: user identity"),
-      reason: z
-        .string()
-        .optional()
-        .describe("Audit field for unlock/override: reason text"),
-      re_verify_deadline: z
-        .string()
-        .optional()
-        .describe(
-          "Audit field for unlock/override: ISO timestamp by which re-verification is expected",
-        ),
-      artifact_path: z
-        .string()
-        .optional()
-        .describe("Path to CI-produced JSON verdict artifact for action='run'"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe(
-          "Preview unlock/override validation and response shape without mutating conformance state or firing signals",
-        ),
-    },
-    /**
-     * Execute via bindTool-style: (args, store). `projectDir` is derived
-     * from `store.paths.root`; `externalRoot` from `store.paths.external`.
-     * `store` is threaded through to action functions that fire conformance
-     * signals so they can centralize cache invalidation via
-     * `fireSignalAndRefresh` (rq-cacheRefresh01).
-     */
-    execute: async (
-      rawArgs: ConformanceArgs,
-      store: Store,
-    ): Promise<string> => {
-      const externalRoot = store.paths.external;
-      if (!externalRoot) {
-        return makeError("adv_conformance requires an external state root");
-      }
-      const projectDir = store.paths.root;
-      const args = ConformanceArgsSchema.parse(rawArgs);
-      switch (args.action) {
-        case "status":
-          return actionStatus(projectDir, externalRoot);
-        case "init":
-          return actionInit(args, projectDir, externalRoot);
-        case "lock":
-          return actionLock(args, projectDir, externalRoot);
-        case "unlock":
-          return actionUnlock(args, projectDir, externalRoot);
-        case "override":
-          return actionOverride(args, projectDir, externalRoot);
-        case "run":
-          return actionRun(args, projectDir, externalRoot);
-      }
-    },
-  },
+export const conformanceHandler = async (
+  rawArgs: ConformanceArgs,
+  store: Store,
+): Promise<string> => {
+  const externalRoot = store.paths.external;
+  if (!externalRoot)
+    return makeError("adv_conformance requires an external state root");
+  const projectDir = store.paths.root;
+  const args = ConformanceArgsSchema.parse(rawArgs);
+  switch (args.action) {
+    case "status":
+      return actionStatus(projectDir, externalRoot);
+    case "init":
+      return actionInit(args, projectDir, externalRoot);
+    case "lock":
+      return actionLock(args, projectDir, externalRoot);
+    case "unlock":
+      return actionUnlock(args, projectDir, externalRoot);
+    case "override":
+      return actionOverride(args, projectDir, externalRoot);
+    case "run":
+      return actionRun(args, projectDir, externalRoot);
+  }
 };

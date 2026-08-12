@@ -44,6 +44,8 @@ const FAKE_MCP_SERVER = "// fake mcp server\n";
 const FAKE_MCP_SERVER_SHA256 = sha256(FAKE_MCP_SERVER);
 const FAKE_RECONCILE_CLI = "// fake reconcile cli\n";
 const FAKE_RECONCILE_CLI_SHA256 = sha256(FAKE_RECONCILE_CLI);
+const FAKE_DOCTOR_CLI = "// fake doctor cli\n";
+const FAKE_DOCTOR_CLI_SHA256 = sha256(FAKE_DOCTOR_CLI);
 
 const INDEX_MTIME = new Date("2020-01-01T00:00:00Z");
 const MANIFEST_MTIME = new Date("2030-01-01T00:00:00Z");
@@ -154,6 +156,7 @@ describe("deploy-local plugin manifest publication", () => {
           index: FAKE_INDEX_SHA256,
           "mcp-server": FAKE_MCP_SERVER_SHA256,
           "reconcile-cli": FAKE_RECONCILE_CLI_SHA256,
+          "doctor-cli": FAKE_DOCTOR_CLI_SHA256,
         },
         built_at: "2026-01-01T00:00:00.000Z",
       };
@@ -161,10 +164,12 @@ describe("deploy-local plugin manifest publication", () => {
       writeFileSync(indexPath, FAKE_INDEX);
       writeFileSync(join(distDir, "mcp-server.js"), FAKE_MCP_SERVER);
       writeFileSync(join(distDir, "reconcile-cli.js"), FAKE_RECONCILE_CLI);
+      writeFileSync(join(distDir, "doctor-cli.js"), FAKE_DOCTOR_CLI);
       writeFileSync(manifestPath, JSON.stringify(sourceManifest, null, 2));
       utimesSync(indexPath, INDEX_MTIME, INDEX_MTIME);
       utimesSync(join(distDir, "mcp-server.js"), INDEX_MTIME, INDEX_MTIME);
       utimesSync(join(distDir, "reconcile-cli.js"), INDEX_MTIME, INDEX_MTIME);
+      utimesSync(join(distDir, "doctor-cli.js"), INDEX_MTIME, INDEX_MTIME);
       utimesSync(manifestPath, MANIFEST_MTIME, MANIFEST_MTIME);
       ageSourceInputs(fixture.tempWorktree);
 
@@ -188,7 +193,11 @@ describe("deploy-local plugin manifest publication", () => {
       expect(statSync(deployedIndex).mtime.toISOString()).toBe(
         INDEX_MTIME.toISOString(),
       );
-      for (const bundle of ["mcp-server.js", "reconcile-cli.js"]) {
+      for (const bundle of [
+        "mcp-server.js",
+        "reconcile-cli.js",
+        "doctor-cli.js",
+      ]) {
         const deployedBundle = join(runtimePlugin, "dist", bundle);
         expect(existsSync(deployedBundle)).toBe(true);
         expect(statSync(deployedBundle).mtime.toISOString()).toBe(
@@ -219,6 +228,7 @@ describe("deploy-local plugin manifest publication", () => {
       expect(parsed.files.index).toBe(FAKE_INDEX_SHA256);
       expect(parsed.files["mcp-server"]).toBe(FAKE_MCP_SERVER_SHA256);
       expect(parsed.files["reconcile-cli"]).toBe(FAKE_RECONCILE_CLI_SHA256);
+      expect(parsed.files["doctor-cli"]).toBe(FAKE_DOCTOR_CLI_SHA256);
     });
   });
 });

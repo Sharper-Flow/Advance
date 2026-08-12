@@ -25,7 +25,7 @@ import { join, relative } from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import {
-  storeCleanupTools,
+  storeCleanupHandler,
   scanStoresForCleanup,
   buildCleanupPlan,
   executeCleanup,
@@ -270,10 +270,7 @@ async function executeTool(
   args: Record<string, unknown>,
   root: string = repoDir,
 ): Promise<unknown> {
-  const out = await storeCleanupTools.adv_store_cleanup.execute(
-    args as never,
-    mockStore(root),
-  );
+  const out = await storeCleanupHandler(args as never, mockStore(root));
   return JSON.parse(out);
 }
 

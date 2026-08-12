@@ -183,7 +183,6 @@ describe("resolveBlockableSet", () => {
     // Representative Tier 2/3 tools MUST be blockable.
     expect(blockable.has("adv_run_test")).toBe(true);
     expect(blockable.has("adv_change_create")).toBe(true);
-    expect(blockable.has("adv_archive_purge")).toBe(true);
     expect(usedFallback).toBe(false);
   });
 
@@ -386,14 +385,6 @@ describe("Runtime role firewall in tool.execute.before", () => {
         : ({ tool: toolName, sessionID } as any);
     return hooks["tool.execute.before"]!(input, { args } as any);
   };
-
-  it("blocks operator-only adv_archive_purge from a sub-agent session", async () => {
-    await createPlugin();
-    await setMainSession("main");
-    await expect(
-      callToolBefore("adv_archive_purge", "sub-agent"),
-    ).rejects.toThrow(RoleFirewallError);
-  });
 
   it("blocks orchestrator-only adv_change_create from a sub-agent session", async () => {
     await createPlugin();

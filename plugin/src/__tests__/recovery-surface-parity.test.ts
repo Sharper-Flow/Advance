@@ -21,7 +21,7 @@
  * evidence and refuses on indeterminate. The poisoned_history public-arg
  * removal is tracked separately.
  */
-import { describe, expect, test } from "vitest";
+import { describe, test } from "vitest";
 import { readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { readdirSync, statSync } from "node:fs";
@@ -46,10 +46,9 @@ const RETIRED_TOOLS = [
 const ALLOWED_REFERENCE_FILES: Record<string, string> = {
   "recovery-surface-parity.test.ts":
     "this test defines the retired set — self-reference is unavoidable",
-  "doctor.ts":
-    "adv_doctor's description explicitly names the tools it consolidates (educational; not an active surface)",
+  "doctor.ts": "doctor handler remains available to the CLI entry point",
   "doctor.test.ts":
-    "doctor tests reference the consolidated behavior by name for clarity",
+    "doctor handler tests reference the diagnostics behavior by name for clarity",
   "tool-registry.inventory.test.ts":
     "CONTRACTED_PUBLIC_REMOVALS lists the retired names to keep the canonical public-tool count pinned; the names are data, not active surface",
 };
@@ -137,11 +136,5 @@ describe("recovery surface parity — adv_temporal_* runtime retirements (rq-rec
           `Remove the runtime surface or update the reference to point at adv_doctor.`,
       );
     }
-  });
-
-  test("adv_doctor remains registered as the consolidation entry point", () => {
-    const registry = readFileSync(join(SRC_ROOT, "tool-registry.ts"), "utf8");
-    expect(registry).toContain("adv_doctor");
-    expect(registry).toContain("doctorTools");
   });
 });

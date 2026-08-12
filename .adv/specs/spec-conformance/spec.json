@@ -47,7 +47,7 @@
             "A locked conformance source exists in either mode",
             "An adversarial test fixture is exercised"
           ],
-          "when": "The fixture attempts every documented read path (read tool, glob, grep, lgrep_search_*, bash cat/grep/find, bash git clone, bash curl, direct adv_conformance call)",
+          "when": "The fixture attempts every documented read path (read tool, glob, grep, lgrep_search_*, bash cat/grep/find, bash git clone, and bash curl)",
           "then": [
             "Each path is rejected with a conformance-boundary enforcement error",
             "No fixture run leaks the locked source content"
@@ -58,7 +58,7 @@
     {
       "id": "rq-confLock01",
       "title": "Lock-On-First-Archive Lifecycle",
-      "body": "Conformance source for a spec is unlocked while the spec is being authored. On the first successful `/adv-archive` of a spec with conformance_required: true, the spec's lock state flips atomically to `locked: true` with `locked_at` and `locked_at_archive` recorded. Lock state lives in shared external state (`~/.local/share/opencode/plugins/advance/{project-id}/conformance.json`) and survives worktree switches. Subsequent unlocking requires explicit user-invoked `adv_conformance action: 'unlock'` and is recorded in the override audit log.",
+      "body": "Conformance source for a spec is unlocked while the spec is being authored. On the first successful `/adv-archive` of a spec with conformance_required: true, the spec's lock state flips atomically to `locked: true` with `locked_at` and `locked_at_archive` recorded. Lock state lives in shared external state (`~/.local/share/opencode/plugins/advance/{project-id}/conformance.json`) and survives worktree switches. Subsequent unlocking requires an explicit user-invoked conformance override action in the archive/status pipeline and is recorded in the override audit log.",
       "priority": "must",
       "tags": ["conformance", "lifecycle", "lock"],
       "scenarios": [
@@ -94,7 +94,7 @@
           "id": "rq-confLock01.3",
           "title": "Unlock requires explicit user-invoked action with audit",
           "given": ["A spec is locked"],
-          "when": "adv_conformance action: 'unlock' is invoked by the user",
+          "when": "The user invokes the conformance unlock action in the archive/status pipeline",
           "then": [
             "The lock state flips to false",
             "An override audit entry is appended to the spec's overrides array recording user, reason, re_verify_deadline, and applied_at",
@@ -106,7 +106,7 @@
     {
       "id": "rq-confSignalVisibility01",
       "title": "Saved State Notification Failure Visibility",
-      "body": "When adv_conformance writes local conformance state for lock, override, or run and the change-workflow notification fails, the tool response MUST preserve the local-state success result and include a structured signalWarning object: { code: 'ADV_CONFORMANCE_SIGNAL_FAILED', message: string, reason: string, recoverable: true, changeId: string }. The warning MUST NOT be debug-log-only.",
+      "body": "When the internal conformance check writes local conformance state for lock, override, or run and the change-workflow notification fails, the pipeline response MUST preserve the local-state success result and include a structured signalWarning object: { code: 'ADV_CONFORMANCE_SIGNAL_FAILED', message: string, reason: string, recoverable: true, changeId: string }. The warning MUST NOT be debug-log-only.",
       "priority": "must",
       "tags": ["conformance", "visibility", "signals"],
       "scenarios": [
@@ -115,10 +115,10 @@
           "title": "Lock save succeeds but workflow notification fails visibly",
           "given": [
             "A tracked conformance spec exists",
-            "adv_conformance action: 'lock' persists locked state",
+            "The internal conformance check persists locked state",
             "The change-workflow signal rejects"
           ],
-          "when": "The tool returns to the caller",
+          "when": "The pipeline returns to the caller",
           "then": [
             "The response reports success for the local lock state",
             "The response includes signalWarning.code = 'ADV_CONFORMANCE_SIGNAL_FAILED'",
@@ -131,10 +131,10 @@
           "title": "Override save succeeds but workflow notification fails visibly",
           "given": [
             "A tracked conformance spec has locked_at_archive set",
-            "adv_conformance action: 'override' persists an override audit entry",
+            "The internal conformance check persists an override audit entry",
             "The change-workflow signal rejects"
           ],
-          "when": "The tool returns to the caller",
+          "when": "The pipeline returns to the caller",
           "then": [
             "The response reports success for the local override audit",
             "The response includes signalWarning with stable code, reason, recoverable flag, and changeId",
@@ -146,10 +146,10 @@
           "title": "Run verdict save succeeds but workflow notification fails visibly",
           "given": [
             "A tracked conformance spec has locked_at_archive set",
-            "adv_conformance action: 'run' persists last_verdict",
+            "The internal conformance check persists last_verdict",
             "The change-workflow signal rejects"
           ],
-          "when": "The tool returns to the caller",
+          "when": "The pipeline returns to the caller",
           "then": [
             "The response preserves the structured verdict result",
             "The response includes signalWarning with stable code, reason, recoverable flag, and changeId",
@@ -161,17 +161,17 @@
     {
       "id": "rq-confVerdict01",
       "title": "Single Structured Verdict, Role-Aware Tool Access",
-      "body": "Conformance runs produce a single structured verdict shape `{verdict: 'PASS' | 'DRIFT', run_id, failed: [{rq_id, summary}]}`. The implementing agent has no tool path to call `adv_conformance` during the execution gate (role guard in tool.execute.before). The orchestrator (in `/adv-archive`) calls the tool and receives the verdict. Full diagnostic detail is echoed to the user terminal at archive time but never returned through a tool channel reachable by an apply-phase agent.",
+      "body": "The internal conformance check produces a single structured verdict shape `{verdict: 'PASS' | 'DRIFT', run_id, failed: [{rq_id, summary}]}` during the status/archive pipeline. Full diagnostic detail is echoed to the user terminal at archive time but never returned through a tool channel reachable by an apply-phase agent.",
       "priority": "must",
       "tags": ["conformance", "verdict", "role-guard"],
       "scenarios": [
         {
           "id": "rq-confVerdict01.1",
-          "title": "Apply-phase agent cannot call adv_conformance",
+          "title": "Conformance runs are internal to the archive pipeline",
           "given": ["An active task is in the execution gate"],
-          "when": "The agent attempts to call adv_conformance with any action",
+          "when": "An apply-phase agent attempts to invoke the conformance check directly",
           "then": [
-            "The tool.execute.before role guard rejects the call with an enforcement error",
+            "No agent-callable conformance surface is available",
             "No conformance state mutation or read occurs"
           ]
         },
@@ -182,9 +182,9 @@
             "A change has reached /adv-archive Phase 5.5",
             "The spec has conformance_required: true"
           ],
-          "when": "The orchestrator calls adv_conformance action: 'run'",
+          "when": "The archive pipeline runs the internal conformance check",
           "then": [
-            "The tool returns {verdict: 'PASS' | 'DRIFT', run_id, failed} with no tiered shaping",
+            "The internal conformance check returns {verdict: 'PASS' | 'DRIFT', run_id, failed} with no tiered shaping",
             "On DRIFT, failed contains AC labels (rq_id) plus brief summary, no source code or test internals"
           ]
         }
@@ -237,7 +237,7 @@
         {
           "id": "rq-confOverride01.1",
           "title": "Override entry must include all required audit fields",
-          "given": ["A user invokes adv_conformance action: 'override'"],
+          "given": ["A user invokes the conformance override action in the archive/status pipeline"],
           "when": "The override is recorded",
           "then": [
             "The override entry contains user, reason, re_verify_deadline, and applied_at",
@@ -294,7 +294,7 @@
     {
       "id": "rq-confTriage01",
       "title": "Drift Triage: Halt + Report, No Auto-Resolve",
-      "body": "On DRIFT verdict at archive, the agent halts and reports the failing AC labels (rq_id + summary) plus override/unlock command instructions. The agent does NOT orchestrate the fix. The user picks one of three options manually: fix code locally and rerun archive, invoke `adv_conformance action: 'override'`, or invoke `adv_conformance action: 'unlock'` to amend the spec. No automated path creates a new remediation change or amends the spec without explicit user action.",
+      "body": "On DRIFT verdict at archive, the agent halts and reports the failing AC labels (rq_id + summary) plus override/unlock command instructions. The agent does NOT orchestrate the fix. The user picks one of three options manually: fix code locally and rerun archive, invoke the conformance override action in the archive/status pipeline, or invoke the conformance unlock action to amend the spec. No automated path creates a new remediation change or amends the spec without explicit user action.",
       "priority": "must",
       "tags": ["conformance", "triage", "user-control"],
       "scenarios": [
@@ -305,7 +305,7 @@
           "when": "The orchestrator surfaces the result",
           "then": [
             "The user sees the failing rq_id list and brief summaries",
-            "The user sees three explicit options: fix locally + rerun archive; adv_conformance action: 'override'; adv_conformance action: 'unlock'",
+            "The user sees three explicit options: fix locally + rerun archive; conformance override action; conformance unlock action",
             "The agent does NOT auto-create a remediation change"
           ]
         },

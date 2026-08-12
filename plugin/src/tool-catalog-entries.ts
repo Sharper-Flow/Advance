@@ -229,7 +229,6 @@ export interface ToolMetadataV1 {
 // =============================================================================
 
 export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
-  adv_conformance: "conformance",
   adv_delta_add: "spec",
   adv_delta_amend: "spec",
   adv_delta_modify: "spec",
@@ -241,7 +240,6 @@ export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
   adv_followup_promote: "followup",
   adv_subagent_report_submit: "report",
   adv_run_test: "test",
-  adv_snapshot_health: "snapshot",
   adv_spec: "spec",
   adv_status: "status",
   adv_wip_state: "status",
@@ -277,16 +275,10 @@ export function deriveToolRealm(name: string): ToolRealm {
 
 export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   // Repair / operator-only recovery surface
-  adv_archive_purge: "repair",
   adv_change_workflow_terminate: "repair",
-  adv_doctor: "repair",
-  adv_store_cleanup: "repair",
 
   // Diagnostics / read-heavy analysis surface
-  adv_change_validate: "diagnostics",
-  adv_conformance: "diagnostics",
   adv_run_test: "diagnostics",
-  adv_snapshot_health: "diagnostics",
 
   // Metadata / submission surface
   adv_reflect: "metadata",

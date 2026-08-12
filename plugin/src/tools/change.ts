@@ -26,9 +26,7 @@ export const changeTools = {
   adv_change_update: lifecycleChangeTools.adv_change_update,
   adv_change_close: lifecycleChangeTools.adv_change_close,
   adv_change_bulk_close: lifecycleChangeTools.adv_change_bulk_close,
-  adv_change_validate: queryChangeTools.adv_change_validate,
   adv_change_archive: archiveChangeTools.adv_change_archive,
-  adv_archive_purge: archiveChangeTools.adv_archive_purge,
   adv_change_reenter: miscChangeTools.adv_change_reenter,
 };
 

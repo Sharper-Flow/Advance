@@ -385,24 +385,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     ).toThrow(/transport args.*top-level keys/i);
   });
 
-  test.each([
-    {
-      toolName: "adv_snapshot_health",
-      schema: {
-        action: z.enum(["scan", "repair"]),
-        repair_actions: z.array(z.string()).optional(),
-        approvedByUser: z.boolean().optional(),
-        approvalEvidence: z.string().optional(),
-      },
-      rawArgs: {
-        action: "repair",
-        repair_actions: [],
-        approvedByUser: true,
-        approvalEvidence: "ok",
-      },
-      field: "repair_actions",
-    },
-  ])(
+  test.each([])(
     "registry blocks malformed high-risk args before execute for $toolName.$field",
     async ({ toolName, schema, rawArgs, field }) => {
       let called = false;
@@ -538,36 +521,17 @@ describe("KD-8 worktree + session tool registrations", () => {
   });
 });
 
-describe("adv_snapshot_health registration", () => {
-  let tempDir: string;
-  let store: Awaited<ReturnType<typeof createDiskStore>>;
-
-  beforeEach(async () => {
-    tempDir = await createTempDir();
-    await createTestProject(tempDir);
-    store = await createDiskStore(tempDir);
-    await store.init();
-  });
-
-  afterEach(async () => {
-    store.close();
-    await cleanupTempDir(tempDir);
-  });
-
-  test("registers adv_snapshot_health in createToolMap", async () => {
-    const map = createToolMap(store, tempDir, store.paths.agenda);
-    expect(map.adv_snapshot_health).toBeDefined();
-    expect(typeof map.adv_snapshot_health).toBe("object");
-  });
-
-  test("includes adv_snapshot_health in ADV_TOOL_NAMES", () => {
-    expect(ADV_TOOL_NAMES).toContain("adv_snapshot_health");
-  });
-
+describe("retained registry registrations", () => {
   test("registers adv_reflection_list in createToolMap and ADV_TOOL_NAMES", async () => {
+    const tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    const store = await createDiskStore(tempDir);
+    await store.init();
     const map = createToolMap(store, tempDir, store.paths.agenda);
     expect(map.adv_reflection_list).toBeDefined();
     expect(ADV_TOOL_NAMES).toContain("adv_reflection_list");
+    store.close();
+    await cleanupTempDir(tempDir);
   });
 });
 

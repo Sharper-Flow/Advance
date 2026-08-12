@@ -8,7 +8,6 @@
  */
 import { existsSync } from "fs";
 import { basename, dirname, join } from "path";
-import { z } from "zod";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
 import { getWorktreeCensus } from "../utils/worktree-census";
@@ -288,54 +287,31 @@ async function probeSessionPointer(
   }
 }
 
-export const doctorTools = {
-  adv_doctor: {
-    description:
-      "Diagnose disk-backed ADV state and apply the safe session-pointer repair. Reports projection readability, snapshot integrity, worktree-census reachability, and pointer sanity.",
-    args: {
-      target_path: z
-        .string()
-        .optional()
-        .describe(
-          "Optional absolute path to another ADV project. When provided, routes diagnostics through that project.",
-        ),
-      target_confirmed: z
-        .literal(true)
-        .optional()
-        .describe(
-          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
-        ),
-      confirmationEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
-        ),
-    },
-    execute: async (args: DoctorInput, store: Store): Promise<string> => {
-      if (!args.target_path) {
-        return executeDoctor(store, projectFromStore(store));
-      }
+export const doctorHandler = async (
+  args: DoctorInput,
+  store: Store,
+): Promise<string> => {
+  if (!args.target_path) {
+    return executeDoctor(store, projectFromStore(store));
+  }
 
-      return withTargetPathStore(
-        {
-          currentProjectPath: store.paths.root,
-          target_path: args.target_path,
-          mutation: true,
-          stateRequirement: "snapshot-ok",
-          target_confirmed: args.target_confirmed,
-          confirmationEvidence: args.confirmationEvidence,
-        },
-        async ({ context, store: targetStore }) =>
-          executeDoctor(
-            targetStore,
-            projectFromStore(targetStore),
-            formatTargetProjectContext(context),
-            context.trustSource === "current_project",
-          ),
-      );
+  return withTargetPathStore(
+    {
+      currentProjectPath: store.paths.root,
+      target_path: args.target_path,
+      mutation: true,
+      stateRequirement: "snapshot-ok",
+      target_confirmed: args.target_confirmed,
+      confirmationEvidence: args.confirmationEvidence,
     },
-  },
+    async ({ context, store: targetStore }) =>
+      executeDoctor(
+        targetStore,
+        projectFromStore(targetStore),
+        formatTargetProjectContext(context),
+        context.trustSource === "current_project",
+      ),
+  );
 };
 
 async function executeDoctor(

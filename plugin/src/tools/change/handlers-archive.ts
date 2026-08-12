@@ -1224,14 +1224,4 @@ export const archiveChangeTools = {
     },
     execute: advChangeArchiveHandler,
   },
-  adv_archive_purge: {
-    description: "Purge an archived change",
-    args: {
-      changeId: z.string(),
-      includeDiskBundle: z.boolean().optional(),
-      approvedByUser: z.literal(true),
-      approvalEvidence: z.string(),
-    },
-    execute: advArchivePurgeHandler,
-  },
 };

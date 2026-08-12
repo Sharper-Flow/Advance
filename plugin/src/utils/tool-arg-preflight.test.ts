@@ -157,37 +157,9 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
-    toolName: "adv_snapshot_health",
-    field: "repair_actions",
-    policy: "emptyArray",
-    action: "reject",
-  },
-  {
-    toolName: "adv_snapshot_health",
-    field: "approvalEvidence",
-    policy: "blank",
-    action: "reject",
-  },
-  {
-    // audit_history page limit: 0 placeholder fills normalize to omitted so
-    // the handler default (20) applies; bounded read, no safety impact.
-    toolName: "adv_snapshot_health",
-    field: "limit",
-    policy: "zero",
-    action: "omit",
-  },
-  {
     // Tool catalog page limit: 0 placeholder fills normalize to omitted so
     // the handler default (50) applies; bounded read, no safety impact.
     toolName: "adv_tool_catalog",
-    field: "limit",
-    policy: "zero",
-    action: "omit",
-  },
-  {
-    // dry_run page limit: 0 placeholder fills normalize to omitted so the
-    // handler default (20) applies; bounded read, no safety impact.
-    toolName: "adv_store_cleanup",
     field: "limit",
     policy: "zero",
     action: "omit",
@@ -997,13 +969,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["base"],
   },
   {
-    label: "blank conformance audit reason rejected",
-    toolName: "adv_conformance",
-    rawArgs: { reason: " " },
-    ok: false,
-    fields: ["reason"],
-  },
-  {
     // T2: target_path is optional on read tools — blank normalizes to omitted.
     label: "blank target path normalizes to omitted on read tools",
     toolName: "adv_change_show",
@@ -1602,7 +1567,6 @@ describe("tool arg preflight", () => {
     ["adv_worktree_create", { branch: " " }, "branch"],
     ["adv_worktree_delete", { branch: " " }, "branch"],
     ["adv_worktree_cleanup", { reason: " " }, "reason"],
-    ["adv_conformance", { action: "unlock", user: " " }, "user"],
   ])(
     "rejects representative blank placeholder for %s.%s",
     (toolName, rawArgs, field) => {
@@ -1702,7 +1666,6 @@ describe("tool arg preflight", () => {
       { taskId: "tk-1", command: "test", target_path: " " },
       "target_path",
     ],
-    ["adv_doctor", { target_path: " " }, "target_path"],
     ["adv_status", { target_path: " " }, "target_path"],
     [
       "adv_change_close",
@@ -2214,23 +2177,6 @@ describe("tool arg preflight", () => {
         target_confirmed: true,
       });
     });
-
-    test("full strict-mode adv_doctor payload normalizes blanks and preserves target_confirmed (rq-doctorConsolidation01)", () => {
-      const result = preflightToolArgs(
-        "adv_doctor",
-        {},
-        {
-          target_path: "",
-          target_confirmed: true,
-          confirmationEvidence: "",
-        },
-      );
-      expect(result.ok).toBe(true);
-      expect(result.invalid).toEqual([]);
-      expect(result.normalizedArgs).toEqual({
-        target_confirmed: true,
-      });
-    });
   });
 
   // AC12: required-when-present audit/identity/content/command fields keep
@@ -2282,8 +2228,6 @@ describe("tool arg preflight", () => {
       ["adv_worktree_create", { branch: "x", base: " " }, "base"],
       ["adv_worktree_delete", { branch: " " }, "branch"],
       ["adv_worktree_cleanup", { reason: " " }, "reason"],
-      ["adv_conformance", { action: "unlock", user: " " }, "user"],
-      ["adv_conformance", { action: "unlock", reason: " " }, "reason"],
     ])("%s.%s blank still rejects", (toolName, rawArgs, field) => {
       const result = preflightToolArgs(toolName, {}, rawArgs);
       expect(result.invalid).toContainEqual({
@@ -2318,22 +2262,6 @@ describe("tool arg preflight", () => {
         summary: "Add rate limiting",
         origin_kind: "adhoc",
       });
-      expect(result.invalid).toEqual([]);
-    });
-
-    test("zero: 'omit' normalizes adv_store_cleanup.limit 0 to omitted (handler default applies)", () => {
-      // adv_store_cleanup.limit has { zero: "omit" } so strict-mode 0 fills
-      // become omitted and the dry_run default page size (20) applies.
-      const result = preflightToolArgs(
-        "adv_store_cleanup",
-        {
-          action: z.enum(["scan", "dry_run", "execute"]).default("scan"),
-          limit: z.number().int().min(1).max(100).optional(),
-        },
-        { action: "dry_run", limit: 0 },
-      );
-      expect(result.ok).toBe(true);
-      expect(result.normalizedArgs).toEqual({ action: "dry_run" });
       expect(result.invalid).toEqual([]);
     });
 

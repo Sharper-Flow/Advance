@@ -220,7 +220,7 @@ plugin_dist_stale_reason() {
 	fi
 
 	local output_rel output
-	for output_rel in dist/index.js dist/mcp-server.js dist/reconcile-cli.js dist/plugin-bundle-manifest.json; do
+  for output_rel in dist/index.js dist/mcp-server.js dist/reconcile-cli.js dist/doctor-cli.js dist/plugin-bundle-manifest.json; do
 		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
 		if [ ! -f "$output" ]; then
 			printf '%s\n' "plugin dist output is missing: $output_rel"
@@ -343,13 +343,25 @@ validate_plugin_bundle_manifest() {
 		fi
 	fi
 
-	local expected_reconcile_cli_hash
+  local expected_reconcile_cli_hash
 	expected_reconcile_cli_hash="$(jq -r '.files["reconcile-cli"] // empty' "$manifest_path" 2>/dev/null)"
 	if [ -n "$expected_reconcile_cli_hash" ]; then
 		if ! [[ "$expected_reconcile_cli_hash" =~ ^[0-9a-f]{64}$ ]]; then
 			echo "    ✗  plugin bundle manifest has no valid files.reconcile-cli hash: $manifest_path"
 			return 1
-		fi
+  fi
+
+  local expected_doctor_cli_hash
+  expected_doctor_cli_hash="$(jq -r '.files["doctor-cli"] // empty' "$manifest_path" 2>/dev/null)"
+  if [ -n "$expected_doctor_cli_hash" ]; then
+    if ! [[ "$expected_doctor_cli_hash" =~ ^[0-9a-f]{64}$ ]]; then
+      echo "    ✗  plugin bundle manifest has no valid files.doctor-cli hash: $manifest_path"
+      return 1
+    fi
+    if ! __validate_file_hash "$dist_dir/doctor-cli.js" "$expected_doctor_cli_hash" "doctor-cli"; then
+      return 1
+    fi
+  fi
 		if ! __validate_file_hash "$dist_dir/reconcile-cli.js" "$expected_reconcile_cli_hash" "reconcile-cli"; then
 			return 1
 		fi

@@ -42,10 +42,6 @@ const STATIC_TITLES: Record<
   adv_status: { title: "Show ADV status", titleKind: "read" },
   adv_project_context: { title: "Show project context", titleKind: "read" },
   adv_task_ready: { title: "Show ready tasks", titleKind: "read" },
-  adv_doctor: {
-    title: "Run ADV doctor",
-    titleKind: "operator",
-  },
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
   adv_session_list: { title: "List sessions", titleKind: "read" },
   adv_worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
@@ -93,12 +89,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Update change${suffix(args, "changeId")}`),
   adv_change_close: (args) => write(`Close change${suffix(args, "changeId")}`),
   adv_change_bulk_close: () => write("Bulk close changes"),
-  adv_change_validate: (args) =>
-    read(`Validate change${suffix(args, "changeId")}`),
   adv_change_archive: (args) =>
     write(`Archive change${suffix(args, "changeId")}`),
-  adv_archive_purge: (args) =>
-    operator(`Purge archived change${suffix(args, "changeId")}`),
   adv_change_workflow_terminate: (args) =>
     operator(`Terminate change workflow${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
@@ -135,19 +127,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_subagent_report_submit: () => write("Submit subagent report"),
   adv_wisdom_add: (args) => write(`Add wisdom${suffix(args, "changeId")}`),
   adv_wisdom_list: (args) => read(`List wisdom${suffix(args, "changeId")}`),
-  adv_snapshot_health: (args) =>
-    operator(`Check snapshot health${suffix(args, "action")}`),
-  adv_store_cleanup: (args) => {
-    const action = typeof args.action === "string" ? args.action : "scan";
-    if (action === "execute") return operator("Execute legacy agenda cleanup");
-    return read(
-      action === "dry_run"
-        ? "Dry-run legacy agenda cleanup"
-        : "Scan stores for legacy agenda",
-    );
-  },
-  adv_doctor: (args) =>
-    operator(`Run ADV doctor${suffix(args, "target_path")}`),
   adv_gate_status: (args) =>
     read(`Show gate status${suffix(args, "changeId")}`),
   adv_gate_complete: (args) => write(`Complete gate${suffix(args, "gateId")}`),
@@ -157,8 +136,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_reflection_list: (args) =>
     read(`List reflections${suffix(args, "changeId", "target_path")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
-  adv_conformance: (args) =>
-    operator(`Run conformance${suffix(args, "action")}`),
   adv_worktree_create: (args) =>
     operator(`Create worktree${suffix(args, "branch")}`),
   adv_worktree_delete: (args) =>

@@ -9,7 +9,7 @@
     {
       "id": "rq-snapshotHealthProbe01",
       "title": "Detection pattern coverage",
-      "body": "The `adv_snapshot_health` tool with `action: scan` MUST detect seven distinct corruption patterns in the OpenCode snapshot store: (1) stale_lock — an index.lock or similar lock file whose mtime is older than 5 minutes and has no active process holding it per `lsof`; (2) zero_byte_object — a git object file in objects/ with size zero bytes; (3) fsck_error — any entry in `git fsck` output that is not informational; (4) orphan_bare_repo — a bare-git directory under the snapshot root whose corresponding worktree path no longer exists; (5) oversized_dir — a snapshot subdirectory whose total size exceeds 100MB as reported by `du`; (6) legacy_layout — a project directory that is itself a bare git repo (HEAD, objects/, refs/ directly inside the project dir) rather than containing per-worktree subdirectories; (7) no_snapshot_dirs — a project entry in the snapshot root that has no snapshot subdirectories at all.\n\nThe scan output MUST be a structured object with `schema_version: 1`, a human-readable `summary` string, and a `findings` array where each finding includes `pattern`, `path`, `severity` (error | warning | info), and `details`.",
+      "body": "The `bin/adv doctor --snapshot` CLI command with `--action scan` MUST detect seven distinct corruption patterns in the OpenCode snapshot store: (1) stale_lock — an index.lock or similar lock file whose mtime is older than 5 minutes and has no active process holding it per `lsof`; (2) zero_byte_object — a git object file in objects/ with size zero bytes; (3) fsck_error — any entry in `git fsck` output that is not informational; (4) orphan_bare_repo — a bare-git directory under the snapshot root whose corresponding worktree path no longer exists; (5) oversized_dir — a snapshot subdirectory whose total size exceeds 100MB as reported by `du`; (6) legacy_layout — a project directory that is itself a bare git repo (HEAD, objects/, refs/ directly inside the project dir) rather than containing per-worktree subdirectories; (7) no_snapshot_dirs — a project entry in the snapshot root that has no snapshot subdirectories at all.\n\nThe scan output MUST be a structured object with `schema_version: 1`, a human-readable `summary` string, and a `findings` array where each finding includes `pattern`, `path`, `severity` (error | warning | info), and `details`. This is an operator-only surface; agents must not invoke it.",
       "priority": "must",
       "tags": ["diagnostics", "snapshot", "probe"],
       "scenarios": [
@@ -19,7 +19,7 @@
           "given": [
             "A snapshot store contains one example of each corruption pattern"
           ],
-          "when": "adv_snapshot_health action: 'scan' is invoked",
+          "when": "The operator invokes `bin/adv doctor --snapshot --action scan`",
           "then": [
             "The output schema_version is 1",
             "The summary lists the total count of findings",
@@ -32,7 +32,7 @@
     {
       "id": "rq-snapshotHealthSafeDefault01",
       "title": "Read-only default",
-      "body": "The default action for `adv_snapshot_health` is `scan`, which performs only read-only directory and file metadata inspection. Any filesystem mutation — including lock deletion, object removal, or orphan repo cleanup — requires three explicit conditions: (1) the caller must pass `action: 'repair'`; (2) the caller must pass `approvedByUser: true`; (3) the caller must pass a non-empty `approvalEvidence` string and a non-empty `repair_actions` array.\n\nIf any of these conditions is missing, the tool MUST refuse execution and return an error explaining which condition was not met. No filesystem mutation occurs unless all conditions are satisfied.",
+      "body": "The default action for `bin/adv doctor --snapshot` is `--action scan`, which performs only read-only directory and file metadata inspection. Any filesystem mutation — including lock deletion, object removal, or orphan repo cleanup — requires three explicit conditions: (1) the operator must pass `--action repair`; (2) the operator must pass `--approved-by-user true`; (3) the operator must pass a non-empty `--approval-evidence` string and a non-empty `--repair-actions` array.\n\nIf any of these conditions is missing, the CLI command MUST refuse execution and return an error explaining which condition was not met. No filesystem mutation occurs unless all conditions are satisfied.",
       "priority": "must",
       "tags": ["diagnostics", "snapshot", "safety"],
       "scenarios": [
@@ -40,7 +40,7 @@
           "id": "rq-snapshotHealthSafeDefault01.1",
           "title": "Default action is read-only",
           "given": [
-            "The adv_snapshot_health tool is invoked",
+            "The operator invokes `bin/adv doctor --snapshot`",
             "No action is specified"
           ],
           "when": "The tool executes",
@@ -59,7 +59,7 @@
           ],
           "when": "The tool validates arguments",
           "then": [
-            "The tool returns an error indicating approval is required",
+            "The CLI command returns an error indicating approval is required",
             "No filesystem mutations occur"
           ]
         }
@@ -68,7 +68,7 @@
     {
       "id": "rq-snapshotHealthRepairWhitelist01",
       "title": "Closed repair whitelist",
-      "body": "Only four repair actions are accepted by `adv_snapshot_health` when `action: 'repair'` is invoked: `delete_stale_locks`, `delete_zero_byte_objects`, `delete_orphan_bare_repos`, and `delete_fsck_corrupt_repos`. Any other string in the `repair_actions` array MUST be rejected with a validation error before any filesystem operation begins.\n\nHistory-altering git operations are explicitly prohibited. The repair whitelist MUST NOT include `gc`, `prune`, `filter-repo`, `repack`, or any other command that rewrites git history or mutates the object database in ways that are not strictly additive removal of known-bad artifacts.",
+      "body": "Only four repair actions are accepted by `bin/adv doctor --snapshot` when `--action repair` is invoked: `delete_stale_locks`, `delete_zero_byte_objects`, `delete_orphan_bare_repos`, and `delete_fsck_corrupt_repos`. Any other string in the `--repair-actions` array MUST be rejected with a validation error before any filesystem operation begins.\n\nHistory-altering git operations are explicitly prohibited. The repair whitelist MUST NOT include `gc`, `prune`, `filter-repo`, `repack`, or any other command that rewrites git history or mutates the object database in ways that are not strictly additive removal of known-bad artifacts.",
       "priority": "must",
       "tags": ["diagnostics", "snapshot", "repair", "whitelist"],
       "scenarios": [
@@ -78,7 +78,7 @@
           "given": [
             "A repair request includes only delete_stale_locks, delete_zero_byte_objects, delete_orphan_bare_repos, and delete_fsck_corrupt_repos"
           ],
-          "when": "The tool validates repair_actions",
+          "when": "The CLI command validates `--repair-actions`",
           "then": [
             "Validation succeeds",
             "Repairs proceed for each requested action"
@@ -90,7 +90,7 @@
           "given": [
             "A repair request includes 'gc' or 'prune' in repair_actions"
           ],
-          "when": "The tool validates repair_actions",
+          "when": "The CLI command validates `--repair-actions`",
           "then": [
             "Validation fails with an error listing the unsupported action",
             "No filesystem mutations occur"
@@ -101,7 +101,7 @@
     {
       "id": "rq-snapshotHealthAuditTrail01",
       "title": "Repair audit trail",
-      "body": "Every successful repair operation performed by `adv_snapshot_health` MUST append a durable audit entry to a purpose-specific snapshot-repair audit log (JSONL), NOT to any generic work-management store. The audit entry MUST have: `pattern` (the corruption pattern detected), `action` (the repair action executed), `target_path` (the absolute path of the artifact the repair acted on), `before_summary` (human-readable pre-repair state), `after_summary` (human-readable post-repair state), `outcome: 'success'`, and `recorded_at` (ISO-8601 UTC timestamp).\n\nThe audit log is append-only and MUST NOT be modified or deleted by the tool after creation. It lives outside planning, gates, backlog, and Epic state — it is a durable, read-only audit record only. Failed or skipped repairs do not produce audit entries; dry-run repairs produce no audit entries.",
+      "body": "Every successful repair operation performed by `bin/adv doctor --snapshot` MUST append a durable audit entry to a purpose-specific snapshot-repair audit log (JSONL), NOT to any generic work-management store. The audit entry MUST have: `pattern` (the corruption pattern detected), `action` (the repair action executed), `target_path` (the absolute path of the artifact the repair acted on), `before_summary` (human-readable pre-repair state), `after_summary` (human-readable post-repair state), `outcome: 'success'`, and `recorded_at` (ISO-8601 UTC timestamp).\n\nThe audit log is append-only and MUST NOT be modified or deleted by the CLI command after creation. It lives outside planning, gates, backlog, and Epic state — it is a durable, read-only audit record only. Failed or skipped repairs do not produce audit entries; dry-run repairs produce no audit entries.",
       "priority": "must",
       "tags": ["diagnostics", "snapshot", "audit", "repair-audit"],
       "scenarios": [
@@ -134,7 +134,7 @@
     {
       "id": "rq-snapshotHealthScopeBoundary01",
       "title": "Scope boundary",
-      "body": "The `scope` parameter controls the scan boundary. `scope: 'project'` scans only the snapshot directory associated with the caller's project (identified by project-id derived from the repo root commit SHA). `scope: 'global'` scans all project directories under the OpenCode snapshot root.\n\nCross-project scanning when `scope: 'global'` is read-only on directory metadata — it enumerates directories, checks mtimes, and counts bytes, but NEVER reads the content of git objects or snapshot files belonging to other projects. This ensures isolation: one project cannot inspect another project's code through the snapshot-health tool.",
+      "body": "The `--scope` flag controls the scan boundary. `--scope project` scans only the snapshot directory associated with the operator's project (identified by project-id derived from the repo root commit SHA). `--scope global` scans all project directories under the OpenCode snapshot root.\n\nCross-project scanning when `--scope global` is read-only on directory metadata — it enumerates directories, checks mtimes, and counts bytes, but NEVER reads the content of git objects or snapshot files belonging to other projects. This ensures isolation: one project cannot inspect another project's code through the snapshot-health CLI command.",
       "priority": "must",
       "tags": ["diagnostics", "snapshot", "scope", "isolation"],
       "scenarios": [
@@ -142,7 +142,7 @@
           "id": "rq-snapshotHealthScopeBoundary01.1",
           "title": "Project scope limits scan to caller project",
           "given": [
-            "The tool is invoked with scope: 'project'"
+            "The operator invokes `bin/adv doctor --snapshot --scope project`"
           ],
           "when": "The scan executes",
           "then": [
@@ -154,7 +154,7 @@
           "id": "rq-snapshotHealthScopeBoundary01.2",
           "title": "Global scope is read-only on metadata",
           "given": [
-            "The tool is invoked with scope: 'global'"
+            "The operator invokes `bin/adv doctor --snapshot --scope global`"
           ],
           "when": "The scan executes",
           "then": [
@@ -168,7 +168,7 @@
     {
       "id": "rq-snapshotHealthSchemaVersion01",
       "title": "Output schema versioning",
-      "body": "Every output object from `adv_snapshot_health` MUST include `schema_version: 1` at the top level. This integer signals the shape of the output to consumers. Future breaking changes to the output structure (new required fields, renamed fields, or changed finding shapes) MUST increment the integer.\n\nConsumers of the output SHOULD check `schema_version >= N` rather than strict equality, so that additive changes (new optional fields) do not break compatibility. The set of fields and the finding object shape are stable within a major version.",
+      "body": "Every output object from `bin/adv doctor --snapshot` MUST include `schema_version: 1` at the top level. This integer signals the shape of the output to consumers. Future breaking changes to the output structure (new required fields, renamed fields, or changed finding shapes) MUST increment the integer.\n\nConsumers of the output SHOULD check `schema_version >= N` rather than strict equality, so that additive changes (new optional fields) do not break compatibility. The set of fields and the finding object shape are stable within a major version.",
       "priority": "must",
       "tags": ["diagnostics", "snapshot", "schema", "api"],
       "scenarios": [
@@ -176,7 +176,7 @@
           "id": "rq-snapshotHealthSchemaVersion01.1",
           "title": "Output includes schema version",
           "given": [
-            "Any adv_snapshot_health call completes successfully"
+            "Any `bin/adv doctor --snapshot` invocation completes successfully"
           ],
           "when": "The output is inspected",
           "then": [

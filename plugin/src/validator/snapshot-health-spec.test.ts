@@ -83,9 +83,9 @@ describe("snapshot-health spec", () => {
       (r) => r.id === "rq-snapshotHealthSafeDefault01",
     );
     expect(safe).toBeDefined();
-    expect(safe?.body).toContain("approvedByUser: true");
-    expect(safe?.body).toContain("approvalEvidence");
-    expect(safe?.body).toContain("repair_actions");
+    expect(safe?.body).toContain("--approved-by-user true");
+    expect(safe?.body).toContain("--approval-evidence");
+    expect(safe?.body).toContain("--repair-actions");
   });
 
   test("rq-snapshotHealthRepairWhitelist01 prohibits history-altering ops", () => {

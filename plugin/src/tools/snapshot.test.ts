@@ -9,7 +9,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdir, writeFile, utimes, access } from "node:fs/promises";
 import { join } from "node:path";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
-import { snapshotHealthTools } from "./snapshot";
+import { snapshotHealthHandler } from "./snapshot";
 import {
   STALE_LOCK_THRESHOLD_MS,
   SNAPSHOT_HEALTH_SCHEMA_VERSION,
@@ -106,7 +106,7 @@ describe("adv_snapshot_health", () => {
   });
 
   test("scan happy path — clean snapshot dir returns SnapshotHealthOutput with schema_version 1", async () => {
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "scan", scope: "project" },
       store,
     );
@@ -125,7 +125,7 @@ describe("adv_snapshot_health", () => {
   });
 
   test("repair rejects without approvedByUser", async () => {
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       {
         action: "repair",
         scope: "project",
@@ -141,7 +141,7 @@ describe("adv_snapshot_health", () => {
   });
 
   test("repair rejects without approvalEvidence", async () => {
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       {
         action: "repair",
         scope: "project",
@@ -157,7 +157,7 @@ describe("adv_snapshot_health", () => {
   });
 
   test("repair rejects empty approvalEvidence", async () => {
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       {
         action: "repair",
         scope: "project",
@@ -174,7 +174,7 @@ describe("adv_snapshot_health", () => {
   });
 
   test("repair rejects unknown action string", async () => {
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       {
         action: "repair",
         scope: "project",
@@ -200,7 +200,7 @@ describe("adv_snapshot_health", () => {
       STALE_LOCK_THRESHOLD_MS + 1000,
     );
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       {
         action: "repair",
         scope: "project",
@@ -239,7 +239,7 @@ describe("adv_snapshot_health", () => {
       STALE_LOCK_THRESHOLD_MS + 1000,
     );
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       {
         action: "repair",
         scope: "project",
@@ -295,7 +295,7 @@ describe("adv_snapshot_health", () => {
     // Do NOT add a stale lock — the repair will try to delete a non-existent
     // path and the finding will not match the whitelist, so no audit write
     // should occur.
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       {
         action: "repair",
         scope: "project",
@@ -321,7 +321,7 @@ describe("adv_snapshot_health", () => {
     await makeBareRepo(repoPath);
     await addStaleLock(repoPath, "index", STALE_LOCK_THRESHOLD_MS + 1000);
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "scan", scope: "project" },
       store,
     );
@@ -364,7 +364,7 @@ describe("adv_snapshot_health", () => {
   test("audit_history returns recent entries newest-first with default limit 20", async () => {
     await seedAuditEntries(3);
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "audit_history", scope: "project" },
       store,
     );
@@ -385,7 +385,7 @@ describe("adv_snapshot_health", () => {
   test("audit_history bounds results to the requested limit", async () => {
     await seedAuditEntries(25);
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "audit_history", scope: "project", limit: 5 },
       store,
     );
@@ -403,7 +403,7 @@ describe("adv_snapshot_health", () => {
   test("audit_history applies the default limit of 20", async () => {
     await seedAuditEntries(25);
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "audit_history", scope: "project" },
       store,
     );
@@ -417,7 +417,7 @@ describe("adv_snapshot_health", () => {
   test("audit_history clamps limit to the 100 maximum", async () => {
     await seedAuditEntries(3);
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "audit_history", scope: "project", limit: 500 },
       store,
     );
@@ -428,7 +428,7 @@ describe("adv_snapshot_health", () => {
   });
 
   test("audit_history refuses scope: global (no cross-project audit data)", async () => {
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "audit_history", scope: "global" },
       store,
     );
@@ -439,7 +439,7 @@ describe("adv_snapshot_health", () => {
   });
 
   test("audit_history returns an empty list when no audit log exists", async () => {
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "audit_history", scope: "project" },
       store,
     );
@@ -453,7 +453,7 @@ describe("adv_snapshot_health", () => {
   test("audit_history entries expose only audit-schema fields (no secrets)", async () => {
     await seedAuditEntries(1);
 
-    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+    const result = await snapshotHealthHandler(
       { action: "audit_history", scope: "project" },
       store,
     );

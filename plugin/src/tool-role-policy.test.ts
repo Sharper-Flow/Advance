@@ -108,18 +108,6 @@ describe("tool role policy — exhaustive classification (AC5/AC7, DDC8)", () =>
   });
 
   test("action-level dual distinctions are preserved, not flattened (DDC8)", () => {
-    const snapshotHealth = TOOL_ROLE_POLICY["adv_snapshot_health"];
-    expect(snapshotHealth.class).toBe("dual");
-    expect(snapshotHealth.agentActions).toContain("scan");
-    expect(snapshotHealth.agentActions).toContain("audit_history");
-    expect(snapshotHealth.operatorActions).toContain("repair");
-
-    const conformance = TOOL_ROLE_POLICY["adv_conformance"];
-    expect(conformance.class).toBe("dual");
-    expect(conformance.agentActions).toContain("status");
-    expect(conformance.agentActions).toContain("run");
-    expect(conformance.operatorActions).toContain("override");
-
     const status = TOOL_ROLE_POLICY["adv_status"];
     expect(status.class).toBe("dual");
     expect(status.operatorActions).toContain("forceRefresh");
@@ -140,42 +128,11 @@ describe("tool role policy — ownership matrix parity (docs/tool-ownership.md)"
   });
 
   test("every policy dual tool has the documented matrix representation", () => {
-    // docs/tool-ownership.md is the documented view: six dual tools carry
-    // dual rows; adv_snapshot_health and adv_conformance carry action-qualified
-    // operator-only rows (#repair / #override) because only those actions are
-    // operator-owned — the code policy models both as dual with explicit
-    // agentActions/operatorActions so the distinction is never flattened.
-    const documentedAsDual = DUAL_TOOL_NAMES.filter(
-      (tool) => tool !== "adv_snapshot_health" && tool !== "adv_conformance",
-    );
-    for (const tool of documentedAsDual) {
+    for (const tool of DUAL_TOOL_NAMES) {
       const found = lines.some(
         (line) => line.includes(tool) && line.includes("dual"),
       );
       expect(found, `${tool} must have a dual matrix row`).toBe(true);
-    }
-  });
-
-  test("action-qualified operator-only rows exist for dual tools with operator actions", () => {
-    // docs/tool-ownership.md lists adv_snapshot_health (#repair) and
-    // adv_conformance (#override) in the operator-only table; the code policy
-    // models them as dual with operatorActions. Both views must agree.
-    for (const [tool, qualifier] of [
-      ["adv_snapshot_health", "#repair"],
-      ["adv_conformance", "#override"],
-    ] as const) {
-      const entry = TOOL_ROLE_POLICY[tool];
-      expect(entry.class).toBe("dual");
-      const found = lines.some(
-        (line) =>
-          line.includes(tool) &&
-          line.includes("operator-only") &&
-          line.includes(qualifier),
-      );
-      expect(
-        found,
-        `${tool} must keep its action-qualified (${qualifier}) operator-only matrix row`,
-      ).toBe(true);
     }
   });
 });

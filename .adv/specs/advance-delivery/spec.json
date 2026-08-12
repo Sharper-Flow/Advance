@@ -1144,7 +1144,7 @@
     {
       "id": "rq-storeCleanupCoupling01",
       "title": "Store Cleanup Safety and Indefinite Retention",
-      "body": "ADV retains `adv_store_cleanup` indefinitely as an operator-only maintenance tool for provably obsolete legacy agenda data; it is discoverable but must never become a routine autonomous agent action. Cleanup execute is manifest-before-delete: a `prepared` manifest row is persisted before any deletion, deletion proceeds only when that write succeeds, and a terminal outcome row is appended after each attempt so re-runs are idempotent. Dry-run plans stay reviewable before execution: bounded summary counts plus paged store renders, with plan_hash always computed over the full plan content — including paginated-out stores — so an approval pinned to a plan hash authorizes exactly one full plan. Cleanup never removes current change projections or archive bundles.",
+      "body": "ADV retains `bin/adv doctor --cleanup-legacy` indefinitely as an operator-only CLI maintenance command for provably obsolete legacy agenda data; it is discoverable but must never become a routine autonomous agent action. Cleanup execute is manifest-before-delete: a `prepared` manifest row is persisted before any deletion, deletion proceeds only when that write succeeds, and a terminal outcome row is appended after each attempt so re-runs are idempotent. Dry-run plans stay reviewable before execution: bounded summary counts plus paged store renders, with plan_hash always computed over the full plan content — including paginated-out stores — so an approval pinned to a plan hash authorizes exactly one full plan. Cleanup never removes current change projections or archive bundles.",
       "priority": "must",
       "tags": [
         "cleanup",
@@ -1160,7 +1160,7 @@
           "given": [
             "A store contains current change projections or archive bundles"
           ],
-          "when": "adv_store_cleanup evaluates the store",
+          "when": "`bin/adv doctor --cleanup-legacy` evaluates the store",
           "then": [
             "The store is classified unsafe and planned as retain",
             "No current projection or archive file is deleted"
@@ -1172,7 +1172,7 @@
           "given": [
             "A store contains a file not proven to be obsolete legacy agenda data"
           ],
-          "when": "adv_store_cleanup plans the store",
+          "when": "`bin/adv doctor --cleanup-legacy` plans the store",
           "then": [
             "The store is classified unsafe and planned as retain",
             "The unproven file is preserved",
@@ -1213,8 +1213,8 @@
           ],
           "when": "Operators maintain local stores over time",
           "then": [
-            "adv_store_cleanup remains available indefinitely for removing provably obsolete legacy agenda files",
-            "The tool is operator-only: discoverable, but never a routine autonomous agent action",
+            "`bin/adv doctor --cleanup-legacy` remains available indefinitely for removing provably obsolete legacy agenda files",
+            "The CLI command is operator-only: discoverable, but never a routine autonomous agent action",
             "Every deletion remains approval-gated with a manifest audit trail"
           ]
         }

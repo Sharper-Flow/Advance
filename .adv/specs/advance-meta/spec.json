@@ -1299,8 +1299,8 @@
     },
     {
       "id": "rq-archivePurge01",
-      "title": "adv_archive_purge tool",
-      "body": "ADV must provide an explicit user-side lever to purge an archived change's archive bundle and disk projection. The on-disk archive bundle is preserved by default; destructive disk removal requires opt-in. A purge that does not include disk removal leaves the projection readable, while an approved disk purge removes the archived change from read surfaces.",
+      "title": "bin/adv doctor archive-purge CLI subcommand",
+      "body": "ADV must provide an explicit operator-side lever through `bin/adv doctor --archive-purge` to purge an archived change's archive bundle and disk projection. The on-disk archive bundle is preserved by default; destructive disk removal requires opt-in. A purge that does not include disk removal leaves the projection readable, while an approved disk purge removes the archived change from read surfaces. These are operator-only surfaces; agents must not invoke them.",
       "priority": "must",
       "scenarios": [
         {
@@ -1309,7 +1309,7 @@
           "given": [
             "An archived change with an existing archive/<id>/change.json bundle on disk"
           ],
-          "when": "adv_archive_purge changeId: <id> is invoked without includeDiskBundle",
+          "when": "The operator invokes `bin/adv doctor --archive-purge` for changeId <id> without `--include-disk-bundle`",
           "then": [
             "The on-disk archive bundle is preserved",
             "adv_change_show for the changeId returns content from the on-disk projection"
@@ -1321,7 +1321,7 @@
           "given": [
             "An archived change with a disk bundle"
           ],
-          "when": "adv_archive_purge changeId: <id> includeDiskBundle: true is invoked",
+          "when": "The operator invokes `bin/adv doctor --archive-purge` for changeId <id> with `--include-disk-bundle`",
           "then": [
             "The archive/<id>/ directory is recursively removed from disk",
             "Subsequent adv_change_show returns the existing not-found error path"
@@ -1333,9 +1333,9 @@
           "given": [
             "A change in active status, OR a changeId that does not exist in the archive"
           ],
-          "when": "adv_archive_purge is invoked",
+          "when": "The operator invokes `bin/adv doctor --archive-purge`",
           "then": [
-            "The tool returns a structured error and makes no state mutations"
+            "The CLI command returns a structured error and makes no state mutations"
           ]
         }
       ]
@@ -1360,16 +1360,16 @@
         },
         {
           "id": "rq-toolTimeoutOverride01.2",
-          "title": "adv_doctor disk recovery uses bounded verified recovery",
+          "title": "bin/adv doctor disk recovery uses bounded verified recovery",
           "given": [
             "A bounded disk recovery is requested for the current project"
           ],
-          "when": "adv_doctor applies a safe disk fix",
+          "when": "`bin/adv doctor` applies a safe disk fix",
           "then": [
-            "The tool waits up to the configured verification budget (default 10s) for the expected disk condition to become verifiable",
-            "The tool returns success:true only when the post-fix disk condition is proven by bounded readback evidence",
-            "The tool returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative",
-            "The tool is registered with an explicit safety-net timeout override that exceeds the verification budget with modest headroom"
+            "The CLI command waits up to the configured verification budget (default 10s) for the expected disk condition to become verifiable",
+            "The CLI command returns success:true only when the post-fix disk condition is proven by bounded readback evidence",
+            "The CLI command returns success:false with structured diagnostics when verification times out or evidence is unavailable or negative",
+            "The CLI command uses an explicit safety-net timeout override that exceeds the verification budget with modest headroom"
           ]
         }
       ]
@@ -2397,7 +2397,7 @@
     {
       "id": "rq-toolOwnership01",
       "title": "Tool Ownership and Reachability Matrix",
-      "body": "Every registered ADV tool must have an explicit ownership/reachability classification—orchestrator, operator-only, or dual—recorded in the git-tracked matrix at docs/tool-ownership.md. Machine-resolvable recovery belongs in normal operations and MUST NOT remain as routine operator-only repair tools. The operator repair group contains only genuine operator boundaries: adv_archive_purge, adv_doctor, and adv_store_cleanup. Deleted workflow-termination and identity-consolidation tools MUST NOT remain in the matrix or repair group. Intent-bearing origin, legacy-store, and worktree maintenance may remain separately classified outside the repair group. Operator-only destructive actions require explicit instruction and approval evidence. The matrix is enforced by static tests against the canonical registry.",
+      "body": "Every registered ADV tool must have an explicit ownership/reachability classification—orchestrator, operator-only, or dual—recorded in the git-tracked matrix at docs/tool-ownership.md. Machine-resolvable recovery belongs in normal operations and MUST NOT remain as routine operator-only repair tools. The operator repair group contains only genuine operator boundaries: `bin/adv doctor --archive-purge`, `bin/adv doctor`, and `bin/adv doctor --cleanup-legacy`. These are operator-only surfaces; agents must not invoke them. Deleted workflow-termination and identity-consolidation tools MUST NOT remain in the matrix or repair group. Intent-bearing origin, legacy-store, and worktree maintenance may remain separately classified outside the repair group. Operator-only destructive actions require explicit instruction and approval evidence. The matrix is enforced by static tests against the canonical registry.",
       "priority": "must",
       "tags": [
         "tool-surface",
@@ -2426,7 +2426,7 @@
           ],
           "when": "Tool ownership and grouping are inspected",
           "then": [
-            "The repair group contains no more than adv_archive_purge, adv_doctor, and adv_store_cleanup",
+            "The repair group contains no more than `bin/adv doctor --archive-purge`, `bin/adv doctor`, and `bin/adv doctor --cleanup-legacy`",
             "Superseded diagnose, reconnect, restart, registration, status-repair, archive-repair, membership-repair, and pointer-forget tools are absent",
             "Destructive actions retain explicit approval requirements"
           ]
@@ -2672,8 +2672,8 @@
     },
     {
       "id": "rq-doctorPhantomPointer01",
-      "title": "adv_doctor Phantom Session-Pointer Safe-Fix",
-      "body": "The retired adv_change_forget tool's session active-change pointer clearing is consolidated into adv_doctor as a phantom_pointer safe-fix (design D5/D6, option B). Clearing MUST be structurally gated on confirmed-absent evidence via a tri-state probe (probeChangePhantomStatus in plugin/src/tools/_adapters.ts) that returns confirmed_absent | confirmed_present | indeterminate. A probe tier that throws (transport failure, timeout, schema error) MUST classify as indeterminate and MUST NOT be mistaken for absence. adv_doctor clears the session pointer ONLY on confirmed_absent; indeterminate MUST refuse with a typed approval_required proposal; confirmed_present is a no-op. Pointer access is injected via a plugin-host-only DoctorPointerRepairProvider (setDoctorPointerRepairProvider in index.ts); tests and the MCP server see a null provider and skip the phantom check entirely. All state.activeChange.id mutations remain in index.ts closure scope per rq-activeChangePointer01 — the doctor provider's clearActivePointer delegates to the same setActiveChange(null) path.",
+      "title": "bin/adv doctor Phantom Session-Pointer Safe-Fix",
+      "body": "The retired adv_change_forget tool's session active-change pointer clearing is consolidated into `bin/adv doctor` as a phantom_pointer safe-fix (design D5/D6, option B). Clearing MUST be structurally gated on confirmed-absent evidence via a tri-state probe (probeChangePhantomStatus in plugin/src/tools/_adapters.ts) that returns confirmed_absent | confirmed_present | indeterminate. A probe tier that throws (transport failure, timeout, schema error) MUST classify as indeterminate and MUST NOT be mistaken for absence. `bin/adv doctor` clears the session pointer ONLY on confirmed_absent; indeterminate MUST refuse with a typed approval_required proposal; confirmed_present is a no-op. Pointer access is injected via a plugin-host-only DoctorPointerRepairProvider (setDoctorPointerRepairProvider in index.ts); tests and the MCP server see a null provider and skip the phantom check entirely. All state.activeChange.id mutations remain in index.ts closure scope per rq-activeChangePointer01 — the doctor provider's clearActivePointer delegates to the same setActiveChange(null) path.",
       "priority": "must",
       "tags": [
         "pointer",
@@ -2692,7 +2692,7 @@
             "The pointer-repair provider is injected",
             "The tri-state probe for X returns confirmed_absent (disk change.json absent AND store/Visibility explicitly not-found)"
           ],
-          "when": "adv_doctor runs its diagnose→safe-fix→verify cycle",
+          "when": "`bin/adv doctor` runs its diagnose→safe-fix→verify cycle",
           "then": [
             "A phantom_pointer finding is recorded",
             "clear_session_pointer safe-fix is applied with outcome 'applied'",
@@ -2707,7 +2707,7 @@
             "A plugin-host session with state.activeChange.id set to changeId X",
             "The tri-state probe for X returns indeterminate because a probe tier threw (transport failure / timeout)"
           ],
-          "when": "adv_doctor runs its diagnose→safe-fix→verify cycle",
+          "when": "`bin/adv doctor` runs its diagnose→safe-fix→verify cycle",
           "then": [
             "state.activeChange.id remains X (NOT cleared)",
             "The provider's clearActivePointer is NOT invoked",
@@ -2722,7 +2722,7 @@
             "Case A: a plugin-host session where the probe returns confirmed_present for the active pointer",
             "Case B: a tests/MCP-server context where no pointer-repair provider is injected"
           ],
-          "when": "adv_doctor runs",
+          "when": "`bin/adv doctor` runs",
           "then": [
             "(Case A) No phantom_pointer finding is produced and the pointer is not cleared",
             "(Case B) The phantom-pointer check is skipped entirely and probeChangePhantomStatus is never called",

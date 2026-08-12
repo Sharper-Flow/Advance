@@ -30,12 +30,17 @@ export const PLUGIN_BUNDLE_MANIFEST_SCHEMA_VERSION = 1;
 
 export const PLUGIN_BUNDLE_STALE_ADVISORY = "PLUGIN_BUNDLE_STALE";
 
-export type PluginBundleFile = "index" | "mcp-server" | "reconcile-cli";
+export type PluginBundleFile =
+  | "index"
+  | "mcp-server"
+  | "reconcile-cli"
+  | "doctor-cli";
 
 export interface PluginBundleFiles {
   index: string;
   "mcp-server"?: string;
   "reconcile-cli"?: string;
+  "doctor-cli"?: string;
 }
 
 export interface PluginBundleManifest {
@@ -140,7 +145,7 @@ async function hashFileSha256(path: string): Promise<string> {
 }
 
 /**
- * Hash the plugin bundle's `index.js`, `mcp-server.js`, and `reconcile-cli.js`
+ * Hash the plugin bundle's `index.js`, `mcp-server.js`, `reconcile-cli.js`, and `doctor-cli.js`
  * and atomically write
  * the manifest into `distDir`. Must run AFTER the bundler has finished writing
  * both artifacts (the manifest is the LAST write of the plugin build). Throws
@@ -155,24 +160,27 @@ export async function writePluginBundleManifest(
   const indexPath = join(distDir, "index.js");
   const mcpServerPath = join(distDir, "mcp-server.js");
   const reconcileCliPath = join(distDir, "reconcile-cli.js");
+  const doctorCliPath = join(distDir, "doctor-cli.js");
 
-  const [indexSha256, mcpServerSha256, reconcileCliSha256] = await Promise.all([
-    hashFileSha256(indexPath).catch((err: NodeJS.ErrnoException) => {
-      throw new Error(
-        `Cannot write plugin bundle manifest: index.js is missing from ${distDir} (${err.code ?? err.message}).`,
-      );
-    }),
-    hashFileSha256(mcpServerPath).catch((err: NodeJS.ErrnoException) => {
-      throw new Error(
-        `Cannot write plugin bundle manifest: mcp-server.js is missing from ${distDir} (${err.code ?? err.message}).`,
-      );
-    }),
-    hashFileSha256(reconcileCliPath).catch((err: NodeJS.ErrnoException) => {
-      throw new Error(
-        `Cannot write plugin bundle manifest: reconcile-cli.js is missing from ${distDir} (${err.code ?? err.message}).`,
-      );
-    }),
-  ]);
+  const [indexSha256, mcpServerSha256, reconcileCliSha256, doctorCliSha256] =
+    await Promise.all([
+      hashFileSha256(indexPath).catch((err: NodeJS.ErrnoException) => {
+        throw new Error(
+          `Cannot write plugin bundle manifest: index.js is missing from ${distDir} (${err.code ?? err.message}).`,
+        );
+      }),
+      hashFileSha256(mcpServerPath).catch((err: NodeJS.ErrnoException) => {
+        throw new Error(
+          `Cannot write plugin bundle manifest: mcp-server.js is missing from ${distDir} (${err.code ?? err.message}).`,
+        );
+      }),
+      hashFileSha256(reconcileCliPath).catch((err: NodeJS.ErrnoException) => {
+        throw new Error(
+          `Cannot write plugin bundle manifest: reconcile-cli.js is missing from ${distDir} (${err.code ?? err.message}).`,
+        );
+      }),
+      hashFileSha256(doctorCliPath).catch(() => undefined),
+    ]);
 
   const builtAt = (options.now ?? (() => new Date()))().toISOString();
   const manifest: PluginBundleManifest = {
@@ -182,6 +190,7 @@ export async function writePluginBundleManifest(
       index: indexSha256,
       "mcp-server": mcpServerSha256,
       "reconcile-cli": reconcileCliSha256,
+      ...(doctorCliSha256 ? { "doctor-cli": doctorCliSha256 } : {}),
     },
     built_at: builtAt,
   };
@@ -247,6 +256,13 @@ export async function readPluginBundleManifest(
     "reconcile-cli" in files &&
     (typeof files["reconcile-cli"] !== "string" ||
       !/^[0-9a-f]{64}$/.test(files["reconcile-cli"]))
+  ) {
+    return null;
+  }
+  if (
+    "doctor-cli" in files &&
+    (typeof files["doctor-cli"] !== "string" ||
+      !/^[0-9a-f]{64}$/.test(files["doctor-cli"]))
   ) {
     return null;
   }

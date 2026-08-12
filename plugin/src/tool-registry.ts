@@ -85,17 +85,13 @@ import { statusTools } from "./tools/status";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
-import { doctorTools } from "./tools/doctor";
 import { checkpointTools } from "./tools/checkpoint";
 import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
 import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
 import { reflectionTools } from "./tools/reflection";
-import { snapshotHealthTools } from "./tools/snapshot";
-import { conformanceTools } from "./tools/conformance";
 import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionPublicTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
-import { storeCleanupTools } from "./tools/store-cleanup";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
 import { advInvokeTools } from "./tools/adv-invoke";
 type ToolExecute<TArgs> = (
@@ -535,27 +531,11 @@ export function createToolMap(
     // Status Tool
     ...bindGroup(statusTools, store),
 
-    // Snapshot Health Tool
-    ...bindGroup(snapshotHealthTools, store),
-
     // Public session listing tool; session detail remains an internal handler.
     ...bindGroup(advSessionPublicTools, store),
 
-    // Store Cleanup Tool — legacy Agenda cleanup (scan/dry_run read-only; execute approval-gated)
-    ...bindGroup(storeCleanupTools, store),
-
     // Project Tools
     ...bindGroup(projectTools, store),
-
-    // Operator tools
-    // rq-doctorConsolidation01 / rq-recoverySurfaceParity01
-    // (tk-dc21b6a3658d / tk-0528be678596): the former operator tools
-    // (diagnose / reconnect / register_search_attributes /
-    // worker_restart) are retired. adv_doctor is the single diagnose→safe-
-    // fix→verify entry point; unsafe escalations (suspect lock reclaim,
-    // wrong-type SAs, ambiguous ownership) return typed approval-required
-    // proposals instead of being separate tool surfaces.
-    ...bindGroup(doctorTools, store),
 
     // Gate Tools
     ...bindGroup(gateTools, store),
@@ -650,14 +630,6 @@ export function createToolMap(
 
     // Lightweight Change Profile Tool
     ...bindGroup(lightweightProfileTools, store),
-
-    // Conformance Tool — adv_conformance takes (args, store).
-    // Switched from bindToolSimple to bindTool in change
-    // centralizemutationcacherefresh (T02) so the dispatcher can use
-    // fireSignalAndRefresh (rq-cacheRefresh01) when firing conformance
-    // signals to change workflows. projectDir and externalRoot are
-    // derived inside the execute function from store.paths.{root,external}.
-    ...bindGroup(conformanceTools, store),
 
     // Worktree Tools
     ...bindGroup(advWorktreeTools, store),
@@ -951,16 +923,12 @@ const PUBLIC_TOOL_GROUPS = [
   projectTools,
   gateTools,
   testTools,
-  doctorTools,
   checkpointTools,
   reflectionTools,
-  snapshotHealthTools,
   lightweightProfileTools,
-  conformanceTools,
   advWorktreeTools,
   advSessionPublicTools,
   epicTools,
-  storeCleanupTools,
   toolCatalogTools,
   advInvokeTools,
 ] as const satisfies readonly PublicToolGroup[];
