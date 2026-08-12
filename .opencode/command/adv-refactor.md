@@ -46,5 +46,5 @@ Emit REFACTOR REPORT: age, drift count, outdated deps, obsolete requirements. Dr
 | List tasks | `adv_task_list` |
 | Analysis | Task tool (explore × 3) |
 | Add task | `adv_task_add` |
-| Validate | `adv_change_validate` |
+| Validate | `adv_change_show validate: true` |
 | Dep check | Context7 resolve + query docs, `webfetch` |

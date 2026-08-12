@@ -42,7 +42,7 @@ Every `/adv-discover` invocation must execute these 9 protocol steps and emit a 
 | --- | -------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Skill Discovery** (Phase 1.5)                    | Skills Considered         | Examined skills + match results (or "none available")                                                                            |
 | 2   | **Prior Research Extension**                       | Extends                   | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
-| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, and typed change inventory with Epic/member context     |
+| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_show validate: true`, and typed change inventory with Epic/member context     |
 | 4   | **Edge Case Investigation**                        | Edge Cases                | ≥2 edge cases per gap (or "N/A: structural" with rationale)                                                                      |
 | 5   | **Design Question Depth**                          | Open Design Questions     | Each question annotated with trust model, blast radius, alternatives                                                             |
 | 6   | **Draft Spec Delta Shapes**                        | Draft Spec Deltas         | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required")                                                                   |
@@ -105,7 +105,7 @@ If neither field is present → skip this phase (local change, normal flow).
 
 If `adv_change_show` reveals `epic_membership`:
 
-1. Load compact Epic context with `adv_epic_show epic_id: {epic_id}`.
+1. Load compact Epic context with `adv_change_show` (Epics include entries).
 2. Record the Epic title, current entry order, and entry title in the discovery findings.
 3. Use the Epic narrative to inform objectives and acceptance criteria, but do not let Epic order override user-confirmed scope.
 4. Epic membership is optional; if it is missing, continue the normal flow.
@@ -162,7 +162,7 @@ If no matching skill was found for a domain clearly relevant to change's **core 
 Execute the conflict scan using the typed change inventory and report findings in a "Conflict Scan" section:
 
 1. `adv_change_list includeArchived: true` → enumerate all changes (active + archived) with Epic membership context
-2. `adv_change_validate` on target change → note that own-change pre-prep warnings (NO_TASKS, NO_DELTAS) are expected and should NOT be reported as conflicts
+2. `adv_change_show validate: true` on target change → note that own-change pre-prep warnings (NO_TASKS, NO_DELTAS) are expected and should NOT be reported as conflicts
 3. Build a complete paginated typed change inventory with explicit completeness state:
    - **Active changes and Epic members** are authoritative for conflict detection
    - **Archived changes** are related context only (inspect with `adv_change_show` for prior work that may inform or constrain the current proposal)
@@ -525,7 +525,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
    - × Do NOT hard-block discovery solely because this advisory guard fired.
      2b. Run the **Capability-Warrant Declaration** step (rq-acWarrant01) over each draft criterion:
    - A **capability-presuming** criterion — one asserting that a specific tool, tool argument, or spec requirement exists or must work — MUST carry a typed warrant tag appended to its text: `[warrant: <ref>]`, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. Comma-separate multiple refs.
-   - Example: `AC2: Cross-project repair routes through the target namespace. [warrant: tool:adv_doctor#target_path]`
+    - Example: `AC2: Cross-project repair routes through the target namespace. [warrant: operator:bin/adv doctor]`
    - At contract mint, each declared warrant is verified against the live tool surface / spec ids; an unresolved warrant fails the mint with `CONTRACT_UNRESOLVED_WARRANT`. Declaring a warrant for a surface that does not exist (the unwarranted-criterion failure class) is therefore caught structurally.
    - **Behavioral criteria** that presume no capability surface (e.g. "returns an error when input is invalid") require **no** warrant tag — do not add ceremony (proportionality, DONT4).
    - If a criterion would presume a capability that a Phase 1.8 finding classified `unwarranted_operation`/`unverified`, do not write the criterion — resolve the classification first.
@@ -585,9 +585,9 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 Rules:
 
-- **Structure is not behavioral proof.** A well-formed scenario still requires the evidence assigned by its kind (`test`, `review`, `static_check`, or `not_applicable`). Malformed structured input is rejected at `adv_contract_mint` before any contract replacement.
+- **Structure is not behavioral proof.** A well-formed scenario still requires the evidence assigned by its kind (`test`, `review`, `static_check`, or `not_applicable`). Malformed structured input is rejected by the internal acceptance pipeline before any contract replacement.
 - **Behavioral criteria that presume no capability surface require no `[warrant: ...]` tag.** Capability-presuming criteria MUST declare a typed `[warrant: <ref>]` tag, where `<ref>` is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`.
-- **Bracketed warrants are verified at `adv_contract_mint` and stripped from canonical text.** Do not manually remove or rewrite them.
+- **Bracketed warrants are verified by the internal acceptance pipeline and stripped from canonical text.** Do not manually remove or rewrite them.
 - **Do not force every acceptance criterion into a behavioral scenario.** Select the variant that makes the obligation clearest for reviewers and agents (proportionality, DONT3).
 - **Success criteria may use the same shapes or remain plain behavioral statements.** Their evidence policy is always `review`.
 
@@ -638,7 +638,7 @@ Suggested structure:
 
 ### Contract Minting
 
-After Phase 4.5.1 criteria approval and before `discovery` gate completion: call `adv_contract_mint`. Tool parses approved agreement content, validates `ChangeContract`, persists via `contractSetSignal`.
+After Phase 4.5.1 criteria approval and before `discovery` gate completion: the internal acceptance pipeline parses approved agreement content, validates `ChangeContract`, and persists the contract spine.
 
 Contract rules:
 
@@ -652,11 +652,11 @@ Contract rules:
   - `OOS1..n` — out-of-scope boundaries.
 - Initial items use `sourceArtifact: "agreement"`.
 - Evidence policies: `SC*` → `review`; `AC*` → `test`; `C*` → `static_check`; `DONT*` → `review`; `OOS*` → `not_applicable`.
-- Recovery is internalized: mutations return a typed `MutationOutcome` (`verified` | `unverified` | `stale_revision` | `operator_required`; `unverified` and `operator_required` are blocking). `adv_contract_mint` auto-classifies state and records machine evidence internally. No public `recoveryMode` or `recoveryEvidence` arguments are required.
+- Recovery is internalized: mutations return a typed `MutationOutcome` (`verified` | `unverified` | `stale_revision` | `operator_required`; `unverified` and `operator_required` are blocking). The acceptance pipeline auto-classifies state and records machine evidence internally. No public recovery arguments are required.
 
 Discovery completion blocked when approved agreement lacks contract spine or projected `acceptanceCriteria` drifts from approved `AC*` items.
 
-If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`: run `adv_contract_mint`, fix parser/schema failures in approved agreement, retry gate.
+If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`: fix parser/schema failures in approved agreement and retry gate; contract derivation is internal to the acceptance pipeline.
 
 ---
 

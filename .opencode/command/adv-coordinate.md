@@ -47,8 +47,8 @@ Use typed tools only:
 | Purpose | Tool |
 |---|---|
 | List in-flight changes across participating projects | `adv_change_list` with complete pagination |
-| List active Epics | `adv_epic_list` |
-| Inspect each Epic fully | `adv_epic_show view: "full"` |
+| List active Epics | `adv_change_list filter: {kind: "epic"}` |
+| Inspect each Epic fully | `adv_change_show include: {entries: true}` |
 | Inspect linked changes when needed | `adv_change_show` |
 | Check relevant spec law | `adv_spec` |
 
@@ -123,14 +123,14 @@ Analyze each Epic and the set of Epics:
 | Ownership boundaries | Entry belongs in the current Epic vs another Epic. |
 | Narrative accuracy | Narrative still matches current entries and known terminal work. |
 | Cross-Epic dependencies | Prerequisites are explicit in both directions where useful. |
-| Operational-work grounding | Required operational work is represented by typed `ops_followup_links[]` from the relevant delivery change (via `adv_followup_promote`), not by shell entries, agenda text, or prose; the `blocks` vs release-first (`follows_release`/`monitors`/`cleanup_after`) relationship matches the work's release-safety need. |
+| Operational-work grounding | Required operational work is represented by typed `ops_followup_links[]` and change/task dependencies from the relevant delivery change, not by shell entries, agenda text, or prose; the `blocks` vs release-first (`follows_release`/`monitors`/`cleanup_after`) relationship matches the work's release-safety need. |
 | Evidence grounding | Claims cite typed ADV/spec/current repository evidence when checkable. |
 
 Heuristics may rank/group likely findings; typed reads + cited current repository evidence own correctness; separate evidence-backed facts from judgment calls.
 
 Prefer narrative cross-links over duplicating the same work in multiple Epics.
 
-For operational-work findings, cite the delivery change's `ops_followup_links[]` (child/source-of-truth state or fresh reconciliation, not stale parent link status) as `adv-backed-fact`. Treat free-text-only operational tracking — shell entries, agenda items, or prose without a typed linked ops follow-up — as a `judgment_call` to repair through `adv_followup_promote` from the relevant delivery change, never as authoritative proof. Use `blocks` when release safety requires completion before release and release-first relationships (`follows_release`/`monitors`/`cleanup_after`) for post-release follow-through; do not recommend executing deployments from coordination, and do not let Epic order block release.
+For operational-work findings, cite the delivery change's `ops_followup_links[]` (child/source-of-truth state or fresh reconciliation, not stale parent link status) as `adv-backed-fact`. Treat free-text-only operational tracking — shell entries, agenda items, or prose without a typed linked ops follow-up — as a `judgment_call` to repair through typed change/task dependency updates from the relevant delivery change, never as authoritative proof. Use `blocks` when release safety requires completion before release and release-first relationships (`follows_release`/`monitors`/`cleanup_after`) for post-release follow-through; do not recommend executing deployments from coordination, and do not let Epic order block release.
 
 ---
 
@@ -161,9 +161,9 @@ Report typed health findings and repair paths:
 
 | Signal | Recommendation |
 |---|---|
-| `target_unreachable` | Surface target path/project context; recommend `adv_epic_show` to trigger automatic bounded direct convergence where appropriate. |
-| `projection_pending` | Recommend `adv_epic_show` to trigger automatic convergence; only escalate to a typed mutation tool after user approval if convergence cannot reconcile. |
-| `projection_stale` | Recommend `adv_epic_show` to refresh the projection from canonical child/archive evidence. |
+| `target_unreachable` | Surface target path/project context; recommend `adv_change_show` to load the Epic including entries and trigger supported bounded convergence where appropriate. |
+| `projection_pending` | Recommend `adv_change_show` to load the Epic including entries and trigger supported convergence; only escalate to a typed mutation tool after user approval if convergence cannot reconcile. |
+| `projection_stale` | Recommend `adv_change_show` to refresh the projection from canonical child/archive evidence. |
 | Missing child workflow | Recommend parent-only stale-entry repair or audited retarget only with explicit evidence. |
 
 Do not silently mutate. Repairs require `evidence`; target-routed repairs follow target-path trust rules.
@@ -190,7 +190,7 @@ Group findings as follows:
 
 **Referral form.** Emit exactly `/adv-refactor <change-id>`. That bare form is dry-run. Never emit `--execute`, `--interactive`, `--force`, or a batch invocation from coordination: `--execute` applies changes without a further approval prompt, and coordination has no authority to route a user into an ungated mutation.
 
-**Epic findings never receive a `/adv-refactor` target.** `/adv-refactor` resolves a change ID only and has no Epic mode. Route stale Epic narrative, order, or membership to `adv_epic_update`, `adv_epic_reorder`, or `adv_epic_show` convergence exactly as Phase 9 already applies them, naming the exact stale field.
+**Epic findings never receive a `/adv-refactor` target.** `/adv-refactor` resolves a change ID only and has no Epic mode. Route stale Epic narrative, order, or membership to `adv_change_update` (including `reorder_entries`) or `adv_change_show` convergence exactly as Phase 9 already applies them, naming the exact stale field.
 
 **Insufficient evidence never produces a referral.** When a candidate's evidence cannot be resolved — unreadable artifact, failed or timed-out read, or missing repository freshness — classify it `freshness_limited` and place it in the review/deferred group. Keep these separate from evidence-backed rows exactly as Phase 8 requires.
 
@@ -217,7 +217,7 @@ For each durable action include:
 - affected Epic ID and current version;
 - exact rationale and evidence;
 - evidence label (`repo_backed_fact`, `adv-backed-fact`, `judgment_call`, or `freshness_limited`);
-- tool that would apply it (`adv_epic_update`, `adv_epic_reorder`, or `adv_epic_show` for automatic convergence);
+- tool that would apply it (`adv_change_update`, including `reorder_entries`, or `adv_change_show` for automatic convergence);
 - required inputs such as `expected_version`, `entry_ids`, and `evidence`.
 
 ---
@@ -248,11 +248,11 @@ Use typed tools only:
 
 | Action | Tool |
 |---|---|
-| Narrative/title update | `adv_epic_update` with current `expected_version` |
-| Advisory reorder | `adv_epic_reorder` with full `entry_ids` and current `expected_version` |
-| Membership convergence | `adv_epic_show` to trigger automatic bounded direct convergence; escalate to `adv_epic_update`/`adv_epic_reorder` only with user approval and evidence |
+| Narrative/title update | `adv_change_update` with current revision |
+| Advisory reorder | `adv_change_update reorder_entries` with full `entry_ids` and current revision |
+| Membership convergence | `adv_change_show` to load the Epic including entries and trigger supported bounded convergence; escalate to `adv_change_update` only with user approval and evidence |
 
-Before mutation, confirm the Epic version still matches the report's `expected_version`. If stale, re-read with `adv_epic_show`, re-present the changed action, and require fresh approval.
+Before mutation, confirm the Epic version still matches the report's `expected_version`. If stale, re-read with `adv_change_show`, re-present the changed action, and require fresh approval.
 
 Apply action groups atomically where the tool supports it. If one approved action fails, report exact failure and continue only when later actions are independent.
 
@@ -276,11 +276,11 @@ Emit:
 
 | Purpose | Tool |
 |---|---|
-| List Epics | `adv_epic_list` |
-| Show Epic | `adv_epic_show` |
-| Update narrative/title | `adv_epic_update` |
-| Reorder entries | `adv_epic_reorder` |
-| Converge membership | `adv_epic_show` |
+| List Epics | `adv_change_list filter: {kind: "epic"}` |
+| Show Epic | `adv_change_show include: {entries: true}` |
+| Update narrative/title | `adv_change_update` |
+| Reorder entries | `adv_change_update reorder_entries` |
+| Converge membership | `adv_change_show` |
 | Inspect linked change | `adv_change_show` |
 | Check spec law | `adv_spec` |
 

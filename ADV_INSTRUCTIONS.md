@@ -291,7 +291,7 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 | Ready tasks              | `adv_task_ready`                                          |
 | All tasks                | `adv_task_list`                                           |
 | Active changes           | `adv_change_list`                                         |
-| Validate                 | `adv_change_validate`                                     |
+| Validate                 | `adv_change_show validate: true`                          |
 | Wisdom                   | `adv_wisdom_list`                                         |
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
@@ -307,7 +307,7 @@ Multi-session is the supported design center. Per-change filesystem advisory loc
 - Git filesystem ops (`git worktree add/remove`) coordinate via narrow per-repo flock (~50ms hold)
 - ADV-managed worktree paths are tool-owned. Agents must not invent repo-specific
   directories such as `~/dev/<repo>-wt` for ADV changes. Use
-  `adv_worktree_resume` / `adv_worktree_create` and then use the returned
+  `adv_worktree_create resume: true` and then use the returned
   `workdir`. The canonical path shape is
   `$ADV_WORKTREE_HOME/{project-id}/{branch}` when `ADV_WORKTREE_HOME` is set,
   otherwise `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`.
@@ -321,7 +321,7 @@ Peer-session visibility (`adv_status`, `adv_change_show include:{sessions:true}`
 - `adv_status` — Peer Sessions section (session_id + started_at + worktree-basename)
 - `adv_change_show include:{sessions:true}` — list peer sessions in same project
 - `adv_session_show <session_id>` — own-session details only (privacy-defensive)
-- `adv_doctor` — peer count, worker-lock holder PID, change workflow presence, and automatic safe-fix/verify
+- `bin/adv doctor` — peer count, worker-lock holder PID, change workflow presence, and automatic safe-fix/verify
 - Stability: `adv_status view:"health"` shows worker_singleton_enforce default false; worktree_guard_enforce default true (post-rollout, rq-autoManageAdvWorktrees AC2); `worker_role` = `host`/`client`/`degraded`; opt-in: explicit true or `ADV_FORCE_IN_PROCESS_WORKER=1`.
 - Worktree guard: trunk write firewall enforcement is default-on. `worktree_guard_enforce` omitted or true enables strict blocking. Explicit `worktree_guard_enforce: false` is the legacy escape hatch — pre-flip behavior was "omitted or false allows default-checkout file writes and classified destructive bash writes". `worktree_guard_enforce=true` blocks main-checkout writes with `WorktreeIsolationViolation` + remediation. Advance repo opts into strict mode by default (no explicit project.json override needed). Auto-managed changes (per-change `worktree_auto_managed: true` marker) override the global flag and always engage the guard. Existing-worktree exception: when a setup-ready ADV worktree already exists for the change, guarded gate/task state-transition mutations from the main checkout are ALLOWED regardless of the `worktree_auto_managed` marker (existing-worktree detection over the durable change-workflow `worktrees` map is the structural authority; the marker is a fast-path hint). File-write isolation (checkpoints/edits) is unchanged; the ALLOW is scoped to durable state-transition signals only.
 - Health probes: `_freshness.{probe}` = `cached_at`, `stale`, optional `error`. Stale values are diagnostic-only; never use stale probe data for worker-lock reclaim, restart success, conformance override, or archive.
@@ -481,7 +481,7 @@ See also: `skill("adv-diagnose")` Phase 1 for feedback-loop construction before 
 
 Black-box AC verification run by external CI. Specs under conformance are "locked" after first archive — the agent cannot read conformance test source.
 
-**Tool:** `adv_conformance` (single multi-action tool: `status | init | lock | unlock | override | run`). `run` reads a CI verdict artifact from `artifact_path` and returns `{verdict: 'PASS'|'DRIFT', run_id, failed: [{rq_id, summary}]}`.
+**Tool:** conformance checks are internal to the release pipeline (single multi-action flow: `status | init | lock | unlock | override | run`). The run reads a CI verdict artifact from `artifact_path` and returns `{verdict: 'PASS'|'DRIFT', run_id, failed: [{rq_id, summary}]}`.
 
 **Location modes:**
 | Mode | Path | Isolation |
@@ -497,7 +497,7 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 <!-- rq-twf01 -->
 
-**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) in strict mode (`worktree_guard_enforce=true`), trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes and known destructive bash writes to the trunk checkout on the default branch.
+**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks conformance checks during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) in strict mode (`worktree_guard_enforce=true`), trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes and known destructive bash writes to the trunk checkout on the default branch.
 
 ### Trunk Write Firewall
 
@@ -576,7 +576,7 @@ Epics are **optional** initiative containers for related ADV changes and lightwe
 
 When a change has `epic_membership`:
 
-1. Load compact Epic context with `adv_epic_show epic_id: {epic_id}`.
+1. Load compact Epic context with `adv_change_show` (Epics include entries).
 2. Surface Epic ID, title, entry ID, order, entry title, projection source, and repo/project owner metadata when present in change show/status/resume outputs.
 3. Use Epic order as advisory for next-work recommendations: warn about earlier incomplete entries, but do not block gates, tasks, or promotion solely because of order.
 4. Include Epic context in sub-agent prompts when it helps the worker understand initiative scope.
@@ -585,9 +585,9 @@ When a change has `epic_membership`:
 
 <!-- rq-epicOpsPlanning01 -->
 
-Operational work is contextual, not universal. When an Epic's delivery changes require operational work — for example first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown — assess it during planning, but represent required operational work only through the existing typed path: from the relevant delivery change, use `adv_followup_promote` to create or link an ops follow-up change with an `ops_followup` profile, and record the outbound edge on the delivery change in `ops_followup_links[]`. Use relationship `blocks` when release safety requires the work to complete before release (a hard release blocker while incomplete); use the release-first relationships `follows_release`, `monitors`, or `cleanup_after` for post-release follow-through, which do not block release unless an explicit `required_handoff` is recorded. Release/archive readiness still derives from child/source-of-truth state or fresh reconciliation (`rq-opsRunReleaseReadiness01`), provenance stays typed (`rq-opsFollowTrace01`), and `blocks`-vs-release-first consequences stay on the existing release gate (`rq-opsFollowRelease01`). Shell entries, agenda items, and free-text prose are discovery aids only, never the authoritative record for required operational work. Do not infer operational need from Epic metadata, do not require an ops follow-up for every Epic/change/deployment, do not make Epic order a release gate, and do not execute deployments from Epic planning — production execution stays governed by the existing ops runbook and approval requirements on the child ops change.
+Operational work is contextual, not universal. When an Epic's delivery changes require operational work — for example first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown — assess it during planning, but represent required operational work only through typed change/task dependencies and `ops_followup_links[]` on the relevant delivery change. Use relationship `blocks` when release safety requires the work to complete before release (a hard release blocker while incomplete); use the release-first relationships `follows_release`, `monitors`, or `cleanup_after` for post-release follow-through, which do not block release unless an explicit `required_handoff` is recorded. Release/archive readiness still derives from child/source-of-truth state or fresh reconciliation (`rq-opsRunReleaseReadiness01`), provenance stays typed (`rq-opsFollowTrace01`), and `blocks`-vs-release-first consequences stay on the existing release gate (`rq-opsFollowRelease01`). Shell entries, agenda items, and free-text prose are discovery aids only, never the authoritative record for required operational work. Do not infer operational need from Epic metadata, do not require an ops follow-up for every Epic/change/deployment, do not make Epic order a release gate, and do not execute deployments from Epic planning — production execution stays governed by the existing ops runbook and approval requirements on the child ops change.
 
-Existing changes can be linked into, unlinked from, or moved between Epics only through `adv_epic_link_change`, `adv_epic_unlink_change`, and `adv_epic_move_change` with audit evidence. For Epic membership tools, `target_path` routes the **child change project**; use `epic_owner_target_path` to route the **Epic owner project** when the Epic lives in another ADV-enabled project. Supported shapes: owner local + child local (no routing); owner local + child remote (`target_path`); owner remote + child same remote (`epic_owner_target_path`, with `target_path` omitted or equal); owner remote + child different remote (`epic_owner_target_path` + `target_path`). Ambiguous/partial shapes—such as child-only `target_path` when the Epic is not local, or owner-only routing when the child is not in the owner project—MUST fail before mutation with typed `OWNER_ROUTING_AMBIGUOUS` or `OWNER_ROUTING_REQUIRED` errors. For `projection_pending`, `projection_stale`, `projection_mismatch`, or `target_unreachable` states, use `adv_epic_show` to trigger automatic bounded direct convergence; default Epic views show bounded `member_status`, not full target-project traces. For cross-project shell-shaped work, create or use the target-project ADV change first, then link it into the owner Epic with the appropriate owner/child routing; do not claim direct cross-project `adv_epic_promote_shell` creation unless that tool later gains structural target support.
+Existing changes can be linked into, unlinked from, or moved between Epics only through `adv_change_update link_change`, `adv_change_update unlink_change`, and the combination of both with audit evidence. For Epic membership updates, route the child project with `target_path` and use supported owner-project routing when the Epic is remote. For `projection_pending`, `projection_stale`, `projection_mismatch`, or `target_unreachable` states, use `adv_change_show` to load the Epic including entries and trigger supported bounded convergence; default Epic views show bounded `member_status`, not full target-project traces. For cross-project shell-shaped work, create or use the target-project ADV change first, then link it into the owner Epic with `adv_change_update link_change`; do not claim direct cross-project shell promotion unless the change update surface provides structural target support.
 
 Avoidances:
 
@@ -598,7 +598,7 @@ Avoidances:
 - × Do not overload `fast_follow_of` for retroactive Epic membership.
 - × Do not manually edit ADV state to link, unlink, move, or repair Epic membership.
 - × Do not revive a project-level shared workflow pattern without explicit design proof.
-- × Do not use Epic shell entries, agenda items, or free-text prose as the authoritative record for required operational work; route it through `adv_followup_promote` / `ops_followup_links` linked to the relevant delivery change.
+- × Do not use Epic shell entries, agenda items, or free-text prose as the authoritative record for required operational work; route it through typed change/task dependencies / `ops_followup_links` linked to the relevant delivery change.
 - × Do not require an ops follow-up for every Epic, change, or deployment; operational need is a contextual assessment, not an Epic-metadata heuristic.
 - × Do not execute deployments from Epic planning or make Epic order a release gate.
 
@@ -609,9 +609,9 @@ Reads use `snapshot-ok` + `_projectContext`; mutations use `authoritative` + rea
 
 #### `target_path` matrix (which tools support cross-project)
 
-- `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_validate`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
-- `authoritative`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_gate_status`, `adv_gate_complete`, `adv_doctor`, `adv_run_test`. Epic membership tools treat `target_path` as child-change routing and also accept `epic_owner_target_path` for remote Epic owner routing; both require trust confirmation when untrusted.
-- Current-project only: `adv_reflect`, `adv_conformance`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
+- `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_show validate: true`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
+- `authoritative`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_gate_status`, `adv_gate_complete`, `bin/adv doctor`, `adv_run_test`. Epic membership updates use `adv_change_update` with link/unlink/reorder fields and require trust confirmation when routed to another project.
+- Current-project only: `adv_reflect`, internal conformance checks, `adv_wisdom_*`, `adv_project_context`.
 
 Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-project> && opencode`.
 
@@ -1077,7 +1077,7 @@ ADV always isolates mutating work in per-change worktrees.
 - Every change runs in a worktree — create/reuse before Phase 1
 - Worktree tools unavailable → hard block with error. Do not proceed in-place
 - Existing worktree for same change → auto-reuse
-- trunk write firewall enforcement is default-on (`worktree_guard_enforce=true` or omitted). Blocks main-checkout file writes, destructive bash, and task/gate execution mutations with `WorktreeIsolationViolation`, `mainCheckoutPath`, remediation. Use `adv_worktree_resume` path. Legacy explicit opt-out: only `worktree_guard_enforce: false` allows default-checkout file writes; omitted never opts out. Proposal gate remains exempt. Read-only tools + git commands allowed. Auto-managed changes engage guard regardless of global flag. Existing-worktree exception: a setup-ready ADV worktree for the change ALLOWs gate/task state-transition mutations from main regardless of the `worktree_auto_managed` marker (durable `worktrees` map is the structural authority); file-write isolation unchanged. Advance repo opts into strict mode.
+- trunk write firewall enforcement is default-on (`worktree_guard_enforce=true` or omitted). Blocks main-checkout file writes, destructive bash, and task/gate execution mutations with `WorktreeIsolationViolation`, `mainCheckoutPath`, remediation. Use `adv_worktree_create resume: true` path. Legacy explicit opt-out: only `worktree_guard_enforce: false` allows default-checkout file writes; omitted never opts out. Proposal gate remains exempt. Read-only tools + git commands allowed. Auto-managed changes engage guard regardless of global flag. Existing-worktree exception: a setup-ready ADV worktree for the change ALLOWs gate/task state-transition mutations from main regardless of the `worktree_auto_managed` marker (durable `worktrees` map is the structural authority); file-write isolation unchanged. Advance repo opts into strict mode.
 
 ### Worktree Reuse
 
@@ -1106,7 +1106,7 @@ Fallback modes: `mode: "terminal"` returns path; MUST use as `workdir` for all l
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 owns structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → prove no-remote local merge, post-fetch `origin/{default-branch}` reachability, or merged PR state. Remote-backed protected/policy routes include merge queue and PR + GitHub auto-merge: merge queue is supported as a route variant alongside `pr_auto_merge` and `pr_manual`; when queue rules apply, ADV pushes `change/{change-id}`, open/reuses one PR, and queues via documented GitHub `merge_group` semantics, skipping local reconciliation because the queue provides freshness via `merge_group`. `Pending auto-merge.` leaves release/archive incomplete until PR state is `MERGED`; `Blocked.` leaves the change active when PR/auto-merge, queue handoff, or origin proof is unavailable. Phase 9 assumes `gh` is authenticated with a local user token that has `write` repo access; CI-provided tokens (GitHub Actions `GITHUB_TOKEN`, App tokens) may lack merge-queue/auto-merge permissions (cli/cli #7213). `POLICY_DETECTION_FAILED` covers this case — archive blocks with remediation directing the user to authenticate `gh` with a local user token. `adv_gate_complete gateId: "release"`, `phase9:"skip"`, and release recovery all revalidate the same proof (`rq-releaseFinalization01`). `adv_doctor` scans/re-drives archived-but-unmerged remote `change/*` branches through idempotent PR auto-merge without force-push when safe, or surfaces an approval-required proposal when the safe path is blocked. Post-merge local `change/*` branch deletion is git hygiene, not recovery: `adv_worktree_cleanup mode=archived_branches` (operator-explicit; pass `dryRun=true` to preview). The batch terminal-projection repair over all release-stuck candidates and the single-change targeted status flip are internalized behind `adv_doctor` and gated on structural branch-merge or workflow evidence. × Never delete worktree with unmerged commits. Tools unavailable → `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 owns structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → prove no-remote local merge, post-fetch `origin/{default-branch}` reachability, or merged PR state. Remote-backed protected/policy routes include merge queue and PR + GitHub auto-merge: merge queue is supported as a route variant alongside `pr_auto_merge` and `pr_manual`; when queue rules apply, ADV pushes `change/{change-id}`, open/reuses one PR, and queues via documented GitHub `merge_group` semantics, skipping local reconciliation because the queue provides freshness via `merge_group`. `Pending auto-merge.` leaves release/archive incomplete until PR state is `MERGED`; `Blocked.` leaves the change active when PR/auto-merge, queue handoff, or origin proof is unavailable. Phase 9 assumes `gh` is authenticated with a local user token that has `write` repo access; CI-provided tokens (GitHub Actions `GITHUB_TOKEN`, App tokens) may lack merge-queue/auto-merge permissions (cli/cli #7213). `POLICY_DETECTION_FAILED` covers this case — archive blocks with remediation directing the user to authenticate `gh` with a local user token. `adv_gate_complete gateId: "release"`, `phase9:"skip"`, and release recovery all revalidate the same proof (`rq-releaseFinalization01`). `bin/adv doctor` scans/re-drives archived-but-unmerged remote `change/*` branches through idempotent PR auto-merge without force-push when safe, or surfaces an approval-required proposal when the safe path is blocked. Post-merge local `change/*` branch deletion is git hygiene, not recovery: `adv_worktree_cleanup mode=archived_branches` (operator-explicit; pass `dryRun=true` to preview). The batch terminal-projection repair over all release-stuck candidates and the single-change targeted status flip are internalized behind `bin/adv doctor` and gated on structural branch-merge or workflow evidence. × Never delete worktree with unmerged commits. Tools unavailable → `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 

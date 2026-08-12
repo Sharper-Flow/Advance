@@ -29,11 +29,11 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 ## Phase 1: Pre-Archive Checks
 
 1. `adv_change_show changeId: {id} include: { executiveSummary: true, subagentReports: true }` → verify status "active", load executive summary, Release Readiness Summary, harden evidence, and `change.release_notes` for sign-off report
-   - If the returned change has `epic_membership`, load compact parent context with `adv_epic_show epic_id: {epic_id}` before archive execution. Record Epic ID, entry ID/title/order, and member status when available.
+   - If the returned change has `epic_membership`, load compact parent context with `adv_change_show` (Epics include entries) before archive execution. Record Epic ID, entry ID/title/order, and member status when available.
    - Epic order remains advisory: earlier incomplete Epic entries MAY be warned about but MUST NOT block archive solely by order.
 2. Ensure release notes before bundle write and signoff: if `change.release_notes` is absent (e.g., fast-track or no review/harden), compose a minimum evidence-backed `ReleaseNotesContent` block from available typed task/contract/commit/origin evidence and persist via `adv_change_set_release_notes changeId: {id} release_notes: { ... }`. Apply the same evidence rules as `/adv-review`: `audience` and `category` are required; `category` uses the deterministic map `feat`→"added", `fix`→"fixed", `perf`→"changed"; other categories require explicit evidence. Include `links.issue` from `change.origin.issue_number` and `links.pr` only when already known. Never ask a new question. Unsupported semantic fields remain absent; no heuristic authority. When composing the minimum `ReleaseNotesContent` block, populate `headline_internal` and at least one `highlights[]` entry sourced from the proposal, agreement, or executive-summary value/outcome prose (canonical source: `_executiveSummary ## Value`). Required when those artifacts contain benefit articulation. Absent fields remain absent; no invention.
 3. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
-4. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
+4. `adv_change_show validate: true strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
 5. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
 6. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
 
@@ -173,9 +173,9 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 ### Steps
 
-1. **Check conformance state.** `adv_conformance action: "status"` → inspect `specs[{capability}].conformance_required`. If false or absent → skip to Phase 6.
+1. **Check conformance state.** Use the internal conformance status flow → inspect `specs[{capability}].conformance_required`. If false or absent → skip to Phase 6.
 
-2. **Run conformance check.** `adv_conformance action: "run"` with `artifact_path` pointing to the CI-produced verdict artifact. Default artifact convention: `conformance-verdict.json` unless project's conformance checklist says otherwise. If the artifact does not exist, report CI outage and halt.
+2. **Run conformance check.** Use the internal conformance run flow with `artifact_path` pointing to the CI-produced verdict artifact. Default artifact convention: `conformance-verdict.json` unless project's conformance checklist says otherwise. If the artifact does not exist, report CI outage and halt.
 
 3. **Evaluate verdict.**
 
@@ -198,8 +198,8 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
    Options:
    1. Fix code locally and rerun archive
-   2. Record override: `adv_conformance action: "override"` (requires user, reason, re_verify_deadline)
-   3. Unlock spec for amendment: `adv_conformance action: "unlock"` (requires user, reason, re_verify_deadline)
+   2. Record override through the internal conformance flow (requires user, reason, re_verify_deadline)
+   3. Unlock spec for amendment through the internal conformance flow (requires user, reason, re_verify_deadline)
 
    Archive halted. Respond with your choice or `stop` to abort.
    ```
@@ -223,9 +223,9 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 Epic child archive verification:
 
 - If the change has no `epic_membership`, record `Epic: n/a` for the final report.
-- If the change has `epic_membership`, reload the parent Epic with `adv_epic_show epic_id: {epic_id}` after `adv_change_archive phase9: "run"` returns shipped/merged release proof.
+- If the change has `epic_membership`, reload the parent Epic with `adv_change_show` (Epics include entries) after `adv_change_archive phase9: "run"` returns shipped/merged release proof.
 - Verify the linked entry by `entry_id` and/or `change_id` shows terminal child state through `terminal_summary`, compact history, or an equivalent typed Epic view field.
-- If the Epic entry/member projection is `projection_stale`, `projection_pending`, `target_unreachable`, or otherwise stale, run `adv_epic_show` to trigger automatic bounded direct convergence. For already-archived children whose entries still appear active, use `adv_epic_show` to backfill `terminal_summary` from canonical child/archive evidence so Epic progress can recompute. Do not read or edit ADV state files directly.
+- If the Epic entry/member projection is `projection_stale`, `projection_pending`, `target_unreachable`, or otherwise stale, run `adv_change_show` to load the Epic including entries and trigger supported bounded convergence. For already-archived children whose entries still appear active, use `adv_change_show` to backfill `terminal_summary` from canonical child/archive evidence so Epic progress can recompute. Do not read or edit ADV state files directly.
 - Epic verification/repair evidence is additive. It never substitutes for Phase 9 release proof and it never allows "Shipped." when release proof is missing.
 
 ---
@@ -266,7 +266,7 @@ What shipped, waits on PR auto-merge, or blocked release completion; include spe
 - Release proof: {origin/{default-branch} reachable | PR {number} state MERGED | verified local bare origin push | pending PR {number} | missing: <reason>}
 - PR: {n/a | <url> auto-merge armed | <url> manual merge required | unavailable: <reason>}
 - Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
-- Epic: {n/a | {epic_id}/{entry_id} terminal state verified | terminal projection recorded | membership converged via adv_epic_show | warning: <reason>}
+- Epic: {n/a | {epic_id}/{entry_id} terminal state verified | terminal projection recorded | membership converged via adv_change_show | warning: <reason>}
 - Reflection: {completed: <id/path/summary> | failed: <reason>; nonblocking}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
 - Asset sync: {auto via hook | manual fix | not needed | n/a}
@@ -568,7 +568,7 @@ Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit 
 
 4. **Reference markers.** This phase exercises `rq-releaseFinalization01` (release proof requires origin/default or merged PR state), `rq-releaseFinalization02` (auto-drive trigger), `rq-releaseFinalization03` (no shared main checkout mutation), and `rq-releaseFinalization04` (non-terminal reporting).
 
-5. **Completion fallthrough.** If the Task tool spawn is unavailable (no `adv-ci-waiter` runtime), render `Pending auto-merge.` + retry command — status quo behavior, non-regressive. The change stays active; the human re-invokes archive or `adv_doctor` to re-drive the archived-but-unmerged branch when ready.
+5. **Completion fallthrough.** If the Task tool spawn is unavailable (no `adv-ci-waiter` runtime), render `Pending auto-merge.` + retry command — status quo behavior, non-regressive. The change stays active; the human re-invokes archive or runs `bin/adv doctor` to re-drive the archived-but-unmerged branch when ready.
 
 ### Step 9: Post-Deploy Nudge
 

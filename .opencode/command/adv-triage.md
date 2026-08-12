@@ -124,7 +124,7 @@ Anything else → re-prompt. On approval, call `adv_change_update_issues changeI
 | Project metadata | `adv_project_metadata` (read/write `github_project`) |
 | Active ADV changes | `adv_change_list status:'in-flight'` |
 | Change detail/linkage | `adv_change_show`, `adv_change_update_issues` |
-| Active Epics | `adv_epic_list`, bounded `adv_epic_show` |
+| Active Epics | `adv_change_list filter: {kind: "epic"}`, bounded `adv_change_show` |
 | Wisdom | `adv_wisdom_list` |
 | Local source scan | `glob`, `read`, lgrep text search |
 | Bug priority loop | `gh issue edit --add-label` |

@@ -80,7 +80,7 @@ All release-owned dimensions must be checked or marked N/A with evidence. Skippi
 
 `adv_change_show changeId: <target> include: { snapshot: true }` — returns change + rendered gate snapshot in one call. The included `gates` field is sufficient for the prerequisite check below.
 
-If the change has `epic_membership`, load compact Epic context with `adv_epic_show epic_id: {epic_id}` and include it in sub-agent prompts. Epic order is advisory; do not block harden due to incomplete earlier Epic entries.
+If the change has `epic_membership`, load compact Epic context with `adv_change_show` (Epics include entries) and include it in sub-agent prompts. Epic order is advisory; do not block harden due to incomplete earlier Epic entries.
 
 ### Gate Prerequisite Check
 
@@ -128,7 +128,7 @@ Do not silently ignore report-created follow-ups. Do not require harden to fix n
 
 ### Finding Routing
 
-Out-of-scope findings surfaced mid-lifecycle MUST be routed to the durable backlog with `adv_backlog_add` — not reflexive change creation, not prose-only notes; `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up. Scanner findings outside the change's contract route to the backlog rather than blocking release.
+Out-of-scope findings surfaced mid-lifecycle MUST be routed to a durable backlog-status change with `adv_change_create status: "backlog"` — not reflexive change creation, not prose-only notes. Scanner findings outside the change's contract route to the backlog rather than blocking release.
 
 ### Contract Proof Audit
 

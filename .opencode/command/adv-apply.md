@@ -65,7 +65,7 @@ If new objectives/AC emerge, do NOT silently fold them into the current task gra
 
 ### Finding Routing
 
-Out-of-scope findings surfaced mid-lifecycle MUST be routed to the durable backlog with `adv_backlog_add` — not reflexive change creation, not prose-only notes; `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up. Route the finding, then continue the current task.
+Out-of-scope findings surfaced mid-lifecycle MUST be routed to a durable backlog-status change with `adv_change_create status: "backlog"` — not reflexive active-change creation, not prose-only notes. Route the finding, then continue the current task.
 
 ## Phase 0.1: Worktree Isolation
 
@@ -516,7 +516,7 @@ If cancelled tasks exist → verify each has `cancellation.approved_by_user: tru
 
 ### Final Validation
 
-`adv_change_validate changeId: <target>` → must pass.
+`adv_change_show changeId: <target> validate: true` → must pass.
 
 ### Mark Gate
 
@@ -565,4 +565,4 @@ All state lives in ADV tools. Contract banners are views, not source of truth.
 | Task list | `adv_task_list` |
 | Ready tasks | `adv_task_ready` |
 | Change data | `adv_change_show` |
-| Validation | `adv_change_validate` |
+| Validation | `adv_change_show validate: true` |

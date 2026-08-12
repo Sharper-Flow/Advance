@@ -21,7 +21,7 @@ Shape a vague idea into a proposal-ready summary. Fully collaborative; read-only
 
 **Persistence:** Conversational shaping; analysis carries forward via exit recommendation, not disk artifact.
 
-**× MUST NOT:** create change, create tasks, complete gates, or silently commit to implementation design. This command does not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly.
+**× MUST NOT:** create change, create tasks, complete gates, or silently commit to implementation design. This command does not call `adv_change_create`, `adv_gate_complete`, or `adv_task_add` directly.
 
 **Gate:** None.
 
@@ -100,5 +100,5 @@ Emit a compact summary:
 ## Anti-Patterns
 
 - × no sub-agent dispatch — skipping Phase 2 and synthesizing without codebase or ecosystem context
-- × silent state mutation — Phase 5 exits that invoke `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly
+- × silent state mutation — Phase 5 exits that invoke `adv_change_create`, `adv_gate_complete`, or `adv_task_add` directly
 - × opaque scope decisions — Phase 4 sizing without surfacing the ≥3 sub-problems / ≥3 distinct regions / >1 repo touched consensus test

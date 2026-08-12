@@ -21,7 +21,7 @@ Investigate a bug, failure, or confusing behavior before deciding whether it is 
 
 **Persistence:** Conversational triage; RCA carries forward via `## Root Cause Analysis` in the proposal projection (`change.documents.proposal`) through `adv_change_update proposal` when defect path taken, otherwise ephemeral.
 
-**× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation. This command does not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly.
+**× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation. This command does not call `adv_change_create`, `adv_gate_complete`, or `adv_task_add` directly.
 
 **Gate:** None.
 
@@ -122,6 +122,6 @@ Emit a compact triage summary:
 ## Anti-Patterns
 
 - × no sub-agent dispatch — skipping Tier 1 or Tier 2 and synthesizing without codebase or ecosystem context
-- × silent state mutation — Phase 7 exits that invoke `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly
+- × silent state mutation — Phase 7 exits that invoke `adv_change_create`, `adv_gate_complete`, or `adv_task_add` directly
 - × opaque scope decisions — Phase 6 triage classify without surfacing the guardrails
 - × unjustified direct-fix recommendation — recommending direct-fix when any guardrail fails; route to `/adv-proposal` instead

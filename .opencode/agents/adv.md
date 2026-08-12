@@ -285,7 +285,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
 | Typed worker packet contract | For every typed-worker lane (`adv-engineer`, `adv-designer`, `adv-reviewer`, `adv-researcher`, `adv-tron`, `adv-visual-review`), always include the required packet anchors from `delegation-defaults/spec.json`. Template: `WORKING DIRECTORY`, `CHANGE`, `TASK` or `SCOPE KEY`, `ATTEMPT` (plus `PHASE` for `adv-reviewer`). **Read-only lanes** (`adv-researcher`, `adv-tron`, `adv-visual-review`) MUST still complete the work and return findings as a final message if anchors are missing — they just skip `adv_subagent_report_submit` and prepend a `## PACKET DEFECT` section listing missing anchors. **Mutating lanes** (`adv-engineer`, `adv-designer`, `adv-reviewer`) refuse to begin when `WORKING DIRECTORY` is missing. These identity fields are orchestrator-owned; never ask the user for them. If a spawned worker reports a missing packet identity field, treat it as an internal packet-defect: retry with a corrected packet or continue inline. |
-| Epic context | When `adv_change_show` / `adv_status` / `adv_worktree_resume` surfaces `epic_membership`, include compact Epic context (id, title, entry order) in the current change context and in sub-agent prompts. Use `adv_epic_show epic_id: ...` to load it. Epic membership is optional; do not force unrelated changes into Epics. |
+| Epic context | When `adv_change_show` / `adv_status` / `adv_worktree_create resume: true` surfaces `epic_membership`, include compact Epic context (id, title, entry order) in the current change context and in sub-agent prompts. Use `adv_change_show` (Epics include entries) to load it. Epic membership is optional; do not force unrelated changes into Epics. |
 | Nesting | Forbidden — do not spawn nested agents |
 
 ### Epic Context Loading
@@ -294,7 +294,7 @@ Epics are optional initiative containers. They provide shared context and an adv
 
 When a change has `epic_membership`:
 
-1. Load compact Epic context with `adv_epic_show epic_id: {epic_id}`.
+1. Load compact Epic context with `adv_change_show` (Epics include entries).
 2. Surface the Epic title, narrative, and the current entry's order/title when presenting the change or choosing next work.
 3. Respect Epic order as advisory: warn if earlier entries are incomplete, but never block gates, tasks, or promotion solely because of order.
 4. Include Epic context in sub-agent packets when it helps the worker understand why the current task matters.
@@ -304,7 +304,7 @@ When a change has `epic_membership`:
 × Do not add Jira-like assignments, estimates, sprints, boards, or ownership workflows.
 × Do not treat Epic membership as mandatory or auto-enroll every new change in an Epic.
 × Do not revive a project-level shared workflow pattern; use product-scoped Epic membership only through typed Epic tools and target-path trust rules.
-× Do not claim `adv_epic_promote_shell` creates cross-project changes directly. For cross-project shell-shaped work, create or use the target-project ADV change, then link it into the owner Epic with `adv_epic_link_change target_path`.
+× Do not claim `adv_change_update` creates cross-project changes directly. For cross-project shell-shaped work, create or use the target-project ADV change, then link it into the owner Epic with `adv_change_update link_change: {change_id}, target_path: {target_path}`.
 
 | Failure | Action |
 |---|---|

@@ -3,7 +3,7 @@ name: adv-validate
 description: Validate change compliance against specs; block archive on failure
 ---
 # ADV Validate — Check Change Against Specs
-Validate change proposal against deployed specs via `adv_change_validate`.
+Validate change proposal against deployed specs via `adv_change_show validate: true`.
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -14,7 +14,7 @@ Parse `$ARGUMENTS`: `change-id`, `--strict`.
 
 ---
 ## Phase 1: Run Validation
-`adv_change_validate changeId: <target> strict: {true if --strict}` → returns `valid` (bool), `errors[]`, `warnings[]`, `info[]`.
+`adv_change_show changeId: <target> validate: true strict: {true if --strict}` → returns `valid` (bool), `errors[]`, `warnings[]`, `info[]`.
 
 ---
 ## Phase 2: Display Results
@@ -42,4 +42,4 @@ Warnings promoted to errors. Use before `/adv-apply` and `/adv-archive`.
 ## Key Tool
 | Purpose | Tool |
 |---------|------|
-| Validate | `adv_change_validate changeId: <id> strict: <bool>` |
+| Validate | `adv_change_show changeId: <id> validate: true strict: <bool>` |

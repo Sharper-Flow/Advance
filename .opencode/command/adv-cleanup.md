@@ -74,7 +74,7 @@ Four surfaces, two reversibility classes (`rq-cleanupHygieneScope01`):
 | 3 | Merged archived `change/*` branches | `adv_worktree_cleanup mode: "archived_branches"` | **irreversible** | yes |
 | 4 | Archived/closed state leaks | `adv_status view: "hygiene"` | report-only | no |
 
-Surface 4 stays report-only: leak remediation routes to `adv_archive_purge`, an operator-only recovery tool that owns its own approval contract. Cleanup surfaces the leak and names the tool; it never purges.
+Surface 4 stays report-only: leak remediation routes to the operator command `bin/adv doctor --purge-archive`, which owns its own approval contract. Cleanup surfaces the leak and names the command; it never purges.
 
 ### Surface 2 — worktree drift groups
 
@@ -128,7 +128,7 @@ Required snippets:
 - Worktree empty state → `Worktree drift: none.`
 - Branch empty state → `Merged archived branches: none.`
 - Leak empty state → `State leaks: none.`
-- Leak present → `→ Run adv_archive_purge for {id} (operator-only; owns its own approval).`
+- Leak present → `→ Operator runs bin/adv doctor --purge-archive for {id} (operator-only; owns its own approval).`
 - Dry-run → `Re-run with --execute to apply per-bucket actions (reversible buckets need Tier B approval; irreversible buckets need typed confirmation).`
 - Empty → `No cleanup candidates. All hygiene surfaces are clean.`
 
@@ -225,7 +225,7 @@ Emit closing summary. Use Gate Handoff Voice spine but omit gate footer; cleanup
 | `/adv-status` | Read-only overview; cleanup is actionable counterpart |
 | `/adv-refactor` | Refreshes stale proposal content; cleanup closes abandoned/dead proposals |
 | `/adv-archive` | Cleanup recommends only; archive owns Tier B sign-off |
-| `adv_archive_purge` | Cleanup reports state leaks only; purge owns its own operator approval |
+| `bin/adv doctor --purge-archive` | Cleanup reports state leaks only; purge owns its own operator approval |
 
 ## Key Tools
 

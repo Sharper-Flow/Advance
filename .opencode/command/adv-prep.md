@@ -69,7 +69,7 @@ If `change.contract` exists, load it as planning input. Contract items are the o
 
 Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
 
-**Epic context:** if the change has `epic_membership`, load compact Epic context with `adv_epic_show epic_id: {epic_id}`. Consider Epic entry order as advisory when sequencing tasks, but do not hard-block later tasks or gates because of order.
+**Epic context:** if the change has `epic_membership`, load compact Epic context with `adv_change_show` (Epics include entries). Consider Epic entry order as advisory when sequencing tasks, but do not hard-block later tasks or gates because of order.
 
 Stop if discovery or design gates are incomplete. `/adv-prep` analyzes validated design decisions — it must not backfill pre-implementation gates.
 
@@ -195,7 +195,7 @@ Task graph MUST include tasks covering touched-scope obligations:
 
 ## Phase 3: Validation + Completion
 
-`adv_change_validate strict: true` → fix errors → re-validate. `adv_gate_complete gateId: planning` → handle failure codes (`SCENARIO_MISSING`, `TASK_TDD_INVERSION`, `CROSS_REPO_MISSING_METADATA`).
+`adv_change_show validate: true strict: true` → fix errors → re-validate. `adv_gate_complete gateId: planning` → handle failure codes (`SCENARIO_MISSING`, `TASK_TDD_INVERSION`, `CROSS_REPO_MISSING_METADATA`).
 
 If contract validation returns `CONTRACT_*` issues, fix task graph or contract refs before completing planning. Do not downgrade missing refs into future work.
 
@@ -339,7 +339,7 @@ When 2+ worktrees are active for same project, scan for file-path intersections 
 | Could    | Desirable, time permitting   | Optional                |
 | Won't    | Out of scope                 | Document in the proposal projection |
 
-Won't items are findings too: document them in the proposal projection via `adv_change_update proposal` AND route each to `adv_backlog_add` — the durable middle-tier option between folding scope into this change and losing the finding in prose. `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up.
+Won't items are findings too: document them in the proposal projection via `adv_change_update proposal` AND route each to `adv_change_create status: "backlog"` — the durable middle-tier option between folding scope into this change and losing the finding in prose.
 
 ---
 
@@ -428,7 +428,7 @@ After EACH fix, keep progress in ADV state (`adv_task_list`). Use `include.snaps
 
 ## Phase 8: Validation
 
-`adv_change_validate changeId: <target> strict: true` → fix errors → re-validate.
+`adv_change_show changeId: <target> validate: true strict: true` → fix errors → re-validate.
 
 ---
 
@@ -450,7 +450,7 @@ Failure codes: `SCENARIO_MISSING` → add Given/When/Then, `TASK_TDD_INVERSION` 
 
 ### Verify
 
-`adv_task_list` + `adv_change_validate` for target.
+`adv_task_list` + `adv_change_show validate: true` for target.
 
 ### Readiness Self-Assessment
 
@@ -503,5 +503,5 @@ Firm plan shape (task structure, approach, not task list).
 | Add task               | `adv_task_add`                                          |
 | Cancel tasks           | `adv_task_cancel` (requires user approval)              |
 | List/show/search specs | `adv_spec`                                              |
-| Validate               | `adv_change_validate`                                   |
+| Validate               | `adv_change_show validate: true`                        |
 | Planning gate          | `adv_gate_complete gateId: planning userApproved: true` |

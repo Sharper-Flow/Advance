@@ -31,7 +31,7 @@ $ARGUMENTS
 - review proposal + agreement content from `_proposal` / `_agreement` (or packet state), not artifact paths
 - inspect affected code with `lgrep`/`read`
 - use Context7 when framework/library best practice matters
-- **Epic context:** if the change has `epic_membership`, load compact Epic context with `adv_epic_show epic_id: {epic_id}` and consider the Epic narrative/entry order when sequencing design decisions. Epic order is advisory; do not let it block design gate completion.
+- **Epic context:** if the change has `epic_membership`, load compact Epic context with `adv_change_show` (Epics include entries) and consider the Epic narrative/entry order when sequencing design decisions. Epic order is advisory; do not let it block design gate completion.
 
 If agreement is missing or not approved, stop and complete `/adv-discover` first.
 
@@ -47,7 +47,7 @@ Produce a design covering:
 4. **Interfaces and affected components**
 5. **LBP analysis** — why this is the preferred long-term approach
 6. **Design-Derived Criteria** — technical budgets/limits created by the chosen architecture (performance, security, scale, migration, or operations)
-7. **Risks and mitigations** — a risk that a finding or concern might be lost MUST be framed as a durable record (route it to `adv_backlog_add`), never as `no change owns it`; an unrecorded risk is a dropped finding.
+7. **Risks and mitigations** — a risk that a finding or concern might be lost MUST be framed as a durable backlog-status change (route it to `adv_change_create status: "backlog"`), never as `no change owns it`; an unrecorded risk is a dropped finding.
 
 Criteria boundary:
 
