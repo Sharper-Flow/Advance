@@ -5,7 +5,7 @@
 //   - Scenarios under a requirement: `rq-{parent}.{M}` (dot, nested)
 //
 // A dotted top-level ID is malformed — it conflates the parent-requirement
-// namespace with a scenario namespace, breaks `adv_delta_modify` targeting
+// namespace with a scenario namespace, breaks delta targeting
 // (which expects an unambiguous top-level requirement ID), and produces
 // doubly-dotted scenario IDs (`rq-parent.N.M`) that diverge from the
 // canonical scenario shape.

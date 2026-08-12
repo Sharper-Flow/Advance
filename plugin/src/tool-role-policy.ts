@@ -149,44 +149,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "ChangeContract minting from approved agreement.",
   },
-  adv_delta_add: {
-    class: "orchestrator",
-    rationale:
-      "Change-scoped spec-delta mutation; archive remains sole global-spec writer.",
-  },
-  adv_delta_modify: {
-    class: "orchestrator",
-    rationale:
-      "Typed change-scoped spec modification; archive remains sole global-spec writer.",
-  },
-  adv_delta_amend: {
-    class: "orchestrator",
-    rationale:
-      "Full-replacement change-scoped spec delta amend; archive remains sole global-spec writer.",
-  },
-  adv_delta_retract: {
-    class: "orchestrator",
-    rationale:
-      "Change-scoped spec delta retraction; archive remains sole global-spec writer.",
-  },
-  adv_delta_remove: {
-    class: "orchestrator",
-    rationale:
-      "Change-scoped remove-operation spec delta; archive remains sole global-spec writer.",
-  },
-  adv_delta_rename: {
-    class: "orchestrator",
-    rationale:
-      "Change-scoped rename-operation spec delta; archive remains sole global-spec writer.",
-  },
-  adv_delta_list: {
-    class: "orchestrator",
-    rationale: "Staged spec-delta read (bounded list).",
-  },
-  adv_delta_show: {
-    class: "orchestrator",
-    rationale: "Staged spec-delta read (single delta).",
-  },
   adv_epic_add_shell: {
     class: "orchestrator",
     rationale: "Shell entry add.",

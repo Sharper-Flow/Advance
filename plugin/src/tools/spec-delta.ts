@@ -1,12 +1,8 @@
 /**
  * Spec Delta Writer Tool (addSpecDeltaWriter change, roadmap #64)
  *
- * `adv_delta_add` records add-operation deltas, while `adv_delta_modify`
- * records narrow typed changes to an existing requirement. Both write only
- * change-owned deltas through supported store boundaries
- * (`store.specDeltas.add` / `store.specDeltas.modify`); add accepts existing
- * or valid new kebab-case capability keys, and modify validates an existing
- * capability-local target. Archive remains the sole global-spec writer.
+ * Internal staged-delta validation and reducer helpers. Archive remains the
+ * sole global-spec writer.
  *
  * Scope remains intentionally narrow: add supports additions and modify
  * supports validated, non-empty partial changes to an existing requirement.
@@ -25,7 +21,6 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { z } from "zod";
 import type { Store } from "../storage/store";
 import {
   CapabilityKeySchema,
@@ -41,36 +36,11 @@ import {
   type DeltaRename,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
-import {
-  formatTargetProjectContext,
-  withTargetPathStore,
-  type TargetProjectOutputContext,
-} from "./target-project";
+import type { TargetProjectOutputContext } from "./target-project";
 
 const DELTA_ID_PATTERN = /^dl-[a-zA-Z0-9]+$/;
 const REQUIREMENT_ID_PATTERN = /^rq-[a-zA-Z0-9]+$/;
 const SCENARIO_ID_PATTERN = /^rq-[a-zA-Z0-9]+\.\d+$/;
-
-const targetArgs = {
-  target_path: z
-    .string()
-    .optional()
-    .describe(
-      "Optional absolute path to another ADV project. When provided, routes the add through that project's disk-backed store.",
-    ),
-  target_confirmed: z
-    .literal(true)
-    .optional()
-    .describe(
-      "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
-    ),
-  confirmationEvidence: z
-    .string()
-    .optional()
-    .describe(
-      "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
-    ),
-};
 
 interface DeltaValidation {
   delta?: unknown;
@@ -109,7 +79,7 @@ function assertModifyReceipt(
   return parsed.data;
 }
 
-function validateDeltaArg(input: DeltaValidation): {
+export function validateDeltaArg(input: DeltaValidation): {
   delta?: DeltaAdd;
   error?: string;
 } {
@@ -163,7 +133,7 @@ function validateDeltaArg(input: DeltaValidation): {
   return { delta };
 }
 
-function validateModifyDeltaArg(input: DeltaValidation): {
+export function validateModifyDeltaArg(input: DeltaValidation): {
   delta?: DeltaModify;
   error?: string;
 } {
@@ -190,7 +160,9 @@ function validateModifyDeltaArg(input: DeltaValidation): {
   return { delta };
 }
 
-function validateAmendDeltaArg(input: DeltaValidation & { deltaId?: string }): {
+export function validateAmendDeltaArg(
+  input: DeltaValidation & { deltaId?: string },
+): {
   delta?: Delta;
   error?: string;
 } {
@@ -217,7 +189,7 @@ function validateAmendDeltaArg(input: DeltaValidation & { deltaId?: string }): {
   return { delta };
 }
 
-function validateRemoveDeltaArg(input: DeltaValidation): {
+export function validateRemoveDeltaArg(input: DeltaValidation): {
   delta?: DeltaRemove;
   error?: string;
 } {
@@ -244,7 +216,7 @@ function validateRemoveDeltaArg(input: DeltaValidation): {
   return { delta };
 }
 
-function validateRenameDeltaArg(input: DeltaValidation): {
+export function validateRenameDeltaArg(input: DeltaValidation): {
   delta?: DeltaRename;
   error?: string;
 } {
@@ -275,7 +247,7 @@ interface CapabilityValidation {
   capability?: unknown;
 }
 
-function validateCapabilityArg(input: CapabilityValidation): {
+export function validateCapabilityArg(input: CapabilityValidation): {
   capability?: string;
   error?: string;
 } {
@@ -292,7 +264,7 @@ function validateCapabilityArg(input: CapabilityValidation): {
   return { capability: parsed.data };
 }
 
-async function runAdd(
+export async function runAdd(
   activeStore: Store,
   input: {
     changeId: string;
@@ -360,7 +332,7 @@ async function runAdd(
   }
 }
 
-async function runModify(
+export async function runModify(
   activeStore: Store,
   input: {
     changeId: string;
@@ -451,7 +423,7 @@ async function runModify(
   }
 }
 
-async function runAmend(
+export async function runAmend(
   activeStore: Store,
   input: {
     changeId: string;
@@ -510,7 +482,7 @@ async function runAmend(
   }
 }
 
-async function runRetract(
+export async function runRetract(
   activeStore: Store,
   input: {
     changeId: string;
@@ -569,8 +541,8 @@ async function runRetract(
 // Read-only: enumerate staged deltas as bounded summary rows. Reads
 // change.deltas[] disk-first (survives orphaned workflows); no mutation.
 // Fixes the adv_change_show truncation gap for delta-heavy changes and
-// surfaces the delta ids that adv_delta_amend/retract require.
-async function runList(
+// surfaces staged delta ids for internal archive/reducer consumers.
+export async function runList(
   activeStore: Store,
   input: {
     changeId: string;
@@ -649,7 +621,7 @@ async function runList(
 
 // Read-only: return the full staged delta by id under a capability. Typed
 // not-found on unknown id; no mutation.
-async function runShow(
+export async function runShow(
   activeStore: Store,
   input: { changeId: string; capability: string; deltaId: string },
 ): Promise<string> {
@@ -686,7 +658,7 @@ async function runShow(
   }
 }
 
-async function runRemove(
+export async function runRemove(
   activeStore: Store,
   input: {
     changeId: string;
@@ -776,7 +748,7 @@ async function runRemove(
   }
 }
 
-async function runRename(
+export async function runRename(
   activeStore: Store,
   input: {
     changeId: string;
@@ -857,682 +829,5 @@ async function runRename(
   }
 }
 
-// rq-stagedDeltaCrud01: staged spec-delta tool group (add/modify/amend/retract/remove/rename/list/show).
-export const specDeltaTools = {
-  adv_delta_add: {
-    description:
-      "Record an append-only add-operation spec delta under `change.deltas[capability]`. Accepts existing or valid new kebab-case capability keys; rejects malformed capability identifiers, malformed requirement/delta shape, missing scenarios, and duplicate requirement/delta IDs atomically. Archive remains the sole global-spec writer; this tool only mutates the change-owned durable delta record. Modify/remove/rename deltas and direct global-spec writes are out of scope.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose delta record the add is appended to"),
-      capability: CapabilityKeySchema.describe(
-        "Kebab-case capability key (spec directory name). Existing capabilities and valid new capability slugs are both accepted; archive creates the first spec for new capabilities on apply.",
-      ),
-      delta: DeltaAddSchema.describe(
-        "Add-operation delta. operation must be 'add'; requirement must include at least one Given/When/Then scenario. Duplicate delta ids and duplicate add-requirement ids are rejected atomically.",
-      ),
-      addedBy: z
-        .string()
-        .optional()
-        .describe(
-          "Optional audit identity recorded on the signal (defaults to the calling tool context).",
-        ),
-      ...targetArgs,
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        delta,
-        addedBy,
-        target_path,
-        target_confirmed,
-        confirmationEvidence,
-      }: {
-        changeId: string;
-        capability: string;
-        delta: DeltaAdd;
-        addedBy?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const capabilityCheck = validateCapabilityArg({ capability });
-      if (capabilityCheck.error || !capabilityCheck.capability) {
-        return formatToolOutput({
-          success: false,
-          error: capabilityCheck.error ?? "Invalid capability",
-          changeId,
-        });
-      }
-      const deltaCheck = validateDeltaArg({ delta });
-      if (deltaCheck.error || !deltaCheck.delta) {
-        return formatToolOutput({
-          success: false,
-          error: deltaCheck.error ?? "Invalid delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      // Capture validated values into const locals so TS narrowing survives
-      // closure capture below (target_path branch + runAdd call).
-      const validatedCapability = capabilityCheck.capability;
-      const validatedDelta = deltaCheck.delta;
-      if (target_path) {
-        try {
-          return await withTargetPathStore(
-            {
-              currentProjectPath: store.paths.root,
-              target_path,
-              stateRequirement: "authoritative",
-              target_confirmed,
-              confirmationEvidence,
-            },
-            async ({ context, store: targetStore }) =>
-              runAdd(
-                targetStore,
-                {
-                  changeId,
-                  capability: validatedCapability,
-                  delta: validatedDelta,
-                  addedBy,
-                },
-                formatTargetProjectContext(context),
-              ),
-          );
-        } catch (error) {
-          const errorText =
-            error instanceof Error ? error.message : String(error);
-          return formatToolOutput({
-            success: false,
-            error: `Target project spec delta add unavailable: ${errorText}`,
-            changeId,
-            capability: validatedCapability,
-            target_path,
-          });
-        }
-      }
-      return runAdd(store, {
-        changeId,
-        capability: validatedCapability,
-        delta: validatedDelta,
-        addedBy,
-      });
-    },
-  },
-  adv_delta_modify: {
-    description:
-      "Record a typed modify-operation spec delta for an existing requirement under `change.deltas[capability]`. Rejects empty or malformed changes, unknown requirements, duplicate delta IDs, and conflicting capability-local modify targets atomically. Archive remains the sole global-spec writer; remove, rename, and direct global-spec writes are out of scope.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose modification delta is appended"),
-      capability: CapabilityKeySchema.describe(
-        "Existing kebab-case capability key whose global spec contains the target requirement.",
-      ),
-      delta: DeltaModifySchema.describe(
-        "Modify-operation delta. target_id must name an existing requirement and changes must be a non-empty strict partial requirement update.",
-      ),
-      modifiedBy: z
-        .string()
-        .optional()
-        .describe("Optional audit identity recorded on the signal."),
-      ...targetArgs,
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        delta,
-        modifiedBy,
-        target_path,
-        target_confirmed,
-        confirmationEvidence,
-      }: {
-        changeId: string;
-        capability: string;
-        delta: DeltaModify;
-        modifiedBy?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const capabilityCheck = validateCapabilityArg({ capability });
-      if (capabilityCheck.error || !capabilityCheck.capability) {
-        return formatToolOutput({
-          success: false,
-          error: capabilityCheck.error ?? "Invalid capability",
-          changeId,
-        });
-      }
-      const deltaCheck = validateModifyDeltaArg({ delta });
-      if (deltaCheck.error || !deltaCheck.delta) {
-        return formatToolOutput({
-          success: false,
-          error: deltaCheck.error ?? "Invalid modify delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      const validatedCapability = capabilityCheck.capability;
-      const validatedDelta = deltaCheck.delta;
-      if (target_path) {
-        try {
-          return await withTargetPathStore(
-            {
-              currentProjectPath: store.paths.root,
-              target_path,
-              stateRequirement: "authoritative",
-              target_confirmed,
-              confirmationEvidence,
-            },
-            async ({ context, store: targetStore }) =>
-              runModify(
-                targetStore,
-                {
-                  changeId,
-                  capability: validatedCapability,
-                  delta: validatedDelta,
-                  modifiedBy,
-                },
-                formatTargetProjectContext(context),
-              ),
-          );
-        } catch (error) {
-          const errorText =
-            error instanceof Error ? error.message : String(error);
-          return formatToolOutput({
-            success: false,
-            error: `Target project spec delta modify unavailable: ${errorText}`,
-            changeId,
-            capability: validatedCapability,
-            target_path,
-          });
-        }
-      }
-      return runModify(store, {
-        changeId,
-        capability: validatedCapability,
-        delta: validatedDelta,
-        modifiedBy,
-      });
-    },
-  },
-  adv_delta_amend: {
-    description:
-      "Full-replacement amend of an existing staged spec delta under `change.deltas[capability]`. The new delta must be a complete Delta and its id must match the provided deltaId. Rejects unknown delta ids, malformed capability, and invalid delta shape atomically. Archive remains the sole global-spec writer.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose delta record contains the delta to amend"),
-      capability: CapabilityKeySchema.describe(
-        "Existing kebab-case capability key containing the delta to amend.",
-      ),
-      deltaId: z
-        .string()
-        .min(1)
-        .describe("Id of the staged delta to replace in place."),
-      delta: DeltaSchema.describe(
-        "Complete replacement delta. Its id must match deltaId; for a modify replacement it must name an existing requirement.",
-      ),
-      amendedBy: z
-        .string()
-        .optional()
-        .describe("Optional audit identity recorded on the signal."),
-      ...targetArgs,
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        deltaId,
-        delta,
-        amendedBy,
-        target_path,
-        target_confirmed,
-        confirmationEvidence,
-      }: {
-        changeId: string;
-        capability: string;
-        deltaId: string;
-        delta: Delta;
-        amendedBy?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const capabilityCheck = validateCapabilityArg({ capability });
-      if (capabilityCheck.error || !capabilityCheck.capability) {
-        return formatToolOutput({
-          success: false,
-          error: capabilityCheck.error ?? "Invalid capability",
-          changeId,
-        });
-      }
-      const deltaCheck = validateAmendDeltaArg({ delta, deltaId });
-      if (deltaCheck.error || !deltaCheck.delta) {
-        return formatToolOutput({
-          success: false,
-          error: deltaCheck.error ?? "Invalid delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      const validatedCapability = capabilityCheck.capability;
-      const validatedDelta = deltaCheck.delta;
-      if (target_path) {
-        try {
-          return await withTargetPathStore(
-            {
-              currentProjectPath: store.paths.root,
-              target_path,
-              stateRequirement: "authoritative",
-              target_confirmed,
-              confirmationEvidence,
-            },
-            async ({ context, store: targetStore }) =>
-              runAmend(
-                targetStore,
-                {
-                  changeId,
-                  capability: validatedCapability,
-                  deltaId,
-                  delta: validatedDelta,
-                  amendedBy,
-                },
-                formatTargetProjectContext(context),
-              ),
-          );
-        } catch (error) {
-          const errorText =
-            error instanceof Error ? error.message : String(error);
-          return formatToolOutput({
-            success: false,
-            error: `Target project spec delta amend unavailable: ${errorText}`,
-            changeId,
-            capability: validatedCapability,
-            target_path,
-          });
-        }
-      }
-      return runAmend(store, {
-        changeId,
-        capability: validatedCapability,
-        deltaId,
-        delta: validatedDelta,
-        amendedBy,
-      });
-    },
-  },
-  adv_delta_retract: {
-    description:
-      "Retract (remove) an existing staged spec delta by id from `change.deltas[capability]`. Rejects unknown delta ids and non-draft changes atomically. Archive remains the sole global-spec writer.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose delta record contains the delta to retract"),
-      capability: CapabilityKeySchema.describe(
-        "Existing kebab-case capability key containing the delta to retract.",
-      ),
-      deltaId: z.string().min(1).describe("Id of the staged delta to retract."),
-      retractedBy: z
-        .string()
-        .optional()
-        .describe("Optional audit identity recorded on the signal."),
-      ...targetArgs,
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        deltaId,
-        retractedBy,
-        target_path,
-        target_confirmed,
-        confirmationEvidence,
-      }: {
-        changeId: string;
-        capability: string;
-        deltaId: string;
-        retractedBy?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const capabilityCheck = validateCapabilityArg({ capability });
-      if (capabilityCheck.error || !capabilityCheck.capability) {
-        return formatToolOutput({
-          success: false,
-          error: capabilityCheck.error ?? "Invalid capability",
-          changeId,
-        });
-      }
-      const validatedCapability = capabilityCheck.capability;
-      if (target_path) {
-        try {
-          return await withTargetPathStore(
-            {
-              currentProjectPath: store.paths.root,
-              target_path,
-              stateRequirement: "authoritative",
-              target_confirmed,
-              confirmationEvidence,
-            },
-            async ({ context, store: targetStore }) =>
-              runRetract(
-                targetStore,
-                {
-                  changeId,
-                  capability: validatedCapability,
-                  deltaId,
-                  retractedBy,
-                },
-                formatTargetProjectContext(context),
-              ),
-          );
-        } catch (error) {
-          const errorText =
-            error instanceof Error ? error.message : String(error);
-          return formatToolOutput({
-            success: false,
-            error: `Target project spec delta retract unavailable: ${errorText}`,
-            changeId,
-            capability: validatedCapability,
-            target_path,
-          });
-        }
-      }
-      return runRetract(store, {
-        changeId,
-        capability: validatedCapability,
-        deltaId,
-        retractedBy,
-      });
-    },
-  },
-  adv_delta_remove: {
-    description:
-      "Record a remove-operation spec delta for an existing requirement under `change.deltas[capability]`. Rejects unknown requirements, duplicate delta IDs, and conflicting capability-local remove targets atomically. Archive remains the sole global-spec writer; direct global-spec writes are out of scope.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose removal delta is appended"),
-      capability: CapabilityKeySchema.describe(
-        "Existing kebab-case capability key whose global spec contains the target requirement.",
-      ),
-      delta: DeltaRemoveSchema.describe(
-        "Remove-operation delta. target_id must name an existing requirement and reason must be non-empty.",
-      ),
-      removedBy: z
-        .string()
-        .optional()
-        .describe("Optional audit identity recorded on the signal."),
-      ...targetArgs,
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        delta,
-        removedBy,
-        target_path,
-        target_confirmed,
-        confirmationEvidence,
-      }: {
-        changeId: string;
-        capability: string;
-        delta: DeltaRemove;
-        removedBy?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const capabilityCheck = validateCapabilityArg({ capability });
-      if (capabilityCheck.error || !capabilityCheck.capability) {
-        return formatToolOutput({
-          success: false,
-          error: capabilityCheck.error ?? "Invalid capability",
-          changeId,
-        });
-      }
-      const deltaCheck = validateRemoveDeltaArg({ delta });
-      if (deltaCheck.error || !deltaCheck.delta) {
-        return formatToolOutput({
-          success: false,
-          error: deltaCheck.error ?? "Invalid remove delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      const validatedCapability = capabilityCheck.capability;
-      const validatedDelta = deltaCheck.delta;
-      if (target_path) {
-        try {
-          return await withTargetPathStore(
-            {
-              currentProjectPath: store.paths.root,
-              target_path,
-              stateRequirement: "authoritative",
-              target_confirmed,
-              confirmationEvidence,
-            },
-            async ({ context, store: targetStore }) =>
-              runRemove(
-                targetStore,
-                {
-                  changeId,
-                  capability: validatedCapability,
-                  delta: validatedDelta,
-                  removedBy,
-                },
-                formatTargetProjectContext(context),
-              ),
-          );
-        } catch (error) {
-          const errorText =
-            error instanceof Error ? error.message : String(error);
-          return formatToolOutput({
-            success: false,
-            error: `Target project spec delta remove unavailable: ${errorText}`,
-            changeId,
-            capability: validatedCapability,
-            target_path,
-          });
-        }
-      }
-      return runRemove(store, {
-        changeId,
-        capability: validatedCapability,
-        delta: validatedDelta,
-        removedBy,
-      });
-    },
-  },
-  adv_delta_rename: {
-    description:
-      "Record a rename-operation spec delta for an existing requirement under `change.deltas[capability]`. Rejects unknown requirements, duplicate delta IDs, and malformed rename shape atomically. Archive remains the sole global-spec writer; direct global-spec writes are out of scope.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose rename delta is appended"),
-      capability: CapabilityKeySchema.describe(
-        "Existing kebab-case capability key whose global spec contains the target requirement.",
-      ),
-      delta: DeltaRenameSchema.describe(
-        "Rename-operation delta. target_id must name an existing requirement and new_title must be non-empty.",
-      ),
-      renamedBy: z
-        .string()
-        .optional()
-        .describe("Optional audit identity recorded on the signal."),
-      ...targetArgs,
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        delta,
-        renamedBy,
-        target_path,
-        target_confirmed,
-        confirmationEvidence,
-      }: {
-        changeId: string;
-        capability: string;
-        delta: DeltaRename;
-        renamedBy?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const capabilityCheck = validateCapabilityArg({ capability });
-      if (capabilityCheck.error || !capabilityCheck.capability) {
-        return formatToolOutput({
-          success: false,
-          error: capabilityCheck.error ?? "Invalid capability",
-          changeId,
-        });
-      }
-      const deltaCheck = validateRenameDeltaArg({ delta });
-      if (deltaCheck.error || !deltaCheck.delta) {
-        return formatToolOutput({
-          success: false,
-          error: deltaCheck.error ?? "Invalid rename delta",
-          changeId,
-          capability: capabilityCheck.capability,
-        });
-      }
-      const validatedCapability = capabilityCheck.capability;
-      const validatedDelta = deltaCheck.delta;
-      if (target_path) {
-        try {
-          return await withTargetPathStore(
-            {
-              currentProjectPath: store.paths.root,
-              target_path,
-              stateRequirement: "authoritative",
-              target_confirmed,
-              confirmationEvidence,
-            },
-            async ({ context, store: targetStore }) =>
-              runRename(
-                targetStore,
-                {
-                  changeId,
-                  capability: validatedCapability,
-                  delta: validatedDelta,
-                  renamedBy,
-                },
-                formatTargetProjectContext(context),
-              ),
-          );
-        } catch (error) {
-          const errorText =
-            error instanceof Error ? error.message : String(error);
-          return formatToolOutput({
-            success: false,
-            error: `Target project spec delta rename unavailable: ${errorText}`,
-            changeId,
-            capability: validatedCapability,
-            target_path,
-          });
-        }
-      }
-      return runRename(store, {
-        changeId,
-        capability: validatedCapability,
-        delta: validatedDelta,
-        renamedBy,
-      });
-    },
-  },
-  adv_delta_list: {
-    description:
-      "List staged spec deltas on a change as bounded, paginated summary rows under `change.deltas[capability]`. Read-only: surfaces each staged delta's id, operation, capability, target (requirement id), and title so their ids can be passed to adv_delta_amend/retract. Fixes the adv_change_show truncation gap for delta-heavy changes. Reads disk-first and works even when the change workflow is orphaned.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose staged deltas to list"),
-      capability: CapabilityKeySchema.optional().describe(
-        "Optional capability filter; when omitted, lists deltas across all capabilities.",
-      ),
-      offset: z
-        .number()
-        .int()
-        .min(0)
-        .optional()
-        .describe("Pagination offset (default 0)."),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(100)
-        .optional()
-        .describe("Max rows to return (default 25, cap 100)."),
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        offset,
-        limit,
-      }: {
-        changeId: string;
-        capability?: string;
-        offset?: number;
-        limit?: number;
-      },
-      store: Store,
-    ) => {
-      return runList(store, { changeId, capability, offset, limit });
-    },
-  },
-  adv_delta_show: {
-    description:
-      "Show the full content of a single staged spec delta by id under `change.deltas[capability]`. Read-only: returns the complete delta object for exact-postimage verification; typed not-found error on unknown delta id. Reads disk-first and works even when the change workflow is orphaned.",
-    args: {
-      changeId: z
-        .string()
-        .min(1)
-        .describe("Change ID whose staged delta to show"),
-      capability: CapabilityKeySchema.describe(
-        "Capability key containing the delta.",
-      ),
-      deltaId: z.string().min(1).describe("Id of the staged delta to show."),
-    },
-    execute: async (
-      {
-        changeId,
-        capability,
-        deltaId,
-      }: {
-        changeId: string;
-        capability: string;
-        deltaId: string;
-      },
-      store: Store,
-    ) => {
-      return runShow(store, { changeId, capability, deltaId });
-    },
-  },
-};
+/** The retired public delta tool surface. Internal helpers above remain available. */
+export const specDeltaTools = {};

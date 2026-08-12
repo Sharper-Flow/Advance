@@ -229,14 +229,6 @@ export interface ToolMetadataV1 {
 // =============================================================================
 
 export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
-  adv_delta_add: "spec",
-  adv_delta_amend: "spec",
-  adv_delta_modify: "spec",
-  adv_delta_remove: "spec",
-  adv_delta_rename: "spec",
-  adv_delta_retract: "spec",
-  adv_delta_list: "spec",
-  adv_delta_show: "spec",
   adv_followup_promote: "followup",
   adv_subagent_report_submit: "report",
   adv_run_test: "test",

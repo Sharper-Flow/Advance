@@ -64,13 +64,6 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
  * only via this recorded addition set, by exactly the number landed.
  */
 const CONTRACTED_PUBLIC_ADDITIONS = [
-  "adv_delta_modify",
-  "adv_delta_amend",
-  "adv_delta_retract",
-  "adv_delta_remove",
-  "adv_delta_rename",
-  "adv_delta_list",
-  "adv_delta_show",
   "adv_change_workflow_terminate",
   "adv_tool_catalog",
   "adv_tool_describe",
@@ -271,10 +264,10 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    // The current source surface contains 63 tools after the contracted
+    // The current source surface contains 55 tools after the contracted
     // removals and dead-wrapper removals in this branch. Pin the observable
     // registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(63);
+    expect(ADV_TOOL_NAMES.length).toBe(55);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

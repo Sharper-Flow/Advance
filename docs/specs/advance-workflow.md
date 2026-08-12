@@ -6193,7 +6193,7 @@ When ADV already holds structured machine evidence for an unambiguous monotonic 
 
 **ID:** `rq-stagedDeltaCrud01` | **Priority:** **[SHOULD]**
 
-The change-owned staged spec-delta record (change.deltas[capability][]) supports the complete write vocabulary through public tools: adv_delta_add (add), adv_delta_modify (first modify), adv_delta_amend (replace an already-staged delta, preserving its id), adv_delta_retract (remove a staged delta), adv_delta_remove (stage an operation:remove delta), and adv_delta_rename (stage an operation:rename delta). Amend is full-replace (deterministic — the caller supplies the complete corrected delta; no heuristic merge). Every write returns explicit failure rather than false success when the post-commit readback cannot confirm the intended change (mutation-safety readback proof). Archive remains the sole global-spec writer; these tools only mutate the change-owned staged record. New disk mutation reducers are additive and readback-safe.
+The archive lifecycle MUST support staged spec deltas with operations: add, modify, amend (id-preserving full replacement), retract (delete staged delta), remove (stage a requirement deletion), and rename (stage a requirement rename). Deltas are applied at archive via the internal reducer. Amend is full-replace (deterministic — the caller supplies the complete corrected delta; no heuristic merge). Every write returns explicit failure rather than false success when the post-commit readback cannot confirm the intended change (mutation-safety readback proof). Archive remains the sole global-spec writer; staged operations mutate only the change-owned record. New disk mutation reducers are additive and readback-safe.
 
 **Tags:** `spec-delta`, `tooling`, `workflow`
 
@@ -6204,7 +6204,7 @@ The change-owned staged spec-delta record (change.deltas[capability][]) supports
 **Given:**
 - A modify-delta dl-x is staged under a capability with a set of scenarios
 
-**When:** adv_delta_amend(changeId, capability, dl-x, correctedDelta) is called with the complete corrected delta
+**When:** An amend operation is requested with the complete corrected delta for dl-x
 
 **Then:**
 - The staged entry dl-x is atomically replaced with the corrected postimage
@@ -6217,7 +6217,7 @@ The change-owned staged spec-delta record (change.deltas[capability][]) supports
 **Given:**
 - A modify-delta dl-x is staged
 
-**When:** adv_delta_amend is called with an invalid corrected delta (unknown modify target, bad scenario-id parenting, or malformed)
+**When:** An amend operation is requested with an invalid corrected delta (unknown modify target, bad scenario-id parenting, or malformed)
 
 **Then:**
 - The operation is atomically rejected
@@ -6228,7 +6228,7 @@ The change-owned staged spec-delta record (change.deltas[capability][]) supports
 **Given:**
 - A delta dl-x is staged under a capability
 
-**When:** adv_delta_retract(changeId, capability, dl-x) is called
+**When:** A retract operation is requested for dl-x
 
 **Then:**
 - dl-x is removed from the change-owned delta record
@@ -6240,7 +6240,7 @@ The change-owned staged spec-delta record (change.deltas[capability][]) supports
 **Given:**
 - A capability whose global spec contains a target requirement
 
-**When:** adv_delta_remove (target_id + reason) or adv_delta_rename is called with a valid delta
+**When:** A valid remove (target_id + reason) or rename operation delta is requested
 
 **Then:**
 - The operation:remove or operation:rename delta is staged under change.deltas[capability]
@@ -6252,7 +6252,7 @@ The change-owned staged spec-delta record (change.deltas[capability][]) supports
 **Given:**
 - A capability with some staged deltas
 
-**When:** adv_delta_amend or adv_delta_retract is called with a deltaId that is not staged
+**When:** An amend or retract operation is requested with a deltaId that is not staged
 
 **Then:**
 - A typed not-found error is returned

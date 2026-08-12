@@ -113,14 +113,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
     // longer couples to incidental inventory group ordering.
     const frozen: readonly string[] = [
       "adv_spec",
-      "adv_delta_add",
-      "adv_delta_amend",
-      "adv_delta_list",
-      "adv_delta_modify",
-      "adv_delta_remove",
-      "adv_delta_rename",
-      "adv_delta_retract",
-      "adv_delta_show",
       "adv_wip_state",
       "adv_backlog_add",
       "adv_backlog_list",

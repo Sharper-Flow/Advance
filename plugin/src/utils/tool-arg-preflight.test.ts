@@ -641,22 +641,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     policy: "blank",
     action: "omit",
   },
-  {
-    // Optional capability filter: strict-mode blank fills normalize to omitted
-    // so the handler lists deltas across all capabilities.
-    toolName: "adv_delta_list",
-    field: "capability",
-    policy: "blank",
-    action: "omit",
-  },
-  {
-    // Optional page limit: 0 placeholder fills normalize to omitted so the
-    // handler default (25) applies; bounded read, no safety impact.
-    toolName: "adv_delta_list",
-    field: "limit",
-    policy: "zero",
-    action: "omit",
-  },
 ];
 
 const CREATE_SCHEMA = {

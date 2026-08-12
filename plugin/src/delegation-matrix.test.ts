@@ -195,7 +195,7 @@ const RESTORE_DEL_DEFAULTS10_ARCHIVE_DELTA: Extract<
  * shape that binds the active implementation cycle in a designer/engineer
  * report. Additive only — augments the body and scenario rq-delDefaults10.2
  * "then" without removing any existing semantic requirement (DDC3). Mirrors
- * the recorded change delta authored via adv_delta_modify.
+ * the recorded change delta authored during the change workflow.
  */
 const FIX_FRONTEND_BIND_DELTA: Extract<Delta, { operation: "modify" }> = {
   id: "dl-FixFrontendBind10",

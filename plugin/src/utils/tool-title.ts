@@ -60,22 +60,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
       show: `Show spec${suffix(args, "capability")}`,
       search: `Search specs${suffix(args, "query")}`,
     }),
-  adv_delta_add: (args) =>
-    write(`Add spec delta${suffix(args, "changeId", "capability")}`),
-  adv_delta_modify: (args) =>
-    write(`Modify spec delta${suffix(args, "changeId", "capability")}`),
-  adv_delta_amend: (args) =>
-    write(`Amend spec delta${suffix(args, "changeId", "capability")}`),
-  adv_delta_retract: (args) =>
-    write(`Retract spec delta${suffix(args, "changeId", "capability")}`),
-  adv_delta_remove: (args) =>
-    write(`Remove spec delta${suffix(args, "changeId", "capability")}`),
-  adv_delta_rename: (args) =>
-    write(`Rename spec delta${suffix(args, "changeId", "capability")}`),
-  adv_delta_list: (args) =>
-    read(`List spec deltas${suffix(args, "changeId", "capability")}`),
-  adv_delta_show: (args) =>
-    read(`Show spec delta${suffix(args, "changeId", "capability")}`),
   adv_backlog_add: (args) => write(`Add backlog item${suffix(args, "title")}`),
   adv_backlog_list: () => read("List backlog"),
   adv_backlog_show: (args) => read(`Show backlog item${suffix(args, "id")}`),

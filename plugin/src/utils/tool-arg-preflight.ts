@@ -85,50 +85,6 @@ const ARTIFACT_FIELDS = [
 // policy executor. Keep this table limited to structural placeholder decisions;
 // no fs/store lookups here.
 const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
-  adv_delta_add: {
-    // Optional audit identity.
-    addedBy: { blank: "omit" },
-    // Contextually-validated target_path mutation guard (handler checks
-    // only when target_path is present).
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_delta_modify: {
-    modifiedBy: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_delta_amend: {
-    amendedBy: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_delta_retract: {
-    retractedBy: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_delta_remove: {
-    removedBy: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_delta_rename: {
-    renamedBy: { blank: "omit" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_delta_list: {
-    capability: { blank: "omit" },
-    offset: { blank: "omit" },
-    limit: { blank: "omit", zero: "omit" },
-  },
   adv_change_create: {
     // Optional artifact content — strict-mode providers fill with "" defaults.
     proposal: { blank: "omit" },

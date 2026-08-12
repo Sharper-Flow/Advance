@@ -70,7 +70,6 @@ import {
 } from "./tool-catalog-entries";
 
 import { specTools } from "./tools/spec";
-import { specDeltaTools } from "./tools/spec-delta";
 import { backlogTools, WIP_CALLER_TIMEOUT_MS } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
@@ -383,12 +382,6 @@ export function createToolMap(
     // Spec Tools
     ...bindGroup(specTools, store),
     adv_spec: bindToolWithContext(specTools.adv_spec, "adv_spec", store),
-
-    // Spec Delta Writer (addSpecDeltaWriter / roadmap #64): append-only
-    // add-operation delta under change.deltas[capability]. Archive remains
-    // the sole global-spec writer; this tool only mutates the change-owned
-    // durable delta record.
-    ...bindGroup(specDeltaTools, store),
 
     ...bindGroup(backlogTools, store),
 
@@ -908,7 +901,6 @@ export const toolCatalogTools = {
 
 const PUBLIC_TOOL_GROUPS = [
   specTools,
-  specDeltaTools,
   backlogTools,
   backlogShellTools,
   changeTools,
