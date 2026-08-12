@@ -6,7 +6,6 @@
  * entry point that wires Git/worktree evidence collection to durable state.
  */
 
-import { z } from "zod";
 import type { Store } from "../storage/store";
 import type { LightweightProfilePhase } from "../types";
 import {
@@ -16,11 +15,9 @@ import {
 } from "../types/lightweight-change-profile";
 import {
   collectLightweightProfileEvidence,
-  PublicRootPolicySchema,
   type PublicRootPolicy,
 } from "../utils/lightweight-change-profile-evidence";
 import { getProjectId } from "../utils/project-id";
-import { formatToolOutput } from "../utils/tool-output";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
 
 export interface EvaluateLightweightProfileDeps {
@@ -162,54 +159,4 @@ export async function evaluateLightweightProfileAndSignal(input: {
   };
 }
 
-export const lightweightProfileTools = {
-  adv_lightweight_profile_evaluate: {
-    description:
-      "Evaluate a lightweight change profile at a given gate boundary. Uses the host-side collector to gather evidence and sends a lightweightProfileEvaluated signal. Deduplicates by evaluation key (requestId + phase + fingerprint).",
-    args: {
-      changeId: z.string().min(1).describe("Change ID to evaluate."),
-      phase: z
-        .enum(["initial", "execution_boundary", "acceptance_boundary"])
-        .describe(
-          "Evaluation phase: initial (after task graph completion), execution_boundary, or acceptance_boundary.",
-        ),
-      apiCompatibilityPolicy: PublicRootPolicySchema.optional().describe(
-        "Optional public-root API compatibility policy. If omitted, API compatibility falls back to policy_absent.",
-      ),
-    },
-    execute: async (
-      input: {
-        changeId: string;
-        phase: LightweightProfilePhase;
-        apiCompatibilityPolicy?: PublicRootPolicy;
-      },
-      store: Store,
-    ) => {
-      const result = await evaluateLightweightProfileAndSignal({
-        store,
-        changeId: input.changeId,
-        phase: input.phase,
-        apiCompatibilityPolicy: input.apiCompatibilityPolicy,
-      });
-
-      if (!result.success) {
-        return formatToolOutput({
-          error: result.error,
-          changeId: input.changeId,
-          phase: input.phase,
-        });
-      }
-
-      return formatToolOutput({
-        success: true,
-        changeId: input.changeId,
-        phase: input.phase,
-        result: result.evaluation?.result,
-        evaluationKey: result.evaluation?.evaluationKey,
-        criteria: result.evaluation?.criteria,
-        downgradeReason: result.evaluation?.downgradeReason,
-        diagnostics: result.diagnostics,
-      });
-    },
-  },
-};
+export const lightweightProfileTools = {};

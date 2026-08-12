@@ -153,14 +153,11 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_epic_retire",
       "adv_followup_promote",
       "adv_report_followup_promote",
-      "adv_ops_evidence_add",
-      "adv_ops_followup_resolution_upsert",
       "adv_ops_run_upsert",
       "adv_ops_run_evidence_add",
       "adv_contract_mint",
       "adv_contract_review_matrix_set",
       "adv_design_concern_disposition",
-      "adv_verification_evidence_disposition",
       "adv_task_show",
       "adv_task_list",
       "adv_task_ready",
@@ -198,7 +195,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_snapshot_health",
       "adv_store_cleanup",
       "adv_store_reconcile",
-      "adv_lightweight_profile_evaluate",
     ];
     const byName = (a: string, b: string) => a.localeCompare(b);
     expect([...ADV_TOOL_NAMES].sort(byName)).toEqual([...frozen].sort(byName));

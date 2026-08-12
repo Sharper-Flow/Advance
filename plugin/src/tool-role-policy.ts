@@ -322,19 +322,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Gate read.",
   },
-  adv_lightweight_profile_evaluate: {
-    class: "orchestrator",
-    rationale:
-      "Host-side evidence collection for lightweight profile evaluation; driven by the gate workflow.",
-  },
-  adv_ops_evidence_add: {
-    class: "orchestrator",
-    rationale: "Ops follow-up evidence append.",
-  },
-  adv_ops_followup_resolution_upsert: {
-    class: "orchestrator",
-    rationale: "Ops follow-up link resolution upsert.",
-  },
   adv_ops_run_evidence_add: {
     class: "orchestrator",
     rationale: "Run-step evidence append; prod execute steps approval-gated.",
@@ -407,11 +394,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale:
       "Single diagnose→safe-fix→verify entry point for routine infrastructure recovery. Orchestrator-reachable because every fix is gated on a proven safe-subset and every escalation refuses with a typed approval-required proposal.",
-  },
-  adv_verification_evidence_disposition: {
-    class: "orchestrator",
-    rationale:
-      "Verification-evidence disposition clearing a VERIFICATION_EVIDENCE_MISSING blocker on proof-bearing task policies; typed fixed/rejected_with_evidence/split/fast_follow with non-blank evidence (no accepted_debt), parallel to adv_design_concern_disposition.",
   },
   adv_wisdom_add: {
     class: "orchestrator",

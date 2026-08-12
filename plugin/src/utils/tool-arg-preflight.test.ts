@@ -243,42 +243,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     policy: "blank",
     action: "omit",
   },
-  {
-    toolName: "adv_ops_evidence_add",
-    field: "changeId",
-    policy: "blank",
-    action: "reject",
-  },
-  {
-    toolName: "adv_ops_evidence_add",
-    field: "env",
-    policy: "blank",
-    action: "reject",
-  },
-  {
-    toolName: "adv_ops_evidence_add",
-    field: "action",
-    policy: "blank",
-    action: "reject",
-  },
-  {
-    toolName: "adv_ops_evidence_add",
-    field: "status",
-    policy: "blank",
-    action: "reject",
-  },
-  {
-    toolName: "adv_ops_evidence_add",
-    field: "summary",
-    policy: "blank",
-    action: "reject",
-  },
-  {
-    toolName: "adv_ops_evidence_add",
-    field: "batch",
-    policy: "blank",
-    action: "omit",
-  },
   // tk-6ff82311335f: read-tool page-limit fields surfaced by the coverage guard.
   {
     toolName: "adv_backlog_list",

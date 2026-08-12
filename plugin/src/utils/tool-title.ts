@@ -134,12 +134,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
   adv_report_followup_promote: (args) =>
     write(`Promote report follow-up${suffix(args, "source_change_id")}`),
-  adv_ops_evidence_add: (args) =>
-    write(`Add ops evidence${suffix(args, "changeId")}`),
-  adv_ops_followup_resolution_upsert: (args) =>
-    write(
-      `Upsert ops follow-up resolution${suffix(args, "changeId", "linkId")}`,
-    ),
   adv_ops_run_upsert: (args) =>
     write(`Upsert ops run${suffix(args, "changeId", "runId")}`),
   adv_ops_run_evidence_add: (args) =>
@@ -150,8 +144,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Set contract review${suffix(args, "changeId")}`),
   adv_design_concern_disposition: (args) =>
     write(`Dispose design concern${suffix(args, "changeId")}`),
-  adv_verification_evidence_disposition: (args) =>
-    write(`Dispose verification evidence${suffix(args, "changeId")}`),
   adv_task_show: (args) => read(`Show task${suffix(args, "taskId")}`),
   adv_task_list: (args) => read(`List tasks${suffix(args, "changeId")}`),
   adv_task_update: (args) => write(`Update task${suffix(args, "taskId")}`),
@@ -202,8 +194,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_resume_projection: (args) =>
     read(`Resume projection${suffix(args, "epic_ids")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
-  adv_lightweight_profile_evaluate: (args) =>
-    write(`Evaluate lightweight profile${suffix(args, "changeId", "phase")}`),
   adv_conformance: (args) =>
     operator(`Run conformance${suffix(args, "action")}`),
   adv_worktree_create: (args) =>

@@ -63,9 +63,7 @@ const BACKLOG_SHELL_AND_STORE_TOOLS = [
 /**
  * Public tools whose addition is contracted to LATER changes after the
  * consolidation baseline landed (fixWedgedWorkflowRecovery added
- * adv_change_workflow_terminate; strengthenAgentEvidence added
- * adv_verification_evidence_disposition; addLightweightChangeProfile added
- * adv_lightweight_profile_evaluate). Exact accounting keeps the
+ * adv_change_workflow_terminate). Exact accounting keeps the
  * canonical count pinned at every intermediate state: the count may grow
  * only via this recorded addition set, by exactly the number landed.
  */
@@ -78,8 +76,6 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_delta_list",
   "adv_delta_show",
   "adv_change_workflow_terminate",
-  "adv_verification_evidence_disposition",
-  "adv_lightweight_profile_evaluate",
   "adv_tool_catalog",
   "adv_tool_describe",
   "adv_tool_invoke",
@@ -92,9 +88,6 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // addAdvLauncherReadProjection added the launcher projection rebuild MCP
   // tool (plugin-only; never exposed via bin/adv).
   "adv_launcher_projection_rebuild",
-  // fixOpsResolutionProjection adds the ops follow-up link resolution upsert
-  // tool for bounded child-profile resolution projection.
-  "adv_ops_followup_resolution_upsert",
   // addReleaseNotesData adds the typed release-note full-replacement setter.
   "adv_change_set_release_notes",
   // migrateExistingAdvWorktrees adds the operator-only directory-only worktree
@@ -290,9 +283,10 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    // The current source surface contains 87 tools after the Temporal-only
-    // removals in this branch. Pin the observable registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(87);
+    // The current source surface contains 83 tools after the Temporal-only
+    // removals and dead-wrapper removals in this branch. Pin the observable
+    // registry count directly.
+    expect(ADV_TOOL_NAMES.length).toBe(83);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

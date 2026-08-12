@@ -8,10 +8,7 @@
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import {
-  evaluateLightweightProfileAndSignal,
-  lightweightProfileTools,
-} from "./lightweight-profile";
+import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
 import type { Store } from "../storage/store";
 import type { Change } from "../types";
 import {
@@ -308,39 +305,5 @@ describe("evaluateLightweightProfileAndSignal", () => {
         apiCompatibilityPolicy: { roots: ["src/public.ts"] },
       }),
     );
-  });
-});
-
-describe("adv_lightweight_profile_evaluate tool", () => {
-  test("returns lightweightProfileEvaluations result", async () => {
-    const change = makeChange({
-      lightweight_profile: makeProfile(),
-    });
-    const store = createMockStore({ change });
-
-    const output =
-      await lightweightProfileTools.adv_lightweight_profile_evaluate.execute(
-        { changeId: "test-change", phase: "initial" },
-        store,
-      );
-
-    const parsed = JSON.parse(output);
-    expect(parsed.success).toBe(true);
-    expect(parsed.result).toBe("qualified");
-    expect(parsed.phase).toBe("initial");
-  });
-
-  test("returns error when change has no profile", async () => {
-    const store = createMockStore({ change: makeChange() });
-
-    const output =
-      await lightweightProfileTools.adv_lightweight_profile_evaluate.execute(
-        { changeId: "test-change", phase: "initial" },
-        store,
-      );
-
-    const parsed = JSON.parse(output);
-    expect(parsed.success).toBeUndefined();
-    expect(parsed.error).toContain("no lightweight profile request");
   });
 });
