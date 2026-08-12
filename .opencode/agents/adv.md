@@ -38,22 +38,22 @@ tools:
   adv_change_close: true
   adv_change_create: true
   adv_change_list: true
-  adv_change_set_release_notes: true
-  # Roadmap
   adv_change_show: true
+  # Roadmap
   adv_change_update: true
   adv_gate_complete: true
   adv_gate_status: true
   adv_run_test: true
   adv_task_add: true
-  # Changes
   adv_task_checkpoint: true
+  # Changes
   adv_task_list: true
   adv_task_ready: true
   adv_task_show: true
   adv_task_update: true
   adv_tool_catalog: true
   adv_tool_describe: true
+  adv_tool_invoke: true
   # Tasks
   # Wisdom
   # Gates
@@ -66,7 +66,6 @@ tools:
   # Project metadata
   # === Epics — optional initiative containers ===
   # === Worktree — orchestrator owns lifecycle ===
-  adv_tool_invoke: true
   # <<< ADV-GENERATED adv_* tools <<<
   # === Research MCP tools ===
   context7_*: true

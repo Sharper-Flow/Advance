@@ -190,12 +190,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // Contextually-validated: handler checks only when target_path present.
     confirmationEvidence: { blank: "omit" },
   },
-  adv_change_set_release_notes: {
-    changeId: { blank: "reject" },
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
   adv_run_test: {
     command: { blank: "reject" }, // required-when-present
     phase: { blank: "omit" }, // optional descriptive metadata
@@ -247,13 +241,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     reasons: { recordValuesBlank: "reject" }, // per-task audit
     supersededBy: { recordValuesBlank: "reject" }, // required-when-present
   },
-  adv_task_reclassify_tdd: {
-    reason: { blank: "reject" }, // audit
-    approvalEvidence: { blank: "reject" }, // audit
-    target_path: { blank: "omit" },
-    // Contextually-validated (rq-toolPlaceholderPolicy01.6).
-    confirmationEvidence: { blank: "omit" },
-  },
   adv_task_checkpoint: {
     target_path: { blank: "omit" },
     // Contextually-validated when target_path present.
@@ -282,11 +269,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     branch: { blank: "reject" }, // required-when-present
     base: { blank: "reject" }, // required-when-present
   },
-  adv_worktree_resume: {
-    changeId: { blank: "reject" }, // required-when-present
-    branch: { blank: "omit" }, // optional (resume by changeId OR branch)
-    base: { blank: "omit" }, // optional
-  },
   adv_worktree_delete: {
     branch: { blank: "reject" }, // required-when-present
     planToken: { blank: "omit" }, // optional; handler returns PLAN_REQUIRED when absent
@@ -301,16 +283,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // Optional archived-branch restriction; handler treats blank as unset.
     changeId: { blank: "omit" },
   },
-  adv_worktree_detach: {
-    branches: { blank: "reject" }, // required
-    cutoffMs: { blank: "reject" }, // required positive integer
-    mode: { blank: "reject" }, // required enum
-    approvalEvidence: { blank: "omit" }, // required only for apply mode
-    requestId: { blank: "omit" }, // optional deterministic binding
-    target_path: { blank: "omit" },
-    target_confirmed: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
   adv_conformance: {
     user: { blank: "reject" }, // audit identity
     reason: { blank: "reject" }, // audit
@@ -320,19 +292,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_contract_mint: {
     approvedAt: { blank: "omit" }, // optional ISO timestamp
     priorApprovalEvidence: { blank: "omit" }, // optional audit context
-    target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_contract_review_matrix_set: {
-    reviewedAt: { blank: "omit" }, // optional ISO timestamp
-    priorApprovalEvidence: { blank: "omit" }, // optional audit context
-    target_path: { blank: "omit" },
-    confirmationEvidence: { blank: "omit" },
-  },
-  adv_design_concern_disposition: {
-    taskId: { blank: "reject" },
-    concernKey: { blank: "reject" },
-    evidence: { blank: "reject" }, // required disposition rationale
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },
@@ -376,11 +335,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     scopeDelta: { blank: "omit" },
     approvalEvidence: { blank: "omit" },
   },
-  adv_change_projection_quarantine: {
-    changeId: { blank: "reject" },
-    approvedByUser: { blank: "omit" },
-    approvalEvidence: { blank: "reject" }, // audit
-  },
   adv_followup_promote: {
     source_report_key: { blank: "omit" },
     source_contract_id: { blank: "omit" },
@@ -389,10 +343,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     proposal: { blank: "omit" },
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
-  },
-  adv_report_followup_promote: {
-    source_report_key: { blank: "omit" },
-    capability: { blank: "omit" },
   },
   // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
   // Zero omission for the positive-int optionals
@@ -510,13 +460,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_reflection_list: {
     maxEntries: { zero: "omit" },
-  },
-  // The reconcile engine treats omitted scan caps as unbounded (required for
-  // completion proof); strict-mode zero is the placeholder for that omission.
-  // Positive values remain bounded scan batches.
-  adv_store_reconcile: {
-    max_records: { zero: "omit" },
-    budget_ms: { zero: "omit" },
   },
 };
 

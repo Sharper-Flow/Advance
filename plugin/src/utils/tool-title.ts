@@ -49,16 +49,11 @@ const STATIC_TITLES: Record<
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
   adv_session_list: { title: "List sessions", titleKind: "read" },
   adv_worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
-  adv_worktree_detach: { title: "Detach worktrees", titleKind: "operator" },
   adv_tool_catalog: { title: "Catalog ADV tools", titleKind: "read" },
   adv_tool_describe: { title: "Describe ADV tool", titleKind: "read" },
   adv_tool_invoke: {
     title: "Invoke ADV tool",
     titleKind: "execute",
-  },
-  adv_launcher_projection_rebuild: {
-    title: "Rebuild launcher projection",
-    titleKind: "operator",
   },
 };
 
@@ -96,8 +91,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_change_create: (args) => write(`Create change${suffix(args, "summary")}`),
   adv_change_update: (args) =>
     write(`Update change${suffix(args, "changeId")}`),
-  adv_change_set_release_notes: (args) =>
-    write(`Set release notes${suffix(args, "changeId")}`),
   adv_change_close: (args) => write(`Close change${suffix(args, "changeId")}`),
   adv_change_bulk_close: () => write("Bulk close changes"),
   adv_change_validate: (args) =>
@@ -108,10 +101,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Purge archived change${suffix(args, "changeId")}`),
   adv_change_workflow_terminate: (args) =>
     operator(`Terminate change workflow${suffix(args, "changeId")}`),
-  adv_change_update_issues: (args) =>
-    write(`Update change issues${suffix(args, "changeId")}`),
-  adv_change_projection_quarantine: (args) =>
-    operator(`Quarantine change projection${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
   adv_epic_create: (args) => write(`Create Epic${suffix(args, "epic_id")}`),
@@ -132,25 +121,17 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_epic_retire: (args) => write(`Retire Epic${suffix(args, "epic_id")}`),
   adv_followup_promote: (args) =>
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
-  adv_report_followup_promote: (args) =>
-    write(`Promote report follow-up${suffix(args, "source_change_id")}`),
   adv_ops_run_upsert: (args) =>
     write(`Upsert ops run${suffix(args, "changeId", "runId")}`),
   adv_ops_run_evidence_add: (args) =>
     write(`Add ops run evidence${suffix(args, "changeId", "runId")}`),
   adv_contract_mint: (args) =>
     write(`Mint contract${suffix(args, "changeId")}`),
-  adv_contract_review_matrix_set: (args) =>
-    write(`Set contract review${suffix(args, "changeId")}`),
-  adv_design_concern_disposition: (args) =>
-    write(`Dispose design concern${suffix(args, "changeId")}`),
   adv_task_show: (args) => read(`Show task${suffix(args, "taskId")}`),
   adv_task_list: (args) => read(`List tasks${suffix(args, "changeId")}`),
   adv_task_update: (args) => write(`Update task${suffix(args, "taskId")}`),
   adv_task_add: (args) => write(`Add task${suffix(args, "changeId")}`),
   adv_task_cancel: () => write("Cancel tasks"),
-  adv_task_reclassify_tdd: (args) =>
-    write(`Reclassify TDD${suffix(args, "taskId")}`),
   adv_subagent_report_submit: () => write("Submit subagent report"),
   adv_wisdom_add: (args) => write(`Add wisdom${suffix(args, "changeId")}`),
   adv_wisdom_list: (args) => read(`List wisdom${suffix(args, "changeId")}`),
@@ -165,22 +146,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
         : "Scan stores for legacy agenda",
     );
   },
-  adv_store_reconcile: (args) => {
-    const mode = typeof args.mode === "string" ? args.mode : "plan";
-    return mode === "apply"
-      ? operator("Apply store reconciliation plan")
-      : read(
-          mode === "dry_run"
-            ? "Dry-run store reconciliation"
-            : "Plan store reconciliation",
-        );
-  },
-  adv_project_metadata: (args) =>
-    byAction(args, "Project metadata", {
-      read: `Read project metadata${suffix(args, "key")}`,
-      write: `Write project metadata${suffix(args, "key")}`,
-      list: "List project metadata",
-    }),
   adv_doctor: (args) =>
     operator(`Run ADV doctor${suffix(args, "target_path")}`),
   adv_gate_status: (args) =>
@@ -191,18 +156,13 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     execute(`Checkpoint task${suffix(args, "taskId")}`),
   adv_reflection_list: (args) =>
     read(`List reflections${suffix(args, "changeId", "target_path")}`),
-  adv_resume_projection: (args) =>
-    read(`Resume projection${suffix(args, "epic_ids")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
   adv_conformance: (args) =>
     operator(`Run conformance${suffix(args, "action")}`),
   adv_worktree_create: (args) =>
     operator(`Create worktree${suffix(args, "branch")}`),
-  adv_worktree_resume: (args) =>
-    operator(`Resume worktree${suffix(args, "changeId", "branch")}`),
   adv_worktree_delete: (args) =>
     operator(`Delete worktree${suffix(args, "branch")}`),
-  adv_session_show: (args) => read(`Show session${suffix(args, "sessionId")}`),
 };
 
 export function formatAdvToolTitle(

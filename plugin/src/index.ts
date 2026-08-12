@@ -687,14 +687,12 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_task_add",
     "adv_task_update",
     "adv_task_cancel",
-    "adv_task_reclassify_tdd",
     "adv_task_checkpoint",
     "adv_run_test",
     "adv_wisdom_add",
     "adv_gate_complete",
     "adv_change_reenter",
     "adv_change_update",
-    "adv_change_update_issues",
     "adv_delta_add",
     "adv_delta_amend",
     "adv_delta_modify",
@@ -704,7 +702,6 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_delta_list",
     "adv_delta_show",
     "adv_contract_mint",
-    "adv_contract_review_matrix_set",
     "adv_subagent_report_submit",
   ]);
 

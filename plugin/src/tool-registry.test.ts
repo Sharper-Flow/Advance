@@ -446,13 +446,10 @@ describe("KD-8 worktree + session tool registrations", () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const expected = [
       "adv_worktree_create",
-      "adv_worktree_resume",
       "adv_worktree_delete",
       "adv_worktree_cleanup",
-      "adv_worktree_detach",
       "adv_worktree_triage",
       "adv_session_list",
-      "adv_session_show",
     ];
     for (const name of expected) {
       expect(map).toHaveProperty(name);
@@ -463,13 +460,10 @@ describe("KD-8 worktree + session tool registrations", () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const expected = [
       "adv_worktree_create",
-      "adv_worktree_resume",
       "adv_worktree_delete",
       "adv_worktree_cleanup",
-      "adv_worktree_detach",
       "adv_worktree_triage",
       "adv_session_list",
-      "adv_session_show",
     ];
     for (const name of expected) {
       const tool = (map as Record<string, unknown>)[name];

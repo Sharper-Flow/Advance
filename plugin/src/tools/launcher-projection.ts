@@ -15,7 +15,7 @@ import { createLogger } from "../utils/debug-log";
 
 const logger = createLogger("launcher-projection");
 
-export const launcherProjectionTools = {
+const launcherProjectionToolDefinitions = {
   // rq-launcherProjectionTruth01 — producer-owned rebuild trigger regenerates
   // the durable active-launcher-state aggregate from on-disk per-change projections.
   adv_launcher_projection_rebuild: {
@@ -79,3 +79,14 @@ export const launcherProjectionTools = {
     },
   },
 };
+
+const {
+  adv_launcher_projection_rebuild: launcherProjectionDefinition,
+  ...launcherProjectionPublicTools
+} = launcherProjectionToolDefinitions;
+
+/** Internal MCP handler retained without a public ToolDefinition registration. */
+export const launcherProjectionRebuildHandler =
+  launcherProjectionDefinition.execute;
+export const launcherProjectionTools = launcherProjectionToolDefinitions;
+export { launcherProjectionPublicTools };

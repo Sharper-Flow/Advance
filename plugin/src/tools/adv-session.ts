@@ -12,7 +12,7 @@ import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
 import { listPeerSessions, showOwnSession } from "./session";
 
-export const advSessionTools = {
+const advSessionToolDefinitions = {
   adv_session_list: {
     description:
       "List peer sessions in this project. Privacy-defensive: exposes only sessionId, startedAt, worktree basename, and isSelf flag.",
@@ -53,3 +53,11 @@ export const advSessionTools = {
     },
   },
 };
+
+const { adv_session_show: sessionShowDefinition, ...advSessionPublicTools } =
+  advSessionToolDefinitions;
+
+/** Internal session detail handler retained for lifecycle callers. */
+export const sessionShowHandler = sessionShowDefinition.execute;
+export const advSessionTools = advSessionToolDefinitions;
+export { advSessionPublicTools };

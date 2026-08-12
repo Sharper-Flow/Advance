@@ -96,7 +96,7 @@ type QuarantineResult =
 // Tool Definition
 // =============================================================================
 
-export const changeProjectionQuarantineTools = {
+const changeProjectionQuarantineToolDefinitions = {
   adv_change_projection_quarantine: {
     description:
       "Operator-only quarantine for corrupt or oversized active change projections. " +
@@ -166,6 +166,18 @@ export const changeProjectionQuarantineTools = {
     },
   },
 };
+
+const {
+  adv_change_projection_quarantine: changeProjectionQuarantineDefinition,
+  ...changeProjectionQuarantinePublicTools
+} = changeProjectionQuarantineToolDefinitions;
+
+/** Internal repair handler retained for future CLI doctor use. */
+export const changeProjectionQuarantineHandler =
+  changeProjectionQuarantineDefinition.execute;
+export const changeProjectionQuarantineTools =
+  changeProjectionQuarantineToolDefinitions;
+export { changeProjectionQuarantinePublicTools };
 
 // =============================================================================
 // Internal execution

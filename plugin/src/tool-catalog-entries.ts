@@ -238,9 +238,7 @@ export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
   adv_delta_retract: "spec",
   adv_delta_list: "spec",
   adv_delta_show: "spec",
-  adv_design_concern_disposition: "design",
   adv_followup_promote: "followup",
-  adv_report_followup_promote: "report",
   adv_subagent_report_submit: "report",
   adv_run_test: "test",
   adv_snapshot_health: "snapshot",
@@ -280,7 +278,6 @@ export function deriveToolRealm(name: string): ToolRealm {
 export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   // Repair / operator-only recovery surface
   adv_archive_purge: "repair",
-  adv_change_projection_quarantine: "repair",
   adv_change_workflow_terminate: "repair",
   adv_doctor: "repair",
   adv_store_cleanup: "repair",
@@ -288,12 +285,10 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   // Diagnostics / read-heavy analysis surface
   adv_change_validate: "diagnostics",
   adv_conformance: "diagnostics",
-  adv_design_concern_disposition: "diagnostics",
   adv_run_test: "diagnostics",
   adv_snapshot_health: "diagnostics",
 
   // Metadata / submission surface
-  adv_project_metadata: "metadata",
   adv_reflect: "metadata",
   adv_subagent_report_submit: "metadata",
 
@@ -308,7 +303,6 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_project_context: "read",
   adv_reflection_list: "read",
   adv_session_list: "read",
-  adv_session_show: "read",
   adv_spec: "read",
   adv_status: "read",
   adv_task_list: "read",
@@ -328,8 +322,6 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_epic_promote_shell: "lifecycle",
   adv_followup_promote: "lifecycle",
   adv_gate_complete: "lifecycle",
-  adv_report_followup_promote: "lifecycle",
-  adv_worktree_resume: "lifecycle",
 
   // Bulk operations
   adv_change_bulk_close: "bulk",

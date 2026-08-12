@@ -28,7 +28,7 @@ import {
  */
 const RESUME_PROJECTION_GET_CONCURRENCY = 8;
 
-export const resumeProjectionTools = {
+const resumeProjectionToolDefinitions = {
   adv_resume_projection: {
     description:
       "Generate a dependency-aware resume projection: what to work on next, " +
@@ -213,6 +213,16 @@ export const resumeProjectionTools = {
     },
   },
 };
+
+const {
+  adv_resume_projection: resumeProjectionDefinition,
+  ...resumeProjectionPublicTools
+} = resumeProjectionToolDefinitions;
+
+/** Internal projection handler retained for MCP and lifecycle callers. */
+export const resumeProjectionHandler = resumeProjectionDefinition.execute;
+export const resumeProjectionTools = resumeProjectionToolDefinitions;
+export { resumeProjectionPublicTools };
 
 function degradeToSummary(summary: {
   id: string;

@@ -123,12 +123,6 @@ describe("tool role policy — exhaustive classification (AC5/AC7, DDC8)", () =>
     const status = TOOL_ROLE_POLICY["adv_status"];
     expect(status.class).toBe("dual");
     expect(status.operatorActions).toContain("forceRefresh");
-
-    const projectMetadata = TOOL_ROLE_POLICY["adv_project_metadata"];
-    expect(projectMetadata.class).toBe("dual");
-    expect(projectMetadata.agentActions).toContain("read");
-    expect(projectMetadata.agentActions).toContain("list");
-    expect(projectMetadata.operatorActions).toContain("write");
   });
 });
 

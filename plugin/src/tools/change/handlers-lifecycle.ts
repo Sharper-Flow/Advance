@@ -11,8 +11,10 @@ import {
   createDefaultGates,
   ChangeOriginKindSchema,
   ChangeRepoScopeSchema,
+  ReleaseNotesContentSchema,
   WorkNodeRefSchema,
   type ChangeRepoScope,
+  type ReleaseNotesContent,
 } from "../../types";
 import type { ChangeCreateInitialMetadata, Store } from "../../storage/store";
 import { getProjectId } from "../../utils/project-id";
@@ -443,6 +445,7 @@ export const advChangeUpdateHandler = async (
     agreement,
     design,
     executiveSummary,
+    release_notes,
     target_path,
     target_confirmed,
     confirmationEvidence,
@@ -454,6 +457,7 @@ export const advChangeUpdateHandler = async (
     agreement?: string;
     design?: string;
     executiveSummary?: string;
+    release_notes?: ReleaseNotesContent;
     target_path?: string;
     target_confirmed?: true;
     confirmationEvidence?: string;
@@ -473,12 +477,12 @@ export const advChangeUpdateHandler = async (
       problemStatement === undefined &&
       agreement === undefined &&
       design === undefined &&
-      executiveSummary === undefined
+      executiveSummary === undefined &&
+      release_notes === undefined
     ) {
       return formatToolOutput({
-        error:
-          "At least one of 'proposal', 'problemStatement', 'agreement', 'design', or 'executiveSummary' must be provided.",
-        hint: "Pass one or more of: proposal, problemStatement, agreement, design, executiveSummary. See the tool description for which file each field writes.",
+        error: "At least one update field must be provided.",
+        hint: "Pass one or more of: proposal, problemStatement, agreement, design, executiveSummary, release_notes.",
       });
     }
     const artifactInputs = [
@@ -501,6 +505,20 @@ export const advChangeUpdateHandler = async (
         error: "Blank artifact fields are not allowed.",
         fields: blankArtifactFields,
         hint: "Provide non-blank strings for artifact fields, or omit fields you do not intend to change.",
+      });
+    }
+    const releaseNotes =
+      release_notes === undefined
+        ? undefined
+        : ReleaseNotesContentSchema.safeParse(release_notes);
+    if (releaseNotes && !releaseNotes.success) {
+      return formatToolOutput({
+        error: "Invalid release_notes content",
+        code: "INVALID_TOOL_ARGS",
+        issues: releaseNotes.error.issues.map((issue) => ({
+          path: issue.path,
+          message: issue.message,
+        })),
       });
     }
     // P1.12 Scope C: verify changeId exists before writing. Surface a
@@ -538,16 +556,25 @@ export const advChangeUpdateHandler = async (
         mutateLatestProjection: (latest) => ({
           ...latest,
           documents: { ...(latest.documents ?? {}), ...artifactUpdates },
+          ...(releaseNotes?.success
+            ? { release_notes: releaseNotes.data }
+            : {}),
         }),
-        verifyProjection: (readback) =>
-          Object.entries(artifactUpdates).every(
+        verifyProjection: (readback) => {
+          const artifactsVerified = Object.entries(artifactUpdates).every(
             ([kind, content]) =>
               (
                 readback.documents as
                   | Record<string, string | undefined>
                   | undefined
               )?.[kind] === content,
-          ),
+          );
+          const releaseNotesVerified =
+            releaseNotes?.success !== true ||
+            JSON.stringify(readback.release_notes) ===
+              JSON.stringify(releaseNotes.data);
+          return artifactsVerified && releaseNotesVerified;
+        },
       },
     });
     if (outcome.kind !== "verified") {
@@ -563,6 +590,7 @@ export const advChangeUpdateHandler = async (
       success: true,
       changeId,
       artifactAuthority: "change.documents",
+      ...(releaseNotes?.success ? { release_notes: releaseNotes.data } : {}),
       ...(projectContext ? { _projectContext: projectContext } : {}),
     });
   };
@@ -1000,6 +1028,9 @@ export const lifecycleChangeTools = {
         .describe(
           "Optional executive-summary.md content (post-acceptance outcome narrative)",
         ),
+      release_notes: ReleaseNotesContentSchema.optional().describe(
+        "Complete typed release-note content block. Replaces any existing release_notes. Omit to leave release notes unchanged.",
+      ),
       target_path: z
         .string()
         .optional()

@@ -59,25 +59,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Purges archived disk projections; opt-in includeDiskBundle recursively deletes the archive bundle (approvedByUser + approvalEvidence).",
   },
-  adv_change_projection_quarantine: {
-    class: "operator-only",
-    rationale:
-      "Operator-only quarantine for corrupt or oversized active change projections. Atomically moves the bad change.json outside the active read path, preserves original bytes/metadata, and appends a purpose-specific audit entry (approvedByUser + approvalEvidence + changeId). Refuses healthy or missing records.",
-  },
   adv_store_cleanup: {
     class: "operator-only",
     rationale:
       "Deletes legacy agenda stores; manifest-before-delete with approvedByUser + approvalEvidence + dry-run plan_hash.",
-  },
-  adv_store_reconcile: {
-    class: "operator-only",
-    rationale:
-      "Repairs disk-backed migration residue; plan/dry_run is read-only and apply requires a matching plan_hash plus target trust approval.",
-  },
-  adv_launcher_projection_rebuild: {
-    class: "operator-only",
-    rationale:
-      "Regenerates the aggregate active-launcher-state.json from the on-disk per-change projection set; a producer-owned cache rebuild with external-state blast radius if misused.",
   },
 
   // ── Dual (8) ─────────────────────────────────────────────────────────
@@ -92,24 +77,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     agentActions: ["status", "init", "lock", "unlock", "run"],
     operatorActions: ["override"],
   },
-  adv_project_metadata: {
-    class: "dual",
-    rationale:
-      "Per-project metadata: read/list are agent-safe; write is owned by scan producers (slop-scan, comp-scan, audit, arch-scan), not ad-hoc agent writes.",
-    agentActions: ["read", "list"],
-    operatorActions: ["write"],
-  },
   adv_session_list: {
     class: "dual",
     rationale:
       "Privacy-defensive peer session inventory read; no agent mutation surface — session lifecycle is owned by the oc wrapper/operator.",
-    agentActions: ["read"],
-    operatorActions: [],
-  },
-  adv_session_show: {
-    class: "dual",
-    rationale:
-      "Self-session detail read; no agent mutation surface — session lifecycle is owned by the oc wrapper/operator.",
     agentActions: ["read"],
     operatorActions: [],
   },
@@ -146,11 +117,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
   // task checkpoint/update/cancel, projection repair, cross-project trust
   // boundaries) stay distinct — no universal router (DONT1/DONT3).
-  adv_resume_projection: {
-    class: "orchestrator",
-    rationale:
-      "Pure-read dependency-aware resume projection. No mutation surface — generates an in-memory 'what next' view from changes + epics. Consumed by adv_status, /adv-coordinate, /adv-triage, and bin/adv.",
-  },
   adv_backlog_add: {
     class: "orchestrator",
     rationale: "Backlog item capture.",
@@ -204,14 +170,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Change update.",
   },
-  adv_change_set_release_notes: {
-    class: "orchestrator",
-    rationale: "Typed release-note full-replacement setter.",
-  },
-  adv_change_update_issues: {
-    class: "orchestrator",
-    rationale: "Issue linkage update.",
-  },
   adv_change_validate: {
     class: "orchestrator",
     rationale: "Validation read.",
@@ -219,10 +177,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_contract_mint: {
     class: "orchestrator",
     rationale: "ChangeContract minting from approved agreement.",
-  },
-  adv_contract_review_matrix_set: {
-    class: "orchestrator",
-    rationale: "Review-matrix persistence.",
   },
   adv_delta_add: {
     class: "orchestrator",
@@ -261,10 +215,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_delta_show: {
     class: "orchestrator",
     rationale: "Staged spec-delta read (single delta).",
-  },
-  adv_design_concern_disposition: {
-    class: "orchestrator",
-    rationale: "Design-concern disposition.",
   },
   adv_epic_add_shell: {
     class: "orchestrator",
@@ -342,10 +292,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Reflection read.",
   },
-  adv_report_followup_promote: {
-    class: "orchestrator",
-    rationale: "Report follow-up promotion.",
-  },
   adv_run_test: {
     class: "orchestrator",
     rationale: "Bounded test-run evidence.",
@@ -378,10 +324,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Ready-queue read.",
   },
-  adv_task_reclassify_tdd: {
-    class: "orchestrator",
-    rationale: "TDD reclassification with user signoff.",
-  },
   adv_task_show: {
     class: "orchestrator",
     rationale: "Task read.",
@@ -408,11 +350,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Shared planner/executor cleanup; destructive manual and archived-branch modes require dry-run candidate identity plus count-matched approval evidence.",
   },
-  adv_worktree_detach: {
-    class: "operator-only",
-    rationale:
-      "Directory-only nonterminal worktree detach; preserves branch and change record, requires explicit operator approval and exact branch set. Never invoked by reapers, triage, startup cleanup, or migration automation.",
-  },
   adv_worktree_create: {
     class: "orchestrator",
     rationale: "Tool-owned worktree creation.",
@@ -421,10 +358,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale:
       "Shared planner/executor worktree deletion; dry-run mints the typed plan token and apply requires nonblank approval evidence.",
-  },
-  adv_worktree_resume: {
-    class: "orchestrator",
-    rationale: "Worktree resume/materialize.",
   },
   adv_worktree_triage: {
     class: "orchestrator",
@@ -515,7 +448,6 @@ const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
   "adv_change_close",
   "adv_change_create",
   "adv_change_list",
-  "adv_change_set_release_notes",
   "adv_change_update",
   "adv_run_test",
   "adv_task_add",

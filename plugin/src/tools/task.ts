@@ -489,7 +489,7 @@ async function resolveChangeId(
 // Tool Definitions
 // =============================================================================
 
-export const taskTools = {
+const taskToolDefinitions = {
   adv_task_show: {
     description:
       "Get full details of a single task by ID, including its parent change ID. Use when you have a task ID but need the complete task object.",
@@ -792,6 +792,24 @@ export const taskTools = {
       error_recovery: ErrorRecoverySchema.optional().describe(
         "Structured retry history for doom-loop tracking, including attempts[]",
       ),
+      tdd_intent: z
+        .enum(["inline", "separate_verification", "not_applicable"])
+        .optional()
+        .describe(
+          "Set or reclassify the task TDD intent. Requires tdd_reason, approvedByUser:true, and approvalEvidence.",
+        ),
+      tdd_reason: z
+        .string()
+        .optional()
+        .describe("Why the task TDD intent is being changed."),
+      approvedByUser: z
+        .literal(true)
+        .optional()
+        .describe("Required when changing tdd_intent."),
+      approvalEvidence: z
+        .string()
+        .optional()
+        .describe("User approval evidence for changing tdd_intent."),
       contract_refs: TaskContractRefsSchema.optional().describe(
         "Structured links from this task to approved change-contract items. Only implements/verifies cover success or acceptance criteria; respects traces constraints/avoidances and never covers acceptance criteria.",
       ),
@@ -844,6 +862,10 @@ export const taskTools = {
         notes?: string;
         implementation_summary?: string;
         error_recovery?: ErrorRecovery;
+        tdd_intent?: "inline" | "separate_verification" | "not_applicable";
+        tdd_reason?: string;
+        approvedByUser?: true;
+        approvalEvidence?: string;
         contract_refs?: TaskContractRefs;
         restartImplementationCycle?: boolean;
         target_path?: string;
@@ -950,6 +972,48 @@ export const taskTools = {
         const currentTask =
           taskRecord?.task ??
           changeForGuard?.tasks.find((task) => task.id === args.taskId);
+        if (args.tdd_intent !== undefined) {
+          if (args.approvedByUser !== true) {
+            return formatToolOutput({
+              error: "approvedByUser must be true when changing tdd_intent.",
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+          if (!args.tdd_reason?.trim() || !args.approvalEvidence?.trim()) {
+            return formatToolOutput({
+              error:
+                "tdd_reason and approvalEvidence are required when changing tdd_intent.",
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+          if (!currentTask) {
+            return formatToolOutput({
+              error: `Task not found: ${args.taskId}`,
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+          if (currentTask.metadata?.tdd_intent === args.tdd_intent) {
+            return formatToolOutput({
+              error: `Task ${args.taskId} already has tdd_intent="${args.tdd_intent}".`,
+              changeId,
+              taskId: args.taskId,
+            });
+          }
+        }
+        const tddReclassification: TddReclassification | undefined =
+          args.tdd_intent !== undefined && currentTask
+            ? {
+                from_intent: currentTask.metadata?.tdd_intent ?? "none",
+                to_intent: args.tdd_intent,
+                reason: args.tdd_reason!,
+                approved_by_user: true,
+                approval_evidence: args.approvalEvidence!,
+                approved_at: now,
+              }
+            : undefined;
         const clearedDelegationRecovery = maybeClearBlockedDelegationRecovery(
           currentTask,
           args.error_recovery,
@@ -1092,6 +1156,13 @@ export const taskTools = {
             ...(evidencePlanRepair && {
               evidence_policy: evidencePlanRepair.policy,
               evidence_plan: evidencePlanRepair,
+            }),
+            ...(tddReclassification && {
+              metadata: {
+                ...task.metadata,
+                tdd_intent: tddReclassification.to_intent,
+              },
+              tdd_reclassification: tddReclassification,
             }),
           };
           // rq-wisdomAutoSurfacing01 / D4: when error_recovery carries a
@@ -1918,3 +1989,14 @@ export const taskTools = {
     },
   },
 };
+
+const {
+  adv_task_reclassify_tdd: advTaskReclassifyTddDefinition,
+  ...taskTools
+} = taskToolDefinitions;
+
+/** Retained for internal callers while the public ToolDefinition is folded into adv_task_update. */
+export const advTaskReclassifyTddHandler =
+  advTaskReclassifyTddDefinition.execute;
+
+export { taskTools };

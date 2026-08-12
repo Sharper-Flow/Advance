@@ -837,7 +837,7 @@ async function initWorktreeDb(
   return initStateDb(projectRoot);
 }
 
-export const advWorktreeTools = {
+const advWorktreeToolDefinitions = {
   adv_worktree_create: {
     description:
       "Create a new git worktree for isolated development. Returns the worktree path, branch, and base reference.",
@@ -853,12 +853,43 @@ export const advWorktreeTools = {
         .boolean()
         .optional()
         .describe("Force creation even if branch exists"),
+      changeId: z
+        .string()
+        .optional()
+        .describe("Existing ADV change ID to resume."),
+      resume: z
+        .boolean()
+        .optional()
+        .describe("Resume an existing worktree instead of creating a new one."),
+      ...targetWorktreeMutationArgSchemas,
     },
     execute: async (
-      args: { branch: string; base?: string; force?: boolean },
+      args: {
+        branch: string;
+        base?: string;
+        force?: boolean;
+        changeId?: string;
+        resume?: boolean;
+      } & TargetWorktreeMutationArgs,
       store: Store,
       runtime?: AdvWorktreeCreateRuntime,
     ) => {
+      if (args.resume || args.changeId) {
+        if (args.target_path) {
+          return withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path: args.target_path,
+              target_confirmed: args.target_confirmed,
+              confirmationEvidence: args.confirmationEvidence,
+              stateRequirement: "authoritative",
+            },
+            async ({ context, store: targetStore }) =>
+              executeWorktreeResume(args, targetStore, context),
+          );
+        }
+        return executeWorktreeResume(args, store);
+      }
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();
@@ -938,46 +969,6 @@ export const advWorktreeTools = {
         message:
           "Session warped to workspace. Subsequent tool calls operate with the worktree as the project root — no per-tool workdir override needed.",
       });
-    },
-  },
-
-  adv_worktree_resume: {
-    description:
-      "Resume or materialize a branch-aware ADV worktree by change ID or branch. Reuses setup-ready worktrees, blocks setup_failed records, and returns a concrete workdir.",
-    args: {
-      changeId: z
-        .string()
-        .optional()
-        .describe("ADV change ID; maps to branch change/<changeId>"),
-      branch: z
-        .string()
-        .optional()
-        .describe("Branch name to resume (e.g., change/my-change)"),
-      base: z
-        .string()
-        .optional()
-        .describe("Base branch to create from when materialization is needed"),
-      force: z
-        .boolean()
-        .optional()
-        .describe("Force creation when materialization is needed"),
-      ...targetWorktreeMutationArgSchemas,
-    },
-    execute: async (args: WorktreeResumeArgs, store: Store) => {
-      if (args.target_path) {
-        return withTargetPathStore(
-          {
-            currentProjectPath: store.paths.root,
-            target_path: args.target_path,
-            target_confirmed: args.target_confirmed,
-            confirmationEvidence: args.confirmationEvidence,
-            stateRequirement: "authoritative",
-          },
-          async ({ context, store: targetStore }) =>
-            executeWorktreeResume(args, targetStore, context),
-        );
-      }
-      return executeWorktreeResume(args, store);
     },
   },
 
@@ -1098,6 +1089,7 @@ export const advWorktreeTools = {
     },
   },
 
+  /* Internal-only handler retained for future maintenance callers. */
   adv_worktree_detach: {
     description:
       "Operator-only directory-only worktree detach. Removes only the worktree directory for a set of exact branches, preserves the local branch and ADV change record, and writes a durable dematerialize receipt on the owning change workflow. Requires approvalEvidence in apply mode. Never invoked by reapers, triage, startup cleanup, or migration automation.",
@@ -1191,3 +1183,12 @@ export const advWorktreeTools = {
     },
   },
 };
+
+const {
+  adv_worktree_detach: worktreeDetachDefinition,
+  ...advWorktreePublicTools
+} = advWorktreeToolDefinitions;
+
+/** Internal maintenance handler retained without public ToolDefinition registration. */
+export const worktreeDetachHandler = worktreeDetachDefinition.execute;
+export const advWorktreeTools = advWorktreePublicTools;

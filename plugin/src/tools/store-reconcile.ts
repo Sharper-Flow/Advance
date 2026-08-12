@@ -22,7 +22,7 @@ const PLAN_HASH = /^[a-f0-9]{64}$/;
 
 export const StoreReconcileModeSchema = z.enum(["plan", "dry_run", "apply"]);
 
-export const storeReconcileTools = {
+const storeReconcileToolDefinitions = {
   adv_store_reconcile: {
     description:
       "Reconcile disk-backed ADV store migration residue. The default plan " +
@@ -233,5 +233,15 @@ export const storeReconcileTools = {
     },
   },
 } as const;
+
+const {
+  adv_store_reconcile: storeReconcileDefinition,
+  ...storeReconcilePublicTools
+} = storeReconcileToolDefinitions;
+
+/** Internal CLI handler retained for bin/adv reconcile. */
+export const storeReconcileHandler = storeReconcileDefinition.execute;
+export const storeReconcileTools = storeReconcileToolDefinitions;
+export { storeReconcilePublicTools };
 
 export type StoreReconcilePlan = ReconcilePlan;

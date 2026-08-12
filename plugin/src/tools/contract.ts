@@ -203,7 +203,7 @@ function isFailingContractReviewStatus(
   return ["fail", "violated", "unknown"].includes(status);
 }
 
-export const contractTools = {
+const contractToolDefinitions = {
   adv_contract_mint: {
     description:
       "Mint a typed ChangeContract from the approved agreement artifact and persist it through the contractSetSignal path. Recovery is classified internally from machine evidence (D4/AC5).",
@@ -496,3 +496,15 @@ export const contractTools = {
       }),
   },
 };
+
+const {
+  adv_contract_review_matrix_set: contractReviewMatrixSetDefinition,
+  ...contractPublicTools
+} = contractToolDefinitions;
+
+/** Internal acceptance-pipeline handler; not registered as an agent tool. */
+export const contractReviewMatrixSetHandler =
+  contractReviewMatrixSetDefinition.execute;
+
+export const contractTools = contractToolDefinitions;
+export { contractPublicTools };

@@ -17,7 +17,7 @@ describe("getToolSurface (live surface)", () => {
   });
 
   test("does not expose removed public recovery args on routine mutation tools", () => {
-    const args = surface.get("adv_design_concern_disposition");
+    const args = surface.get("adv_change_close");
     expect(args).toBeDefined();
     expect(args?.has("target_path")).toBe(true);
     expect(args?.has("recoveryMode")).toBe(false);

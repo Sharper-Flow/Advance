@@ -75,17 +75,13 @@ import { backlogTools, WIP_CALLER_TIMEOUT_MS } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
-import { reportFollowupTools } from "./tools/report-followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
-import { contractTools } from "./tools/contract";
-import { designConcernTools } from "./tools/design-concern";
+import { contractPublicTools } from "./tools/contract";
 import { verificationEvidenceTools } from "./tools/verification-evidence";
 import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
-import { resumeProjectionTools } from "./tools/resume-projection";
-import { launcherProjectionTools } from "./tools/launcher-projection";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
@@ -94,15 +90,12 @@ import { checkpointTools } from "./tools/checkpoint";
 import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
 import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
 import { reflectionTools } from "./tools/reflection";
-import { changeProjectionQuarantineTools } from "./tools/change-projection-quarantine";
 import { snapshotHealthTools } from "./tools/snapshot";
-import { projectMetadataTools } from "./tools/project-metadata";
 import { conformanceTools } from "./tools/conformance";
 import { advWorktreeTools } from "./tools/adv-worktree";
-import { advSessionTools } from "./tools/adv-session";
+import { advSessionPublicTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
 import { storeCleanupTools } from "./tools/store-cleanup";
-import { storeReconcileTools } from "./tools/store-reconcile";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
 import { advInvokeTools } from "./tools/adv-invoke";
 type ToolExecute<TArgs> = (
@@ -315,14 +308,12 @@ export const EXPLICITLY_BOUND = new Set([
   "adv_wip_state",
   "adv_change_archive",
   "adv_task_cancel",
-  "adv_task_reclassify_tdd",
   "adv_gate_complete",
   "adv_run_test",
   "adv_task_checkpoint",
   "adv_worktree_create",
   "adv_worktree_delete",
   "adv_worktree_cleanup",
-  "adv_worktree_detach",
   "adv_worktree_triage",
   "adv_tool_invoke",
 ]);
@@ -497,15 +488,11 @@ export function createToolMap(
     // Ops Follow-up Promotion Tool
     ...bindGroup(followupTools, store),
 
-    // Report Follow-Up Promotion Tool
-    ...bindGroup(reportFollowupTools, store),
-
     // Ops Evidence Append Tool
     ...bindGroup(opsEvidenceTools, store),
 
     // Contract Tools
-    ...bindGroup(contractTools, store),
-    ...bindGroup(designConcernTools, store),
+    ...bindGroup(contractPublicTools, store),
     ...bindGroup(verificationEvidenceTools, store),
 
     // Task Tools
@@ -537,33 +524,6 @@ export function createToolMap(
       ),
     ),
 
-    // Task reclassify TDD — needs literal/union type coercion
-    adv_task_reclassify_tdd: registerTool(
-      taskTools.adv_task_reclassify_tdd.description,
-      taskTools.adv_task_reclassify_tdd.args,
-      namedExecute(
-        "adv_task_reclassify_tdd",
-        safeExecute(
-          async (args) =>
-            taskTools.adv_task_reclassify_tdd.execute(
-              {
-                ...(args as Record<string, unknown>),
-                toIntent: (args as Record<string, unknown>).toIntent as
-                  | "inline"
-                  | "separate_verification"
-                  | "not_applicable",
-                approvedByUser: (args as Record<string, unknown>)
-                  .approvedByUser as true,
-              } as Parameters<
-                typeof taskTools.adv_task_reclassify_tdd.execute
-              >[0],
-              store,
-            ),
-          "adv_task_reclassify_tdd",
-        ),
-      ),
-    ),
-
     // Sub-agent Report Tools
     ...bindGroup(subagentReportTools, store),
 
@@ -575,26 +535,14 @@ export function createToolMap(
     // Status Tool
     ...bindGroup(statusTools, store),
 
-    // Resume Projection Tool (pure-read, orchestrator class)
-    ...bindGroup(resumeProjectionTools, store),
-
-    // Launcher Projection Rebuild Tool (producer-only, disk-only)
-    ...bindGroup(launcherProjectionTools, store),
-
-    // Change Projection Quarantine Tool (operator-only repair surface)
-    ...bindGroup(changeProjectionQuarantineTools, store),
-
     // Snapshot Health Tool
     ...bindGroup(snapshotHealthTools, store),
 
+    // Public session listing tool; session detail remains an internal handler.
+    ...bindGroup(advSessionPublicTools, store),
+
     // Store Cleanup Tool — legacy Agenda cleanup (scan/dry_run read-only; execute approval-gated)
     ...bindGroup(storeCleanupTools, store),
-
-    // Store Reconcile Tool — dry-run plan / approval-gated apply
-    ...bindGroup(storeReconcileTools, store),
-
-    // Project Metadata Tool
-    ...bindGroup(projectMetadataTools, store),
 
     // Project Tools
     ...bindGroup(projectTools, store),
@@ -771,23 +719,6 @@ export function createToolMap(
         ),
       ),
     ),
-    adv_worktree_detach: registerTool(
-      advWorktreeTools.adv_worktree_detach.description,
-      advWorktreeTools.adv_worktree_detach.args,
-      namedExecute(
-        "adv_worktree_detach",
-        safeExecute(
-          async (args) =>
-            advWorktreeTools.adv_worktree_detach.execute(
-              args as Parameters<
-                typeof advWorktreeTools.adv_worktree_detach.execute
-              >[0],
-              store,
-            ),
-          "adv_worktree_detach",
-        ),
-      ),
-    ),
     // Triage shares the 55s bounded inventory collector with WIP. Preserve a
     // 5s formatting reserve beneath this 60s outer containment so partial
     // findings and omissions return before safeExecute can become opaque.
@@ -810,9 +741,6 @@ export function createToolMap(
         ),
       ),
     ),
-
-    // Session Tools
-    ...bindGroup(advSessionTools, store),
 
     // Tool Catalog / Describe (addAdvanceMetadata AC3/C3/C4)
     ...bindGroup(toolCatalogTools, store),
@@ -1013,17 +941,13 @@ const PUBLIC_TOOL_GROUPS = [
   backlogShellTools,
   changeTools,
   followupTools,
-  reportFollowupTools,
   opsEvidenceTools,
-  contractTools,
-  designConcernTools,
   verificationEvidenceTools,
   taskTools,
   subagentReportTools,
+  contractPublicTools,
   wisdomTools,
   statusTools,
-  resumeProjectionTools,
-  launcherProjectionTools,
   projectTools,
   gateTools,
   testTools,
@@ -1031,15 +955,12 @@ const PUBLIC_TOOL_GROUPS = [
   checkpointTools,
   reflectionTools,
   snapshotHealthTools,
-  changeProjectionQuarantineTools,
   lightweightProfileTools,
-  projectMetadataTools,
   conformanceTools,
   advWorktreeTools,
-  advSessionTools,
+  advSessionPublicTools,
   epicTools,
   storeCleanupTools,
-  storeReconcileTools,
   toolCatalogTools,
   advInvokeTools,
 ] as const satisfies readonly PublicToolGroup[];

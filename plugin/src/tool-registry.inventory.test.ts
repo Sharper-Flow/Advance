@@ -84,21 +84,15 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // resume-projection Phase E added the resume-projection MCP tool + bin
   // adapter (feat 9f39317e); a legitimate registered public tool that was
   // never recorded in this reintroduction-guard accounting.
-  "adv_resume_projection",
   // addAdvLauncherReadProjection added the launcher projection rebuild MCP
   // tool (plugin-only; never exposed via bin/adv).
-  "adv_launcher_projection_rebuild",
   // addReleaseNotesData adds the typed release-note full-replacement setter.
-  "adv_change_set_release_notes",
   // migrateExistingAdvWorktrees adds the operator-only directory-only worktree
   // detach tool for nonterminal dematerialization.
-  "adv_worktree_detach",
   // boundedProjectionHydration: operator-only quarantine for corrupt or oversized
   // active change projections.
-  "adv_change_projection_quarantine",
   // reconcileStoreMigrationResidue adds the dry-run-first, approval-gated
   // migration-residue repair surface.
-  "adv_store_reconcile",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -283,10 +277,10 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    // The current source surface contains 83 tools after the Temporal-only
+    // The current source surface contains 69 tools after the contracted
     // removals and dead-wrapper removals in this branch. Pin the observable
     // registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(83);
+    expect(ADV_TOOL_NAMES.length).toBe(69);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

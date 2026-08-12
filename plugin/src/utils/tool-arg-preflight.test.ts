@@ -9,7 +9,6 @@ import {
 import { createToolMap } from "../tool-registry";
 import { createDiskStore } from "../storage/store";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
-import { ReleaseNotesContentSchema } from "../types";
 
 type RegressionMatrixCase = {
   label: string;
@@ -232,12 +231,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
-    toolName: "adv_contract_review_matrix_set",
-    field: "priorApprovalEvidence",
-    policy: "blank",
-    action: "omit",
-  },
-  {
     toolName: "adv_followup_promote",
     field: "confirmationEvidence",
     policy: "blank",
@@ -265,22 +258,6 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   {
     toolName: "adv_reflection_list",
     field: "maxEntries",
-    policy: "zero",
-    action: "omit",
-  },
-  {
-    // An omitted max_records is the engine's unbounded full-scan default;
-    // strict-mode zero is therefore an omission placeholder, not a bound.
-    toolName: "adv_store_reconcile",
-    field: "max_records",
-    policy: "zero",
-    action: "omit",
-  },
-  {
-    // An omitted budget_ms leaves the scan time-unbounded; strict-mode zero is
-    // therefore an omission placeholder, not a one-millisecond budget.
-    toolName: "adv_store_reconcile",
-    field: "budget_ms",
     policy: "zero",
     action: "omit",
   },
@@ -1374,96 +1351,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     ok: true,
     normalizedArgs: { maxEntries: 8 },
   },
-  {
-    label: "zero store-reconcile max_records normalizes to omitted",
-    toolName: "adv_store_reconcile",
-    rawArgs: { max_records: 0 },
-    ok: true,
-    normalizedArgs: {},
-  },
-  {
-    label: "non-zero store-reconcile max_records preserved",
-    toolName: "adv_store_reconcile",
-    rawArgs: { max_records: 25 },
-    ok: true,
-    normalizedArgs: { max_records: 25 },
-  },
-  {
-    label: "zero store-reconcile budget_ms normalizes to omitted",
-    toolName: "adv_store_reconcile",
-    rawArgs: { budget_ms: 0 },
-    ok: true,
-    normalizedArgs: {},
-  },
-  {
-    label: "non-zero store-reconcile budget_ms preserved",
-    toolName: "adv_store_reconcile",
-    rawArgs: { budget_ms: 250 },
-    ok: true,
-    normalizedArgs: { budget_ms: 250 },
-  },
-  {
-    label: "release-notes setter accepts valid payload",
-    toolName: "adv_change_set_release_notes",
-    schema: {
-      changeId: z.string(),
-      release_notes: ReleaseNotesContentSchema,
-    },
-    rawArgs: {
-      changeId: "c",
-      release_notes: {
-        audience: "external",
-        category: "added",
-        headline_external: "x",
-      },
-    },
-    ok: true,
-  },
-  {
-    label: "release-notes setter rejects blank changeId",
-    toolName: "adv_change_set_release_notes",
-    schema: {
-      changeId: z.string(),
-      release_notes: ReleaseNotesContentSchema,
-    },
-    rawArgs: {
-      changeId: " ",
-      release_notes: {
-        audience: "external",
-        category: "added",
-        headline_external: "x",
-      },
-    },
-    ok: false,
-    fields: ["changeId"],
-  },
-  {
-    label: "release-notes setter normalizes blank target_path",
-    toolName: "adv_change_set_release_notes",
-    schema: {
-      changeId: z.string(),
-      release_notes: ReleaseNotesContentSchema,
-      target_path: z.string().optional(),
-    },
-    rawArgs: {
-      changeId: "c",
-      release_notes: {
-        audience: "external",
-        category: "added",
-        headline_external: "x",
-      },
-      target_path: " ",
-    },
-    ok: true,
-    normalizedArgs: {
-      changeId: "c",
-      release_notes: {
-        audience: "external",
-        category: "added",
-        headline_external: "x",
-      },
-    },
-  },
 ];
 
 describe("tool arg preflight", () => {
@@ -1704,11 +1591,6 @@ describe("tool arg preflight", () => {
       },
       "approvalEvidence",
     ],
-    [
-      "adv_task_reclassify_tdd",
-      { taskId: "tk-1", toIntent: "inline", reason: " " },
-      "reason",
-    ],
     // T2: adv_gate_complete.target_path, adv_gate_complete.notes,
     // adv_gate_complete.compatibilityReason flipped to blank: "omit".
     // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
@@ -1718,7 +1600,6 @@ describe("tool arg preflight", () => {
     // similarly flipped. Coverage of the omit semantics for these fields
     // lives in `normalizes representative blank placeholder` below.
     ["adv_worktree_create", { branch: " " }, "branch"],
-    ["adv_worktree_resume", { changeId: " " }, "changeId"],
     ["adv_worktree_delete", { branch: " " }, "branch"],
     ["adv_worktree_cleanup", { reason: " " }, "reason"],
     ["adv_conformance", { action: "unlock", user: " " }, "user"],
@@ -1805,16 +1686,6 @@ describe("tool arg preflight", () => {
       "confirmationEvidence",
     ],
     [
-      "adv_task_reclassify_tdd",
-      {
-        taskId: "t",
-        toIntent: "inline",
-        approvalEvidence: "ok",
-        confirmationEvidence: " ",
-      },
-      "confirmationEvidence",
-    ],
-    [
       "adv_contract_mint",
       { changeId: "c", confirmationEvidence: " " },
       "confirmationEvidence",
@@ -1823,11 +1694,6 @@ describe("tool arg preflight", () => {
     ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
     [
       "adv_contract_mint",
-      { changeId: "c", priorApprovalEvidence: " " },
-      "priorApprovalEvidence",
-    ],
-    [
-      "adv_contract_review_matrix_set",
       { changeId: "c", priorApprovalEvidence: " " },
       "priorApprovalEvidence",
     ],
@@ -2400,16 +2266,6 @@ describe("tool arg preflight", () => {
         { taskIds: ["t"], approvedByUser: true, approvalEvidence: " " },
         "approvalEvidence",
       ],
-      [
-        "adv_task_reclassify_tdd",
-        { taskId: "t", toIntent: "inline", reason: " " },
-        "reason",
-      ],
-      [
-        "adv_task_reclassify_tdd",
-        { taskId: "t", toIntent: "inline", approvalEvidence: " " },
-        "approvalEvidence",
-      ],
       // rq-toolPlaceholderPolicy01.6: adv_gate_complete.completedBy,
       // confirmationEvidence, priorApprovalEvidence moved from reject to omit
       // — no longer here. adv_change_update.confirmationEvidence,
@@ -2424,7 +2280,6 @@ describe("tool arg preflight", () => {
       // adv_task_reclassify_tdd confirmationEvidence moved.
       ["adv_worktree_create", { branch: " " }, "branch"],
       ["adv_worktree_create", { branch: "x", base: " " }, "base"],
-      ["adv_worktree_resume", { changeId: " " }, "changeId"],
       ["adv_worktree_delete", { branch: " " }, "branch"],
       ["adv_worktree_cleanup", { reason: " " }, "reason"],
       ["adv_conformance", { action: "unlock", user: " " }, "user"],

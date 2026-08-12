@@ -12,7 +12,7 @@ import { resolve } from "node:path";
 
 import { createStore } from "./storage/store";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
-import { storeReconcileTools } from "./tools/store-reconcile";
+import { storeReconcileHandler } from "./tools/store-reconcile";
 
 type ReconcileMode = "plan" | "dry_run" | "apply";
 
@@ -206,10 +206,7 @@ export async function runReconcileCli(argv: string[]): Promise<number> {
     externalRoot: getExternalRoot(projectId),
   });
   try {
-    output = await storeReconcileTools.adv_store_reconcile.execute(
-      parsed.args,
-      store,
-    );
+    output = await storeReconcileHandler(parsed.args, store);
   } catch (error) {
     output = JSON.stringify({
       ok: false,

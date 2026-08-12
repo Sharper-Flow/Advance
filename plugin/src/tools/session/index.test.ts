@@ -40,21 +40,18 @@ vi.mock("../../migration/procfs", async () => {
   };
 });
 
-import { listPeerSessions, showOwnSession, isPidAlive } from "./index";
+import { listPeerSessions, isPidAlive } from "./index";
 import { detectPeerSessions } from "../../utils/peer-sessions";
 import {
   readProcessStartTicks,
   readBootTimeMs,
   isProcessAlive,
 } from "../../migration/procfs";
-import { getSessionRecord } from "../worktree/state";
-import type { SessionRecord } from "../../types/session-record";
 
 const mockedDetectPeerSessions = vi.mocked(detectPeerSessions);
 const mockedReadStartTicks = vi.mocked(readProcessStartTicks);
 const mockedReadBootTimeMs = vi.mocked(readBootTimeMs);
 const mockedIsProcessAlive = vi.mocked(isProcessAlive);
-const mockedGetSessionRecord = vi.mocked(getSessionRecord);
 
 const ORIGINAL_PLATFORM = Object.getOwnPropertyDescriptor(process, "platform");
 
@@ -81,15 +78,6 @@ function expectSessionId(pid: number, startTicks: string): string {
 function expectStartedAt(bootTimeMs: number, startTicks: string): string {
   return new Date(bootTimeMs + (Number(startTicks) / 100) * 1000).toISOString();
 }
-
-const baseRecord = (override: Partial<SessionRecord> = {}): SessionRecord => ({
-  sessionId: "sess_AAAA1111",
-  worktreePath: "/home/u/proj/main",
-  pid: 1000,
-  startedAt: "2026-05-01T00:00:00Z",
-  lastSeenAt: "2026-05-01T00:00:00Z",
-  ...override,
-});
 
 describe("adv_session_list (T19 — live /proc source)", () => {
   let tempRoot: string;
@@ -339,86 +327,5 @@ describe("isPidAlive (T19 helper)", () => {
     // semantic guarantee (ESRCH → false) is what we're checking.
     const result = isPidAlive(999_999);
     expect(typeof result).toBe("boolean");
-  });
-});
-
-describe("adv_session_show (T20 — 2-factor ACL)", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockedGetSessionRecord.mockResolvedValue(null);
-  });
-
-  it("returns SessionDetail when own-session lookup succeeds", async () => {
-    const record = baseRecord({
-      sessionId: "sess_self",
-      pid: 1000,
-      worktreePath: "/work/main",
-      activeChangeId: "ch1",
-      currentTaskId: "tk1",
-      activeGate: "execution",
-    });
-    mockedGetSessionRecord.mockResolvedValue(record);
-
-    const result = await showOwnSession(
-      { sessionId: "sess_self" },
-      { selfPid: 1000 },
-    );
-
-    expect(result).toMatchObject({
-      sessionId: "sess_self",
-      pid: 1000,
-      workdir: "/work/main",
-      activeChangeId: "ch1",
-      currentTaskId: "tk1",
-      activeGate: "execution",
-    });
-  });
-
-  it("returns SESSION_NOT_FOUND when sessionId is unknown", async () => {
-    mockedGetSessionRecord.mockResolvedValue(null);
-    const result = await showOwnSession({ sessionId: "sess_missing" });
-    expect(result).toEqual({ error: "SESSION_NOT_FOUND" });
-  });
-
-  it("returns ACCESS_DENIED with pid_mismatch when peer attempts lookup", async () => {
-    mockedGetSessionRecord.mockResolvedValue(
-      baseRecord({ sessionId: "sess_peer", pid: 2000 }),
-    );
-    const result = await showOwnSession(
-      { sessionId: "sess_peer" },
-      { selfPid: 1000 },
-    );
-    expect(result).toEqual({
-      error: "ACCESS_DENIED",
-      reason: "pid_mismatch",
-    });
-  });
-
-  it("returns ACCESS_DENIED with non_self_peer when currentSessionId differs (Factor 2)", async () => {
-    // PID matches (Factor 1 passes) but currentSessionId is different —
-    // defense-in-depth against PID-recycle/spoof.
-    mockedGetSessionRecord.mockResolvedValue(
-      baseRecord({ sessionId: "sess_recycled", pid: 1000 }),
-    );
-    const result = await showOwnSession(
-      { sessionId: "sess_recycled" },
-      { selfPid: 1000, currentSessionId: "sess_real" },
-    );
-    expect(result).toEqual({
-      error: "ACCESS_DENIED",
-      reason: "non_self_peer",
-    });
-  });
-
-  it("returns ACCESS_DENIED with workflow_unavailable when project workflow not reachable", async () => {
-    const { initStateDb } = await import("../worktree/state");
-    vi.mocked(initStateDb).mockRejectedValueOnce(
-      new Error("workflow not ready"),
-    );
-    const result = await showOwnSession({ sessionId: "sess_x" });
-    expect(result).toEqual({
-      error: "ACCESS_DENIED",
-      reason: "workflow_unavailable",
-    });
   });
 });
