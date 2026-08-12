@@ -59,13 +59,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   // Action-level distinctions mirror docs/tool-ownership.md, including the
   // action-qualified operator-only rows for snapshot_health (#repair) and
   // conformance (#override).
-  adv_session_list: {
-    class: "dual",
-    rationale:
-      "Privacy-defensive peer session inventory read; no agent mutation surface — session lifecycle is owned by the oc wrapper/operator.",
-    agentActions: ["read"],
-    operatorActions: [],
-  },
   adv_status: {
     class: "dual",
     rationale:
@@ -115,11 +108,6 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_change_archive: {
     class: "orchestrator",
     rationale: "Release-gate archive workflow.",
-  },
-  adv_change_bulk_close: {
-    class: "orchestrator",
-    rationale:
-      "Approval-gated bulk close; fail-all on protected/invalid targets.",
   },
   adv_change_close: {
     class: "orchestrator",

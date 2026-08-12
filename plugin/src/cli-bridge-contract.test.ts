@@ -124,7 +124,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_change_create",
       "adv_change_update",
       "adv_change_close",
-      "adv_change_bulk_close",
       "adv_change_archive",
       "adv_change_reenter",
       "adv_epic_create",
@@ -166,7 +165,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_worktree_delete",
       "adv_worktree_cleanup",
       "adv_worktree_triage",
-      "adv_session_list",
     ];
     const byName = (a: string, b: string) => a.localeCompare(b);
     expect([...ADV_TOOL_NAMES].sort(byName)).toEqual([...frozen].sort(byName));

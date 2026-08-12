@@ -1521,16 +1521,6 @@ describe("tool arg preflight", () => {
       "content",
     ],
     [
-      "adv_change_bulk_close",
-      {
-        selector: { kind: "ids", changeIds: ["c"] },
-        reason: "cancelled",
-        approvedByUser: true,
-        approvalEvidence: " ",
-      },
-      "approvalEvidence",
-    ],
-    [
       "adv_change_close",
       {
         changeId: "c",
@@ -2175,16 +2165,6 @@ describe("tool arg preflight", () => {
         "adv_change_close",
         {
           changeId: "c",
-          reason: "cancelled",
-          approvedByUser: true,
-          approvalEvidence: " ",
-        },
-        "approvalEvidence",
-      ],
-      [
-        "adv_change_bulk_close",
-        {
-          selector: { kind: "ids", changeIds: ["c"] },
           reason: "cancelled",
           approvedByUser: true,
           approvalEvidence: " ",

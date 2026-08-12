@@ -89,7 +89,6 @@ import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
 import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
 import { reflectionTools } from "./tools/reflection";
 import { advWorktreeTools } from "./tools/adv-worktree";
-import { advSessionPublicTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
 import { lightweightProfileTools } from "./tools/lightweight-profile";
 import { advInvokeTools } from "./tools/adv-invoke";
@@ -524,9 +523,6 @@ export function createToolMap(
     // Status Tool
     ...bindGroup(statusTools, store),
 
-    // Public session listing tool; session detail remains an internal handler.
-    ...bindGroup(advSessionPublicTools, store),
-
     // Project Tools
     ...bindGroup(projectTools, store),
 
@@ -919,7 +915,6 @@ const PUBLIC_TOOL_GROUPS = [
   reflectionTools,
   lightweightProfileTools,
   advWorktreeTools,
-  advSessionPublicTools,
   epicTools,
   toolCatalogTools,
   advInvokeTools,

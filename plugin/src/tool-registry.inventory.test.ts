@@ -264,10 +264,10 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    // The current source surface contains 55 tools after the contracted
+    // The current source surface contains 53 tools after the contracted
     // removals and dead-wrapper removals in this branch. Pin the observable
     // registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(55);
+    expect(ADV_TOOL_NAMES.length).toBe(53);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

@@ -155,26 +155,30 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda);
-      const result = await map.adv_session_list.execute({});
+      const change = await store.changes.create("Session projection test");
+      const result = await map.adv_change_show.execute({
+        changeId: change.changeId,
+        include: { sessions: true },
+      });
 
       expect(result).toEqual(
         expect.objectContaining({
-          title: "List sessions",
+          title: `Show change: ${change.changeId}`,
           output: expect.any(String),
           metadata: expect.objectContaining({
             adv: expect.objectContaining({
-              toolName: "adv_session_list",
-              title: "List sessions",
+              toolName: "adv_change_show",
+              title: `Show change: ${change.changeId}`,
             }),
           }),
         }),
       );
       const parsed = JSON.parse((result as { output: string }).output) as {
-        sessions?: unknown[];
-        total?: number;
+        _sessions?: unknown[];
+        _sessionsMeta?: { total?: number };
       };
-      expect(Array.isArray(parsed.sessions)).toBe(true);
-      expect(typeof parsed.total).toBe("number");
+      expect(Array.isArray(parsed._sessions)).toBe(true);
+      expect(typeof parsed._sessionsMeta?.total).toBe("number");
     } finally {
       store.close();
     }
@@ -185,17 +189,18 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     await store.init();
     try {
       const map = createToolMap(store, tempDir, store.paths.agenda);
+      const change = await store.changes.create("Session metadata test");
       const metadataCalls: unknown[] = [];
-      await map.adv_session_list.execute(
-        {},
+      await map.adv_change_show.execute(
+        { changeId: change.changeId, include: { sessions: true } },
         { metadata: (input: unknown) => metadataCalls.push(input) },
       );
 
       expect(metadataCalls).toEqual([
         expect.objectContaining({
-          title: "List sessions",
+          title: `Show change: ${change.changeId}`,
           metadata: expect.objectContaining({
-            adv: expect.objectContaining({ toolName: "adv_session_list" }),
+            adv: expect.objectContaining({ toolName: "adv_change_show" }),
           }),
         }),
       ]);
@@ -432,7 +437,7 @@ describe("KD-8 worktree + session tool registrations", () => {
       "adv_worktree_delete",
       "adv_worktree_cleanup",
       "adv_worktree_triage",
-      "adv_session_list",
+      "adv_change_show",
     ];
     for (const name of expected) {
       expect(map).toHaveProperty(name);
@@ -446,7 +451,7 @@ describe("KD-8 worktree + session tool registrations", () => {
       "adv_worktree_delete",
       "adv_worktree_cleanup",
       "adv_worktree_triage",
-      "adv_session_list",
+      "adv_change_show",
     ];
     for (const name of expected) {
       const tool = (map as Record<string, unknown>)[name];
@@ -462,26 +467,30 @@ describe("KD-8 worktree + session tool registrations", () => {
     }
   });
 
-  test("adv_session_list smoke-test returns a privacy-safe schema without leaking host details", async () => {
+  test("adv_change_show sessions include returns a privacy-safe schema without leaking host details", async () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
-    const tool = map.adv_session_list as {
+    const change = await store.changes.create("Session schema test");
+    const tool = map.adv_change_show as {
       execute: (args: unknown) => Promise<string | { output: string }>;
     };
-    const raw = await tool.execute({});
+    const raw = await tool.execute({
+      changeId: change.changeId,
+      include: { sessions: true },
+    });
     const output = typeof raw === "string" ? raw : raw.output;
     const parsed = JSON.parse(output) as {
       unavailable?: boolean;
-      sessions?: unknown[];
-      total?: number;
+      _sessions?: unknown[];
+      _sessionsMeta?: { total?: number };
     };
 
     // KD-8 uses live /proc peer detection, so a Linux host may see itself.
     // Do not assert emptiness; verify the privacy contract and parseability.
-    expect(Array.isArray(parsed.sessions)).toBe(true);
-    expect(typeof parsed.total).toBe("number");
+    expect(Array.isArray(parsed._sessions)).toBe(true);
+    expect(typeof parsed._sessionsMeta?.total).toBe("number");
 
-    if (parsed.sessions && parsed.sessions.length > 0) {
-      for (const entry of parsed.sessions) {
+    if (parsed._sessions && parsed._sessions.length > 0) {
+      for (const entry of parsed._sessions) {
         expect(entry).toEqual(
           expect.objectContaining({
             sessionId: expect.any(String),
@@ -499,7 +508,7 @@ describe("KD-8 worktree + session tool registrations", () => {
         const { worktree } = entry as { worktree: string };
         expect(worktree).not.toContain("/");
       }
-      expect(parsed.total).toBe(parsed.sessions.length);
+      expect(parsed._sessionsMeta?.total).toBe(parsed._sessions.length);
     }
   });
 

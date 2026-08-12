@@ -5,7 +5,7 @@
  *
  * Privacy-defensive future-proofing rationale (T3 user decision):
  * - Opaque IDs hide internal structure (PIDs, paths, timestamps) from
- *   peer-facing surfaces (`adv_session_list`, `adv_status` peer table).
+ *   peer-facing surfaces (`adv_change_show` sessions include, `adv_status` peer table).
  * - The `sess_` prefix gives the value a stable shape that callers can
  *   pattern-match against without assuming any internal structure.
  * - 8 alphanumeric characters from nanoid's URL-safe alphabet yields

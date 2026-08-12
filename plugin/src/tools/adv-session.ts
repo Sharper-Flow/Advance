@@ -1,7 +1,7 @@
 /**
  * ADV Session Tools (T24 — KD-8 phase 1)
  *
- * Tool definitions for `adv_session_list` and `adv_session_show`.
+ * Internal session definitions for the folded peer-session read and own-session detail.
  *
  * These wrap the underlying session implementations from
  * `tools/session/` and format output via `formatToolOutput()`.
@@ -13,7 +13,7 @@ import type { Store } from "../storage/store-types";
 import { listPeerSessions, showOwnSession } from "./session";
 
 const advSessionToolDefinitions = {
-  adv_session_list: {
+  _peer_session_read: {
     description:
       "List peer sessions in this project. Privacy-defensive: exposes only sessionId, startedAt, worktree basename, and isSelf flag.",
     args: {

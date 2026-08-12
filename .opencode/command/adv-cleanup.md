@@ -51,7 +51,7 @@ If surface 1 returns 0 active changes, still run surfaces 2–4 — worktree, br
 
 Use skill bucket precedence; most-specific wins:
 
-1. **Duplicate** — normalized title match or conservative ID suffix match → explicit `adv_change_bulk_close reason: superseded`.
+1. **Duplicate** — normalized title match or conservative ID suffix match → explicit per-candidate `adv_change_close reason: superseded`.
 2. **Stuck at proposal** — proposal pending, no tasks, stale → filter close `reason: not_planned`.
 3. **Abandoned mid-flight** — proposal done, pending/in-progress tasks, stale, no recent gate → filter close `reason: cancelled`.
 4. **Ready to archive** — all gates except release done, all tasks done, no unresolved review findings → recommend `/adv-archive {id}`.
@@ -189,7 +189,7 @@ Anything else → re-prompt same options. **× Do NOT** invoke LLM fallback. **�
 
 ### Reversible buckets
 
-For each approved bucket, call `adv_change_bulk_close` with `approvedByUser: true`, `approvalEvidence`, selector, reason, and `supersededBy` for Duplicate. Duplicate bucket MUST use explicit IDs; filter-based `reason: "superseded"` is rejected.
+For each approved candidate, call `adv_change_close` with `approvedByUser: true`, `approvalEvidence`, the candidate `changeId`, reason, and `supersededBy` for Duplicate. For duplicate buckets, inspect each superseding target with `adv_change_show` before closing.
 
 Before Duplicate apply, `adv_change_show` each `supersededBy` target. Missing target → skip only those candidates and report `skipped: missing supersededBy target`.
 
@@ -233,7 +233,7 @@ Emit closing summary. Use Gate Handoff Voice spine but omit gate footer; cleanup
 |---|---|
 | Scan active changes | `adv_change_list` |
 | Inspect gates/tasks | `adv_change_show` |
-| Close bulk candidates | `adv_change_bulk_close` |
+| Close approved candidates | `adv_change_close` in a loop |
 | Discover worktree drift | `adv_worktree_triage` |
 | DISCOVERY — merged archived branches (Phase 1; `dryRun: true`) | `adv_worktree_cleanup` (`mode: "archived_branches"`, `dryRun: true`) |
 | Discover state leaks | `adv_status` (`view: "hygiene"`) |

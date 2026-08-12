@@ -286,7 +286,6 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_gate_status: "read",
   adv_project_context: "read",
   adv_reflection_list: "read",
-  adv_session_list: "read",
   adv_spec: "read",
   adv_status: "read",
   adv_task_list: "read",
@@ -308,7 +307,6 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_gate_complete: "lifecycle",
 
   // Bulk operations
-  adv_change_bulk_close: "bulk",
 };
 
 export const LIFECYCLE_BY_REALM: Readonly<

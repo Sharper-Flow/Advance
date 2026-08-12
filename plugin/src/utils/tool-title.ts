@@ -43,7 +43,6 @@ const STATIC_TITLES: Record<
   adv_project_context: { title: "Show project context", titleKind: "read" },
   adv_task_ready: { title: "Show ready tasks", titleKind: "read" },
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
-  adv_session_list: { title: "List sessions", titleKind: "read" },
   adv_worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
   adv_tool_catalog: { title: "Catalog ADV tools", titleKind: "read" },
   adv_tool_describe: { title: "Describe ADV tool", titleKind: "read" },
@@ -72,7 +71,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_change_update: (args) =>
     write(`Update change${suffix(args, "changeId")}`),
   adv_change_close: (args) => write(`Close change${suffix(args, "changeId")}`),
-  adv_change_bulk_close: () => write("Bulk close changes"),
   adv_change_archive: (args) =>
     write(`Archive change${suffix(args, "changeId")}`),
   adv_change_workflow_terminate: (args) =>

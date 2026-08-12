@@ -27,7 +27,6 @@ import { HANDSHAKE_TIER4_TOOLS } from "./handshake.js";
 const REMOVED_TOOL_NAMES = [
   "adv_reflect",
   "adv_project_metadata",
-  "adv_session_list",
   "adv_session_show",
   "reflect",
   "project_metadata",

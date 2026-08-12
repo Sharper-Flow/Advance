@@ -67,6 +67,7 @@ import {
   deriveChangePhase,
 } from "./helpers";
 import { CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS } from "./helpers";
+import { listPeerSessions } from "../session";
 
 export const advChangeShowHandler = async (
   {
@@ -101,6 +102,7 @@ export const advChangeShowHandler = async (
       executiveSummary?: boolean;
       acceptance?: boolean;
       subagentReports?: boolean;
+      sessions?: boolean;
       briefingPacket?: boolean;
       briefingPacketLane?: BriefingPacketLane;
       briefingPacketRequest?: string;
@@ -429,6 +431,25 @@ export const advChangeShowHandler = async (
           sidecar: change.subagent_reports?.length ?? 0,
           legacyTask: legacyTaskReports.length,
         };
+      }
+      if (include.sessions) {
+        try {
+          const sessionResult = await listPeerSessions({
+            projectRoot: activeStore.paths.root,
+          });
+          output._sessions = sessionResult.sessions;
+          output._sessionsMeta = {
+            total: sessionResult.sessions.length,
+            unavailable: sessionResult.unavailable ?? false,
+          };
+        } catch (error) {
+          output._sessions = [];
+          output._sessionsMeta = {
+            total: 0,
+            unavailable: true,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
       }
       // Ready tasks — unblocked queue, sliced to top-N. Avoids the
       // separate adv_task_ready round-trip on phase boundaries.
@@ -817,6 +838,7 @@ export const queryChangeTools = {
       "route/command). " +
       "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary / include.acceptance " +
       "return the raw markdown content for each artifact (GH #21). " +
+      "include.sessions attaches the privacy-safe peer-session projection as `_sessions`. " +
       "Defaults are unchanged when include is omitted.",
     args: {
       changeId: z.string().describe("Change ID"),
@@ -933,6 +955,12 @@ export const queryChangeTools = {
             .optional()
             .describe(
               "When true, attaches persisted task sub-agent reports as `_subagentReports`.",
+            ),
+          sessions: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches privacy-safe peer sessions as `_sessions`.",
             ),
           briefingPacket: z
             .boolean()

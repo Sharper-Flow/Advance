@@ -314,12 +314,12 @@ Multi-session is the supported design center. Per-change filesystem advisory loc
 
 **Plugin behavior:** At init, the plugin scans peer `opencode` processes sharing project (`git rev-parse --git-common-dir` OR ADV project-id). Peer found → emits `[ADV:PEER_SESSIONS] N peer session(s) active in this project.` Informational only; peers supported.
 
-Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project = same trust domain. Multi-developer / shared-CI scenarios are out of scope; revisit via separate change if needed. The defensive opaque `session_id` schema (no PID, no full path in public output) mitigates leak risk.
+Peer-session visibility (`adv_status`, `adv_change_show include:{sessions:true}`) assumes same project = same trust domain. Multi-developer / shared-CI scenarios are out of scope; revisit via separate change if needed. The defensive opaque `session_id` schema (no PID, no full path in public output) mitigates leak risk.
 
 **Useful tools:**
 
 - `adv_status` — Peer Sessions section (session_id + started_at + worktree-basename)
-- `adv_session_list` — list peer sessions in same project
+- `adv_change_show include:{sessions:true}` — list peer sessions in same project
 - `adv_session_show <session_id>` — own-session details only (privacy-defensive)
 - `adv_doctor` — peer count, worker-lock holder PID, change workflow presence, and automatic safe-fix/verify
 - Stability: `adv_status view:"health"` shows worker_singleton_enforce default false; worktree_guard_enforce default true (post-rollout, rq-autoManageAdvWorktrees AC2); `worker_role` = `host`/`client`/`degraded`; opt-in: explicit true or `ADV_FORCE_IN_PROCESS_WORKER=1`.
@@ -610,7 +610,7 @@ Reads use `snapshot-ok` + `_projectContext`; mutations use `authoritative` + rea
 #### `target_path` matrix (which tools support cross-project)
 
 - `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_validate`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
-- `authoritative`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_gate_status`, `adv_gate_complete`, `adv_doctor`, `adv_run_test`. Epic membership tools treat `target_path` as child-change routing and also accept `epic_owner_target_path` for remote Epic owner routing; both require trust confirmation when untrusted.
+- `authoritative`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_gate_status`, `adv_gate_complete`, `adv_doctor`, `adv_run_test`. Epic membership tools treat `target_path` as child-change routing and also accept `epic_owner_target_path` for remote Epic owner routing; both require trust confirmation when untrusted.
 - Current-project only: `adv_reflect`, `adv_conformance`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
 
 Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-project> && opencode`.

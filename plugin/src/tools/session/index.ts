@@ -2,7 +2,7 @@
  * Session Tools (T19, T20 — KD-4 privacy-defensive).
  *
  * Two tools:
- *   - `adv_session_list` — peer sessions via privacy-defensive schema
+ *   - folded peer-session read — peer sessions via privacy-defensive schema
  *   - `adv_session_show` — own-session-only details (lives in T20)
  *
  * Privacy contract (KD-4 + T3):
@@ -56,7 +56,7 @@ export const isPidAlive = isProcessAliveByPid;
 
 /**
  * Privacy-defensive projection of a session_registry entry. Used by
- * `adv_session_list` and the Peer Sessions section in `adv_status`.
+ * the `adv_change_show` sessions include and the Peer Sessions section in `adv_status`.
  */
 export interface SessionListEntry {
   /** Opaque session id (`sess_<8 alphanumeric>`). */
@@ -140,7 +140,7 @@ export const advSessionListArgs = z.object({
 export type AdvSessionListArgs = z.infer<typeof advSessionListArgs>;
 
 /**
- * Implementation entry point for `adv_session_list`.
+ * Implementation entry point for the folded peer-session read.
  *
  * Sources live peers from the Linux `/proc` scanner (`detectPeerSessions`),
  * includes the caller's own session first, and projects privacy-defensive

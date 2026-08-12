@@ -1,5 +1,5 @@
 /**
- * Tests for adv_session_list (T19 — KD-4 privacy-defensive, live /proc source).
+ * Tests for the privacy-defensive peer-session reader (T19, live /proc source).
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -79,7 +79,7 @@ function expectStartedAt(bootTimeMs: number, startTicks: string): string {
   return new Date(bootTimeMs + (Number(startTicks) / 100) * 1000).toISOString();
 }
 
-describe("adv_session_list (T19 — live /proc source)", () => {
+describe("peer-session reader (T19 — live /proc source)", () => {
   let tempRoot: string;
   let projectRoot: string;
   const selfPid = 1000;

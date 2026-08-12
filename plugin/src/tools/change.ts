@@ -25,7 +25,6 @@ export const changeTools = {
   adv_change_create: lifecycleChangeTools.adv_change_create,
   adv_change_update: lifecycleChangeTools.adv_change_update,
   adv_change_close: lifecycleChangeTools.adv_change_close,
-  adv_change_bulk_close: lifecycleChangeTools.adv_change_bulk_close,
   adv_change_archive: archiveChangeTools.adv_change_archive,
   adv_change_reenter: miscChangeTools.adv_change_reenter,
 };

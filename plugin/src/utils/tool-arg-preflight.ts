@@ -181,10 +181,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_wisdom_add: {
     content: { blank: "reject" }, // required-when-present
   },
-  adv_change_bulk_close: {
-    approvalEvidence: { blank: "reject" }, // audit
-    supersededBy: { blank: "omit" }, // optional reference
-  },
   adv_change_close: {
     approvalEvidence: { blank: "reject" }, // audit
     supersededBy: { blank: "omit" }, // optional reference

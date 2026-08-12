@@ -2,7 +2,7 @@
  * Disk Sweep Helpers
  *
  * Generic helpers for removing per-id directories under a known parent
- * with per-id success/failure tracking. Used by `adv_change_bulk_close`
+ * with per-id success/failure tracking. Used by change cleanup workflows.
  * (composes disk sweep with workflow-state close).
  *
  * Idempotent: removing an already-missing directory is reported as
