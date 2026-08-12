@@ -778,7 +778,7 @@ export function checkUnresolvedVerificationEvidence(
         code: "VERIFICATION_EVIDENCE_MISSING",
         gateId,
         message: `Completed task ${task.id} (evidence_policy: ${policy}) has unresolved verification evidence: ${kinds}.`,
-        remediation: `Re-run adv_run_test and submit an updated task report so the latest report is warning-free, or record a typed disposition via adv_verification_evidence_disposition (taskId: ${task.id}, concernKey: ${VERIFICATION_CONCERN_KEY}).`,
+        remediation: `Re-run adv_run_test and submit an updated task report so the latest report is warning-free; otherwise coordinate a recovery decision with the orchestrator (taskId: ${task.id}, concernKey: ${VERIFICATION_CONCERN_KEY}).`,
       }),
     );
   }

@@ -247,8 +247,6 @@ export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
   adv_spec: "spec",
   adv_status: "status",
   adv_wip_state: "status",
-  adv_lightweight_profile_evaluate: "lightweight",
-  adv_verification_evidence_disposition: "verification",
   adv_reflect: "reflection",
   adv_reflection_list: "reflection",
 };
@@ -291,10 +289,8 @@ export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   adv_change_validate: "diagnostics",
   adv_conformance: "diagnostics",
   adv_design_concern_disposition: "diagnostics",
-  adv_lightweight_profile_evaluate: "diagnostics",
   adv_run_test: "diagnostics",
   adv_snapshot_health: "diagnostics",
-  adv_verification_evidence_disposition: "diagnostics",
 
   // Metadata / submission surface
   adv_project_metadata: "metadata",

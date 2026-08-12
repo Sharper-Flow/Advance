@@ -2,7 +2,6 @@ import { describe, expect, test, vi } from "vitest";
 import type { Store } from "../storage/store-types";
 import { createDispositionTool } from "./disposition-tool-factory";
 import { designConcernTools } from "./design-concern";
-import { verificationEvidenceTools } from "./verification-evidence";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
 
 vi.mock("./change-mutation-coordinator", () => ({
@@ -27,8 +26,6 @@ const argumentKeys = [
 const expectedDescriptions = {
   design:
     "Record a typed disposition for a design-quality concern raised by an adv-designer report (a design_dimensions concern or neighboring recommendation). Clears the structural acceptance/release block for that (taskId, concernKey). Disposition verbs: fixed | rejected_with_evidence | split | fast_follow — there is no accepted_debt path.",
-  verification:
-    "Record a typed disposition for a verification-evidence gap on a completed task with a proof-bearing evidence policy (test, static_check, review, artifact_reference) — an unresolved verification_missing / verification_mismatch warning that would otherwise produce a VERIFICATION_EVIDENCE_MISSING acceptance/release blocker. Clears the structural block for that (taskId, concernKey). Disposition verbs: fixed | rejected_with_evidence | split | fast_follow — there is no accepted_debt path.",
 };
 
 function createStore(): Store {
@@ -90,22 +87,13 @@ describe("disposition tool factory contract", () => {
     expect(createDispositionTool).toBeTypeOf("function");
 
     const design = designConcernTools.adv_design_concern_disposition;
-    const verification =
-      verificationEvidenceTools.adv_verification_evidence_disposition;
 
     expect(design.description).toBe(expectedDescriptions.design);
-    expect(verification.description).toBe(expectedDescriptions.verification);
     expect(Object.keys(design.args)).toEqual(argumentKeys);
-    expect(Object.keys(verification.args)).toEqual(argumentKeys);
     expect(
       (design.args.concernKey as { description?: string }).description,
     ).toBe(
       "Stable concern key from the structural blocker, e.g. 'dimension:site_design_consistency' or 'neighbor:0'.",
-    );
-    expect(
-      (verification.args.concernKey as { description?: string }).description,
-    ).toBe(
-      "Stable concern key from the structural blocker; use 'verification' for the per-task verification-evidence gap.",
     );
   });
 
@@ -119,16 +107,6 @@ describe("disposition tool factory contract", () => {
       "DESIGN_CONCERN_DISPOSITION_RECOVERY_UNVERIFIED",
       "DESIGN_CONCERN_DISPOSITION_STALE_REVISION",
       "DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED",
-    ]);
-    expect(
-      await emittedErrorCodes(
-        verificationEvidenceTools.adv_verification_evidence_disposition,
-        "verification",
-      ),
-    ).toEqual([
-      "VERIFICATION_EVIDENCE_DISPOSITION_RECOVERY_UNVERIFIED",
-      "VERIFICATION_EVIDENCE_DISPOSITION_STALE_REVISION",
-      "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
     ]);
   });
 });
