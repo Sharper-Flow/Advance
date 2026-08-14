@@ -389,13 +389,6 @@ export interface CommandStore extends StoreBase {
         clearedAt?: string;
       },
     ) => Promise<Change | null>;
-    setReleaseNotes: (
-      changeId: string,
-      input: {
-        release_notes: NonNullable<Change["release_notes"]>;
-        setAt?: string;
-      },
-    ) => Promise<Change | null>;
   };
 
   // Tasks
@@ -733,13 +726,6 @@ export interface Store extends ReadStore, CommandStore {
       input: {
         expected: { epic_id: string; entry_id: string };
         clearedAt?: string;
-      },
-    ) => Promise<Change | null>;
-    setReleaseNotes: (
-      changeId: string,
-      input: {
-        release_notes: NonNullable<Change["release_notes"]>;
-        setAt?: string;
       },
     ) => Promise<Change | null>;
   };
