@@ -54,9 +54,10 @@ describe("ChangeSchema archive passthrough", () => {
     });
 
     expect(parsed.id).toBe("test-change");
-    expect((parsed as Record<string, unknown>).release_notes).toEqual(
-      legacyReleaseNotes,
-    );
+    // Direct (cast-free) access: the passthrough index signature types this
+    // as unknown. If ChangeSchema ever loses .passthrough(), this line
+    // becomes a compile error — a stronger guard than a runtime assertion.
+    expect(parsed.release_notes).toEqual(legacyReleaseNotes);
   });
 
   test("preserves batch_surfaced_at via passthrough", () => {
