@@ -54,9 +54,9 @@ describe("ChangeSchema archive passthrough", () => {
     });
 
     expect(parsed.id).toBe("test-change");
-    expect(
-      (parsed as Record<string, unknown>).release_notes,
-    ).toEqual(legacyReleaseNotes);
+    expect((parsed as Record<string, unknown>).release_notes).toEqual(
+      legacyReleaseNotes,
+    );
   });
 
   test("preserves batch_surfaced_at via passthrough", () => {
