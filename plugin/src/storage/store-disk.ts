@@ -714,13 +714,6 @@ export async function createDiskStore(
         await persistChangeProjection(paths, result.data);
         return result.data;
       },
-      setReleaseNotes: async (changeId, { release_notes }) => {
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success || !result.data) return null;
-        result.data.release_notes = release_notes;
-        await persistChangeProjection(paths, result.data);
-        return result.data;
-      },
     },
 
     // -------------------------------------------------------------------

@@ -8,13 +8,7 @@
 import { join, dirname } from "path";
 import { readdir, mkdir } from "fs/promises";
 import { atomicWriteFile, syncDir } from "../utils/fs";
-import {
-  ChangeSchema,
-  ReleaseNotesArchiveEnvelopeSchema,
-  SpecSchema,
-  type Spec,
-  type Change,
-} from "../types";
+import { ChangeSchema, SpecSchema, type Spec, type Change } from "../types";
 import {
   buildTerminalArchiveSummary,
   serializeTerminalArchiveSummary,
@@ -184,25 +178,6 @@ async function writeArchiveBundleFiles(
     );
   }
 
-  // Release notes sidecar, when the change carries release-note content.
-  // Additive by construction: absent data emits no sidecar, so every existing
-  // bundle file and release behaviour is unchanged, and the sidecar travels as
-  // an ordinary file through the existing archive-PR / git-tree flows.
-  // rq-releaseNotesSidecar01
-  if (change.release_notes !== undefined) {
-    await atomicWriteFile(
-      join(archivePath, "release-notes.json"),
-      bundleJsonStringify(
-        ReleaseNotesArchiveEnvelopeSchema.parse({
-          schema_version: "1.0",
-          change_id: change.id,
-          title: change.title,
-          release_notes: change.release_notes,
-        }),
-      ),
-    );
-  }
-
   // Multi-repo archive metadata, when present.
   if (multiRepo) {
     await atomicWriteFile(
@@ -250,7 +225,6 @@ const GENERATED_BUNDLE_FILES = new Set([
   "wisdom.json",
   "multi-repo-archive.json",
   "spec-projection.json",
-  "release-notes.json",
 ]);
 
 /**

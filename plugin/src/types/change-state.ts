@@ -131,7 +131,6 @@ export interface ChangeState {
   ops_followup_links?: Change["ops_followup_links"];
   lightweight_profile?: Change["lightweight_profile"];
   creation_request_hash?: string;
-  release_notes?: Change["release_notes"];
   gateCriteria?: Partial<Record<import("./index").GateId, GateCriterion[]>>;
   testRuns?: Change["test_runs"];
 }

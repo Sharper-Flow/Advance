@@ -6,7 +6,6 @@
  */
 
 import { z } from "zod";
-import { ReleaseNotesContentSchema } from "./changes";
 import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
 import {
   EpicChangeRefSchema,
@@ -260,16 +259,6 @@ export const TestRunRecordedSignalPayloadSchema =
   });
 export type TestRunRecordedSignalPayload = z.infer<
   typeof TestRunRecordedSignalPayloadSchema
->;
-
-export const ReleaseNotesSetSignalPayloadSchema = z
-  .object({
-    release_notes: ReleaseNotesContentSchema,
-    set_at: IsoTimestampSchema,
-  })
-  .merge(CommandOperationEnvelopeSchema);
-export type ReleaseNotesSetSignalPayload = z.infer<
-  typeof ReleaseNotesSetSignalPayloadSchema
 >;
 
 /**

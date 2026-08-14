@@ -28,14 +28,13 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 
 ## Phase 1: Pre-Archive Checks
 
-1. `adv_change_show changeId: {id} include: { executiveSummary: true, subagentReports: true }` → verify status "active", load executive summary, Release Readiness Summary, harden evidence, and `change.release_notes` for sign-off report
+1. `adv_change_show changeId: {id} include: { executiveSummary: true, subagentReports: true }` → verify status "active", load executive summary, Release Readiness Summary, and harden evidence for sign-off report
    - If the returned change has `epic_membership`, load compact parent context with `adv_change_show` (Epics include entries) before archive execution. Record Epic ID, entry ID/title/order, and member status when available.
    - Epic order remains advisory: earlier incomplete Epic entries MAY be warned about but MUST NOT block archive solely by order.
-2. Ensure release notes before bundle write and signoff: if `change.release_notes` is absent (e.g., fast-track or no review/harden), compose a minimum evidence-backed `ReleaseNotesContent` block from available typed task/contract/commit/origin evidence and persist via `adv_change_set_release_notes changeId: {id} release_notes: { ... }`. Apply the same evidence rules as `/adv-review`: `audience` and `category` are required; `category` uses the deterministic map `feat`→"added", `fix`→"fixed", `perf`→"changed"; other categories require explicit evidence. Include `links.issue` from `change.origin.issue_number` and `links.pr` only when already known. Never ask a new question. Unsupported semantic fields remain absent; no heuristic authority. When composing the minimum `ReleaseNotesContent` block, populate `headline_internal` and at least one `highlights[]` entry sourced from the proposal, agreement, or executive-summary value/outcome prose (canonical source: `_executiveSummary ## Value`). Required when those artifacts contain benefit articulation. Absent fields remain absent; no invention.
-3. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
-4. `adv_change_show validate: true strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
-5. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
-6. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
+2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
+3. `adv_change_show validate: true strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
+4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
+5. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
 
 ### Contract Proof Gate
 

@@ -18,6 +18,7 @@ const RETIRED_TOOL_TOKENS = [
   "adv_task_evidence",
   "adv_task_run_status",
   "adv_task_tdd",
+  "adv_change_set_release_notes",
 ];
 
 async function* walkJsonFiles(dir: string): AsyncGenerator<string> {

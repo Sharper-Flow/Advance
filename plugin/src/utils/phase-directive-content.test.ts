@@ -30,8 +30,6 @@ const REQUIRED_TOKENS: string[] = [
   "fresh OpenCode session",
   "adv_change_update",
   "executiveSummary",
-  "adv_change_set_release_notes",
-  "ReleaseNotesContent",
   "executive summary",
   "workflow-visible executive-summary",
   "No-late-homework rule",

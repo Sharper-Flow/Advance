@@ -121,7 +121,6 @@ export function changeSeedStateFromChange(
     lightweight_profile: safeChange.lightweight_profile,
     coordination_claim: safeChange.coordination_claim,
     creation_request_hash: safeChange.creation_request_hash,
-    release_notes: safeChange.release_notes,
     testRuns: safeChange.test_runs,
   };
 }

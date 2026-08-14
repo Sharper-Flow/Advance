@@ -83,121 +83,6 @@ export type ChangeCoordinationClaim = z.infer<
 >;
 
 // =============================================================================
-// Release Notes
-// =============================================================================
-
-export const ReleaseNotesAudienceSchema = z.enum([
-  "external",
-  "internal",
-  "both",
-]);
-
-export type ReleaseNotesAudience = z.infer<typeof ReleaseNotesAudienceSchema>;
-
-export const ReleaseNotesCategorySchema = z.enum([
-  "added",
-  "changed",
-  "deprecated",
-  "removed",
-  "fixed",
-  "security",
-]);
-
-export type ReleaseNotesCategory = z.infer<typeof ReleaseNotesCategorySchema>;
-
-const RELEASE_NOTES_NARRATIVE_MAX = 2048;
-const RELEASE_NOTES_MIGRATION_MAX = 4096;
-const RELEASE_NOTES_AREA_MAX = 100;
-const RELEASE_NOTES_COLLECTION_MAX = 20;
-const RELEASE_NOTES_ENVELOPE_MAX_BYTES = 32768;
-
-export const ReleaseNotesBreakingSchema = z.object({
-  description: z.string().max(RELEASE_NOTES_NARRATIVE_MAX),
-  migration: z.string().max(RELEASE_NOTES_MIGRATION_MAX).optional(),
-});
-
-export type ReleaseNotesBreaking = z.infer<typeof ReleaseNotesBreakingSchema>;
-
-export const ReleaseNotesLinksSchema = z.object({
-  issue: z.string().optional(),
-  pr: z.string().optional(),
-});
-
-export type ReleaseNotesLinks = z.infer<typeof ReleaseNotesLinksSchema>;
-
-export const ReleaseNotesContentSchema = z.object({
-  audience: ReleaseNotesAudienceSchema,
-  category: ReleaseNotesCategorySchema,
-  headline_internal: z.string().max(RELEASE_NOTES_NARRATIVE_MAX).optional(),
-  headline_external: z.string().max(RELEASE_NOTES_NARRATIVE_MAX).optional(),
-  highlights: z
-    .array(z.string().max(RELEASE_NOTES_NARRATIVE_MAX))
-    .max(RELEASE_NOTES_COLLECTION_MAX)
-    .optional(),
-  area: z.string().max(RELEASE_NOTES_AREA_MAX).optional(),
-  user_action_required: z.boolean().optional(),
-  breaking: ReleaseNotesBreakingSchema.optional(),
-  deprecations: z
-    .array(z.string().max(RELEASE_NOTES_NARRATIVE_MAX))
-    .max(RELEASE_NOTES_COLLECTION_MAX)
-    .optional(),
-  links: ReleaseNotesLinksSchema.optional(),
-});
-
-export type ReleaseNotesContent = z.infer<typeof ReleaseNotesContentSchema>;
-
-/**
- * Deterministic, authoritative mapping from Conventional Commit types to
- * release-note categories. Only `feat`, `fix`, and `perf` carry canonical
- * mappings; all other inputs return `undefined` so callers do not infer
- * categories from heuristics.
- */
-export function mapConventionalCommitToReleaseNoteCategory(
-  type: string,
-): ReleaseNotesCategory | undefined {
-  switch (type) {
-    case "feat":
-      return "added";
-    case "fix":
-      return "fixed";
-    case "perf":
-      return "changed";
-    default:
-      return undefined;
-  }
-}
-
-/**
- * Archive envelope for release notes. The byte cap is enforced structurally
- * with a Zod refine on the serialized JSON envelope because JSON Schema
- * cannot express UTF-8 byte budgets deterministically; the cap is verified by
- * tests in `changes.release-notes.test.ts`.
- */
-export const ReleaseNotesArchiveEnvelopeSchema = z
-  .object({
-    schema_version: z.literal("1.0"),
-    change_id: z.string(),
-    title: z.string(),
-    release_notes: ReleaseNotesContentSchema,
-  })
-  .describe(
-    "Versioned release-notes archive envelope. Runtime validation also rejects a serialized UTF-8 envelope larger than 32768 bytes; this byte limit is not representable in JSON Schema.",
-  )
-  .refine(
-    (envelope) => {
-      const bytes = new TextEncoder().encode(JSON.stringify(envelope)).length;
-      return bytes <= RELEASE_NOTES_ENVELOPE_MAX_BYTES;
-    },
-    {
-      message: `Serialized release-notes envelope must not exceed ${RELEASE_NOTES_ENVELOPE_MAX_BYTES} bytes`,
-    },
-  );
-
-export type ReleaseNotesArchiveEnvelope = z.infer<
-  typeof ReleaseNotesArchiveEnvelopeSchema
->;
-
-// =============================================================================
 // Validation Result (private — used only by ChangeSchema)
 // =============================================================================
 
@@ -1469,12 +1354,6 @@ export const ChangeSchema = z
      * to open lifecycle + running workflow authority.
      */
     coordination_claim: ChangeCoordinationClaimSchema.optional(),
-
-    /**
-     * Optional release-notes content for this change. Additive/backward-
-     * compatible; absence means no release notes have been authored yet.
-     */
-    release_notes: ReleaseNotesContentSchema.optional(),
 
     /**
      * rq-creationRequestHash01 (tk-74c358188ffb, design D2 / AC4 / AC11):
