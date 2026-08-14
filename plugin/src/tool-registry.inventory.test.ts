@@ -68,7 +68,6 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // never recorded in this reintroduction-guard accounting.
   // addAdvLauncherReadProjection added the launcher projection rebuild MCP
   // tool (plugin-only; never exposed via bin/adv).
-  // addReleaseNotesData adds the typed release-note full-replacement setter.
   // migrateExistingAdvWorktrees adds the operator-only directory-only worktree
   // detach tool for nonterminal dematerialization.
   // boundedProjectionHydration: operator-only quarantine for corrupt or oversized
