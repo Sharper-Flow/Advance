@@ -7181,47 +7181,6 @@
       ]
     },
     {
-      "id": "rq-releaseNotesCapture01",
-      "title": "Release-note data is captured as optional typed change state",
-      "body": "Advance SHALL support an optional, bounded, schema-validated release_notes content block on a change. Existing review and harden synthesis MAY set or refine the block through a dedicated typed full-replacement command using the canonical disk operation ledger. Fast-track release preparation SHALL synthesize a minimum evidence-backed block when absent without adding a user prompt. Absence remains valid and no inference heuristic may own audience, category, breaking status, or action-required correctness.",
-      "priority": "must",
-      "tags": [
-        "release-notes",
-        "change projection",
-        "disk",
-        "schema"
-      ],
-      "scenarios": [
-        {
-          "id": "rq-releaseNotesCapture01.1",
-          "title": "Existing synthesis phases persist typed release-note data",
-          "given": [
-            "A change has approved agreement evidence and reaches review or harden",
-            "The release-notes setter receives a schema-valid complete content block"
-          ],
-          "when": "The agent persists or refines release-note data",
-          "then": [
-            "The change projection records the full replacement through the canonical operation ledger",
-            "Readback returns the same typed block",
-            "No new prompt, gate, task, or release authority is introduced"
-          ]
-        },
-        {
-          "id": "rq-releaseNotesCapture01.2",
-          "title": "Missing release-note data remains compatible",
-          "given": [
-            "A legacy or current change has no release_notes block"
-          ],
-          "when": "The change is read, validated, readbacked, or prepared for release",
-          "then": [
-            "The change remains schema-valid",
-            "Existing change projection behavior is unchanged",
-            "Fast-track synthesis may populate the block using available evidence without prompting"
-          ]
-        }
-      ]
-    },
-    {
       "id": "rq-structuredAcceptance01",
       "title": "Structured Criterion Variant Representation and Compatibility",
       "body": "The ChangeContract item model MUST support an optional typed variant annotation for the four supported criterion kinds (behavioral, evidence, spec_law, constraint) while keeping canonical text, stable ID, kind, and evidence policy as the contract authority. The variant MUST be parsed and validated once at the adv_contract_mint boundary. Legacy flat-text items without a variant MUST remain valid and render unchanged. Malformed or unsupported structured input MUST fail minting with a clear validation result and MUST leave the previously valid contract unchanged.",

@@ -6449,43 +6449,6 @@ ADV state-changing commands MUST carry stable operation identity, be validated a
 
 ---
 
-### Release-note data is captured as optional typed change state
-
-**ID:** `rq-releaseNotesCapture01` | **Priority:** **[MUST]**
-
-Advance SHALL support an optional, bounded, schema-validated release_notes content block on a change. Existing review and harden synthesis MAY set or refine the block through a dedicated typed full-replacement command using the canonical disk operation ledger. Fast-track release preparation SHALL synthesize a minimum evidence-backed block when absent without adding a user prompt. Absence remains valid and no inference heuristic may own audience, category, breaking status, or action-required correctness.
-
-**Tags:** `release-notes`, `change projection`, `disk`, `schema`
-
-#### Scenarios
-
-**Existing synthesis phases persist typed release-note data** (`rq-releaseNotesCapture01.1`)
-
-**Given:**
-- A change has approved agreement evidence and reaches review or harden
-- The release-notes setter receives a schema-valid complete content block
-
-**When:** The agent persists or refines release-note data
-
-**Then:**
-- The change projection records the full replacement through the canonical operation ledger
-- Readback returns the same typed block
-- No new prompt, gate, task, or release authority is introduced
-
-**Missing release-note data remains compatible** (`rq-releaseNotesCapture01.2`)
-
-**Given:**
-- A legacy or current change has no release_notes block
-
-**When:** The change is read, validated, readbacked, or prepared for release
-
-**Then:**
-- The change remains schema-valid
-- Existing change projection behavior is unchanged
-- Fast-track synthesis may populate the block using available evidence without prompting
-
----
-
 ### Structured Criterion Variant Representation and Compatibility
 
 **ID:** `rq-structuredAcceptance01` | **Priority:** **[MUST]**

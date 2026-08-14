@@ -148,7 +148,6 @@
 | `adv_epic_retire` | `no-cli-dangerous` | Epic retirement mutation |
 | `adv_launcher_projection_rebuild` | `keep-mcp-only` | Producer-only aggregate launcher-projection rebuild (drift recovery); plugin/MCP-only, never bin/adv |
 | `adv_change_set_worker_bundle_impact` | `keep-mcp-only` | Workflow-bound planning declaration of worker-bundle impact classification; agent/orchestrator use only |
-| `adv_change_set_release_notes` | `keep-mcp-only` | Workflow-bound release-note data setter; agent/orchestrator use only |
 | `adv_worker_bundle_provenance_record` | `keep-mcp-only` | Execution-time worker-bundle build+replay provenance receipt; agent/orchestrator use only |
 
 ## Deferred

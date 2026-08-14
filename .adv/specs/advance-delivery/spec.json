@@ -1219,60 +1219,6 @@
           ]
         }
       ]
-    },
-    {
-      "id": "rq-releaseNotesSidecar01",
-      "title": "Archive emits an additive versioned release-notes sidecar",
-      "body": "When a change carries release_notes data, the authoritative archive bundle writer SHALL emit release-notes.json as a versioned envelope containing change identity and the typed content block. The filename SHALL be protected as generated output. When data is absent, no sidecar is emitted and all existing bundle files and release behavior remain unchanged. The sidecar SHALL travel as an ordinary file through existing archive-PR and git-tree CI/CD flows; Advance SHALL require no PokeEdge, PokeEdge-Web, or Corded workflow/configuration mutation.",
-      "priority": "must",
-      "tags": [
-        "release-notes",
-        "archive",
-        "ci-cd",
-        "compatibility"
-      ],
-      "scenarios": [
-        {
-          "id": "rq-releaseNotesSidecar01.1",
-          "title": "Populated change emits schema-valid sidecar",
-          "given": [
-            "A change has schema-valid release_notes content",
-            "Archive bundle creation has started"
-          ],
-          "when": "The authoritative bundle writer writes generated artifacts",
-          "then": [
-            "The bundle contains release-notes.json with schema_version, change_id, title, and release_notes",
-            "The envelope validates against the published release-notes schema",
-            "Existing change.json and change.documents.executiveSummary content is unchanged"
-          ]
-        },
-        {
-          "id": "rq-releaseNotesSidecar01.2",
-          "title": "Absent data emits no sidecar",
-          "given": [
-            "A change has no release_notes content"
-          ],
-          "when": "The archive bundle is created",
-          "then": [
-            "The bundle does not contain release-notes.json",
-            "Validation and archive otherwise follow existing behavior"
-          ]
-        },
-        {
-          "id": "rq-releaseNotesSidecar01.3",
-          "title": "Existing CI/CD carries sidecar without integration changes",
-          "given": [
-            "A repository archives through its existing PR-based .adv/archive layout",
-            "The release-notes sidecar is committed in the archive bundle"
-          ],
-          "when": "Existing PokeEdge or PokeEdge-Web branch promotion, tagging, and deployment runs",
-          "then": [
-            "The sidecar remains in the promoted git tree and relevant deployment commit range",
-            "Current consumers may ignore the additive file safely",
-            "No Corded source, endpoint, trigger, client, or PokeEdge/PokeEdge-Web workflow/configuration change is required"
-          ]
-        }
-      ]
     }
   ]
 }
