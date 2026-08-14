@@ -88,48 +88,6 @@ jobs:
           echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
           echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
 
-      - name: Generate release notes
-        id: notes
-        if: steps.bump.outputs.skip != 'true'
-        run: |
-          set -euo pipefail
-          LAST_TAG="${{ steps.last_tag.outputs.tag }}"
-
-          # Gather commits since last tag.
-          COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"%s")
-
-          # Gather typed release-notes sidecars from archived ADV changes.
-          # Build a JSON array of envelopes; render_body (scripts/release-body.sh)
-          # handles per-envelope parsing, schema_version guard, headline fallback,
-          # category bucketing, chore(adv) commit filtering, and section ordering.
-          RN_FILES=$(git diff --name-only "${LAST_TAG}..HEAD" -- '.adv/archive/*/release-notes.json' 2>/dev/null || true)
-          RN_JSON="["
-          RN_SEP=""
-          if [ -n "$RN_FILES" ]; then
-            while IFS= read -r rn_file; do
-              if [ -z "$rn_file" ]; then continue; fi
-              CONTENT=$(git show "HEAD:$rn_file" 2>/dev/null || true)
-              if [ -z "$CONTENT" ]; then continue; fi
-              # Validate as JSON before appending; skip on parse failure.
-              if echo "$CONTENT" | jq -e . >/dev/null 2>&1; then
-                RN_JSON="${RN_JSON}${RN_SEP}${CONTENT}"
-                RN_SEP=","
-              fi
-            done <<< "$RN_FILES"
-          fi
-          RN_JSON="${RN_JSON}]"
-
-          # Delegate body construction to the tested helper.
-          # See scripts/release-body.sh and scripts/test-release-body.sh.
-          source scripts/release-body.sh
-          BODY=$(render_body "$COMMITS" "$RN_JSON")
-
-          {
-            echo "body<<NOTES_EOF"
-            echo "$BODY"
-            echo "NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Push tag
         if: steps.bump.outputs.skip != 'true'
         run: |
@@ -229,7 +187,6 @@ jobs:
             dist/install.sh
             dist/SHA256SUMS.txt
           generate_release_notes: true
-          body: ${{ steps.notes.outputs.body }}
 
       - name: Summary
         if: steps.bump.outputs.skip != 'true'
