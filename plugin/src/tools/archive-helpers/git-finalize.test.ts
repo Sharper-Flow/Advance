@@ -596,7 +596,23 @@ describe("git-finalize helpers", () => {
       isCrossRepository: false,
     };
 
-    function proof(overrides: Record<string, unknown> = {}) {
+    function proofRecords(
+      records: unknown[],
+      runGit: (
+        _cwd: string,
+        args: string[],
+      ) => {
+        status: number;
+        stdout: string;
+        stderr: string;
+      } = (_cwd, args) => {
+        if (args[0] === "merge-base")
+          return { status: 0, stdout: "", stderr: "" };
+        if (args[0] === "rev-parse")
+          return { status: 0, stdout: "current-default\n", stderr: "" };
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    ) {
       return verifyDirectMergedPrProof(
         {
           repoRoot: "/repo",
@@ -608,18 +624,16 @@ describe("git-finalize helpers", () => {
         {
           runGh: () => ({
             status: 0,
-            stdout: JSON.stringify([{ ...validPayload, ...overrides }]),
+            stdout: JSON.stringify(records),
             stderr: "",
           }),
-          runGit: (_cwd, args) => {
-            if (args[0] === "merge-base")
-              return { status: 0, stdout: "", stderr: "" };
-            if (args[0] === "rev-parse")
-              return { status: 0, stdout: "current-default\n", stderr: "" };
-            return { status: 1, stdout: "", stderr: "unexpected" };
-          },
+          runGit,
         },
       );
+    }
+
+    function proof(overrides: Record<string, unknown> = {}) {
+      return proofRecords([{ ...validPayload, ...overrides }]);
     }
 
     it("accepts exact merged PR proof and records current default reachability", () => {
@@ -633,6 +647,74 @@ describe("git-finalize helpers", () => {
       });
     });
 
+    it("selects one exact local-tip proof among historical merged PRs on the reused branch", () => {
+      expect(
+        proofRecords([
+          { ...validPayload, number: 404, headRefOid: "historical-tip" },
+          validPayload,
+          { ...validPayload, number: 403, headRefOid: "older-tip" },
+        ]),
+      ).toEqual({
+        kind: "valid",
+        prNumber: 405,
+        prUrl: "https://github.com/owner/repo/pull/405",
+        prHeadSha: "local-tip",
+        mergeCommitOid: "merge-commit",
+        defaultBranchSha: "current-default",
+      });
+    });
+
+    it("rejects multiple historical records when no head OID matches the local tip", () => {
+      expect(
+        proofRecords([
+          { ...validPayload, number: 404, headRefOid: "historical-tip" },
+          { ...validPayload, number: 403, headRefOid: "older-tip" },
+        ]),
+      ).toMatchObject({
+        kind: "invalid",
+        reason: "MERGED_PR_PROOF_MISMATCH",
+      });
+    });
+
+    it("rejects multiple exact local-tip proofs as ambiguous", () => {
+      expect(
+        proofRecords([
+          validPayload,
+          {
+            ...validPayload,
+            number: 406,
+            url: "https://github.com/owner/repo/pull/406",
+          },
+        ]),
+      ).toMatchObject({
+        kind: "invalid",
+        reason: "MERGED_PR_PROOF_AMBIGUOUS",
+      });
+    });
+
+    it("keeps an unparseable record fatal even when another record matches exactly", () => {
+      expect(proofRecords([validPayload, null])).toMatchObject({
+        kind: "invalid",
+        reason: "MERGED_PR_PROOF_RECORD_UNPARSEABLE",
+      });
+    });
+
+    it("reports possible query-window saturation when 20 records contain no exact match", () => {
+      const records = Array.from({ length: 20 }, (_, index) => ({
+        ...validPayload,
+        number: 500 + index,
+        headRefOid: `historical-tip-${index}`,
+      }));
+      const result = proofRecords(records);
+      expect(result).toMatchObject({
+        kind: "invalid",
+        reason: "MERGED_PR_PROOF_MISMATCH",
+      });
+      expect(result.kind === "invalid" ? result.details : []).toContain(
+        "Merged PR proof query reached limit 20 without an exact local-tip match",
+      );
+    });
+
     for (const [label, overrides] of [
       ["wrong head OID", { headRefOid: "other-tip" }],
       ["wrong base", { baseRefName: "main" }],
@@ -644,22 +726,12 @@ describe("git-finalize helpers", () => {
     }
 
     it("rejects an unreachable merge commit", () => {
-      const result = verifyDirectMergedPrProof(
-        {
-          repoRoot: "/repo",
-          repo: "owner/repo",
-          defaultBranch: "trunk",
-          changeId: "example",
-          changeTipSha: "local-tip",
-        },
-        {
-          runGh: () => ({
-            status: 0,
-            stdout: JSON.stringify([validPayload]),
-            stderr: "",
-          }),
-          runGit: () => ({ status: 1, stdout: "", stderr: "not reachable" }),
-        },
+      const result = proofRecords(
+        [
+          { ...validPayload, number: 404, headRefOid: "historical-tip" },
+          validPayload,
+        ],
+        () => ({ status: 1, stdout: "", stderr: "not reachable" }),
       );
       expect(result).toMatchObject({
         kind: "invalid",

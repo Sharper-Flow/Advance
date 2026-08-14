@@ -1354,9 +1354,12 @@ export function readPrMergeState(
  * is reachable from the freshly fetched origin/default ref.
  *
  * An explicit empty list means no merged-PR proof exists and preserves the
- * existing direct merge path. Every other malformed, conflicting, or failed
- * response is ambiguous and therefore fails closed.
+ * existing direct merge path. Malformed responses and multiple exact matches
+ * fail closed. Well-formed historical records with a different head OID are
+ * diagnostics, not competing proof authorities.
  */
+const DIRECT_MERGED_PR_QUERY_LIMIT = 20;
+
 export function verifyDirectMergedPrProof(
   input: {
     repoRoot: string;
@@ -1387,7 +1390,7 @@ export function verifyDirectMergedPrProof(
     "--json",
     "number,url,state,mergedAt,mergeCommit,headRefName,headRefOid,baseRefName,headRepositoryOwner,headRepository,isCrossRepository",
     "--limit",
-    "20",
+    String(DIRECT_MERGED_PR_QUERY_LIMIT),
   ]);
   if (result.status !== 0) {
     return {
@@ -1515,17 +1518,46 @@ export function verifyDirectMergedPrProof(
     (candidate): candidate is Extract<DirectMergedPrProof, { kind: "valid" }> =>
       candidate.kind === "valid",
   );
-  if (valid.length !== 1 || candidates.length !== 1) {
+  const unparseable = candidates.find(
+    (candidate) =>
+      candidate.kind === "invalid" &&
+      candidate.reason === "MERGED_PR_PROOF_RECORD_UNPARSEABLE",
+  );
+  if (unparseable?.kind === "invalid") return unparseable;
+
+  if (valid.length > 1) {
     return {
       kind: "invalid",
-      reason:
-        valid.length > 1
-          ? "MERGED_PR_PROOF_AMBIGUOUS"
-          : (candidates.find((candidate) => candidate.kind === "invalid")
-              ?.reason ?? "MERGED_PR_PROOF_MISMATCH"),
-      details: candidates.flatMap((candidate) =>
-        candidate.kind === "invalid" ? (candidate.details ?? []) : [],
+      reason: "MERGED_PR_PROOF_AMBIGUOUS",
+      details: valid.map(
+        (candidate) =>
+          `PR ${String(candidate.prNumber)} exactly matched the local change tip`,
       ),
+    };
+  }
+
+  if (valid.length === 0) {
+    const details = candidates.flatMap((candidate) =>
+      candidate.kind === "invalid" ? (candidate.details ?? []) : [],
+    );
+    if (parsed.value.length === DIRECT_MERGED_PR_QUERY_LIMIT) {
+      details.push(
+        `Merged PR proof query reached limit ${String(DIRECT_MERGED_PR_QUERY_LIMIT)} without an exact local-tip match`,
+      );
+    }
+    return {
+      kind: "invalid",
+      reason: "MERGED_PR_PROOF_MISMATCH",
+      details,
+    };
+  }
+
+  const selected = valid[0];
+  if (!selected) {
+    return {
+      kind: "invalid",
+      reason: "MERGED_PR_PROOF_MISMATCH",
+      details: ["Exact merged PR proof selection produced no candidate"],
     };
   }
 
@@ -1533,7 +1565,7 @@ export function verifyDirectMergedPrProof(
   const reachable = runGit(input.repoRoot, [
     "merge-base",
     "--is-ancestor",
-    valid[0].mergeCommitOid,
+    selected.mergeCommitOid,
     `origin/${input.defaultBranch}`,
   ]);
   if (reachable.status !== 0) {
@@ -1561,7 +1593,7 @@ export function verifyDirectMergedPrProof(
   }
 
   return {
-    ...valid[0],
+    ...selected,
     defaultBranchSha: defaultBranch.stdout.trim(),
   };
 }
