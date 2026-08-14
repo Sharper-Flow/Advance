@@ -25,10 +25,10 @@
     ],
     "project_patterns": ["src/**/*.ts"],
     "git_head": "b6b30eea9ffa251c9e379d605526735a96d6bd17",
-    "fingerprint_count": 1130,
+    "fingerprint_count": 1129,
     "kind_counts": {
       "duplicate_export": 1,
-      "unused_export": 623,
+      "unused_export": 622,
       "unused_type": 506
     },
     "review_basis": {
@@ -489,7 +489,6 @@
     "{\"id\":\"MAINT-003\",\"name\":\"unused_export\",\"file\":\"src/types/index.ts\",\"description\":\"Knip reported unused export evaluateLightweightProfile.\"}",
     "{\"id\":\"MAINT-003\",\"name\":\"unused_export\",\"file\":\"src/types/index.ts\",\"description\":\"Knip reported unused export isTrivialTask.\"}",
     "{\"id\":\"MAINT-003\",\"name\":\"unused_export\",\"file\":\"src/types/index.ts\",\"description\":\"Knip reported unused export isWarnFirstEvidencePolicy.\"}",
-    "{\"id\":\"MAINT-003\",\"name\":\"unused_export\",\"file\":\"src/types/index.ts\",\"description\":\"Knip reported unused export mapConventionalCommitToReleaseNoteCategory.\"}",
     "{\"id\":\"MAINT-003\",\"name\":\"unused_export\",\"file\":\"src/types/index.ts\",\"description\":\"Knip reported unused export reportFollowUpId.\"}",
     "{\"id\":\"MAINT-003\",\"name\":\"unused_export\",\"file\":\"src/types/index.ts\",\"description\":\"Knip reported unused export resolveReportFollowUpByRef.\"}",
     "{\"id\":\"MAINT-003\",\"name\":\"unused_export\",\"file\":\"src/types/index.ts\",\"description\":\"Knip reported unused export truncateOutput.\"}",
