@@ -74,7 +74,6 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
       invalidate: vi.fn(),
       setEpicMembership: vi.fn(async () => ({ ...change })),
       clearEpicMembership: vi.fn(async () => ({ ...change })),
-      setReleaseNotes: vi.fn(),
     } as Store["changes"],
     tasks: {
       list: vi.fn(async () => []),

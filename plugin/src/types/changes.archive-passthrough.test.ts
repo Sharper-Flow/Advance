@@ -2,7 +2,7 @@
  * Archive passthrough regression tests for ChangeSchema.
  *
  * Verifies that fields removed from explicit schema declarations
- * (judgment_calls, batch_surfaced_at) continue to survive parse
+ * (judgment_calls, batch_surfaced_at, release_notes) continue to survive parse
  * via the terminal `.passthrough()` on ChangeSchema.
  */
 
@@ -33,6 +33,30 @@ describe("ChangeSchema archive passthrough", () => {
       judgment_calls: [judgmentCall],
     });
     expect(result.judgment_calls).toEqual([judgmentCall]);
+  });
+
+  test("parses legacy records carrying a removed release_notes block", () => {
+    // release_notes was removed from ChangeSchema when curated release-notes
+    // capture was deleted. The 28 archived bundles and any in-flight change
+    // written before the removal still carry the block, so parse MUST succeed.
+    // ChangeSchema terminates in `.passthrough()`, so the key is retained
+    // rather than stripped — assert survival, never absence.
+    const legacyReleaseNotes = {
+      audience: "external",
+      category: "added",
+      headline_external: "Legacy curated release note",
+      highlights: ["written before the field was removed"],
+    };
+
+    const parsed = ChangeSchema.parse({
+      ...minimalValidChange,
+      release_notes: legacyReleaseNotes,
+    });
+
+    expect(parsed.id).toBe("test-change");
+    expect(
+      (parsed as Record<string, unknown>).release_notes,
+    ).toEqual(legacyReleaseNotes);
   });
 
   test("preserves batch_surfaced_at via passthrough", () => {

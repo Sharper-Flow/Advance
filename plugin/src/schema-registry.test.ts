@@ -22,7 +22,6 @@ describe("generated ADV JSON schema registry", () => {
       "reconcile-plan",
       "reconcile-receipt",
       "reconcile-run-report",
-      "release-notes",
       "requirement",
       "scenario",
       "spec",
