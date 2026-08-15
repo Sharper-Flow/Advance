@@ -75,7 +75,7 @@ export type LocalBranchIntegrationProof =
     };
 
 export class LocalBranchIntegrationDeadline extends Error {
-  constructor(stage: "merge-base" | "cherry") {
+  constructor(stage: "merge-base" | "cherry" | "tree") {
     super(`Local branch integration ${stage} exceeded the operation budget.`);
     this.name = "LocalBranchIntegrationDeadline";
   }
@@ -132,7 +132,9 @@ function validPatchEquivalentCherryLine(line: string): boolean {
  *
  * The ancestry check is authoritative when it succeeds. A non-ancestor may
  * still be safely deletable after a squash merge, but only when `git cherry`
- * exits successfully and every emitted patch is a well-formed `-` line.
+ * exits successfully and every emitted patch is a well-formed `-` line. When
+ * cherry cannot prove equivalence, a bounded tree walk checks whether the
+ * branch tip's complete snapshot matches a trunk commit.
  * Every child receives the remaining operation budget and cancellation signal.
  */
 export async function proveLocalBranchIntegration(
@@ -157,7 +159,7 @@ export async function proveLocalBranchIntegration(
     ((args: readonly string[], gitOptions: LocalBranchIntegrationGitOptions) =>
       execFileGitAsync(args, gitOptions));
   const runBoundedGit = async (
-    stage: "merge-base" | "cherry",
+    stage: "merge-base" | "cherry" | "tree",
     args: readonly string[],
   ): Promise<{ stdout: string; stderr: string } | undefined> => {
     const remainingMs = operation.remainingMs();
@@ -218,15 +220,54 @@ export async function proveLocalBranchIntegration(
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  if (!lines.every(validPatchEquivalentCherryLine)) return undefined;
+  if (lines.every(validPatchEquivalentCherryLine)) {
+    return {
+      kind: "patch_equivalent",
+      branch,
+      defaultBranch,
+      head,
+      evidence: `git cherry -v ${defaultBranch} ${branch} (all patches equivalent)`,
+    };
+  }
 
-  return {
-    kind: "patch_equivalent",
-    branch,
-    defaultBranch,
-    head,
-    evidence: `git cherry -v ${defaultBranch} ${branch} (all patches equivalent)`,
-  };
+  let tipTree: { stdout: string; stderr: string } | undefined;
+  try {
+    tipTree = await runBoundedGit("tree", ["rev-parse", `${head}^{tree}`]);
+  } catch (error) {
+    if (error instanceof LocalBranchIntegrationDeadline) throw error;
+    return undefined;
+  }
+  if (!tipTree) return undefined;
+  const treeSha = tipTree.stdout.trim();
+  if (!/^[0-9a-f]{4,64}$/i.test(treeSha)) return undefined;
+
+  let trunkTrees: { stdout: string; stderr: string } | undefined;
+  try {
+    trunkTrees = await runBoundedGit("tree", [
+      "log",
+      defaultBranch,
+      "--format=%H %T",
+      "-n",
+      "500",
+    ]);
+  } catch (error) {
+    if (error instanceof LocalBranchIntegrationDeadline) throw error;
+    return undefined;
+  }
+  if (!trunkTrees) return undefined;
+  for (const line of trunkTrees.stdout.split(/\r?\n/)) {
+    const match = line.trim().match(/^([0-9a-f]{4,64})\s+([0-9a-f]{4,64})$/i);
+    if (match?.[2].toLowerCase() === treeSha.toLowerCase()) {
+      return {
+        kind: "patch_equivalent",
+        branch,
+        defaultBranch,
+        head,
+        evidence: `tree-identical to trunk commit ${match[1]}`,
+      };
+    }
+  }
+  return undefined;
 }
 
 // =============================================================================

@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdtemp, mkdir, rm } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
 import { advWorktreeTools } from "./adv-worktree";
 import type { Change } from "../types";
 import type { Store } from "../storage/store-types";
@@ -122,15 +125,39 @@ function localEntries(ids: string[]) {
   };
 }
 
+async function withArchiveDirs<T>(
+  ids: string[],
+  fn: (archiveDir: string) => Promise<T>,
+): Promise<T> {
+  const archiveDir = await mkdtemp(join(tmpdir(), "adv-archived-branches-"));
+  await Promise.all(
+    ids.map((id) => mkdir(join(archiveDir, id), { recursive: true })),
+  );
+  try {
+    return await fn(archiveDir);
+  } finally {
+    await rm(archiveDir, { recursive: true, force: true });
+  }
+}
+
+async function withMissingArchiveDir<T>(
+  fn: (archiveDir: string) => Promise<T>,
+): Promise<T> {
+  const archiveDir = await mkdtemp(join(tmpdir(), "adv-archived-branches-"));
+  await rm(archiveDir, { recursive: true, force: true });
+  return fn(archiveDir);
+}
+
 function createMockStore(
   changes: Change[] = [
     archivedChange("archived-one"),
     archivedChange("already-merged"),
   ],
+  archiveDir = "/tmp/missing-adv-archive",
 ): Store {
   const byId = new Map(changes.map((c) => [c.id, c]));
   return {
-    paths: { root: "/tmp/main" },
+    paths: { root: "/tmp/main", archive: archiveDir },
     changes: {
       // rq-archivedBranchCleanupInversion01: the helper must NOT enumerate the
       // archive via list(); it verifies archived status per-id via get().
@@ -724,7 +751,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     expect(get).toHaveBeenCalledWith("already-merged");
   });
 
-  test("AC1: per-id status reads respect the concurrency cap of 4", async () => {
+  test("AC1: residual per-id status reads respect the concurrency cap of 8", async () => {
     const ids = Array.from({ length: 12 }, (_, i) => `arch-${i}`);
     const store = createMockStore(ids.map((id) => archivedChange(id)));
     mocks.listLocalChangeBranchEntries.mockReturnValueOnce(localEntries(ids));
@@ -756,7 +783,158 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     );
 
     expect(maxInFlight).toBeGreaterThan(0);
-    expect(maxInFlight).toBeLessThanOrEqual(4);
+    expect(maxInFlight).toBeLessThanOrEqual(8);
+  });
+
+  test("archive membership wins over a stale active projection", async () => {
+    await withArchiveDirs(["stale-archived"], async (archiveDir) => {
+      const store = createMockStore(
+        [{ ...archivedChange("stale-archived"), status: "draft" } as Change],
+        archiveDir,
+      );
+      mocks.listLocalChangeBranchEntries.mockReturnValueOnce(
+        localEntries(["stale-archived"]),
+      );
+      mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+        status: "ok",
+        branches: [
+          {
+            changeId: "stale-archived",
+            branch: "change/stale-archived",
+            localSha: "sha-stale-archived",
+            mergeProof: { kind: "patch-equivalent" },
+          },
+        ],
+      });
+
+      const result = await advWorktreeTools.adv_worktree_cleanup.execute(
+        {
+          reason: "archived branch cleanup",
+          mode: "archived_branches",
+          dryRun: true,
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.candidates).toHaveLength(1);
+      expect(parsed.candidates[0].changeId).toBe("stale-archived");
+      expect(parsed.omissions).toBeUndefined();
+      expect(store.changes.get).not.toHaveBeenCalled();
+    });
+  });
+
+  test("residual missing projection remains a lookup_failed omission", async () => {
+    await withArchiveDirs(["different-archived"], async (archiveDir) => {
+      const store = createMockStore([], archiveDir);
+      mocks.listLocalChangeBranchEntries.mockReturnValueOnce(
+        localEntries(["residual-ghost"]),
+      );
+      mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+        status: "ok",
+        branches: [],
+      });
+
+      const result = await advWorktreeTools.adv_worktree_cleanup.execute(
+        {
+          reason: "archived branch cleanup",
+          mode: "archived_branches",
+          dryRun: true,
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.partial).toBe(true);
+      expect(parsed.omissions).toEqual([
+        expect.objectContaining({
+          changeId: "residual-ghost",
+          reason: "lookup_failed",
+          detail: "not_found",
+        }),
+      ]);
+      expect(store.changes.get).toHaveBeenCalledWith("residual-ghost");
+    });
+  });
+
+  test("archive-first scan stays complete with 90 archived branches and 10 residuals", async () => {
+    const ids = Array.from({ length: 100 }, (_, i) => `bulk-${i}`);
+    const archivedIds = ids.slice(0, 90);
+    const residualIds = ids.slice(90);
+
+    await withArchiveDirs(archivedIds, async (archiveDir) => {
+      const store = createMockStore([], archiveDir);
+      mocks.listLocalChangeBranchEntries.mockReturnValueOnce(localEntries(ids));
+      (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+        async (id: string) => ({
+          success: true as const,
+          data: { ...archivedChange(id), status: "draft" } as Change,
+        }),
+      );
+      mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+        status: "ok",
+        branches: [],
+      });
+
+      const result = await advWorktreeTools.adv_worktree_cleanup.execute(
+        {
+          reason: "archived branch cleanup",
+          mode: "archived_branches",
+          dryRun: true,
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.partial).toBeUndefined();
+      expect(parsed.omissions).toHaveLength(residualIds.length);
+      expect(parsed.omissions).toEqual(
+        expect.arrayContaining(
+          residualIds.map((changeId) =>
+            expect.objectContaining({ changeId, reason: "not_archived" }),
+          ),
+        ),
+      );
+      expect(store.changes.get).toHaveBeenCalledTimes(residualIds.length);
+    });
+  });
+
+  test("archive directory read failure falls back to per-id status reads", async () => {
+    await withMissingArchiveDir(async (archiveDir) => {
+      const store = createMockStore([archivedChange("fallback")], archiveDir);
+      mocks.listLocalChangeBranchEntries.mockReturnValueOnce(
+        localEntries(["fallback"]),
+      );
+      mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+        status: "ok",
+        branches: [
+          {
+            changeId: "fallback",
+            branch: "change/fallback",
+            localSha: "sha-fallback",
+            mergeProof: { kind: "patch-equivalent" },
+          },
+        ],
+      });
+
+      const result = await advWorktreeTools.adv_worktree_cleanup.execute(
+        {
+          reason: "archived branch cleanup",
+          mode: "archived_branches",
+          dryRun: true,
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.candidates).toHaveLength(1);
+      expect(parsed.candidates[0].changeId).toBe("fallback");
+      expect(store.changes.get).toHaveBeenCalledWith("fallback");
+    });
   });
 
   test("AC5: schema_error lookup surfaces as a lookup_failed omission and partial", async () => {

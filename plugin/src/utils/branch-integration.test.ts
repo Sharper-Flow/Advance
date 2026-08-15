@@ -347,6 +347,114 @@ describe("proveLocalBranchIntegration", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("proves a squash-merged branch from an identical trunk commit tree", async () => {
+    const trunkSha = "abcdef0123456789abcdef0123456789abcdef01";
+    const treeSha = "1234567890abcdef1234567890abcdef12345678";
+    const operation = createWorktreeOperationContext({ budgetMs: 1_000 });
+    try {
+      const result = await proveLocalBranchIntegration(
+        "release/v1",
+        head,
+        "trunk",
+        "/repo",
+        operation,
+        {
+          runGit: async (args) => {
+            if (args[0] === "merge-base")
+              throw Object.assign(new Error("not an ancestor"), { code: 1 });
+            if (args[0] === "cherry")
+              return { stdout: `+ ${head} squashed patch\n`, stderr: "" };
+            if (args[0] === "rev-parse")
+              return { stdout: `${treeSha}\n`, stderr: "" };
+            if (args[0] === "log")
+              return {
+                stdout: `${trunkSha} ${treeSha}\n${head} deadbeef\n`,
+                stderr: "",
+              };
+            throw new Error(`unexpected git command: ${args.join(" ")}`);
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        kind: "patch_equivalent",
+        branch: "release/v1",
+        defaultBranch: "trunk",
+        head,
+      });
+      expect(result?.evidence).toContain(trunkSha);
+    } finally {
+      operation.dispose();
+    }
+  });
+
+  it("refuses an unmerged branch whose tip tree is absent from trunk history", async () => {
+    const trunkSha = "abcdef0123456789abcdef0123456789abcdef01";
+    const treeSha = "1234567890abcdef1234567890abcdef12345678";
+    const differentTreeSha = "fedcba0987654321fedcba0987654321fedcba09";
+    const operation = createWorktreeOperationContext({ budgetMs: 1_000 });
+    try {
+      await expect(
+        proveLocalBranchIntegration(
+          "release/v1",
+          head,
+          "trunk",
+          "/repo",
+          operation,
+          {
+            runGit: async (args) => {
+              if (args[0] === "merge-base")
+                throw Object.assign(new Error("not an ancestor"), { code: 1 });
+              if (args[0] === "cherry")
+                return { stdout: `+ ${head} unique patch\n`, stderr: "" };
+              if (args[0] === "rev-parse")
+                return { stdout: `${treeSha}\n`, stderr: "" };
+              if (args[0] === "log")
+                return {
+                  stdout: `${trunkSha} ${differentTreeSha}\n`,
+                  stderr: "",
+                };
+              throw new Error(`unexpected git command: ${args.join(" ")}`);
+            },
+          },
+        ),
+      ).resolves.toBeUndefined();
+    } finally {
+      operation.dispose();
+    }
+  });
+
+  it("returns a typed deadline when the tree stage times out", async () => {
+    const operation = createWorktreeOperationContext({ budgetMs: 1_000 });
+    try {
+      await expect(
+        proveLocalBranchIntegration(
+          "release/v1",
+          head,
+          "trunk",
+          "/repo",
+          operation,
+          {
+            runGit: async (args) => {
+              if (args[0] === "merge-base")
+                throw Object.assign(new Error("not an ancestor"), { code: 1 });
+              if (args[0] === "cherry")
+                return { stdout: `+ ${head} unique patch\n`, stderr: "" };
+              throw Object.assign(new Error("timed out"), {
+                name: "AbortError",
+              });
+            },
+          },
+        ),
+      ).rejects.toMatchObject({
+        name: "LocalBranchIntegrationDeadline",
+        message: expect.stringContaining("tree"),
+      });
+    } finally {
+      operation.dispose();
+    }
+  });
+
   it("returns a typed deadline for a timed-out child", async () => {
     const operation = createWorktreeOperationContext({ budgetMs: 1_000 });
     try {

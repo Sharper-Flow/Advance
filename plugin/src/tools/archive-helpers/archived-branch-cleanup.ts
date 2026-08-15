@@ -18,7 +18,9 @@
 
 import { execGit } from "../../utils/git.js";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout.js";
+import { readdir } from "fs/promises";
 import type { Store } from "../../storage/store";
+import { createLogger } from "../../utils/debug-log";
 import {
   deleteChangeBranch,
   detectArchivedMergedBranches,
@@ -35,13 +37,15 @@ const SAFE_BUDGET_MS = 8_000;
 /** Reserve for output formatting/handoff below the effective budget. */
 const RETURN_RESERVE_MS = 500;
 /** Bounded concurrency cap for per-id archived-status reads (AC1). */
-const STATUS_LOOKUP_CONCURRENCY = 4;
+const STATUS_LOOKUP_CONCURRENCY = 8;
 /** Ceiling for the wet-run `git fetch` sub-budget. */
 const FETCH_MAX_MS = 2_000;
 /** Floor for a single per-id status read. */
 const MIN_PER_ITEM_MS = 500;
 /** Floor for a single per-call detection git invocation. */
 const MIN_PER_CALL_GIT_MS = 500;
+
+const logger = createLogger("archived-branch-cleanup");
 
 export interface ArchivedBranchCleanupInput {
   store: Store;
@@ -165,9 +169,34 @@ async function mapWithConcurrency<T, R>(
 }
 
 /**
- * Build the archived-id set from the LOCAL `change/*` branch list, verifying
- * each candidate's archived status per-id (bounded concurrency). Never calls
- * `store.changes.list`.
+ * Read archive membership from the authoritative archive directory once.
+ * A failed read deliberately returns null so the caller can use the existing
+ * fail-closed per-id lookup path instead of treating an unavailable archive
+ * as proof that no changes are archived.
+ */
+async function readArchivedChangeIds(
+  store: Store,
+): Promise<Set<string> | null> {
+  try {
+    // Names-only is intentional: archive bundle directory names are the
+    // terminal membership index for this bulk scan.
+    return new Set(await readdir(store.paths.archive));
+  } catch (err) {
+    logger.warn(
+      "archive directory read failed; falling back to status lookups",
+      {
+        archiveDir: store.paths.archive,
+        error: err instanceof Error ? err.message : String(err),
+      },
+    );
+    return null;
+  }
+}
+
+/**
+ * Build the archived-id set from the LOCAL `change/*` branch list. Archive
+ * directory membership is authoritative for the bulk scan; only residual
+ * branch ids need bounded per-id status reads. Never calls `store.changes.list`.
  */
 async function buildArchivedCandidatesFromLocal(params: {
   store: Store;
@@ -190,20 +219,35 @@ async function buildArchivedCandidatesFromLocal(params: {
   }
   const uniqueEntries = [...byId.values()];
 
+  // store-disk rq-terminalProjectionTruth01 bundle dominance makes archive
+  // membership terminal proof, matching PendingDeleteAuthority.terminalProof
+  // "archive_repair_archived_list". Do this before reading active projections,
+  // whose status can remain stale after the archive bundle is durable.
+  const archivedIdsOnDisk = await readArchivedChangeIds(store);
+  const archiveFirstIds: string[] = [];
+  const residualEntries: LocalChangeBranchEntry[] = [];
+  for (const entry of uniqueEntries) {
+    if (archivedIdsOnDisk?.has(entry.changeId)) {
+      archiveFirstIds.push(entry.changeId);
+    } else {
+      residualEntries.push(entry);
+    }
+  }
+
   const remaining = Math.max(0, deadlineAt - Date.now());
   const rounds = Math.max(
     1,
-    Math.ceil(uniqueEntries.length / STATUS_LOOKUP_CONCURRENCY),
+    Math.ceil(residualEntries.length / STATUS_LOOKUP_CONCURRENCY),
   );
   const perItemMs = Math.max(MIN_PER_ITEM_MS, Math.floor(remaining / rounds));
 
   const lookups = await mapWithConcurrency(
-    uniqueEntries,
+    residualEntries,
     STATUS_LOOKUP_CONCURRENCY,
     (entry) => resolveArchivedChangeStatus(store, entry.changeId, perItemMs),
   );
 
-  const archivedChangeIds: string[] = [];
+  const archivedChangeIds: string[] = [...archiveFirstIds];
   const omissions: Omission[] = [];
   for (let i = 0; i < lookups.length; i++) {
     const lookup = lookups[i];
@@ -212,7 +256,7 @@ async function buildArchivedCandidatesFromLocal(params: {
     } else {
       omissions.push({
         changeId: lookup.changeId,
-        branch: uniqueEntries[i].branch,
+        branch: residualEntries[i].branch,
         reason: lookup.reason,
         ...(lookup.detail ? { detail: lookup.detail } : {}),
       });
