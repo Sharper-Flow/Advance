@@ -1514,7 +1514,11 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     [409, "fix/flock-runtime-holder"],
     [415, "fix/worktree-pr-proof"],
   ] as const)(
-    "plans multi-commit squash PR #%i for %s",
+    // Squash fixtures have branch-tip tree == trunk squash-commit tree, so the
+    // local tree-equivalence strategy proves them without gh (strategy order:
+    // local first, gh only as fallback). pr_merged coverage lives in the
+    // conflict-resolved squash test below.
+    "plans multi-commit squash PR #%i for %s via local tree equivalence",
     async (prNumber, branch) => {
       const fixture = makeSquashPrFixture(branch, prNumber);
       try {
@@ -1547,17 +1551,89 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         expect(planned).toMatchObject({ ok: true, status: "planned" });
         if (planned.ok)
           expect(planned.plan.integration).toMatchObject({
-            kind: "pr_merged",
-            prNumber,
-            prHeadOid: fixture.head,
-            mergeCommitOid: fixture.mergeCommit,
+            kind: "patch_equivalent",
             defaultBranch: "main",
           });
+        // The matched trunk commit is the squash commit for this PR.
+        if (planned.ok)
+          expect(planned.plan.integration?.evidence).toContain(
+            fixture.mergeCommit,
+          );
       } finally {
         fixture.cleanup();
       }
     },
   );
+
+  it("plans conflict-resolved squash PR via gh fallback when trees differ", async () => {
+    // A squash whose merge resolved conflicts produces a trunk tree that
+    // differs from the branch tip: local tree-equivalence and cherry both
+    // miss, so the gh PR-evidence fallback must prove it (pr_merged).
+    const prNumber = 421;
+    const branch = "fix/squash-conflict-resolved";
+    const fixture = makeSquashPrFixture(branch, prNumber);
+    try {
+      // Amend the trunk squash commit so its tree diverges from the branch tip.
+      git(fixture.root, "reset", "--hard", "HEAD~1");
+      git(fixture.root, "cherry-pick", "--no-commit", fixture.firstHead);
+      git(fixture.root, "cherry-pick", "--no-commit", fixture.head);
+      writeFileSync(join(fixture.root, "one.txt"), "one\nconflict-resolved\n");
+      git(fixture.root, "add", "one.txt");
+      git(
+        fixture.root,
+        "commit",
+        "-m",
+        "squash PR #" + prNumber + " (resolved)",
+      );
+      const mergeCommit = git(fixture.root, "rev-parse", "HEAD");
+      git(fixture.root, "push", "-f", "origin", "main");
+      git(fixture.root, "push", "-f", "origin", branch);
+      git(
+        fixture.remote,
+        "update-ref",
+        `refs/pull/${prNumber}/head`,
+        fixture.head,
+      );
+
+      const payload = {
+        number: prNumber,
+        state: "MERGED",
+        mergedAt: "2026-08-08T00:00:00Z",
+        headRefName: branch,
+        headRefOid: fixture.head,
+        baseRefName: "main",
+        headRepository: {
+          id: "R_kgDOQ-sRJg",
+          name: "repo",
+          nameWithOwner: "owner/repo",
+        },
+        headRepositoryOwner: { id: "O_kgDOBrdsJg", login: "owner" },
+        isCrossRepository: false,
+        mergeCommit: { oid: mergeCommit },
+      };
+      const deps = createMockDeps(fixture.root, fixture.worktree);
+      deps.integrationCheck = undefined;
+      deps.mergedBranches = async () => [];
+      deps.ghExec = createPrGhExec(payload);
+
+      const planned = await rawAdvWorktreeDelete(
+        branch,
+        { dryRun: true },
+        deps,
+      );
+      expect(planned).toMatchObject({ ok: true, status: "planned" });
+      if (planned.ok)
+        expect(planned.plan.integration).toMatchObject({
+          kind: "pr_merged",
+          prNumber,
+          prHeadOid: fixture.head,
+          mergeCommitOid: mergeCommit,
+          defaultBranch: "main",
+        });
+    } finally {
+      fixture.cleanup();
+    }
+  });
 
   it("#55 non-registered clean branch is governed by Git census, not registry", async () => {
     const branch = "chore/no-force";

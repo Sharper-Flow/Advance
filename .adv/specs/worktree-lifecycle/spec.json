@@ -3,7 +3,7 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, cleanup eligibility tracking, and bounded cleanup.",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "updated_at": "2026-08-08T16:42:08.507Z",
   "requirements": [
     {
@@ -1014,6 +1014,71 @@
             "All use the same planner and executor",
             "Only lifecycle-specific terminal proof differs",
             "Repeated apply returns already absent"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archivedBranchCleanupInversion01",
+      "title": "Archive-Directory-First Archived Classification",
+      "body": "The archived_branches cleanup scan MUST classify local change/* branches as archived by names-only directory membership in the target-routed archive directory (a single readdir of store.paths.archive) BEFORE any per-id change-status lookup. Archive-directory membership is authoritative archived evidence and MUST override stale active projections. per-id store.changes.get lookups are permitted ONLY for residual (non-member) ids and MUST keep the fail-closed omission mapping; store.changes.list remains forbidden. If the archive directory read fails, the scan MUST degrade to the per-id path with a recorded warning rather than crash. The classification MUST complete within the rq-worktreeBoundedCleanup02 safe budget for portfolios of at least 100 local change branches.",
+      "priority": "must",
+      "tags": [
+        "worktree",
+        "cleanup",
+        "archive",
+        "performance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-archivedBranchCleanupInversion01.1",
+          "title": "Archive membership overrides stale draft projection",
+          "given": [
+            "a local change/* branch whose changeId has a directory in the archive store",
+            "the active projection still reports status draft"
+          ],
+          "when": "an archived_branches full scan runs",
+          "then": [
+            "the branch is classified archived (a deletion candidate)",
+            "no not_archived omission is emitted for it",
+            "store.changes.get is not called for it"
+          ]
+        },
+        {
+          "id": "rq-archivedBranchCleanupInversion01.2",
+          "title": "Residual ids keep fail-closed mapping",
+          "given": [
+            "a local change/* branch whose changeId is absent from the archive directory"
+          ],
+          "when": "the per-id residual lookup returns null or a load failure",
+          "then": [
+            "the branch is omitted with lookup_failed (never a candidate)",
+            "store.changes.list is not called"
+          ]
+        },
+        {
+          "id": "rq-archivedBranchCleanupInversion01.3",
+          "title": "Scale within safe budget",
+          "given": [
+            "at least 100 local change branches of which at least 90 are archive members"
+          ],
+          "when": "a full archived_branches scan runs under the default 8s safe budget",
+          "then": [
+            "the scan completes without partial, or reports partial only with honest deadline_exceeded labels",
+            "no archived member is mislabeled not_archived"
+          ]
+        },
+        {
+          "id": "rq-archivedBranchCleanupInversion01.4",
+          "title": "Archive read failure degrades safely",
+          "given": [
+            "the archive directory readdir raises an error"
+          ],
+          "when": "the scan builds archived candidates",
+          "then": [
+            "the scan falls back to the per-id lookup path",
+            "a warning records the fallback",
+            "the scan does not crash"
           ]
         }
       ]
