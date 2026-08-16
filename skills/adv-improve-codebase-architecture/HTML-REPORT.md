@@ -45,7 +45,7 @@ Repo name, date, and a compact legend: solid box = module, dashed line = seam, r
 
 ## Candidate card
 
-The diagrams carry the weight. Prose is sparse, plain, and uses the glossary terms (from the `/codebase-design` skill) without ceremony.
+The diagrams carry the weight. Prose is sparse, plain, and uses the glossary terms (from `skill("adv-codebase-design")`) without ceremony.
 
 Each candidate is one `<article>`:
 
@@ -111,7 +111,7 @@ One larger card. Candidate name, one sentence on why, anchor link to its card. T
 
 ## Tone
 
-Plain English, concise — but the architectural nouns and verbs come straight from the `/codebase-design` skill. Concision is not an excuse to drift.
+Plain English, concise — but the architectural nouns and verbs come straight from `skill("adv-codebase-design")`. Concision is not an excuse to drift.
 
 **Use exactly:** module, interface, implementation, depth, deep, shallow, seam, adapter, leverage, locality.
 
