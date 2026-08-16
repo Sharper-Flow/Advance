@@ -1,0 +1,544 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixNoDeltaArchiveBundleLoss",
+  "title": "Fix no-delta archive bundle loss",
+  "status": "archived",
+  "created_at": "2026-08-16T20:27:47.285Z",
+  "tasks": [
+    {
+      "id": "tk-5f8d8703401e",
+      "title": "RED regression test: zero-delta archive writes durable bundle",
+      "type": "code",
+      "section": "Fix",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-16T20:29:45.224Z",
+      "started_at": "2026-08-16T20:39:50.304Z",
+      "completed_at": "2026-08-16T20:44:57.850Z",
+      "verification": "RED confirmed: runId tr_msw9wriz_ef6d63cd — new test \"routes a zero-delta first archive through archiveChange\" fails with archiveChange called 0 times; rest of file's 10 tests pass. Sole other failure is the known pre-existing adv-backlog manifest-doc drift.",
+      "summary": "RED confirmed: runId tr_msw9wriz_ef6d63cd — new test \"routes a zero-delta first archive through archiveChange\" fails with archiveChange called 0 times; rest of file's 10 tests pass. Sole other failure is the known pre-existing adv-backlog manifest-doc drift.",
+      "filesTouched": [
+        "plugin/src/tools/change/handlers-archive.partial-repair.test.ts"
+      ],
+      "checkpointSha": "19caed0116774980921cb8b048bb90b74ee1121f",
+      "completedAt": "2026-08-16T20:44:57.850Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-fd8a9fb9142a",
+      "title": "Remove no-delta synthetic archive shortcut in handlers-archive.ts",
+      "type": "code",
+      "section": "Fix",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5f8d8703401e"
+        }
+      ],
+      "created_at": "2026-08-16T20:30:13.250Z",
+      "started_at": "2026-08-16T20:45:07.976Z",
+      "completed_at": "2026-08-16T21:02:06.867Z",
+      "verification": "GREEN: runId tr_mswaiphr_4ef503a3 — all 11 partial-repair/archive handler tests pass including the new zero-delta regression; full suite 5126 passed / 1 failed (sole failure = known pre-existing adv-backlog manifest-doc drift, unchanged). Fix deletes both synthetic shortcuts and always routes through archiveChange; reconciledInRepoPath preserved into commitPaths.",
+      "summary": "GREEN: runId tr_mswaiphr_4ef503a3 — all 11 partial-repair/archive handler tests pass including the new zero-delta regression; full suite 5126 passed / 1 failed (sole failure = known pre-existing adv-backlog manifest-doc drift, unchanged). Fix deletes both synthetic shortcuts and always routes through archiveChange; reconciledInRepoPath preserved into commitPaths.",
+      "filesTouched": [
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5",
+      "completedAt": "2026-08-16T21:02:06.867Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-d8636c185c40",
+      "title": "Verify fix: archive/handler test files green + pnpm run check",
+      "type": "verification",
+      "section": "Verify",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fd8a9fb9142a"
+        }
+      ],
+      "created_at": "2026-08-16T20:30:25.239Z",
+      "started_at": "2026-08-16T21:02:17.620Z",
+      "completed_at": "2026-08-16T21:04:27.241Z",
+      "verification": "runId tr_mswal0js_c7096ff4: pnpm run check exit 0 (schemas, tsc, manifests, frontmatter, test-isolation, prompt-budget, lockfile, check-skill-references, eslint, prettier). Full suite green from GREEN run tr_mswaiphr_4ef503a3 (5126 passed; only pre-existing adv-backlog drift).",
+      "summary": "runId tr_mswal0js_c7096ff4: pnpm run check exit 0 (schemas, tsc, manifests, frontmatter, test-isolation, prompt-budget, lockfile, check-skill-references, eslint, prettier). Full suite green from GREEN run tr_mswaiphr_4ef503a3 (5126 passed; only pre-existing adv-backlog drift).",
+      "filesTouched": [
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5",
+      "completedAt": "2026-08-16T21:04:27.241Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      }
+    },
+    {
+      "id": "tk-4acf9d16f43d",
+      "title": "Repair destroyed restoreVendoredDesignSkills record via owning writer",
+      "type": "ops",
+      "section": "Repair",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d8636c185c40"
+        }
+      ],
+      "created_at": "2026-08-16T20:30:38.907Z",
+      "started_at": "2026-08-16T21:04:41.890Z",
+      "completed_at": "2026-08-16T21:13:00.005Z",
+      "verification": "Repair executed via owning writer (no hand-written state): /tmp/opencode/repair-restoreVendoredDesignSkills.ts imported plugin source from the fix worktree, built the archived Change from session-captured authoritative pre-destruction tool outputs (identity/timestamps from summary shard rev44; 7 gates + 7 full task records + executive summary verbatim), validated via ChangeSchema.parse, and materialized the bundle through archiveChange → writeArchiveBundleFiles. Result: success, archivePath .../archive/2026-08-16-restoreVendoredDesignSkills, errors []. Readback proof: adv_change_show now resolves the change as status archived with gates/tasks/documents intact. Unrecoverable and recorded: subagent_reports sidecars (4), documents other than executiveSummary, projection_commits audit array. External-bundle-only repair; in-repo .adv/archive bundle intentionally not backfilled (would require an off-change trunk commit).",
+      "summary": "Repair executed via owning writer (no hand-written state): /tmp/opencode/repair-restoreVendoredDesignSkills.ts imported plugin source from the fix worktree, built the archived Change from session-captured authoritative pre-destruction tool outputs (identity/timestamps from summary shard rev44; 7 gates + 7 full task records + executive summary verbatim), validated via ChangeSchema.parse, and materialized the bundle through archiveChange → writeArchiveBundleFiles. Result: success, archivePath .../archive/2026-08-16-restoreVendoredDesignSkills, errors []. Readback proof: adv_change_show now resolves the change as status archived with gates/tasks/documents intact. Unrecoverable and recorded: subagent_reports sidecars (4), documents other than executiveSummary, projection_commits audit array. External-bundle-only repair; in-repo .adv/archive bundle intentionally not backfilled (would require an off-change trunk commit).",
+      "filesTouched": [
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5",
+      "completedAt": "2026-08-16T21:13:00.005Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Recovery is data-materialization through the owning writer; proof is schema-validated readback + existing read tools resolving the record. No executable behavior change to unit-test beyond the fix tasks.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      }
+    },
+    {
+      "id": "tk-b8a754d51f13",
+      "title": "Verify repair + complete archive tail for restoreVendoredDesignSkills",
+      "type": "verification",
+      "section": "Repair",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4acf9d16f43d"
+        }
+      ],
+      "created_at": "2026-08-16T20:30:50.578Z",
+      "started_at": "2026-08-16T21:13:09.539Z",
+      "completed_at": "2026-08-16T21:15:20.393Z",
+      "verification": "All tail surfaces verified on restored record: (1) adv_change_show resolves restoreVendoredDesignSkills status=archived, gates+tasks+documents intact; (2) adv_change_list includeArchived recency sort shows it phase=archived 7/7; (3) adv_reflect succeeded — reflection rf-q-7fUejc persisted (7/7 tasks, gate completion 1.0, TDD compliance 1.0); (4) adv_worktree_delete planToken flow deleted the worktree (terminal proof: durable archived status; integration: merge-base ancestor of trunk); (5) adv_worktree_cleanup mode=archived_branches deleted local branch change/restoreVendoredDesignSkills (mergeProof tree-identical e1b7b37b; remote ref never existed — benign). AC2 + AC5 satisfied.",
+      "summary": "All tail surfaces verified on restored record: (1) adv_change_show resolves restoreVendoredDesignSkills status=archived, gates+tasks+documents intact; (2) adv_change_list includeArchived recency sort shows it phase=archived 7/7; (3) adv_reflect succeeded — reflection rf-q-7fUejc persisted (7/7 tasks, gate completion 1.0, TDD compliance 1.0); (4) adv_worktree_delete planToken flow deleted the worktree (terminal proof: durable archived status; integration: merge-base ancestor of trunk); (5) adv_worktree_cleanup mode=archived_branches deleted local branch change/restoreVendoredDesignSkills (mergeProof tree-identical e1b7b37b; remote ref never existed — benign). AC2 + AC5 satisfied.",
+      "filesTouched": [
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5",
+      "completedAt": "2026-08-16T21:15:20.393Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Verification of recovery via existing read/operator tools; proof is tool outputs resolving the change and worktree removal succeeding.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-5f8d8703401e": [
+      {
+        "runId": "tr_msw9wriz_ef6d63cd",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 68438.1366290003,
+        "recordedAt": "2026-08-16T20:44:39.586Z"
+      }
+    ],
+    "tk-fd8a9fb9142a": [
+      {
+        "runId": "tr_mswaiphr_4ef503a3",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 52647.74457699992,
+        "recordedAt": "2026-08-16T21:01:43.426Z"
+      }
+    ],
+    "tk-d8636c185c40": [
+      {
+        "runId": "tr_mswal0js_c7096ff4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 56924.05369800143,
+        "recordedAt": "2026-08-16T21:03:32.096Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-16T20:28:25.658Z",
+      "completed_by": "agent",
+      "approval_evidence": "Defect-origin; RCA persisted in problem-statement.md per rq-defectOriginRca01.2. Proposal + AC persisted. User directive: fix without creating new tools."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-16T20:28:34.550Z",
+      "completed_by": "agent",
+      "approval_evidence": "Spec-law impact assessed = No new law. Existing rq-archiveRetirement01 (advance-workflow) already mandates bundle-before-transition-before-removal for EVERY successful archive; the no-delta synthetic shortcut in handlers-archive.ts is a conformance violation. Related: rq-archiveTerminalDurability01 (bundle/gate/lifecycle must agree), rq-terminalProjectionTruth01 (read-side self-heal masked the loss class). Search: adv_spec search(archive bundle) → 16 hits, none permit skipping bundle writes."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-16T20:28:43.912Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design: delete the deltas-conditional synthetic archiveResult in both branches of handlers-archive.ts (~:677-718); always await archiveChange(). Empty deltas already no-op inside archiveChangeUnderLock (preflight loop skips empty capability entries; planned empty; projectionManifest over empty delta set). Bundle writer unchanged. Recovery: one-off repair through the owning writer (writeArchiveBundleFiles via archiveChange) reconstructing the destroyed restoreVendoredDesignSkills record from summary-shard identity + session-captured gates/tasks, ChangeSchema-validated. No new tools. Validator: internal repo evidence decisive (code path traced end-to-end, disk ground truth confirmed); external LBP validation not applicable — pure internal defect repair."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-16T20:39:28.832Z",
+      "completed_by": "agent",
+      "approval_evidence": "5 tasks added with dependency order (RED → fix → verify → repair → tail verification). Quick Contract approved via question tool (\"Confirmed — execute (Recommended)\")."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-16T21:15:32.576Z",
+      "completed_by": "agent",
+      "approval_evidence": "5/5 tasks done. RED tr_msw9wriz_ef6d63cd → GREEN tr_mswaiphr_4ef503a3 (11/11 incl. new regression; suite 5126 passed / 1 pre-existing drift). pnpm run check exit 0 (tr_mswal0js_c7096ff4). Repair of restoreVendoredDesignSkills executed through owning writer (archiveChange) with ChangeSchema-validated reconstruction; reflect + worktree + branch cleanup all verified on restored record."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-16T21:22:33.467Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted via whitelist word 'approve' after REVIEW_FINDINGS + executive summary. Sequencing constraint recorded: archive only after fixed plugin deployed + OpenCode restart (zero-delta change archived by pre-fix plugin would repeat the bug)."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "## Problem\n\nArchiving a change with zero spec deltas destroys the change record: `handlers-archive.ts` skips `archiveChange()` (the only bundle writer) when `deltas` is empty, reports synthetic success with an `archivePath` that was never created, then removes the active record. First observed on `restoreVendoredDesignSkills` (2026-08-16): shipped and pushed to trunk, but unresolvable by every post-archive surface.\n\n## Root Cause Analysis\n\nSee problem-statement.md (persisted). Owning defect: delta-projection optimization wrongly scoped to skip bundle creation; `archiveChange` already handles empty deltas safely.\n\n## Objectives\n\n1. `adv_change_archive` MUST write a durable archive bundle (change.json sentinel + generated bundle files) for every archived change, regardless of delta count.\n2. Remove the synthetic no-delta shortcut in both branches of the archive handler; route all archives through `archiveChange`.\n3. Regression test: zero-delta archive produces a readable bundle with `status:\"archived\"`.\n4. Repair the destroyed `restoreVendoredDesignSkills` record through the owning writer (schema-validated), restoring post-archive surfaces (show/list/reflect/worktree cleanup) — as a recovery run, not a new tool.\n\n## Acceptance Criteria\n\n- AC1: Given a change with `deltas: {}` completing all gates, when `adv_change_archive` runs, then `archive/<id>/change.json` exists, parses via ChangeSchema, and has `status: \"archived\"`.\n- AC2: `adv_change_show` / `adv_change_list includeArchived` / `adv_reflect` resolve a zero-delta archived change (proven live on `restoreVendoredDesignSkills` post-repair).\n- AC3: New regression test fails on the pre-fix handler (RED) and passes post-fix (GREEN).\n- AC4: Targeted archive test files and `pnpm run check` are green; full suite shows no new failures.\n- AC5: `change/restoreVendoredDesignSkills` worktree deletion succeeds via existing tools after repair.\n\n## Constraints / Avoidances\n\n- No new ADV tools or MCP surfaces (explicit user directive).\n- Repair uses plugin's own storage/archive writers (`archiveChange`/`writeArchiveBundleFiles`), never hand-written state JSON.\n- Do not resurrect the change as active/draft; it is archived and shipped.\n- Preserve summary shard history; do not delete revisions.",
+    "problemStatement": "## Defect\n\n`adv_change_archive` on a change with zero spec deltas never writes the archive bundle, then deletes the active record. The change becomes unresolvable: `adv_change_show` → \"Change not found\", `adv_reflect` fails, `adv_worktree_cleanup --mode archived_branches` fails, and post-archive `adv_worktree_delete` cannot load terminal proof.\n\nObserved 2026-08-16 on `restoreVendoredDesignSkills` (deltas: {}): archive returned `success:true`, `errors:[]`, `archivePath: .../archive/restoreVendoredDesignSkills`; finalization shipped and pushed; but no bundle directory exists in any shard, and `changes/restoreVendoredDesignSkills/` was removed by `removeChangeDir`. Summary shard revision 44 (`mutation:archive_transition`) is the only residue.\n\n## Root Cause Analysis\n\n- Symptom: archived no-delta change record vanishes; archive bundle absent everywhere on disk.\n- Causal path: `plugin/src/tools/change/handlers-archive.ts` (~:677-718) gates `archiveChange()` (the sole bundle writer, via `createArchive` → `writeArchiveBundleFiles`) on `Object.values(change.deltas).some(d => d.length > 0)`. With zero deltas it substitutes a synthetic `archiveResult` `{success:true, archivePath: join(archivePaths.archive, changeId), errors:[]}` that writes nothing. Both the `existingBundlePath === null` and repair branches do this.\n- Root cause: an optimization (\"no deltas → nothing to project\") incorrectly scoped the skip to the whole archive write instead of only spec projection. `archiveChange` already no-ops projection for empty deltas (preflight loop skips empty capability entries), so the guard is redundant AND destructive.\n- Why undetected: archive handler tests exercise delta-ful changes for bundle assertions; no test asserts bundle existence for a zero-delta archive. Read-side self-heal (`hasArchiveBundle` / `loadArchivedChanges`) masks partial losses but cannot heal a bundle that was never written.\n- Trigger scope: any delta-less archive — increasingly common as spec-law work moves to direct doc edits.",
+    "executiveSummary": "# Executive Summary: Fix no-delta archive bundle loss\n\n## What this did, in plain terms\n\nArchiving a change that carried no spec-law edits silently skipped writing its permanent archive record, then deleted the working record anyway. The change looked archived but was unfindable — status pages, reflection, and worktree cleanup all reported \"not found\". This happened to `restoreVendoredDesignSkills` earlier today, immediately after it shipped successfully.\n\nThis change removes the shortcut that caused it. Every archive now writes its durable record first, exactly as the project's own rule (`rq-archiveRetirement01`) already required. A new automated test proves the zero-delta case writes the record; it fails on the old code and passes on the fix.\n\nIt also repaired the damage: `restoreVendoredDesignSkills`'s archived record was rebuilt from the authoritative evidence captured before the loss (full gate history, all 7 task records, the executive summary), validated against the schema, and written through the system's own archive writer — no hand-edited state. Reflection and worktree/branch cleanup for that change then completed normally.\n\n## Why it matters\n\n- Any future archive of a docs-only or config-only change (no spec deltas) would have silently destroyed its record. That class is now closed by a test.\n- The repair demonstrates a safe recovery pattern: rebuild from captured evidence, validate against the schema, write through the owning mechanism.\n\n## What was verified\n\n- New regression test fails pre-fix (`archiveChange` never called) and passes post-fix; the full suite shows no new failures (5126 passed; the single failure is the known pre-existing `adv-backlog` doc drift tracked elsewhere).\n- `pnpm run check` exits 0.\n- Live proof on the repaired record: `adv_change_show` and archived listings resolve it, `adv_reflect` persisted a reflection, and its worktree + branch cleanup completed via normal tools.\n\n## Known losses (recorded, not hidden)\n\nThe original run's sub-agent report sidecars (4) and narrative documents other than the executive summary were not recoverable; they existed only in the destroyed record. Gate/task/release evidence — the load-bearing audit trail — was fully restored.\n\n## Release Readiness Summary\n\n| Category | Status | Evidence |\n|---|---|---|\n| Ops readiness | ready | Fix lands in plugin source; takes effect on next deploy + OpenCode restart. |\n| Migration / data impact | repair done | The one destroyed record was rebuilt and verified live. |\n| Collision / release risk | low | Single-file handler change + one test file; suite green. |\n| Open follow-ups | one | This change must be archived only AFTER the fixed plugin is deployed and OpenCode restarted — archiving it with the pre-fix loaded plugin would repeat the same record loss. |\n"
+  },
+  "same_project_dependencies": [],
+  "origin": {
+    "kind": "discovery"
+  },
+  "projection_revision": 25,
+  "projection_commits": [
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Defect-origin; RCA persisted in problem-statement.md per rq-defectOriginRca01.2. Proposal + AC persisted. User directive: fix without creating new tools.",
+      "operation_id": "mutation:gate_completion:fixNoDeltaArchiveBundleLoss:33d60614-61c6-471e-ab8b-ed472ce2ddfe",
+      "payload_hash": "0144b023bdc0e3fb3e67572d49024c6ab90d00c76043abb4512e244552ce9ab1",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-16T20:28:25.660Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Spec-law impact assessed = No new law. Existing rq-archiveRetirement01 (advance-workflow) already mandates bundle-before-transition-before-removal for EVERY successful archive; the no-delta synthetic shortcut in handlers-archive.ts is a conformance violation. Related: rq-archiveTerminalDurability01 (bundle/gate/lifecycle must agree), rq-terminalProjectionTruth01 (read-side self-heal masked the loss class). Search: adv_spec search(archive bundle) → 16 hits, none permit skipping bundle writes.",
+      "operation_id": "mutation:gate_completion:fixNoDeltaArchiveBundleLoss:a3d74d43-f991-4d82-be6b-b9ae4020ba09",
+      "payload_hash": "9eeca5537c08ff9fdf845b82eb2699a8b7cdddc6420a18b2b12f65ff173cf374",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-16T20:28:34.554Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Design: delete the deltas-conditional synthetic archiveResult in both branches of handlers-archive.ts (~:677-718); always await archiveChange(). Empty deltas already no-op inside archiveChangeUnderLock (preflight loop skips empty capability entries; planned empty; projectionManifest over empty delta set). Bundle writer unchanged. Recovery: one-off repair through the owning writer (writeArchiveBundleFiles via archiveChange) reconstructing the destroyed restoreVendoredDesignSkills record from summary-shard identity + session-captured gates/tasks, ChangeSchema-validated. No new tools. Validator: internal repo evidence decisive (code path traced end-to-end, disk ground truth confirmed); external LBP validation not applicable — pure internal defect repair.",
+      "operation_id": "mutation:gate_completion:fixNoDeltaArchiveBundleLoss:6a8822e5-e86c-4e9a-9664-97b3333c95da",
+      "payload_hash": "0ebedabf279ffc45ad702c5713b19eaf9c823e21eca6798aa8cf0c05402e5f10",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-16T20:28:43.916Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-5f8d8703401e",
+      "operation_id": "mutation:task_add:fixNoDeltaArchiveBundleLoss:15cc2c3f-9906-4c69-b157-097322af5125",
+      "payload_hash": "5c0f754130c939563b86354d49a04c99969cf383fc1553ed8b9dba71c0417251",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-16T20:29:45.226Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-fd8a9fb9142a",
+      "operation_id": "mutation:task_add:fixNoDeltaArchiveBundleLoss:3432c9d7-d145-4db9-83e6-1a023c8c8455",
+      "payload_hash": "e3ab4488bcd926936b7a482973b0ddde3da082b22b085e03cbc7338f1c401928",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-16T20:30:13.256Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-d8636c185c40",
+      "operation_id": "mutation:task_add:fixNoDeltaArchiveBundleLoss:ad6a2707-5948-466e-9341-c3943f9e6fbc",
+      "payload_hash": "3270397716d574d25e06d55c6328def9d737e296165f8dbdec93bba46b1cdd80",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-16T20:30:25.243Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-4acf9d16f43d",
+      "operation_id": "mutation:task_add:fixNoDeltaArchiveBundleLoss:cc278bba-7c5c-4127-90cd-c8f4a35eeea6",
+      "payload_hash": "707cf6866673bfed4ff34d6dc7cf56ffd4e3dc70588315ac12d279f0c5596e80",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-16T20:30:38.911Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-b8a754d51f13",
+      "operation_id": "mutation:task_add:fixNoDeltaArchiveBundleLoss:f5df9589-a543-4244-b297-7830836d574d",
+      "payload_hash": "2103eaca6139027c9ef0f7830c103b8eccbb371bbf057c139d4ef6c6f90a741c",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-16T20:30:50.581Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "5 tasks added with dependency order (RED → fix → verify → repair → tail verification). Quick Contract approved via question tool (\"Confirmed — execute (Recommended)\").",
+      "operation_id": "mutation:gate_completion:fixNoDeltaArchiveBundleLoss:e1ba20fc-79e0-4d29-9a26-21d395241a34",
+      "payload_hash": "43c4da5c4634e821ae7f36a576c9a51f07b7cf7026752a1014a19aa362521aa8",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-16T20:39:28.836Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixNoDeltaArchiveBundleLoss:8bb999e4-151d-48ee-bd89-e39f4beac766",
+      "payload_hash": "cbf0af3a3452e87a3c4e53fe8baa0f4db440c6ed2382212f0b7acd212baf151a",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-16T20:39:51.469Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm test -- src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixNoDeltaArchiveBundleLoss:d6e26e90-7295-42c4-9b57-c15bf9610e9f",
+      "payload_hash": "0bfa4b3f4046c020957391f8c62535e2ab1244ff2122ad1e8131fb81f0c7a5e4",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-16T20:44:39.587Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "19caed0116774980921cb8b048bb90b74ee1121f:RED confirmed: runId tr_msw9wriz_ef6d63cd — new test \"routes a zero-delta first archive through archiveChange\" fails with archiveChange called 0 times; rest of file's 10 tests pass. Sole other failure is the known pre-existing adv-backlog manifest-doc drift.",
+      "operation_id": "mutation:task_checkpoint_completed:fixNoDeltaArchiveBundleLoss:eded7398-5eec-463e-81dd-0256218d8fe7",
+      "payload_hash": "b8d0917aea8972a407f71a295db7c1e5b060d999bbd27da3551fca5435f1bc1d",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-16T20:44:57.866Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixNoDeltaArchiveBundleLoss:bda8bf5f-79f7-4370-932d-bfd16b4fc173",
+      "payload_hash": "d50cfa6b4bfcf0e40df05508df8b0aa2597d2671874dcaa937b3c4b6dd8c0675",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-16T20:45:09.986Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm test -- src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixNoDeltaArchiveBundleLoss:35842e43-e6f0-44a9-85f7-7aa5cf9dc6b7",
+      "payload_hash": "2d1a998dc19510b93509b7802365f45b7d3f30f01ee1156f466936ad349bc2d6",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-16T21:01:43.441Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5:GREEN: runId tr_mswaiphr_4ef503a3 — all 11 partial-repair/archive handler tests pass including the new zero-delta regression; full suite 5126 passed / 1 failed (sole failure = known pre-existing adv-backlog manifest-doc drift, unchanged). Fix deletes both synthetic shortcuts and always routes through archiveChange; reconciledInRepoPath preserved into commitPaths.",
+      "operation_id": "mutation:task_checkpoint_completed:fixNoDeltaArchiveBundleLoss:405da6c8-ed8c-4ee4-b8b1-b5afe4706354",
+      "payload_hash": "c3226dab050d0ef8016570b1c87bc5a776dfaec8bfc96cce9885ad20635b3f8e",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-16T21:02:06.941Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixNoDeltaArchiveBundleLoss:4fb0ec95-9190-4129-b609-d053f11a91dd",
+      "payload_hash": "f32ac76a996b50441921f6cc4cf1f47050369d9b0e0283d139788f852fa8455e",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-16T21:02:19.143Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixNoDeltaArchiveBundleLoss:740d1aba-0941-4c1a-9641-6e6d4f1ab252",
+      "payload_hash": "16f0956acaa0ba9400d692160177fc68c30ee621119189eb379cafd525f29d0c",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-16T21:03:32.162Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5:runId tr_mswal0js_c7096ff4: pnpm run check exit 0 (schemas, tsc, manifests, frontmatter, test-isolation, prompt-budget, lockfile, check-skill-references, eslint, prettier). Full suite green from GREEN run tr_mswaiphr_4ef503a3 (5126 passed; only pre-existing adv-backlog drift).",
+      "operation_id": "mutation:task_checkpoint_completed:fixNoDeltaArchiveBundleLoss:9610cee9-05ea-48c2-8c88-f97daf6cd884",
+      "payload_hash": "d4acaf88a7134e5935ac380384caa002cf8a8170426bde7b46d5712b99b345e8",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-16T21:04:27.296Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixNoDeltaArchiveBundleLoss:95d5c97b-4f97-4b4e-b113-43d7daad518a",
+      "payload_hash": "9839158ce1aa572ac5ad42c01412420b1ab32ca1490c719dcaa90af0dfbf3d2d",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-16T21:04:43.687Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5:Repair executed via owning writer (no hand-written state): /tmp/opencode/repair-restoreVendoredDesignSkills.ts imported plugin source from the fix worktree, built the archived Change from session-captured authoritative pre-destruction tool outputs (identity/timestamps from summary shard rev44; 7 gates + 7 full task records + executive summary verbatim), validated via ChangeSchema.parse, and materialized the bundle through archiveChange → writeArchiveBundleFiles. Result: success, archivePath .../archive/2026-08-16-restoreVendoredDesignSkills, errors []. Readback proof: adv_change_show now resolves the change as status archived with gates/tasks/documents intact. Unrecoverable and recorded: subagent_reports sidecars (4), documents other than executiveSummary, projection_commits audit array. External-bundle-only repair; in-repo .adv/archive bundle intentionally not backfilled (would require an off-change trunk commit).",
+      "operation_id": "mutation:task_checkpoint_completed:fixNoDeltaArchiveBundleLoss:61d2cd79-2a95-4be4-916a-a63cc2833cf7",
+      "payload_hash": "38624ee8a722174c74731e9b562d6f7bbf1a0283b3959444036463c4ebf6e89e",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-16T21:13:00.008Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixNoDeltaArchiveBundleLoss:01796981-e6d3-482d-a971-aec9b36dd0f6",
+      "payload_hash": "7e31d8479dd455b425f8a0e1b546511244a1b11953a40292cbbe7eda72a0b07c",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-16T21:13:10.746Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "6a7ebdb217abf5f90a68cd78d868a51f42beaef5:All tail surfaces verified on restored record: (1) adv_change_show resolves restoreVendoredDesignSkills status=archived, gates+tasks+documents intact; (2) adv_change_list includeArchived recency sort shows it phase=archived 7/7; (3) adv_reflect succeeded — reflection rf-q-7fUejc persisted (7/7 tasks, gate completion 1.0, TDD compliance 1.0); (4) adv_worktree_delete planToken flow deleted the worktree (terminal proof: durable archived status; integration: merge-base ancestor of trunk); (5) adv_worktree_cleanup mode=archived_branches deleted local branch change/restoreVendoredDesignSkills (mergeProof tree-identical e1b7b37b; remote ref never existed — benign). AC2 + AC5 satisfied.",
+      "operation_id": "mutation:task_checkpoint_completed:fixNoDeltaArchiveBundleLoss:53fed5e6-0086-4cbd-b6fc-a4f57a0327d4",
+      "payload_hash": "dcf61df1c53adde888511b816f5ae46ec0a8dbd6c3637c5a5988109e663e99e7",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-16T21:15:20.416Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "5/5 tasks done. RED tr_msw9wriz_ef6d63cd → GREEN tr_mswaiphr_4ef503a3 (11/11 incl. new regression; suite 5126 passed / 1 pre-existing drift). pnpm run check exit 0 (tr_mswal0js_c7096ff4). Repair of restoreVendoredDesignSkills executed through owning writer (archiveChange) with ChangeSchema-validated reconstruction; reflect + worktree + branch cleanup all verified on restored record.",
+      "operation_id": "mutation:gate_completion:fixNoDeltaArchiveBundleLoss:9d39aadf-ed5d-4671-8c9a-27118fda28b9",
+      "payload_hash": "fc6b130fa054121cdf6a513fc197a41e03093cdfed0bc8567accebd409d4a39f",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-16T21:15:32.592Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixNoDeltaArchiveBundleLoss:1e5af879-8468-475a-80be-bad28a582315",
+      "payload_hash": "4b74bfcb3c73acb141404df6546ba37a980377b73f8195d43d0d66e2cd3d20e4",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-16T21:16:04.276Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User accepted via whitelist word 'approve' after REVIEW_FINDINGS + executive summary. Sequencing constraint recorded: archive only after fixed plugin deployed + OpenCode restart (zero-delta change archived by pre-fix plugin would repeat the bug).",
+      "operation_id": "mutation:gate_completion:fixNoDeltaArchiveBundleLoss:9e5ffc20-56af-4bb3-8f5f-bc9182aa322b",
+      "payload_hash": "497023038acf17f4a24aa2e57acf591ea565ff9a02f23d49af75cfac62ce7418",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-16T21:22:33.472Z"
+    }
+  ]
+}

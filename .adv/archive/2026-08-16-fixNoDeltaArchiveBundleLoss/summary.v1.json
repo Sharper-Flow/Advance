@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-16T21:31:18.471Z",
+  "capabilities": [],
+  "change_hash": "e8a2e3e6d61f8f20d36f55922785d0f3e26ec08eca65f38464e0e8b0463af0e6",
+  "change_id": "fixNoDeltaArchiveBundleLoss",
+  "completed_tasks": 5,
+  "created_at": "2026-08-16T20:27:47.285Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-16T21:22:33.467Z",
+  "status": "archived",
+  "summary_hash": "941a649b5c941ff52008fcda43200c35f9e90de8b4fef7563da0ea3ee6a5cd7c",
+  "task_count": 5,
+  "title": "Fix no-delta archive bundle loss",
+  "version": "1"
+}
