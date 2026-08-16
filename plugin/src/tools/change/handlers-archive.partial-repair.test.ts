@@ -668,3 +668,127 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expectNoRepairWrites();
   });
 });
+
+// rq-archiveRetirement01: a successful archive MUST create the durable bundle
+// for every change, including zero-delta changes. Regression coverage for the
+// 2026-08-16 restoreVendoredDesignSkills loss, where the no-delta synthetic
+// shortcut skipped archiveChange entirely and the active record was removed
+// with no bundle on disk.
+describe("adv_change_archive zero-delta bundle creation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mocks.getPluginBundleDistDir.mockReturnValue("/dist");
+    mocks.getPluginBundleReleasePreflightError.mockReturnValue(null);
+    mocks.findArchiveBundle.mockResolvedValue(null);
+    mocks.detectArchiveMode.mockReturnValue({
+      archiveMode: "direct",
+      autoPush: false,
+    });
+    mocks.getArchiveTaskPreflightError.mockReturnValue(null);
+    mocks.resolveArchiveGateState.mockImplementation((_, __, change) => ({
+      effectiveGates: change.gates ?? makeDoneGates(),
+      storeGates: change.gates ?? makeDoneGates(),
+      source: "store",
+    }));
+    mocks.getArchiveGatePreflightError.mockReturnValue(null);
+    mocks.loadValidationContext.mockResolvedValue({
+      specs: {},
+      activeChanges: [],
+      conflictInventory: [],
+      proposalText: "",
+      changedSpecFiles: [],
+    });
+    mocks.validateChange.mockResolvedValue({
+      passed: true,
+      errors: [],
+      warnings: [],
+    });
+    mocks.loadSpecsMap.mockResolvedValue({});
+    mocks.loadAllSpecs.mockResolvedValue([]);
+
+    mocks.archiveChange.mockImplementation(async (input: { change: Change }) =>
+      archiveResult(input.change),
+    );
+
+    mocks.verifyReleaseEvidenceFromMain.mockReturnValue({
+      status: "shipped",
+      repoRoot: "/repo",
+      defaultBranch: "trunk",
+      route: "direct",
+      releasedCommitSha: "released-sha",
+      pushStatus: "pushed",
+    });
+    mocks.coordinateChangeMutation.mockImplementation(async ({ intent }) => ({
+      kind: "verified",
+      value: intent.mutateLatestProjection
+        ? intent.mutateLatestProjection(makeChange({ status: "archived" }))
+        : makeChange({ status: "archived" }),
+    }));
+    mocks.projectEpicTerminalSummaryAfterArchive.mockResolvedValue({
+      status: "not_applicable",
+    });
+    mocks.closeLinkedIssue.mockResolvedValue({ issue_closed: [] });
+    mocks.removeChangeDir.mockResolvedValue(undefined);
+    mocks.initWorktreeStateDb.mockResolvedValue({});
+
+    mocks.isRequiredOpsFollowupLink.mockReturnValue(false);
+    mocks.overlayOpsResolutionsForRead.mockImplementation((change) => change);
+    mocks.resolveRequiredOpsLinks.mockResolvedValue({ resolutionByLinkId: {} });
+    mocks.withTargetPathStore.mockImplementation(async (_input, fn) =>
+      fn({
+        context: {},
+        store: _input.store ?? makeStore(makeChange()),
+      } as any),
+    );
+    mocks.appendTargetProjectContextOutput.mockImplementation(
+      async (output) => output,
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function archiveResult(change: Change) {
+    return {
+      success: true,
+      changeId: change.id,
+      specsUpdated: [],
+      docsGenerated: [],
+      commitPaths: [],
+      archivePath: BUNDLE_PATH,
+      errors: [],
+    };
+  }
+
+  it("routes a zero-delta first archive through archiveChange so the bundle is written", async () => {
+    const change = makeChange({ deltas: {} });
+    const store = makeStore(change);
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      {
+        changeId: CHANGE_ID,
+        phase9: "skip",
+      },
+      store,
+    );
+
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.archiveChange).toHaveBeenCalledTimes(1);
+    const archiveInput = mocks.archiveChange.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+    expect("reuseExistingBundlePath" in archiveInput).toBe(false);
+    expect(parsed.archivePath).toBe(BUNDLE_PATH);
+    expect(mocks.coordinateChangeMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intent: expect.objectContaining({
+          mutationKind: "archive_transition",
+        }),
+      }),
+    );
+  });
+});
