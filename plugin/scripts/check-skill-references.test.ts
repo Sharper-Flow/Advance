@@ -161,43 +161,91 @@ describe("check-skill-references", () => {
     }
   });
 
-  // The retired-skill allowlist is the guard's complaint made durable. It must
-  // never mask a live reference: every name in it must stay unresolved, and a
-  // canonical reference to a retired skill must NOT be reported (it is a
-  // do-not-call note, not a live reference).
-  test("retired-skill allowlist names never resolve to a live skill", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "srk-retired-"));
+  // The retired-skill exemption is location-scoped: it applies ONLY inside the
+  // ADV_INSTRUCTIONS.md do-not-call note, never globally. A reference to a
+  // retired skill anywhere else must still be reported.
+  test("retired skill referenced outside the do-not-call note is reported", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "srk-retired-outside-"));
     try {
-      // No skill dirs at all -> nothing resolves.
-      const existing = new Set<string>();
-      const unresolved = await findUnresolvedReferences(repo, existing);
-      // Sanity: the allowlist is consulted only when a reference exists; an
-      // empty repo yields nothing.
-      expect(unresolved).toEqual([]);
-      // Direct guard: none of the retired names may appear in `existing`.
-      for (const name of [
-        "adv-review-methodology",
-        "adv-apply-methodology",
-        "adv-harden-methodology",
-        "global-verify",
-      ]) {
-        expect(existing.has(name)).toBe(false);
-      }
+      await mkdir(join(repo, "skills/adv-x"), { recursive: true });
+      await writeFile(
+        join(repo, "skills/adv-x/SKILL.md"),
+        'Use skill("global-verify") here.\n',
+      );
+      const unresolved = await runSkillReferenceCheck(repo);
+      expect(unresolved).toHaveLength(1);
+      expect(unresolved[0].skill).toBe("global-verify");
     } finally {
       await rm(repo, { recursive: true, force: true });
     }
   });
 
-  test("reference to a retired skill in an enforced surface is not reported", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "srk-retiredref-"));
+  test("retired skill referenced inside ADV_INSTRUCTIONS.md note is exempt", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "srk-retired-inside-"));
     try {
-      await mkdir(join(repo, "docs"), { recursive: true });
       await writeFile(
-        join(repo, "docs/note.md"),
-        'Calls to skill("adv-review-methodology") are stale — do not use.\n',
+        join(repo, "ADV_INSTRUCTIONS.md"),
+        'Calls to skill("adv-review-methodology") are stale.\n',
       );
       const unresolved = await runSkillReferenceCheck(repo);
       expect(unresolved).toEqual([]);
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
+
+  // External-skill exemption is location-scoped: playwright-mcp is exempt in
+  // agent manifests / their specs, but a bare reference in an unrelated skill
+  // doc is a typo and must be reported.
+  test("external skill referenced outside its declared surfaces is reported", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "srk-ext-outside-"));
+    try {
+      await mkdir(join(repo, "skills/adv-y"), { recursive: true });
+      await writeFile(
+        join(repo, "skills/adv-y/SKILL.md"),
+        'Load skill("playwright-mcp") first.\n',
+      );
+      const unresolved = await runSkillReferenceCheck(repo);
+      expect(unresolved).toHaveLength(1);
+      expect(unresolved[0].skill).toBe("playwright-mcp");
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
+
+  test("external skill referenced inside an agent manifest is exempt", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "srk-ext-inside-"));
+    try {
+      await mkdir(join(repo, ".opencode/agents"), { recursive: true });
+      await writeFile(
+        join(repo, ".opencode/agents/adv-reviewer.md"),
+        'Load skill("playwright-mcp") before browser actions.\n',
+      );
+      const unresolved = await runSkillReferenceCheck(repo);
+      expect(unresolved).toEqual([]);
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
+
+  test("example placeholder exempt in spec docs, reported elsewhere", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "srk-example-"));
+    try {
+      await mkdir(join(repo, "docs/specs"), { recursive: true });
+      await writeFile(
+        join(repo, "docs/specs/cap.md"),
+        'Given skill("adv-foo") exists\n',
+      );
+      await mkdir(join(repo, "docs"), { recursive: true });
+      await writeFile(
+        join(repo, "docs/guide.md"),
+        'See skill("adv-foo").\n',
+      );
+      const unresolved = await runSkillReferenceCheck(repo);
+      // adv-foo exempt under docs/specs/ but reported under docs/.
+      expect(unresolved).toHaveLength(1);
+      expect(unresolved[0].file).toBe("docs/guide.md");
+      expect(unresolved[0].skill).toBe("adv-foo");
     } finally {
       await rm(repo, { recursive: true, force: true });
     }

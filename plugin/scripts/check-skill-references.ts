@@ -34,27 +34,72 @@ const SKILL_CALL_RE = /skill\("([a-z0-9][a-z0-9-]*)"\)/g;
 // header) means the path is not repo-local and is excluded.
 const SKILL_PATH_RE = /(?:^|[\s"`'(=|])skills\/([a-z0-9][a-z0-9-]*)\//g;
 
-// Placeholder skill names used as scenario examples inside spec docs and the
-// validator's own test fixtures. Structural, not heuristic: a fixed allowlist.
-const EXAMPLE_SKILLS = new Set(["adv-foo"]);
+/**
+ * Exemptions are location-scoped, never global: a name is skipped ONLY in a
+ * surface whose path matches the entry's surface regex. This is the structural
+ * answer to the allowlist-masking risk — a typo like `skill("playwright-mcp")`
+ * in a random skill doc is still reported because that doc is not a declared
+ * playwright-mcp surface. Each entry documents why the exemption is sound.
+ */
+interface Exemption {
+  skill: string;
+  /** Matched against the repo-relative posix path of the referencing file. */
+  surface: RegExp;
+  reason: string;
+}
 
-// Skills that resolve outside `skills/` in this repo: globally installed under
-// ~/.config/opencode/skills/ (playwright-mcp) or user-owned optional skills
-// (prioritizer). These are declared in agent/command manifests as available.
-const EXTERNAL_SKILLS = new Set(["playwright-mcp", "prioritizer"]);
+const EXEMPTIONS: Exemption[] = [
+  // Spec docs use `adv-foo` as a placeholder in Given/When/Then scenarios.
+  {
+    skill: "adv-foo",
+    surface: /^docs\/specs\//,
+    reason: "scenario placeholder in spec documentation",
+  },
+  // Globally installed under ~/.config/opencode/skills/, declared in agent
+  // manifests and the specs that govern them — never repo-local.
+  {
+    skill: "playwright-mcp",
+    surface: /^(\.opencode\/agents\/|docs\/specs\/)/,
+    reason: "globally-installed skill declared in agent manifests and their specs",
+  },
+  // Optional user-owned skill, referenced from ADV instruction docs and agent
+  // manifests that mention it as an inline alternative.
+  {
+    skill: "prioritizer",
+    surface: /^(ADV_INSTRUCTIONS\.md|docs\/user-intuit-protocol\.md|\.opencode\/agents\/)/,
+    reason: "optional user-owned skill referenced from ADV instruction docs and agent manifests",
+  },
+  // Retired names surfaced in ADV_INSTRUCTIONS.md "Stale-reference note"
+  // precisely to forbid them. A blind check cannot tell "call this" from
+  // "never call this" without reading intent (heuristic — P33), so the note is
+  // the guard's own complaint made durable. The guard's tests assert each name
+  // stays unresolved, so the exemption cannot mask a restored live skill.
+  {
+    skill: "adv-review-methodology",
+    surface: /^ADV_INSTRUCTIONS\.md$/,
+    reason: "retired-skill do-not-call note",
+  },
+  {
+    skill: "adv-apply-methodology",
+    surface: /^ADV_INSTRUCTIONS\.md$/,
+    reason: "retired-skill do-not-call note",
+  },
+  {
+    skill: "adv-harden-methodology",
+    surface: /^ADV_INSTRUCTIONS\.md$/,
+    reason: "retired-skill do-not-call note",
+  },
+  {
+    skill: "global-verify",
+    surface: /^ADV_INSTRUCTIONS\.md$/,
+    reason: "retired-skill do-not-call note",
+  },
+];
 
-// Retired skill names surfaced in ADV_INSTRUCTIONS.md "Stale-reference note"
-// precisely to tell agents NOT to call them. The note is the guard's own
-// complaint made durable. A blind resolution check cannot distinguish
-// "call this" from "never call this" without reading intent (heuristic — P33),
-// so these are excluded structurally. The guard's tests assert each name stays
-// unresolved, so the allowlist cannot silently mask a restored live skill.
-const RETIRED_SKILLS = new Set([
-  "adv-review-methodology",
-  "adv-apply-methodology",
-  "adv-harden-methodology",
-  "global-verify",
-]);
+export function isExempt(skill: string, relPath: string): boolean {
+  const p = toPosix(relPath);
+  return EXEMPTIONS.some((e) => e.skill === skill && e.surface.test(p));
+}
 
 /** Enforced surface roots, relative to repo root. */
 const ENFORCED_DIRS = ["skills", ".opencode/command", ".opencode/agents", ".opencode/overlays", "docs"];
@@ -158,7 +203,7 @@ export async function findUnresolvedReferences(
     if (isExcludedSurface(relPath)) continue;
     const source = await readFile(filePath, "utf-8");
     for (const ref of collectSkillReferences(source)) {
-      if (EXAMPLE_SKILLS.has(ref.skill) || EXTERNAL_SKILLS.has(ref.skill) || RETIRED_SKILLS.has(ref.skill)) continue;
+      if (isExempt(ref.skill, relPath)) continue;
       if (!existing.has(ref.skill)) {
         unresolved.push({ skill: ref.skill, file: relPath, line: ref.line });
       }
