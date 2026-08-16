@@ -24,6 +24,14 @@ import {
   initStateDb,
 } from "../tools/worktree/state";
 
+/**
+ * Trunk-history window (commits) scanned by the squash-merge tree-equivalence
+ * strategy. Deliberately wider than git-finalize's detectSquashMergeByTree
+ * (-50): deletion planning may run long after the merge, when the squash
+ * commit has receded deeper into trunk history than archive-time detection.
+ */
+export const TRUNK_TREE_WALK_LIMIT = 500;
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -178,6 +186,20 @@ export async function proveLocalBranchIntegration(
       throw error;
     }
   };
+  // Shared envelope for best-effort strategies: deadline/abort failures
+  // propagate (typed); git errors or empty results demote to undefined so the
+  // next strategy (or the caller's gh fallback) can take over.
+  const runBoundedGitOrUndefined = async (
+    stage: "merge-base" | "cherry" | "tree",
+    args: readonly string[],
+  ): Promise<{ stdout: string; stderr: string } | undefined> => {
+    try {
+      return await runBoundedGit(stage, args);
+    } catch (error) {
+      if (error instanceof LocalBranchIntegrationDeadline) throw error;
+      return undefined;
+    }
+  };
 
   let ancestry: { stdout: string; stderr: string } | undefined;
   try {
@@ -203,18 +225,12 @@ export async function proveLocalBranchIntegration(
     };
   }
 
-  let cherry: { stdout: string; stderr: string } | undefined;
-  try {
-    cherry = await runBoundedGit("cherry", [
-      "cherry",
-      "-v",
-      defaultBranch,
-      branch,
-    ]);
-  } catch (error) {
-    if (error instanceof LocalBranchIntegrationDeadline) throw error;
-    return undefined;
-  }
+  const cherry = await runBoundedGitOrUndefined("cherry", [
+    "cherry",
+    "-v",
+    defaultBranch,
+    branch,
+  ]);
   if (!cherry) return undefined;
   const lines = cherry.stdout
     .split(/\r?\n/)
@@ -230,30 +246,27 @@ export async function proveLocalBranchIntegration(
     };
   }
 
-  let tipTree: { stdout: string; stderr: string } | undefined;
-  try {
-    tipTree = await runBoundedGit("tree", ["rev-parse", `${head}^{tree}`]);
-  } catch (error) {
-    if (error instanceof LocalBranchIntegrationDeadline) throw error;
-    return undefined;
-  }
+  // Strategy 3: squash-merge tree equivalence. A squash merge lands the branch
+  // tip's exact tree as one trunk commit, so content-addressed tree equality
+  // over trunk history proves the work landed. The window is deliberately
+  // wider than git-finalize's detectSquashMergeByTree (-50) because deletion
+  // planning can run long after the merge, when the squash commit has receded
+  // deeper into trunk history than archive-time detection ever sees.
+  const tipTree = await runBoundedGitOrUndefined("tree", [
+    "rev-parse",
+    `${head}^{tree}`,
+  ]);
   if (!tipTree) return undefined;
   const treeSha = tipTree.stdout.trim();
   if (!/^[0-9a-f]{4,64}$/i.test(treeSha)) return undefined;
 
-  let trunkTrees: { stdout: string; stderr: string } | undefined;
-  try {
-    trunkTrees = await runBoundedGit("tree", [
-      "log",
-      defaultBranch,
-      "--format=%H %T",
-      "-n",
-      "500",
-    ]);
-  } catch (error) {
-    if (error instanceof LocalBranchIntegrationDeadline) throw error;
-    return undefined;
-  }
+  const trunkTrees = await runBoundedGitOrUndefined("tree", [
+    "log",
+    defaultBranch,
+    "--format=%H %T",
+    "-n",
+    String(TRUNK_TREE_WALK_LIMIT),
+  ]);
   if (!trunkTrees) return undefined;
   for (const line of trunkTrees.stdout.split(/\r?\n/)) {
     const match = line.trim().match(/^([0-9a-f]{4,64})\s+([0-9a-f]{4,64})$/i);

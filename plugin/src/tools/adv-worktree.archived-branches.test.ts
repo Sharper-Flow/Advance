@@ -726,7 +726,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
 
   // ---- rq-archivedBranchCleanupInversion01 new coverage ----
 
-  test("AC1: helper does not call store.changes.list and gets per local branch", async () => {
+  test("residual path does not call store.changes.list and gets per local branch", async () => {
     const store = createMockStore();
     mocks.detectArchivedMergedBranches.mockReturnValueOnce({
       status: "ok",
@@ -751,7 +751,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     expect(get).toHaveBeenCalledWith("already-merged");
   });
 
-  test("AC1: residual per-id status reads respect the concurrency cap of 8", async () => {
+  test("residual per-id status reads respect the concurrency cap of 8", async () => {
     const ids = Array.from({ length: 12 }, (_, i) => `arch-${i}`);
     const store = createMockStore(ids.map((id) => archivedChange(id)));
     mocks.listLocalChangeBranchEntries.mockReturnValueOnce(localEntries(ids));

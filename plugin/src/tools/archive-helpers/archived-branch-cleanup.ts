@@ -36,7 +36,9 @@ import {
 const SAFE_BUDGET_MS = 8_000;
 /** Reserve for output formatting/handoff below the effective budget. */
 const RETURN_RESERVE_MS = 500;
-/** Bounded concurrency cap for per-id archived-status reads (AC1). */
+/** Bounded concurrency cap for per-id residual archived-status reads
+ * (rq-archivedBranchCleanupInversion01.2 — residual set only; archive-dir
+ * members never reach this path). */
 const STATUS_LOOKUP_CONCURRENCY = 8;
 /** Ceiling for the wet-run `git fetch` sub-budget. */
 const FETCH_MAX_MS = 2_000;
@@ -147,7 +149,8 @@ async function resolveArchivedChangeStatus(
 
 /**
  * Fixed-pool concurrency map. Preserves input order in the result array and
- * never runs more than `cap` tasks concurrently (AC1).
+ * never runs more than `cap` tasks concurrently
+ * (rq-archivedBranchCleanupInversion01.2).
  */
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
