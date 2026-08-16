@@ -7,6 +7,7 @@
     "scripts/check-lockfile-policy.ts",
     "scripts/check-prompt-budget.ts",
     "scripts/check-sdk-parity.ts",
+    "scripts/check-skill-references.ts",
     "scripts/check-test-isolation.ts",
     "scripts/generate-agent-manifests.ts",
     "scripts/generate-json-schemas.ts",
