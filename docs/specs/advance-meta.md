@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.35.0
-> **Updated:** 2026-08-11
+> **Version:** 1.35.1
+> **Updated:** 2026-08-16
 
 ## Purpose
 
@@ -2714,5 +2714,67 @@ ADV agent manifests MAY declare per-agent permission.skill deny globs to remove 
 
 **Then:**
 - The deployed frontmatter is consistent and the globs are preserved
+
+---
+
+### Skill Reference Resolution Guard
+
+**ID:** `rq-skillReferenceIntegrity01` | **Priority:** **[MUST]**
+
+Active ADV surfaces MUST NOT reference a skill that does not exist. A canonical skill reference is `skill("<name>")` or a `skills/<name>/` path. Every canonical reference in an active surface MUST resolve to an existing `skills/<name>/SKILL.md` in the repository. A machine-checkable validator MUST enforce this in `pnpm run check`. Historical surfaces are excluded from enforcement.
+
+**Tags:** `skills`, `reference-integrity`, `guard`, `ci`
+
+#### Scenarios
+
+**Resolving canonical reference** (`rq-skillReferenceIntegrity01.1`)
+
+**Given:**
+- An active surface contains skill("adv-foo") and skills/adv-foo/SKILL.md exists
+
+**When:** The validator runs
+
+**Then:**
+- It reports no failure for that reference
+
+**Unresolved canonical reference** (`rq-skillReferenceIntegrity01.2`)
+
+**Given:**
+- An active surface contains skill("adv-foo") and skills/adv-foo/SKILL.md does not exist
+
+**When:** The validator runs
+
+**Then:**
+- It exits non-zero and names the referencing file:line together with the unresolved skill name
+
+**Deleted skill with live reference** (`rq-skillReferenceIntegrity01.3`)
+
+**Given:**
+- A skill directory is deleted while an active surface still references it
+
+**When:** pnpm run check runs
+
+**Then:**
+- The run fails
+
+**Historical surface exclusion** (`rq-skillReferenceIntegrity01.4`)
+
+**Given:**
+- A reference appears only in .adv/archive/**, CHANGELOG.md, docs/adr/**, or LICENSE-THIRD-PARTY.md
+
+**When:** The validator runs
+
+**Then:**
+- The reference is excluded from enforcement as a historical record
+
+**All references resolve** (`rq-skillReferenceIntegrity01.5`)
+
+**Given:**
+- All canonical references in active surfaces resolve
+
+**When:** The validator runs
+
+**Then:**
+- It exits zero
 
 ---

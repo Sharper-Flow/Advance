@@ -2,9 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "advance-meta",
   "title": "Advance Meta",
-  "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.35.0",
-  "updated_at": "2026-08-11T18:50:03.245Z",
+  "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
+  "version": "1.35.1",
+  "updated_at": "2026-08-16",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -761,7 +761,7 @@
     {
       "id": "rq-proseReduction01",
       "title": "Code-Enforced Prose Deduplication",
-      "body": "ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md § Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.",
+      "body": "ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .opencode/agents/adv.md, .opencode/command/adv-*.md) MUST classify each section by enforcement class (fully-enforced, partially-enforced, inherently-prose) and apply the matching compression template defined in docs/command-voice-standard.md \u00a7 Prose-Load Reduction Rules. Sections whose behavior is fully or partially enforced by code MUST NOT contain paragraph explanations duplicating the enforced behavior; they MUST use a pointer line + constraint table format.",
       "priority": "must",
       "tags": [
         "prose-reduction",
@@ -1027,7 +1027,7 @@
     {
       "id": "rq-skillClassification01",
       "title": "Command Skill Classification Tracking",
-      "body": "Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS.md § Command vs Skill Boundaries so command/skill ownership stays explicit and drift is reviewable.",
+      "body": "Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS.md \u00a7 Command vs Skill Boundaries so command/skill ownership stays explicit and drift is reviewable.",
       "priority": "must",
       "tags": [
         "skills",
@@ -1043,7 +1043,7 @@
           ],
           "when": "Extraction is complete",
           "then": [
-            "ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
+            "ADV_INSTRUCTIONS.md \u00a7 Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
             "The row includes the skill identifier",
             "The command is not listed as Command-only"
           ]
@@ -1456,7 +1456,7 @@
     {
       "id": "rq-multiSessionCoordination01",
       "title": "Multi-Session-Safe ADV State Writes via Per-Change Projection Locks",
-      "body": "Multi-session state writes against the same change MUST serialize through commitChangeProjection’s per-change lock and conditional revision/readback proof. Different changes remain unconstrained by one another, and the separate git-worktree lock remains scoped to worktree operations. A mutation MUST return a typed verified, stale_revision, or operator_required outcome; an unverified write MUST NOT be reported as success.",
+      "body": "Multi-session state writes against the same change MUST serialize through commitChangeProjection\u2019s per-change lock and conditional revision/readback proof. Different changes remain unconstrained by one another, and the separate git-worktree lock remains scoped to worktree operations. A mutation MUST return a typed verified, stale_revision, or operator_required outcome; an unverified write MUST NOT be reported as success.",
       "priority": "must",
       "tags": [
         "multi-session",
@@ -1587,7 +1587,7 @@
           "then": [
             "The tool returns success with the existing path, branch, baseRef, and headSha",
             "The output marks the result as reused so callers can distinguish reuse from fresh create",
-            "No per-change runtime recovery is required — durable worktree state survives in disk projections",
+            "No per-change runtime recovery is required \u2014 durable worktree state survives in disk projections",
             "No `git worktree add` is invoked"
           ]
         },
@@ -1961,7 +1961,7 @@
           ],
           "when": "/adv-audit applies quality gates",
           "then": [
-            "CRITICAL ambiguity ≥ 1 promotes health to MAJOR_DRIFT",
+            "CRITICAL ambiguity \u2265 1 promotes health to MAJOR_DRIFT",
             "HIGH ambiguity > 3 (standard) or any HIGH (strict) promotes to DRIFT_DETECTED",
             "Ambiguity thresholds appear in the quality gate table with pass/fail status"
           ]
@@ -1971,7 +1971,7 @@
     {
       "id": "rq-advStatusLazyView01",
       "title": "adv_status lazy view planning",
-      "body": "`adv_status` MUST execute only the provider groups required by the selected `view`. `view: \"summary\"` MUST NOT invoke detailed-only providers (worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: \"summary\"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. The recommendation-list `_contextSnapshot` emission (chat-output-display `rq-ctxticker2.5` — advisory multi-change display) MUST be preserved across all views. The default-OFF opt-in behavior of `rq-ctxsnap2` and `rq-ctxticker2` (applied to mutation/ready tools) does NOT affect `adv_status` recommendation-list snapshots.",
+      "body": "`adv_status` MUST execute only the provider groups required by the selected `view`. `view: \"summary\"` MUST NOT invoke detailed-only providers (worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: \"summary\"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. The recommendation-list `_contextSnapshot` emission (chat-output-display `rq-ctxticker2.5` \u2014 advisory multi-change display) MUST be preserved across all views. The default-OFF opt-in behavior of `rq-ctxsnap2` and `rq-ctxticker2` (applied to mutation/ready tools) does NOT affect `adv_status` recommendation-list snapshots.",
       "priority": "must",
       "tags": [
         "adv_status",
@@ -2334,7 +2334,7 @@
     {
       "id": "rq-projectIdentityStability01",
       "title": "Shallow-Repo Project Identity Refusal",
-      "body": "ADV project identity is derived from the repository root commit. In a shallow clone, `git rev-list --max-parents=0 HEAD` returns the moving `.git/shallow` graft boundary as a fake root, and commit grafts rewrite parentage the same way. ADV MUST NOT mint external disk state under such an unstable pseudo-root identity: identity resolution must structurally detect shallow and grafted repositories and refuse with a typed, actionable error. Full clones, partial clones with complete root history (for example `--filter=blob:none`), and multi-root repositories must resolve exactly as before — the guard must never false-trip on stable histories.",
+      "body": "ADV project identity is derived from the repository root commit. In a shallow clone, `git rev-list --max-parents=0 HEAD` returns the moving `.git/shallow` graft boundary as a fake root, and commit grafts rewrite parentage the same way. ADV MUST NOT mint external disk state under such an unstable pseudo-root identity: identity resolution must structurally detect shallow and grafted repositories and refuse with a typed, actionable error. Full clones, partial clones with complete root history (for example `--filter=blob:none`), and multi-root repositories must resolve exactly as before \u2014 the guard must never false-trip on stable histories.",
       "priority": "must",
       "tags": [
         "identity",
@@ -2397,7 +2397,7 @@
     {
       "id": "rq-toolOwnership01",
       "title": "Tool Ownership and Reachability Matrix",
-      "body": "Every registered ADV tool must have an explicit ownership/reachability classification—orchestrator, operator-only, or dual—recorded in the git-tracked matrix at docs/tool-ownership.md. Machine-resolvable recovery belongs in normal operations and MUST NOT remain as routine operator-only repair tools. The operator repair group contains only genuine operator boundaries: `bin/adv doctor --archive-purge`, `bin/adv doctor`, and `bin/adv doctor --cleanup-legacy`. These are operator-only surfaces; agents must not invoke them. Deleted workflow-termination and identity-consolidation tools MUST NOT remain in the matrix or repair group. Intent-bearing origin, legacy-store, and worktree maintenance may remain separately classified outside the repair group. Operator-only destructive actions require explicit instruction and approval evidence. The matrix is enforced by static tests against the canonical registry.",
+      "body": "Every registered ADV tool must have an explicit ownership/reachability classification\u2014orchestrator, operator-only, or dual\u2014recorded in the git-tracked matrix at docs/tool-ownership.md. Machine-resolvable recovery belongs in normal operations and MUST NOT remain as routine operator-only repair tools. The operator repair group contains only genuine operator boundaries: `bin/adv doctor --archive-purge`, `bin/adv doctor`, and `bin/adv doctor --cleanup-legacy`. These are operator-only surfaces; agents must not invoke them. Deleted workflow-termination and identity-consolidation tools MUST NOT remain in the matrix or repair group. Intent-bearing origin, legacy-store, and worktree maintenance may remain separately classified outside the repair group. Operator-only destructive actions require explicit instruction and approval evidence. The matrix is enforced by static tests against the canonical registry.",
       "priority": "must",
       "tags": [
         "tool-surface",
@@ -2449,7 +2449,7 @@
     {
       "id": "rq-crossProjectTrunkFirewall01",
       "title": "Target-Relative Cross-Project Trunk Write Firewall",
-      "body": "When the session project enables worktree_guard_enforce, the trunk write firewall must classify every intercepted direct file-write and recognized destructive Bash target against the target repository’s own topology. It must block default-branch main-checkout writes for foreign repositories, allow eligible target linked worktrees and the established non-Git/recovery exceptions, evaluate only explicit generated artifacts relative to the target main root, and block target main-checkout writes when the default branch cannot be verified. Target topology resolution must be bounded to one hook invocation and must not treat prunable worktree records as writable linked worktrees.",
+      "body": "When the session project enables worktree_guard_enforce, the trunk write firewall must classify every intercepted direct file-write and recognized destructive Bash target against the target repository\u2019s own topology. It must block default-branch main-checkout writes for foreign repositories, allow eligible target linked worktrees and the established non-Git/recovery exceptions, evaluate only explicit generated artifacts relative to the target main root, and block target main-checkout writes when the default branch cannot be verified. Target topology resolution must be bounded to one hook invocation and must not treat prunable worktree records as writable linked worktrees.",
       "priority": "must",
       "tags": [
         "trunk-write-firewall",
@@ -2463,7 +2463,7 @@
           "title": "Foreign default-branch main checkout blocks",
           "given": [
             "worktree_guard_enforce is enabled for the session project",
-            "A direct file write or recognized destructive Bash target is inside another repository’s default-branch main checkout"
+            "A direct file write or recognized destructive Bash target is inside another repository\u2019s default-branch main checkout"
           ],
           "when": "The firewall evaluates the target repository context",
           "then": [
@@ -2488,7 +2488,7 @@
           "id": "rq-crossProjectTrunkFirewall01.3",
           "title": "Target-root artifact and uncertainty boundaries remain narrow",
           "given": [
-            "A target is in a foreign repository’s main checkout"
+            "A target is in a foreign repository\u2019s main checkout"
           ],
           "when": "The target is one of the four explicit root artifacts, a nested lookalike, another .adv path, or a repository with unknown default branch",
           "then": [
@@ -2673,7 +2673,7 @@
     {
       "id": "rq-doctorPhantomPointer01",
       "title": "bin/adv doctor Phantom Session-Pointer Safe-Fix",
-      "body": "The retired adv_change_forget tool's session active-change pointer clearing is consolidated into `bin/adv doctor` as a phantom_pointer safe-fix (design D5/D6, option B). Clearing MUST be structurally gated on confirmed-absent evidence via a tri-state probe (probeChangePhantomStatus in plugin/src/tools/_adapters.ts) that returns confirmed_absent | confirmed_present | indeterminate. A probe tier that throws (transport failure, timeout, schema error) MUST classify as indeterminate and MUST NOT be mistaken for absence. `bin/adv doctor` clears the session pointer ONLY on confirmed_absent; indeterminate MUST refuse with a typed approval_required proposal; confirmed_present is a no-op. Pointer access is injected via a plugin-host-only DoctorPointerRepairProvider (setDoctorPointerRepairProvider in index.ts); tests and the MCP server see a null provider and skip the phantom check entirely. All state.activeChange.id mutations remain in index.ts closure scope per rq-activeChangePointer01 — the doctor provider's clearActivePointer delegates to the same setActiveChange(null) path.",
+      "body": "The retired adv_change_forget tool's session active-change pointer clearing is consolidated into `bin/adv doctor` as a phantom_pointer safe-fix (design D5/D6, option B). Clearing MUST be structurally gated on confirmed-absent evidence via a tri-state probe (probeChangePhantomStatus in plugin/src/tools/_adapters.ts) that returns confirmed_absent | confirmed_present | indeterminate. A probe tier that throws (transport failure, timeout, schema error) MUST classify as indeterminate and MUST NOT be mistaken for absence. `bin/adv doctor` clears the session pointer ONLY on confirmed_absent; indeterminate MUST refuse with a typed approval_required proposal; confirmed_present is a no-op. Pointer access is injected via a plugin-host-only DoctorPointerRepairProvider (setDoctorPointerRepairProvider in index.ts); tests and the MCP server see a null provider and skip the phantom check entirely. All state.activeChange.id mutations remain in index.ts closure scope per rq-activeChangePointer01 \u2014 the doctor provider's clearActivePointer delegates to the same setActiveChange(null) path.",
       "priority": "must",
       "tags": [
         "pointer",
@@ -2692,7 +2692,7 @@
             "The pointer-repair provider is injected",
             "The tri-state probe for X returns confirmed_absent (disk change.json absent AND store/Visibility explicitly not-found)"
           ],
-          "when": "`bin/adv doctor` runs its diagnose→safe-fix→verify cycle",
+          "when": "`bin/adv doctor` runs its diagnose\u2192safe-fix\u2192verify cycle",
           "then": [
             "A phantom_pointer finding is recorded",
             "clear_session_pointer safe-fix is applied with outcome 'applied'",
@@ -2707,7 +2707,7 @@
             "A plugin-host session with state.activeChange.id set to changeId X",
             "The tri-state probe for X returns indeterminate because a probe tier threw (transport failure / timeout)"
           ],
-          "when": "`bin/adv doctor` runs its diagnose→safe-fix→verify cycle",
+          "when": "`bin/adv doctor` runs its diagnose\u2192safe-fix\u2192verify cycle",
           "then": [
             "state.activeChange.id remains X (NOT cleared)",
             "The provider's clearActivePointer is NOT invoked",
@@ -2885,7 +2885,7 @@
     {
       "id": "rq-toolBudgetNesting01",
       "title": "Inner Waits Nest Inside the Remaining Tool Budget",
-      "body": "A host tool invocation runs under a bounded wall-clock budget enforced by a safety-net timeout. Any blocking wait performed inside that invocation — file-lock acquisition, aggregate reads, subprocess waits — MUST size itself from the budget that REMAINS at the moment the wait starts, minus the response reserve, never from the budget the invocation began with. Deriving an inner wait from the total budget is a defect: a wait that starts late can then outlive the outer budget and let the opaque host timeout win instead of a typed failure. The remaining budget MUST be carried structurally for the duration of the invocation rather than by call-site discipline alone, and the derivation MUST live in one place so it can be machine-checked. A caller running outside any tool invocation has no outer deadline and MUST still apply its own bounded default; unbounded waiting is never acceptable. An exhausted remaining budget yields no wait at all rather than a minimum wait.",
+      "body": "A host tool invocation runs under a bounded wall-clock budget enforced by a safety-net timeout. Any blocking wait performed inside that invocation \u2014 file-lock acquisition, aggregate reads, subprocess waits \u2014 MUST size itself from the budget that REMAINS at the moment the wait starts, minus the response reserve, never from the budget the invocation began with. Deriving an inner wait from the total budget is a defect: a wait that starts late can then outlive the outer budget and let the opaque host timeout win instead of a typed failure. The remaining budget MUST be carried structurally for the duration of the invocation rather than by call-site discipline alone, and the derivation MUST live in one place so it can be machine-checked. A caller running outside any tool invocation has no outer deadline and MUST still apply its own bounded default; unbounded waiting is never acceptable. An exhausted remaining budget yields no wait at all rather than a minimum wait.",
       "priority": "must",
       "tags": [
         "meta",
@@ -2964,6 +2964,69 @@
           "when": "deploy-local.sh --check runs",
           "then": [
             "The deployed frontmatter is consistent and the globs are preserved"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-skillReferenceIntegrity01",
+      "title": "Skill Reference Resolution Guard",
+      "body": "Active ADV surfaces MUST NOT reference a skill that does not exist. A canonical skill reference is `skill(\"<name>\")` or a `skills/<name>/` path. Every canonical reference in an active surface MUST resolve to an existing `skills/<name>/SKILL.md` in the repository. A machine-checkable validator MUST enforce this in `pnpm run check`. Historical surfaces are excluded from enforcement.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-skillReferenceIntegrity01.1",
+          "title": "Resolving canonical reference",
+          "given": [
+            "An active surface contains skill(\"adv-foo\") and skills/adv-foo/SKILL.md exists"
+          ],
+          "when": "The validator runs",
+          "then": [
+            "It reports no failure for that reference"
+          ]
+        },
+        {
+          "id": "rq-skillReferenceIntegrity01.2",
+          "title": "Unresolved canonical reference",
+          "given": [
+            "An active surface contains skill(\"adv-foo\") and skills/adv-foo/SKILL.md does not exist"
+          ],
+          "when": "The validator runs",
+          "then": [
+            "It exits non-zero and names the referencing file:line together with the unresolved skill name"
+          ]
+        },
+        {
+          "id": "rq-skillReferenceIntegrity01.3",
+          "title": "Deleted skill with live reference",
+          "given": [
+            "A skill directory is deleted while an active surface still references it"
+          ],
+          "when": "pnpm run check runs",
+          "then": [
+            "The run fails"
+          ]
+        },
+        {
+          "id": "rq-skillReferenceIntegrity01.4",
+          "title": "Historical surface exclusion",
+          "given": [
+            "A reference appears only in .adv/archive/**, CHANGELOG.md, docs/adr/**, or LICENSE-THIRD-PARTY.md"
+          ],
+          "when": "The validator runs",
+          "then": [
+            "The reference is excluded from enforcement as a historical record"
+          ]
+        },
+        {
+          "id": "rq-skillReferenceIntegrity01.5",
+          "title": "All references resolve",
+          "given": [
+            "All canonical references in active surfaces resolve"
+          ],
+          "when": "The validator runs",
+          "then": [
+            "It exits zero"
           ]
         }
       ]
