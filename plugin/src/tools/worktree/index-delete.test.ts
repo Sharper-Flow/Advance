@@ -1586,6 +1586,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         "squash PR #" + prNumber + " (resolved)",
       );
       const mergeCommit = git(fixture.root, "rev-parse", "HEAD");
+      expect(git(fixture.root, "rev-parse", `${fixture.head}^{tree}`)).not.toBe(
+        git(fixture.root, "rev-parse", "HEAD^{tree}"),
+      );
       git(fixture.root, "push", "-f", "origin", "main");
       git(fixture.root, "push", "-f", "origin", branch);
       git(
