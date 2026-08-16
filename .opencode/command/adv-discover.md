@@ -377,6 +377,8 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 
 `skill("adv-opportunity-scout")` → bounded scout methodology (modes, output schema, routing taxonomy, prompt templates, opt-out, degradation). Use `discovery` mode for this phase. If skill is unavailable, the scout phase is inconclusive and recorded in the phase output; do not auto-adopt or surface candidates without the skill's routing taxonomy.
 
+When the change involves module shape, interface design, seam placement, or testability, load `skill("adv-codebase-design")` for the shared architecture vocabulary (module, interface, depth, seam, adapter, leverage, locality), the deletion test, and the dependency categories. Use its terms exactly.
+
 ### Integration with Agreement
 
 Auto-adopted candidates from the scout are incorporated into the agreement's objectives or AC before Phase 4 agreement presentation.
