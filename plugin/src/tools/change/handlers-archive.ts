@@ -674,48 +674,32 @@ export const advChangeArchiveHandler = async (
             : undefined,
         );
       }
-      archiveResult = Object.values(change.deltas).some(
-        (deltas) => deltas.length > 0,
-      )
-        ? await archiveChange({
-            change,
-            specs,
-            paths: archivePaths,
-            dryRun,
-            productId: activeStore.productContext?.productId,
-            reuseExistingBundlePath: existingBundlePath,
-          })
-        : {
-            success: true,
-            changeId,
-            specsUpdated: [],
-            docsGenerated: [],
-            commitPaths: reconciledInRepoPath ? [reconciledInRepoPath] : [],
-            archivePath: existingBundlePath,
-            errors: [],
-            archivedAt: new Date().toISOString(),
-          };
+      // rq-archiveRetirement01: every successful archive MUST write the durable
+      // bundle. archiveChange already no-ops spec projection for zero-delta
+      // changes, so there is no safe "nothing to do" shortcut — skipping it
+      // destroys the record (restoreVendoredDesignSkills, 2026-08-16).
+      archiveResult = await archiveChange({
+        change,
+        specs,
+        paths: archivePaths,
+        dryRun,
+        productId: activeStore.productContext?.productId,
+        reuseExistingBundlePath: existingBundlePath,
+      });
+      if (
+        reconciledInRepoPath &&
+        !archiveResult.commitPaths.includes(reconciledInRepoPath)
+      ) {
+        archiveResult.commitPaths.push(reconciledInRepoPath);
+      }
     } else {
-      archiveResult = Object.values(change.deltas).some(
-        (deltas) => deltas.length > 0,
-      )
-        ? await archiveChange({
-            change,
-            specs,
-            paths: archivePaths,
-            dryRun,
-            productId: activeStore.productContext?.productId,
-          })
-        : {
-            success: true,
-            changeId,
-            specsUpdated: [],
-            docsGenerated: [],
-            commitPaths: [],
-            archivePath: join(archivePaths.archive, changeId),
-            errors: [],
-            archivedAt: new Date().toISOString(),
-          };
+      archiveResult = await archiveChange({
+        change,
+        specs,
+        paths: archivePaths,
+        dryRun,
+        productId: activeStore.productContext?.productId,
+      });
     }
     if (!archiveResult.success)
       return formatToolOutput({
