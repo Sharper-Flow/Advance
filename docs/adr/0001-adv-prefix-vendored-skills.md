@@ -15,6 +15,8 @@ All skills vendored from `mattpocock/skills` are renamed with the `adv-` prefix 
 | `prototype` | `adv-prototype` |
 | `write-a-skill` | `adv-skill-author` (also domain-renamed) |
 
+> **Status note (2026-08-16, change `restoreVendoredDesignSkills`):** `adv-zoom-out`, `adv-prototype`, and `adv-skill-author` were removed from `skills/` in commit `2299160e` (change `cutAgentToolsUnder20`, 2026-08-11) as dormant. `adv-codebase-design` and `adv-improve-codebase-architecture` were deleted in the same commit and restored by the change cited here. This ADR records the original rename decision; it is retained as history, not deleted.
+
 ## Context
 
 The change adopts 4 Pocock skills (and 2 reference docs). `scripts/deploy-local.sh` has a hard-coded glob `for skill_dir in "$REPO_SKILLS"/adv-*/` (line 1323) that selects skills for sync to `~/.config/opencode/skills/`. Non-prefixed skills are silently skipped.
@@ -42,7 +44,7 @@ All 3 criteria met → ADR warranted.
 
 ## Naming details
 
-- `write-a-skill` → `adv-skill-author` is a **domain rename** (not just prefix). The Pocock skill is an authoring template; in ADV context it composes with the `agent-{domain}` Skill Creation Protocol, so the more precise name aids skill-discovery.
+- `write-a-skill` → `adv-skill-author` is a **domain rename** (not just prefix). The Pocock skill is an authoring template; in ADV context it composes with the `agent-{domain}` Skill Creation Protocol, so the more precise name aids skill-discovery. (Note: `adv-skill-author` was subsequently removed; see the status note in the Decision table above.)
 - All other renames are pure prefix-adds.
 
 ## Consequences

@@ -16,18 +16,13 @@ This repository vendors content from external projects under their original lice
 |---|---|---|
 | `skills/adv-diagnose/SKILL.md` | `skills/engineering/diagnose/SKILL.md` | `adv-diagnose` |
 | `skills/adv-diagnose/scripts/hitl-loop.template.sh` | `skills/engineering/diagnose/scripts/hitl-loop.template.sh` | (same name, prefixed dir) |
-| `skills/adv-zoom-out/SKILL.md` | `skills/engineering/zoom-out/SKILL.md` | `adv-zoom-out` |
-| `skills/adv-prototype/SKILL.md` | `skills/engineering/prototype/SKILL.md` | `adv-prototype` |
-| `skills/adv-prototype/LOGIC.md` | `skills/engineering/prototype/LOGIC.md` | (same name) |
-| `skills/adv-prototype/UI.md` | `skills/engineering/prototype/UI.md` | (same name) |
-| `skills/adv-skill-author/SKILL.md` | `skills/productivity/write-a-skill/SKILL.md` | `adv-skill-author` (renamed) |
 | `skills/adv-codebase-design/SKILL.md` | `skills/engineering/codebase-design/SKILL.md` | `adv-codebase-design` |
 | `skills/adv-codebase-design/DEEPENING.md` | `skills/engineering/codebase-design/DEEPENING.md` | (same name) |
 | `skills/adv-codebase-design/DESIGN-IT-TWICE.md` | `skills/engineering/codebase-design/DESIGN-IT-TWICE.md` | (same name) |
 | `skills/adv-improve-codebase-architecture/SKILL.md` | `skills/engineering/improve-codebase-architecture/SKILL.md` | `adv-improve-codebase-architecture` |
 | `skills/adv-improve-codebase-architecture/HTML-REPORT.md` | `skills/engineering/improve-codebase-architecture/HTML-REPORT.md` | (same name) |
 
-The `skills/adv-skill-author/SKILL.md` content was minimally adapted: description field updated for ADV context and an ADV-Specific Guidance section appended. Pocock's original content preserved verbatim.
+> `adv-zoom-out`, `adv-prototype`, and `adv-skill-author` were vendored under the same import but subsequently removed from `skills/` in commit `2299160e` (change `cutAgentToolsUnder20`, 2026-08-11) as dormant. Their rows are removed here because the files are no longer present; the import history is preserved in git and in ADR-0001.
 
 ### Vendored reference docs (co-located with `domain-context` spec)
 
@@ -40,7 +35,7 @@ These reference docs back the `rq-domainContext01` (CONTEXT.md format) and `rq-d
 
 ### Adaptations
 
-Each vendored file has an HTML comment attribution header at the top of the file (before YAML frontmatter for SKILL.md files; at top for plain markdown files; after shebang for scripts). Frontmatter `name` fields renamed where applicable; otherwise content preserved verbatim except for the noted minimal adaptation to `adv-skill-author`.
+Each vendored file has an HTML comment attribution header at the top of the file (before YAML frontmatter for SKILL.md files; at top for plain markdown files; after shebang for scripts). Frontmatter `name` fields renamed where applicable; otherwise content preserved verbatim.
 
 ### Exclusions
 
