@@ -638,6 +638,33 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expect(mocks.archiveChange).not.toHaveBeenCalled();
   });
 
+  // Regression: store.changes.get applies bundle dominance, which synthesizes
+  // `status: "archived"` from an existing bundle while leaving lifecycleState at its
+  // persisted value. A change whose bundle was written but whose retire step never ran
+  // arrives here as status=archived + lifecycleState=open. Gating the no-op on status
+  // alone made every retry a silent no-op, stranding the change in the active list
+  // permanently. The retire path must still run.
+  it("still archives when bundle dominance synthesized the archived status", async () => {
+    const change = makeChange({
+      status: "archived",
+      lifecycleState: "open",
+      deltas: {},
+    });
+    seedForChange(change);
+    const store = makeStore(change);
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      { changeId: CHANGE_ID, phase9: "skip" },
+      store,
+    );
+
+    const parsed = parseResult(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.noOp).toBeUndefined();
+    expect(mocks.reconcileArchivedBundleRetry).not.toHaveBeenCalled();
+    expect(mocks.archiveChange).toHaveBeenCalled();
+  });
+
   it("requires explicit approval before repairing an archived absent projection", async () => {
     const change = makeChange({
       status: "archived",

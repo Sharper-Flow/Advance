@@ -640,9 +640,18 @@ export const advChangeArchiveHandler = async (
             `Worktree belongs to ${worktreeValidation.repoRoot}, expected ${activeStore.paths.root}.`,
         });
     }
+    // `change` comes from store.changes.get, which applies rq-terminalProjectionTruth01
+    // bundle dominance: an existing bundle synthesizes `status: "archived"` even when the
+    // active record was never retired (store-disk.ts). Dominance deliberately rewrites
+    // `status` only, so `lifecycleState` still carries the persisted truth. Gate the no-op
+    // on the retire step's own postcondition — status AND lifecycleState both archived, as
+    // asserted by the archive_transition verifyProjection below. Otherwise a bundle written
+    // before an interrupted retire makes every subsequent archive a silent no-op and the
+    // change can never leave the active list.
     if (
       !dryRun &&
       change.status === "archived" &&
+      change.lifecycleState === "archived" &&
       existingBundlePath &&
       !archiveDeltaRepair
     ) {
