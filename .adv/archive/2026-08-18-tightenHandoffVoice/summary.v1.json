@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-18T17:54:08.089Z",
+  "capabilities": [],
+  "change_hash": "0b52a84af7cf88462fb272217aa53bcd68138f998bd75c787085c26595a56d13",
+  "change_id": "tightenHandoffVoice",
+  "completed_tasks": 3,
+  "created_at": "2026-08-18T16:47:52.061Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-18T17:50:10.949Z",
+  "status": "archived",
+  "summary_hash": "bfe7fd5ea9839ec591ed57b9f1517b22fac003e57bcc78f5a8f5304b236b8a0f",
+  "task_count": 4,
+  "title": "Tighten handoff voice",
+  "version": "1"
+}

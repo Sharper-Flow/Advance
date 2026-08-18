@@ -1,0 +1,542 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "tightenHandoffVoice",
+  "title": "Tighten handoff voice",
+  "status": "archived",
+  "created_at": "2026-08-18T16:47:52.061Z",
+  "tasks": [
+    {
+      "id": "tk-7cfa86583416",
+      "title": "Edit command-voice-standard.md: evidence ban, no-self-narration, plain English, Tier A compress, BAD/GOOD pair",
+      "type": "docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-18T16:59:46.318Z",
+      "completed_at": "2026-08-18T17:28:57.806Z",
+      "verification": "command-voice-standard.md updated: evidence-table ban (decision-blocking exception), Delivered = artifact list, plain technical English, no previews >1 line / no adjustment menus, BAD/GOOD pair, Tier A single-line. Included in commit e0fd7ed3.",
+      "summary": "command-voice-standard.md updated: evidence-table ban (decision-blocking exception), Delivered = artifact list, plain technical English, no previews >1 line / no adjustment menus, BAD/GOOD pair, Tier A single-line. Included in commit e0fd7ed3.",
+      "filesTouched": [
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-review.md",
+        "docs/command-voice-standard.md",
+        "plugin/src/checkpoint-surface-drift.test.ts",
+        "plugin/src/handoff-footer-drift.test.ts"
+      ],
+      "checkpointSha": "e0fd7ed38c2c56d642fdd693b34953718e9e077a",
+      "completedAt": "2026-08-18T17:28:57.806Z",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "review",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      }
+    },
+    {
+      "id": "tk-de2e50697b84",
+      "title": "Swap Tier A reply blocks in 7 checkpoint command docs + adv.md check",
+      "type": "docs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-08-18T16:59:57.021Z",
+      "completed_at": "2026-08-18T17:29:07.243Z",
+      "verification": "Tier A blocks swapped to single line in 5 owning command docs; archive/apply are Tier B / no Tier A (verified); grep \"Want changes\" = 0 matches repo-wide. Included in commit e0fd7ed3.",
+      "summary": "Tier A blocks swapped to single line in 5 owning command docs; archive/apply are Tier B / no Tier A (verified); grep \"Want changes\" = 0 matches repo-wide. Included in commit e0fd7ed3.",
+      "filesTouched": [
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-review.md",
+        "docs/command-voice-standard.md",
+        "plugin/src/checkpoint-surface-drift.test.ts",
+        "plugin/src/handoff-footer-drift.test.ts"
+      ],
+      "checkpointSha": "e0fd7ed38c2c56d642fdd693b34953718e9e077a",
+      "completedAt": "2026-08-18T17:29:07.243Z",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "error_recovery": {
+        "last_error": "Command failed: /usr/bin/git add -A\nfatal: Unable to create '/home/jon/dev/advance/.git/worktrees/tightenHandoffVoice/index.lock': File exists.\n\nAnother git process seems to be running in this reposit",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT"
+      }
+    },
+    {
+      "id": "tk-831fb8f8472b",
+      "title": "Update drift tests to new anchors; vitest green",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-08-18T16:59:57.057Z",
+      "completed_at": "2026-08-18T17:28:45.818Z",
+      "verification": "Drift tests re-anchored (single-line Tier A + spine rules). RED: 3 old-anchor failures. GREEN targeted: 39 passed exit 0. Full suite: 385 files pass, 1 pre-existing unrelated failure (manifest-doc-drift / adv-backlog.md, untouched by diff). Commit e0fd7ed3 (all 8 files; index.lock race during recording, commit verified landed, tree clean).",
+      "summary": "Drift tests re-anchored (single-line Tier A + spine rules). RED: 3 old-anchor failures. GREEN targeted: 39 passed exit 0. Full suite: 385 files pass, 1 pre-existing unrelated failure (manifest-doc-drift / adv-backlog.md, untouched by diff). Commit e0fd7ed3 (all 8 files; index.lock race during recording, commit verified landed, tree clean).",
+      "filesTouched": [
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-review.md",
+        "docs/command-voice-standard.md",
+        "plugin/src/checkpoint-surface-drift.test.ts",
+        "plugin/src/handoff-footer-drift.test.ts"
+      ],
+      "checkpointSha": "e0fd7ed38c2c56d642fdd693b34953718e9e077a",
+      "completedAt": "2026-08-18T17:28:45.818Z",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      }
+    },
+    {
+      "id": "tk-df91a422917d",
+      "title": "Build plugin + deploy-local + spec deltas readiness",
+      "type": "ops",
+      "status": "cancelled",
+      "priority": 2,
+      "created_at": "2026-08-18T17:00:08.756Z",
+      "completed_at": "2026-08-18T17:42:50.006Z",
+      "completedAt": "2026-08-18T17:42:50.006Z",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "notes": "Trunk-isolation law (P32): build + deploy-local run from merged default branch in ~/dev/advance at archive phase9, never from a change worktree. Docs+tests verification complete without it."
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenHandoffVoice",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/tightenHandoffVoice",
+      "task_id": "tk-831fb8f8472b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-831fb8f8472b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "docs/command-voice-standard.md",
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/checkpoint-surface-drift.test.ts",
+        "plugin/src/handoff-footer-drift.test.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "tr_msyxks9k_b65b883c",
+          "command": "pnpm exec vitest run src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "Targeted drift suite passed: 2 files, 39 tests."
+        },
+        {
+          "run_id": "tr_msyxnyf6_f16d9f71",
+          "command": "pnpm exec vitest run --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "Full suite: 385 files passed, 1 failed, 1 skipped; 5128 tests passed, 1 failed, 1 skipped, 12 todo. The failure is unrelated manifest-doc drift in src/manifest-doc-drift.test.ts: adv-backlog.md description differs from the manifest."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced Tier A rendered reply blocks with the single standard line while leaving Tier B archive and cancellation prompts unchanged.",
+          "why": "The requested voice change applies to reversible Tier A presentation; existing Tier A parsing tables and command-as-approval mechanics remain authoritative."
+        },
+        {
+          "what": "Converted the discovery criteria checkpoint's rendered reply block to the same single line and kept /adv-clarify handling in the surrounding detection rules.",
+          "why": "This aligns all Tier A checkpoint surfaces without removing the literal halt route."
+        },
+        {
+          "what": "Added the spine rules, a condensed Azure Key Vault BAD/GOOD pair, and a regression assertion for the evidence-dump prohibition.",
+          "why": "These are the requested durable contract and drift protections."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Full-suite unrelated failure remains in src/manifest-doc-drift.test.ts: adv-backlog.md frontmatter says \"Capture future work as backlog-status changes before proposal\" while the manifest says \"Capture future work before it becomes an Epic or change\". Per scope, it was not changed. Shell proof also found no \"Want changes\" matches under .opencode/ or plugin/src/; git diff --check passed."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all seven command docs, .opencode/agents/adv.md, and plugin/src for the retired Want changes template. No matches remain; Tier B archive/apply prompts were left unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented the handoff voice contract and Tier A prompt shrink across the scoped docs. Targeted drift tests pass with durable run tr_msyxks9k_b65b883c. Full suite run tr_msyxnyf6_f16d9f71 has one unrelated pre-existing manifest-doc description mismatch; no out-of-scope fix made.",
+        "suggested_next_action": "Review the diff and checkpoint the three sequential tasks; do not fix the unrelated adv-backlog manifest drift in this scope."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tightenHandoffVoice_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tightenHandoffVoice-tk-831fb8f8472b-attempt1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "tightenHandoffVoice",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/tightenHandoffVoice",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git show --stat e0fd7ed3",
+          "git show --format=fuller --find-renames e0fd7ed3",
+          "grep -rn 'Want changes' .opencode/ plugin/src/",
+          "grep -rn 'reply with what to adjust' docs/command-voice-standard.md .opencode/command/adv-{proposal,discover,design,prep,review}.md",
+          "pnpm exec vitest run src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4",
+          "pnpm exec vitest run --maxWorkers=4",
+          "git diff --check e0fd7ed3^ e0fd7ed3"
+        ],
+        "results": "pass",
+        "evidence": "Commit changes only the five Tier A command docs, command voice standard, and two drift tests. 'Want changes' returned 0 under .opencode/ and plugin/src/. Single-line text is present in the standard and all five command docs. Targeted Vitest: 2 files, 39 passed, exit 0. Full Vitest: 385 files passed, 1 skipped; only manifest-doc-drift failed for untouched adv-backlog.md frontmatter/manifest mismatch. git diff --check and final worktree diff were clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full suite retains the known unrelated manifest-doc-drift failure in adv-backlog.md."
+      ],
+      "required_main_agent_actions": []
+    }
+  ],
+  "test_runs": {
+    "tk-831fb8f8472b": [
+      {
+        "runId": "tr_msyxks9k_b65b883c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4",
+        "durationMs": 2068.841002999805,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T17:22:43.436Z"
+      },
+      {
+        "runId": "tr_msyxnyf6_f16d9f71",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --maxWorkers=4",
+        "durationMs": 136266.41292900033,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T17:25:11.738Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-18T16:50:55.728Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-18T16:57:53.461Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-18T16:58:06.836Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-18T17:01:28.790Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-18T17:43:01.656Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-18T17:50:10.949Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted via \"continue\" (2026-08-18). Independent adv-reviewer PASS: 39/39 targeted, evidence rules in standard, 5 docs swapped, grep 0, no scope drift; one pre-existing unrelated failure routed to fixManifestDocDriftAdvBacklog."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "# Tighten handoff voice + compress checkpoint boilerplate\n\n## Intent\nStop bloated gate-transition messages. Edits to `docs/command-voice-standard.md` and the seven checkpoint-owning command docs:\n\n1. **Evidence stays out of handoff prose.** No evidence tables, no file:line citation dumps in `## Chosen direction` or other spine sections — evidence trails belong in artifacts (problem-statement.md, design.md, wisdom). Exception: a specific citation only when needed for the decision at hand.\n2. **No self-narration detail.** Handoffs do not recap what the agent completed, found, or assessed — `## Delivered` stays a terse artifact list (names/paths/counts), not a findings narrative.\n3. **Plain technical English (ASD-STE100-inspired).** Handoff prose: everyday words over jargon, short sentences, active voice, one topic per paragraph; exact technical terms verbatim.\n4. **Real BAD/GOOD transcript pair** from the 2026-08-18 Azure Key Vault proposal-checkpoint example showing the compliant compressed form.\n5. **Ban checkpoint elaboration**: no next-phase previews, no enumerated adjustment menus.\n6. **Compress the mandated Tier A reply block** from 4 lines to one: `Reply \\`continue\\` to proceed, or reply with what to adjust.` Update template, the seven checkpoint command docs, and drift-test anchors (`checkpoint-surface-drift.test.ts`, `handoff-footer-drift.test.ts`).\n\n## Root Cause Analysis\nNon-defect (policy tightening + drift). Standard already limits Chosen direction to 1-3 sentences and routes evidence to artifacts, but classed inherently-prose with no enforcement; observed messages drift heavily. Tier A template itself mandates a 4-line reply block inviting elaboration.\n\n## LBP Targets\n- Anchor phrases remain parseable by the two drift tests (tests + docs updated in same change).\n- Spec-law impact: **Modify** — rq-handoffVoice01 (evidence + plain-English + no-self-narration rules), rq-inlineApproval01 (compressed reply block). Draft spec-delta obligations before planning.\n- Build from advance default branch; deploy via `pnpm run build` + `scripts/deploy-local.sh --fix`; OpenCode restart needed.\n\n## Scope\n- `docs/command-voice-standard.md`\n- 7 checkpoint command docs (adv-proposal, adv-discover, adv-design, adv-prep, adv-review, adv-archive, adv-apply)\n- `plugin/src/checkpoint-surface-drift.test.ts`, `plugin/src/handoff-footer-drift.test.ts`\n- Spec deltas rq-handoffVoice01 / rq-inlineApproval01\n- `.opencode/agents/adv.md` if it embeds the Tier A template\n\n## User Outcomes\n- Short, plain-English, decision-only checkpoint messages fleet-wide after rebuild + deploy + restart.",
+    "design": "# Design — tighten handoff voice\n\n## Spec deltas (draft obligations, capability: advance-workflow)\n\n### Delta 1 — MODIFY rq-handoffVoice01 (Gate Handoff Voice Spine)\nAdd to body: The narrative spine sections (Problem / Chosen direction / Delivered) MUST NOT contain evidence tables or file:line citation dumps; a specific citation is permitted only when the user needs it for the decision at hand. `## Delivered` MUST be a terse artifact list (names/paths/counts), not a narrative of completed/found/assessed work. Handoff prose MUST use plain technical English: everyday words over jargon where both work, short sentences, active voice. Checkpoint presentations MUST NOT include next-phase previews beyond one line or enumerated adjustment menus.\nNew scenario rq-handoffVoice01.N (no-evidence-tables): given a gate handoff after research-heavy work; when rendered; then no evidence tables/file:line dumps in spine sections, Delivered is an artifact list, no preview/menu elaboration.\n\n### Delta 2 — MODIFY rq-inlineApproval01 (Inline Approval)\nModify body: Tier A reply instructions MUST be a single line — `Reply \\`continue\\` to proceed, or reply with what to adjust.` — covering approve (whitelist + command-as-approval), revise (any adjustment text via LLM fallback classification), redirect (slash command), stop (stop words). Tier B whitelist lists remain unchanged in docs but rendered options stay ≤2 lines.\nScenario update rq-inlineApproval01.1/.2: reply-instruction line matches the compressed form.\n\n## Implementation notes\n- docs/command-voice-standard.md: new rules under Gate Handoff Voice + Inline Approval Voice; BAD/GOOD transcript pair from 2026-08-18 Azure Key Vault example; Tier A template swap.\n- 7 checkpoint command docs: swap 4-line reply blocks for single line.\n- Tests updated same-change: checkpoint-surface-drift.test.ts + handoff-footer-drift.test.ts anchor phrases.\n- Check .opencode/agents/adv.md + plugin/src command manifest assets for embedded template copies.\n\n## Tests\n- plugin vitest suite green (drift tests updated).\n- Manual BAD/GOOD review vs new standard."
+  },
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-08-18T16:47:48.702Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 20,
+  "projection_commits": [
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate proposal completion",
+      "operation_id": "mutation:gate_completion:tightenHandoffVoice:365bb6bf-c3fc-4425-b535-51e4ed40ed2d",
+      "payload_hash": "7c00bd7f9a252774e212e6725c1ed9cad87595acc655b8e29af59bc77d3fbfc1",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-18T16:50:55.730Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:tightenHandoffVoice:706b1aa5-83c2-4fa6-8770-ebb1e93317f5",
+      "payload_hash": "22f4c00ec983e5229cd34f754d3c3bcab04ae48ca616f9ee271f086c17ee7c44",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-18T16:56:43.241Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:tightenHandoffVoice:c01a575f-a397-4866-aec1-5454d1f7a9ee",
+      "payload_hash": "6e54b6f1380a0b0e8e5dda9c6936ba42e53e44cd157a437986a3d2bbdcb1a2a3",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-18T16:57:43.504Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate discovery completion",
+      "operation_id": "mutation:gate_completion:tightenHandoffVoice:efc906df-49ef-4fd4-9aa0-dbb318457a47",
+      "payload_hash": "169fdd279770565e780403ab209550922fcc73e2585a139ea02efc55162c45c7",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-18T16:57:53.464Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate design completion",
+      "operation_id": "mutation:gate_completion:tightenHandoffVoice:37b70609-c6f1-4bf8-8a7b-ef4a6d752e4c",
+      "payload_hash": "a17e633c913cdf58eb9ae345de50ae2c6b56c5dd29ca38e7c50b2810479c9212",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-18T16:58:06.840Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-7cfa86583416",
+      "operation_id": "mutation:task_add:tightenHandoffVoice:904dfc5e-6295-407a-937f-2aa1a3fd2ddc",
+      "payload_hash": "a6eb2f4b344a3fe77effabb83b15d1d1bf6a0f16c103ea73d788b0262598f0a3",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-18T16:59:46.324Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-de2e50697b84",
+      "operation_id": "mutation:task_add:tightenHandoffVoice:6b8daaca-b6a1-4498-a13a-b1cb5d7da938",
+      "payload_hash": "949eac7c7a7729b6cf6cf2d3ddcb47e9694a9e8a5e517d789df87ad0c247e607",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-18T16:59:57.056Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-831fb8f8472b",
+      "operation_id": "mutation:task_add:tightenHandoffVoice:b1e8524b-05a3-4daa-ac9d-37db62d2271e",
+      "payload_hash": "a0d51ad1a12fb8ca532b73fda1a8c560c87bd2ba142cba2810ab4eb5d873d395",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-18T16:59:57.212Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-df91a422917d",
+      "operation_id": "mutation:task_add:tightenHandoffVoice:d2f8d844-6c1d-4670-9eb4-a6cda4175748",
+      "payload_hash": "70a422d2b009b2f61be6d024b1583f46a369621b74d8a928162d3afbbc343135",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-18T17:00:08.771Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate planning completed by agent",
+      "operation_id": "mutation:gate_completion:tightenHandoffVoice:0ea67cdd-2d4a-4746-a691-86bae3241bf0",
+      "payload_hash": "cbe9b2cecddae4e1d6b175eae63fb2e84a8171a8c9654b4297daf460e5761837",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-18T17:01:28.807Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:tightenHandoffVoice:9f243370-ec97-4d48-bfef-1f981a0abc79",
+      "payload_hash": "6e05924687f8ea443cb2340066fe00d64c3f0cc2296ee88c1889daf3a3d881c8",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-18T17:22:43.458Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:tightenHandoffVoice:61a4bab0-e34f-4772-aba4-0f99d478474c",
+      "payload_hash": "229de698e8fe4e77f36218fff00c9bcabcc30696b1b9082d1ac29cbb7175b13a",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-18T17:25:11.744Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "tightenHandoffVoice|tk-831fb8f8472b|adv-engineer|1|cycle:ic_tightenHandoffVoice_1",
+      "operation_id": "mutation:subagent_report_submitted:tightenHandoffVoice:278bcb86-2cc1-4147-bc3f-03f344517248",
+      "payload_hash": "423036f7e9d257f74109059bb27ec79685e92b9adc5a2844d5b767df5e4379fe",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-18T17:25:55.289Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "e0fd7ed38c2c56d642fdd693b34953718e9e077a:Drift tests re-anchored (single-line Tier A + spine rules). RED: 3 old-anchor failures. GREEN targeted: 39 passed exit 0. Full suite: 385 files pass, 1 pre-existing unrelated failure (manifest-doc-drift / adv-backlog.md, untouched by diff). Commit e0fd7ed3 (all 8 files; index.lock race during recording, commit verified landed, tree clean).",
+      "operation_id": "mutation:task_checkpoint_completed:tightenHandoffVoice:ecb4f4c4-0e96-4d75-865c-e56bfdde8867",
+      "payload_hash": "db2da80c3a1432b4f9e063e764a621de09a5d02dd514663c66f0c37055a72ff5",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-18T17:28:45.824Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "e0fd7ed38c2c56d642fdd693b34953718e9e077a:command-voice-standard.md updated: evidence-table ban (decision-blocking exception), Delivered = artifact list, plain technical English, no previews >1 line / no adjustment menus, BAD/GOOD pair, Tier A single-line. Included in commit e0fd7ed3.",
+      "operation_id": "mutation:task_checkpoint_completed:tightenHandoffVoice:b788f2ad-92e1-43bd-ae21-910f6d7ad9b4",
+      "payload_hash": "fa700788ca1b7ac44a7b98f65f984068532d58e9cb168261f58cfa8123ba78a6",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-18T17:28:57.808Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "e0fd7ed38c2c56d642fdd693b34953718e9e077a:Tier A blocks swapped to single line in 5 owning command docs; archive/apply are Tier B / no Tier A (verified); grep \"Want changes\" = 0 matches repo-wide. Included in commit e0fd7ed3.",
+      "operation_id": "mutation:task_checkpoint_completed:tightenHandoffVoice:7db79089-3b08-4028-aabb-df9ebf4a3e93",
+      "payload_hash": "e18bd235375838875b651d22a4486b9998e02f6932ca788503de72016878a385",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-18T17:29:07.248Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "question tool response this session (2026-08-18): user selected \"Cancel task 4 (Recommended)\" for tk-df91a422917d disposal.",
+      "operation_id": "mutation:task_cancelled:tightenHandoffVoice:d8681b16-b0c9-4ece-a1af-356c1204cc29",
+      "payload_hash": "a7875ecc0df86cef40926c2845e0f3e39e9886a619a150a044316c9b35496dd6",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-18T17:42:51.562Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate execution completion",
+      "operation_id": "mutation:gate_completion:tightenHandoffVoice:99cb416a-97e3-435c-a9cd-3af09598ca0c",
+      "payload_hash": "922c9c5b3a88d4fa75f350224b09fdf64d7b7533ab5cbe693ae64a84ae730135",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-18T17:43:01.686Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "tightenHandoffVoice|change:review:acceptance|adv-reviewer|1",
+      "operation_id": "mutation:subagent_report_submitted:tightenHandoffVoice:149dbd6c-8c76-4ea4-8a8b-e8ae323223eb",
+      "payload_hash": "530a49c7f7822bceb086d413d752226a3a9ee10030cf3b9df20767575896479c",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-18T17:46:48.834Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User accepted via \"continue\" (2026-08-18). Independent adv-reviewer PASS: 39/39 targeted, evidence rules in standard, 5 docs swapped, grep 0, no scope drift; one pre-existing unrelated failure routed to fixManifestDocDriftAdvBacklog.",
+      "operation_id": "mutation:gate_completion:tightenHandoffVoice:43e7b70f-e940-464f-bf31-4af4ff567f45",
+      "payload_hash": "02fcb14049597b6628119d0ea72eac7d3ee45b4db193518df1b511beb0ef3516",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-18T17:50:10.954Z"
+    }
+  ]
+}
