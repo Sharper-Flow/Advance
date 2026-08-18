@@ -234,7 +234,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-idea`      | Explore rough ideas before drafting a proposal                                                       |
 | `/adv-problem`   | Triage defects and unintended behavior before fixing or drafting a proposal                          |
 | `/adv-epic`      | Gather Epic goals before typed creation                                                             |
-| `/adv-backlog`   | Capture future work before it becomes an Epic or change                                              |
+| `/adv-backlog`   | Capture future work as backlog-status changes before proposal                                              |
 | `/adv-proposal`  | Extract problem statement, user outcomes, and constraints without creating tasks                     |
 | `/adv-discover`  | Gather context, analyze current state, identify objectives, and obtain user agreement                |
 | `/adv-design`    | Validate architecture decisions, produce implementation strategy, and present design for user review |
