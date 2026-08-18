@@ -166,6 +166,20 @@ describe("handoff blockquote wayfinder contract", () => {
     ).toMatch(/^> → `\/adv-\{next-command\} \{change-id\}`$/m);
   });
 
+  test("command-voice-standard.md bans evidence dumps from the narrative spine", () => {
+    const content = readFileSync(
+      join(DOCS_DIR, "command-voice-standard.md"),
+      "utf8",
+    );
+
+    expect(
+      content,
+      "Gate Handoff Voice must forbid evidence tables and file:line citation dumps in spine sections",
+    ).toMatch(
+      /Keep evidence tables and file:line citation dumps out of `## Problem`, `## Chosen direction`, and `## Delivered`/,
+    );
+  });
+
   test("adv.md output contract uses blockquote wayfinder", () => {
     const content = readFileSync(join(AGENTS_DIR, "adv.md"), "utf8");
 

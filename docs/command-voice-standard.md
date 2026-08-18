@@ -327,6 +327,13 @@ Every gate handoff uses exactly three narrative sections, in this order:
 
 No other sections, headings, or structural elements in the handoff. The blockquote wayfinder block is the only content after `## Delivered`. Internal state lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat.
 
+### Spine rules
+
+- Keep evidence tables and file:line citation dumps out of `## Problem`, `## Chosen direction`, and `## Delivered`. Use a specific citation only when the user needs it for the decision at hand.
+- Keep `## Delivered` terse: list artifacts by name, path, or count. Do not narrate work the agent completed, found, or assessed.
+- Use plain technical English. Prefer everyday words over jargon when both work. Use short sentences and active voice.
+- Keep checkpoint presentations to one line of next-phase preview at most. Do not enumerate adjustment menus.
+
 **Command binding.** The arrow-prefixed command is not an arbitrary placeholder. It MUST be the manifest-registered command from the current actionable phase-plan / directive for the next gate. If the directive is non-actionable (blocked/recovery/approval/terminal) or carries no registered command, the arrow-prefixed row is omitted and the blockquote shows a blocked/recovery/approval status line instead. If a user reaches ADV with the retired `/adv-accept` wording, correct `/adv-accept` to `/adv-review` in returned guidance; do not register `/adv-accept` as a command or alias.
 
 ### Decision rationale (major decisions only)
@@ -523,6 +530,31 @@ Block banners remain for safety-critical confirmations (destructive actions, can
 When `rq-autonomy01` permits auto-continue, the agent proceeds without emitting a handoff message. No message = no handoff to validate. Spine applies only to user-facing gate-transition messages.
 
 ### BAD / GOOD transcript examples
+
+#### Pair 0: Azure Key Vault proposal checkpoint (evidence dump → decision)
+
+**BAD:**
+```
+## Chosen direction
+| File | Line | Evidence |
+|------|------|----------|
+| vault.ts | 42 | timeout path |
+Scope: proposal covers the vault client and fallback behavior.
+Draft criteria recap: timeout, fallback, and construction details.
+Discovery will decide: source-level bound vs construction-level wrap; timeout default; fallback interaction.
+Adjust: scope in/out, severity framing, or draft criteria.
+```
+
+**GOOD:**
+```
+## Chosen direction
+Set a source-level timeout bound and define fallback behavior. Keep construction-level wrapping for design.
+
+## Delivered
+- proposal.md — scoped decision and draft criteria
+
+Reply `continue` to proceed, or reply with what to adjust.
+```
 
 #### Pair 1: /adv-apply handoff (verbose → spine)
 
@@ -726,10 +758,7 @@ Then proceed with `adv_change_archive phase9: "run"` in the same response. The a
 >
 > → `/adv-{next-command} {change-id}`
 
-Reply `continue` (or `go`, `approve`, `yes`, `ok`, `proceed`, `lgtm`) to proceed inline to {next-stage},
-or run the command above.
-Want changes? Reply with what to adjust.
-Want to stop here? Reply `stop` or `defer`.
+Reply `continue` to proceed, or reply with what to adjust.
 ```
 
 **Command-as-approval rule:** When the blockquote wayfinder block shows a specific continuation command (e.g., `/adv-apply {change-id}`), invoking that exact command while the checkpoint is pending counts as explicit approval equivalent to a Tier A whitelist word. The agent completes the pending gate with `userApproved: true` and proceeds immediately without a second approval prompt. This applies only to Tier A checkpoints; Tier B remains whitelist-only.

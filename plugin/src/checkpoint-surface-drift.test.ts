@@ -36,28 +36,28 @@ interface CheckpointCommand {
 const checkpointCommands: CheckpointCommand[] = [
   {
     file: "adv-proposal.md",
-    anchorPhrase: "Reply `continue`",
+    anchorPhrase: "Reply `continue` to proceed, or reply with what to adjust.",
     oldPattern: /Step 9.*via\s+`question`\s+tool/s,
   },
   {
     file: "adv-discover.md",
-    anchorPhrase: "Reply `approve`",
+    anchorPhrase: "Reply `continue` to proceed, or reply with what to adjust.",
     oldPattern:
       /Phase 4\.6.*Ask\s+for\s+explicit\s+user\s+confirmation\s+or\s+edits\s+using\s+the\s+`question`\s+tool/s,
   },
   {
     file: "adv-design.md",
-    anchorPhrase: "Reply `continue`",
+    anchorPhrase: "Reply `continue` to proceed, or reply with what to adjust.",
     oldPattern: /Recommended options.*Looks good — proceed/s,
   },
   {
     file: "adv-prep.md",
-    anchorPhrase: "Reply `approve`",
+    anchorPhrase: "Reply `continue` to proceed, or reply with what to adjust.",
     oldPattern: /Phase 5\.2.*via\s+`question`\s+tool/s,
   },
   {
     file: "adv-review.md",
-    anchorPhrase: "Reply `accept`",
+    anchorPhrase: "Reply `continue` to proceed, or reply with what to adjust.",
     oldPattern:
       /Use the `question` tool to ask whether the delivered work satisfies/i,
   },

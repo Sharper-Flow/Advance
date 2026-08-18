@@ -255,11 +255,7 @@ After displaying the validator result:
 After the spine footer line:
 
 ```
-Reply `continue` (or `go`, `approve`, `looks good`, `proceed`, `lgtm`) to proceed inline to /adv-prep,
-or run `/adv-prep {change-id}`.
-Want to adjust the design? Reply with what to change.
-Want to revisit discovery? Reply `/adv-discover {change-id}` or `revisit discovery`.
-Want to stop here? Reply `cancel` or `stop`.
+Reply `continue` to proceed, or reply with what to adjust.
 ```
 
 **Reply parsing (Tier A):**
@@ -272,7 +268,7 @@ Want to stop here? Reply `cancel` or `stop`.
 | Free-form text                                                            | Treat as design revision; apply via `adv_change_update`, re-present |
 | `cancel` / `stop`                                                         | Halt change                                                         |
 
-**Anchor phrase:** `Reply `continue``
+**Anchor phrase:** "Reply `continue` to proceed, or reply with what to adjust."
 
 ### Phase 4.1: Contract-Compromise Risk Assessment (Inline)
 

@@ -382,10 +382,7 @@ Present the vision document banner inline, then emit the **Inline Approval promp
 After the vision banner:
 
 ```
-Reply `approve` (or `continue`, `go`, `yes`, `ok`, `proceed`, `lgtm`) to approve the plan and proceed inline to /adv-apply,
-or run `/adv-apply {change-id}`.
-Want changes? Reply with what to adjust (loops back to gap analysis).
-Want to abandon prep? Reply `cancel` or `stop`.
+Reply `continue` to proceed, or reply with what to adjust.
 ```
 
 **Reply parsing (Tier A):**
@@ -398,7 +395,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 | `cancel` / `stop`        | Halt; do not complete prep gate                                                                                                                  |
 | Ambiguous                | LLM judgment classifies into approve / revise / redirect / stop / unclear                                                                        |
 
-**Anchor phrase:** `Reply `approve``
+**Anchor phrase:** "Reply `continue` to proceed, or reply with what to adjust."
 
 **Machine contract (CRITICAL):** when user replies with a Tier A whitelist word (or LLM classifies as `approve`), the agent MUST pass `userApproved: true` to `adv_gate_complete gateId: 'planning'`. The machine contract enforced by `handlePlanningGateCompletion` is independent of the UX surface — inline approval is the upstream signal source.
 

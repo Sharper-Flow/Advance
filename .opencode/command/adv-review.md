@@ -104,14 +104,9 @@ Before acceptance prompt, persist durable executive summary for non-technical re
 4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present and workflow-visible executive-summary artifact metadata exists with content-hash evidence.
 
 ### Ask for Acceptance (Inline)
-Reply `accept` (or `approve`, `continue`, `looks good`, `lgtm`) to accept the delivered work and proceed inline to /adv-harden,
-or run `/adv-harden {change-id}`.
-Want fixes before acceptance? Reply with what needs adjustment.
-Want to reopen an earlier gate (scope expansion)? Reply `reopen {gate-name}` (e.g. `reopen discovery`) or `/adv-clarify {change-id}` for ambiguity.
-Want to split discovered scope into a fast-follow change? Reply `split` — creates a new child change linked to this one.
-Want to stop here? Reply `stop` or `defer`.
+Reply `continue` to proceed, or reply with what to adjust.
 
-**Anchor phrase:** `Reply `accept``
+**Anchor phrase:** "Reply `continue` to proceed, or reply with what to adjust."
 
 ### Complete Gate
 On acceptance:

@@ -545,11 +545,10 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
    1. ...
    2. ...
 
-   Reply:
-   - `approve` (or whitelist hit: continue, go, yes, ok, proceed, lgtm) — approve criteria and proceed to agreement persistence
-   - `/adv-clarify {change-id}` — halt /adv-discover; user runs /adv-clarify; rerun /adv-discover after
-   - Or describe what to add/clarify — agent normalizes into revised criteria and re-runs this checkpoint
+   Reply `continue` to proceed, or reply with what to adjust.
    ```
+
+   The literal `/adv-clarify {change-id}` route remains available as a halt path; reply detection below is unchanged.
 
 4. **Reply detection rules (in order):**
 
@@ -568,7 +567,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 6. If criteria are empty or weak, keep the approve option but mark the `/adv-clarify` branch as the recommended path.
 7. Do not proceed to Phase 4.6 until acceptance criteria and success criteria are approved.
 
-**Anchor phrase:** `Reply `approve``
+**Anchor phrase:** "Reply `continue` to proceed, or reply with what to adjust."
 
 **× MUST NOT:** Complete `discovery` gate without criteria approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to user.
 

@@ -145,10 +145,7 @@ Present the completed proposal summary, then emit the **Inline Approval prompt (
 After the spine footer line:
 
 ```
-Reply `continue` (or `go`, `approve`, `yes`, `ok`, `proceed`, `lgtm`) to proceed inline to /adv-research (or /adv-discover if research is already complete),
-or run `/adv-research {change-id}` (or `/adv-discover {change-id}`).
-Want changes? Reply with what to adjust.
-Want to stop here? Reply `stop` or `defer`.
+Reply `continue` to proceed, or reply with what to adjust.
 ```
 
 **Reply parsing (Tier A):**
