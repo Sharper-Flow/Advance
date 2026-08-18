@@ -1,0 +1,435 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixManifestDocDriftAdvBacklog",
+  "title": "Fix manifest-doc-drift adv-backlog",
+  "status": "archived",
+  "created_at": "2026-08-18T17:47:18.952Z",
+  "tasks": [
+    {
+      "id": "tk-4fb81530b9e8",
+      "title": "Align adv-backlog.md frontmatter with command manifest",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-18T18:03:50.719Z",
+      "started_at": "2026-08-18T18:04:17.061Z",
+      "completed_at": "2026-08-18T18:34:40.344Z",
+      "verification": "Newer Aug-12 wording propagated to 4 lagging surfaces (manifest.ts, README.md, ADV_INSTRUCTIONS.md ×2); doc untouched. Targeted 59/59; full suite 5129 passed / 1 skipped (tr_msz03ymo). Commit 12af5254 verified landed after recording-noise failure.",
+      "summary": "Newer Aug-12 wording propagated to 4 lagging surfaces (manifest.ts, README.md, ADV_INSTRUCTIONS.md ×2); doc untouched. Targeted 59/59; full suite 5129 passed / 1 skipped (tr_msz03ymo). Commit 12af5254 verified landed after recording-noise failure.",
+      "filesTouched": [
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "12af5254376aaee9f7117978d11d4454480ebb47",
+      "completedAt": "2026-08-18T18:34:40.344Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixManifestDocDriftAdvBacklog",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixManifestDocDriftAdvBacklog",
+      "task_id": "tk-4fb81530b9e8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4fb81530b9e8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".opencode/command/adv-backlog.md"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msyz3p21_52a5d1cb",
+          "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "RED: 19 passed, 1 failed; adv-backlog frontmatter differed from manifest."
+        },
+        {
+          "test_run_id": "tr_msyz4tzl_1aa0ea89",
+          "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "Intermediate manifest-led attempt exposed two README/ADV_INSTRUCTIONS table mismatches."
+        },
+        {
+          "test_run_id": "tr_msyz6cd6_b30fd622",
+          "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "GREEN: 20 tests passed."
+        },
+        {
+          "test_run_id": "tr_msyz6l56_73fdefbe",
+          "command": "pnpm exec vitest run src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "Neighbor check passed: 39 tests across 2 files."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Aligned .opencode/command/adv-backlog.md frontmatter to the manifest description.",
+          "why": "Git path history shows the command doc changed more recently (ad40ee8a, 2026-08-12) than manifest.ts (c7075bed, 2026-08-04), but the manifest is machine-dispatch authority and the drift test also requires README.md and ADV_INSTRUCTIONS.md tables to match it. Copying the newer frontmatter into the manifest caused two additional failures, so the one-file green fix preserves the canonical manifest value."
+        },
+        {
+          "what": "Kept the manifest value verbatim: \"Capture future work before it becomes an Epic or change\".",
+          "why": "The command body describes capturing backlog work that can become a normal change or Epic, and all manifest-derived tables already use this wording."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "The requested neighbor drift surfaces were checked; both remained green. No unrelated edits were made.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "One-line frontmatter change in .opencode/command/adv-backlog.md. Initial RED was 1 failure. A manifest-led attempt exposed README and ADV_INSTRUCTIONS table contracts, so manifest authority was preserved and frontmatter aligned to it. Final manifest-doc-drift: 20/20 pass; neighbors: 39/39 pass. git status shows only the command doc modified.",
+        "suggested_next_action": "Review the single-file diff and proceed with the parent execution workflow; no commit was created."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-4fb81530b9e8_attempt-1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "manifest-doc-drift-adv-backlog"
+        }
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-4fb81530b9e8": [
+      {
+        "runId": "tr_msyz3p21_52a5d1cb",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+        "durationMs": 1337.0609720000066,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T18:05:25.848Z"
+      },
+      {
+        "runId": "tr_msyz4tzl_1aa0ea89",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+        "durationMs": 1675.6957019999973,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T18:06:18.639Z"
+      },
+      {
+        "runId": "tr_msyz6cd6_b30fd622",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+        "durationMs": 1364.1284270000178,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T18:07:29.611Z"
+      },
+      {
+        "runId": "tr_msyz6l56_73fdefbe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4",
+        "durationMs": 1934.9842690000078,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T18:07:40.211Z"
+      },
+      {
+        "runId": "tr_msz005q8_5b0a0a5e",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4 2>&1 | tail -6",
+        "durationMs": 2084.6142980000004,
+        "recordedAt": "2026-08-18T18:30:40.137Z"
+      },
+      {
+        "runId": "tr_msz01rzu_bc6057d4",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm exec vitest run src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4 2>&1 | tail -4 && pnpm exec vitest run --maxWorkers=4 2>&1 | tail -4",
+        "durationMs": 30006.03051199997,
+        "recordedAt": "2026-08-18T18:31:55.493Z"
+      },
+      {
+        "runId": "tr_msz03ymo_a302b59c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --maxWorkers=4 2>&1 | tail -4",
+        "durationMs": 92594.07963300007,
+        "recordedAt": "2026-08-18T18:33:37.264Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-18T18:02:48.294Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-18T18:03:02.121Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-18T18:03:11.947Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-18T18:04:01.029Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-18T18:34:52.575Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-18T19:38:48.508Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted via \"continue\" (2026-08-18). Full-suite verified inline: 5129 passed / 1 skipped / 0 failed (tr_msz03ymo); 4-surface description alignment, single-command scope."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Fix manifest-doc-drift: adv-backlog.md description mismatch\n\nPre-existing suite failure (verified during tightenHandoffVoice acceptance, 2026-08-18): plugin/src/manifest-doc-drift.test.ts — .opencode/command/adv-backlog.md frontmatter description differs from command manifest entry (1 mismatch, 19 pass). Not caused by tightenHandoffVoice.\n\nWork: align frontmatter description with manifest (or manifest with intent); rerun test to green.",
+    "design": "# Design — manifest-doc-drift fix (advance)\n\n## Root Cause\nplugin/src/manifest-doc-drift.test.ts fails: adv-backlog.md frontmatter description != command manifest entry (1 mismatch, 19 pass). Direction of drift determined at implementation via git log on both surfaces; align the lagging side to the leading one (manifest is authoritative for machine dispatch; frontmatter must mirror).\n\n## Spec-law: No spec law update required\nTest/doc alignment restores existing invariant (manifest↔frontmatter sync enforced by manifest-doc-drift.test.ts); no behavior or law change.\n\n## Verification\n- RED: vitest run src/manifest-doc-drift.test.ts fails (known).\n- GREEN: same test passes; full targeted file suite green."
+  },
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-08-18T17:47:16.766Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 18,
+  "projection_commits": [
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixManifestDocDriftAdvBacklog:d86afc3e-6c95-4853-94b8-66dadce8c689",
+      "payload_hash": "5345ff84327b56fe0fc4e6bfa4e1e6e85323e811af8f56a4ac04e356652dde83",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-18T18:02:36.621Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate proposal completion",
+      "operation_id": "mutation:gate_completion:fixManifestDocDriftAdvBacklog:96288907-625a-4371-9abc-966e7f9a1c10",
+      "payload_hash": "584d092fdd15d913f4cab8ac35e7dde8213064df5d8fcd539ea74a453e3468d7",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-18T18:02:48.298Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate discovery completion",
+      "operation_id": "mutation:gate_completion:fixManifestDocDriftAdvBacklog:740ed122-d195-40a4-8848-eed513d80c51",
+      "payload_hash": "ee424b7ab83911308a2cbc9c6176dc01367c5489a1489eb6596a51e2ed78f422",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-18T18:03:02.160Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate design completion",
+      "operation_id": "mutation:gate_completion:fixManifestDocDriftAdvBacklog:3a72531e-9a09-43bf-9bba-b07e136f4f69",
+      "payload_hash": "7e12f38c055f90aeaa83d9a721f6eaa34da5f4db43b310a9934f0afcf0b44839",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-18T18:03:11.949Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-4fb81530b9e8",
+      "operation_id": "mutation:task_add:fixManifestDocDriftAdvBacklog:3619890a-1489-4e83-adae-2099f6226f88",
+      "payload_hash": "99196dd3442e8e4385b6d59213d3269220ee91aeede6b20aad334a6b7b433172",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-18T18:03:50.738Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate planning completed by agent",
+      "operation_id": "mutation:gate_completion:fixManifestDocDriftAdvBacklog:2df7d41f-f6e0-4447-a8db-aaec177fd003",
+      "payload_hash": "2b49ea0cca6fc1bb7ca64cd53df70899e847a39157450b29851cc6f3f032797c",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-18T18:04:01.032Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixManifestDocDriftAdvBacklog:2e9236fc-e4bf-495a-946d-b5b33717c692",
+      "payload_hash": "6d9bd326b536f8112fb7784d2d1a80b8eadce5175ee20e3bece4787dc2de6108",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-18T18:04:18.535Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixManifestDocDriftAdvBacklog:6b42d2eb-907b-479f-9230-8e6f923af49a",
+      "payload_hash": "c56e31528154be00c71c9eb330dfd2b94b628609c81d39daaf65069bf0c4ae75",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-18T18:05:25.862Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixManifestDocDriftAdvBacklog:6709bfda-6af2-4c75-bd33-b705ffce4170",
+      "payload_hash": "b3771862fe6a1b0e5ef178718d632fc5d45205a3f95d23e772b09c1c8bd4561b",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-18T18:06:18.653Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/manifest-doc-drift.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixManifestDocDriftAdvBacklog:953f0770-dbb0-4f15-90b1-179d4ea5b221",
+      "payload_hash": "4d04cc6054c74333d4e2177bb6b04ae028e79cb70a202f292d1dde45c12762fd",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-18T18:07:29.613Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixManifestDocDriftAdvBacklog:ff97f417-5538-433f-a523-0fe88323cfdd",
+      "payload_hash": "facd62c998980388df4aecc01898b9b2d0bba6b371b6827cf41249b5a90cbf1f",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-18T18:07:40.215Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixManifestDocDriftAdvBacklog|tk-4fb81530b9e8|adv-engineer|1|cycle:ic_tk-4fb81530b9e8_attempt-1",
+      "operation_id": "mutation:subagent_report_submitted:fixManifestDocDriftAdvBacklog:ce566707-1e7f-421b-afed-c91b93d88c33",
+      "payload_hash": "b2c3cd1284ad003ac0bb328ce09ba7f981d650b459589331bcc5d73ea74aeefc",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-18T18:08:47.557Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4 2>&1 | tail -6",
+      "operation_id": "mutation:test_run_recorded:fixManifestDocDriftAdvBacklog:4bc3edf8-5bb3-49d7-a94f-f7c6ba1e929b",
+      "payload_hash": "504e6f180eaefa686ceba25a80fd3219d33566abc337c39dbd1247f5ebfc043d",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-18T18:30:40.141Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/manifest-doc-drift.test.ts src/checkpoint-surface-drift.test.ts src/handoff-footer-drift.test.ts --maxWorkers=4 2>&1 | tail -4 && pnpm exec vitest run --maxWorkers=4 2>&1 | tail -4",
+      "operation_id": "mutation:test_run_recorded:fixManifestDocDriftAdvBacklog:52901d08-3071-4f1d-b059-e50a9c3f299f",
+      "payload_hash": "c6a9d7dd7bfa5cf717baa936b9670a284f86618121c15d8e321a9d787499c9a5",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-18T18:31:55.512Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run --maxWorkers=4 2>&1 | tail -4",
+      "operation_id": "mutation:test_run_recorded:fixManifestDocDriftAdvBacklog:df13b87c-e21f-444a-b925-024fefe51985",
+      "payload_hash": "cbb5691ebb4f772e73759e3b02f08c2948f5f8b165e07aaad977f62a0cee75ff",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-18T18:33:37.267Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "12af5254376aaee9f7117978d11d4454480ebb47:Newer Aug-12 wording propagated to 4 lagging surfaces (manifest.ts, README.md, ADV_INSTRUCTIONS.md ×2); doc untouched. Targeted 59/59; full suite 5129 passed / 1 skipped (tr_msz03ymo). Commit 12af5254 verified landed after recording-noise failure.",
+      "operation_id": "mutation:task_checkpoint_completed:fixManifestDocDriftAdvBacklog:bb6040c6-a65a-4f91-9c70-1713c26db25b",
+      "payload_hash": "bee7832dd96cb29d037c6a37b8b414fd1572b47ee73ed32f2b451cac8508677a",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-18T18:34:40.358Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate execution completion",
+      "operation_id": "mutation:gate_completion:fixManifestDocDriftAdvBacklog:9bf541ff-de6b-4642-afaa-ab1c1b903d3b",
+      "payload_hash": "18c5518fc5778cd1a763fb5843431a667ebdeff127f22c8ef6bcbafbab6b6f91",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-18T18:34:52.578Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User accepted via \"continue\" (2026-08-18). Full-suite verified inline: 5129 passed / 1 skipped / 0 failed (tr_msz03ymo); 4-surface description alignment, single-command scope.",
+      "operation_id": "mutation:gate_completion:fixManifestDocDriftAdvBacklog:02b9c7c4-ee40-4f3b-8a35-a5e96e969f63",
+      "payload_hash": "6e248530c3e4246d3eb3c36f314e3a0466124e237a3d99e163a168da84afa9cd",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-18T19:38:48.513Z"
+    }
+  ]
+}
