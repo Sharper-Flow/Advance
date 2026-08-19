@@ -427,6 +427,56 @@ export async function loadChange(
   }
 }
 
+export type SummaryCandidateExclusion = {
+  id: string;
+  reason: "canonical_missing" | "canonical_terminal" | "canonical_error";
+  detail?:
+    | "schema_error"
+    | "oversized"
+    | "corrupt"
+    | "unreadable"
+    | "read_error";
+};
+
+export type SummaryCandidateClassification = {
+  valid: string[];
+  excluded: SummaryCandidateExclusion[];
+};
+
+export async function classifySummaryCandidates(
+  changesDir: string,
+  candidateIds: string[],
+): Promise<SummaryCandidateClassification> {
+  const valid: string[] = [];
+  const excluded: SummaryCandidateExclusion[] = [];
+
+  for (const id of candidateIds) {
+    const result = await loadChange(changesDir, id);
+
+    if (result.success) {
+      if (!result.data) {
+        excluded.push({ id, reason: "canonical_missing" });
+      } else if (
+        result.data.status === "archived" ||
+        result.data.status === "closed"
+      ) {
+        excluded.push({ id, reason: "canonical_terminal" });
+      } else {
+        valid.push(id);
+      }
+      continue;
+    }
+
+    if (result.type === "not_found") {
+      excluded.push({ id, reason: "canonical_missing" });
+    } else {
+      excluded.push({ id, reason: "canonical_error", detail: result.type });
+    }
+  }
+
+  return { valid, excluded };
+}
+
 export async function loadAllChanges(
   changesDir: string,
 ): Promise<Map<string, Change>> {
