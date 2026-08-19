@@ -8,6 +8,7 @@ import {
   LauncherProjectionSchema,
 } from "./launcher-projection";
 import type { ChangeSummaryShard } from "./change-summary-shard";
+import { SAMPLE_CHANGE } from "../__tests__/setup";
 
 function summary(
   id: string,
@@ -125,6 +126,38 @@ describe("buildLauncherProjection", () => {
       "Unable to read launcher summary pointers: pointer corrupt",
     );
   });
+
+  test("excludes summary shards without a valid canonical record", async () => {
+    const root = await mkdtemp(join(tmpdir(), "launcher-classification-"));
+    try {
+      const changesDir = join(root, "changes");
+      const summariesDir = join(root, "summaries");
+      const validId = "valid-change";
+      await mkdir(join(changesDir, validId), { recursive: true });
+      await writeFile(
+        join(changesDir, validId, "change.json"),
+        JSON.stringify({ ...SAMPLE_CHANGE, id: validId, status: "active" }),
+      );
+      await seedSummaryPointer(summariesDir, changesDir, "missing-change");
+      await seedSummaryPointer(summariesDir, changesDir, validId);
+      await rm(join(changesDir, "missing-change"), {
+        recursive: true,
+        force: true,
+      });
+
+      const projection = await buildLauncherProjection({
+        changesDir,
+        summariesDir,
+        generatedAt: "2026-07-23T12:00:00.000Z",
+        degradedThresholdMs: 60_000,
+      });
+
+      expect(projection.changes.map((change) => change.id)).toEqual([validId]);
+      expect(projection.active_count).toBe(1);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
 
 async function seedSummaryPointer(
@@ -164,6 +197,11 @@ async function seedSummaryPointer(
   };
   await writeFile(shardPath, JSON.stringify(shard, null, 2));
   await writeFile(pointerPath, JSON.stringify(pointer, null, 2));
+  await mkdir(join(changesDir, changeId), { recursive: true });
+  await writeFile(
+    join(changesDir, changeId, "change.json"),
+    JSON.stringify({ ...SAMPLE_CHANGE, id: changeId, status: "active" }),
+  );
 }
 
 describe("refreshLauncherAggregateAfterCommit", () => {

@@ -5,6 +5,7 @@ import {
   type ChangeSummaryShard,
   type ProjectionDocumentWarning,
 } from "./change-summary-shard-reader";
+import { classifySummaryCandidates } from "./change-projection-reader";
 import { hasArchiveBundle } from "./json";
 import { writeLauncherProjection } from "./launcher-projection-writer";
 import { createLogger } from "../utils/debug-log";
@@ -95,8 +96,19 @@ export async function buildLauncherProjection(
       `Unable to read launcher summary pointers: ${summaries.error}`,
     );
   }
+  let candidateSummaries = summaries.summaries;
+  if (!readSummaries) {
+    const classification = await classifySummaryCandidates(
+      changesDir,
+      summaries.summaries.map((summary) => summary.id),
+    );
+    const validIds = new Set(classification.valid);
+    candidateSummaries = summaries.summaries.filter((summary) =>
+      validIds.has(summary.id),
+    );
+  }
   const reconciledSummaries = await Promise.all(
-    summaries.summaries.map(async (summary) => {
+    candidateSummaries.map(async (summary) => {
       if (
         summary.status === "draft" &&
         archiveDir &&
