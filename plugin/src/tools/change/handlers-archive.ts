@@ -685,10 +685,8 @@ export const advChangeArchiveHandler = async (
             : undefined,
         );
       }
-      // rq-archiveRetirement01: every successful archive MUST write the durable
-      // bundle. archiveChange already no-ops spec projection for zero-delta
-      // changes, so there is no safe "nothing to do" shortcut — skipping it
-      // destroys the record (restoreVendoredDesignSkills, 2026-08-16).
+      // Every successful archive writes the durable bundle, including zero-delta
+      // changes. Skipping this call would discard the archive record.
       archiveResult = await archiveChange({
         change,
         specs,

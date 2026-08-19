@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.47.0
-> **Updated:** 2026-08-08
+> **Version:** 1.47.1
+> **Updated:** 2026-08-18
 
 ## Purpose
 

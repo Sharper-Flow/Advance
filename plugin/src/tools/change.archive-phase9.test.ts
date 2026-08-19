@@ -95,6 +95,22 @@ describe("archive terminal proof", () => {
     }
   });
 
+  test("rejects non-shipped finalization before loading a release projection", async () => {
+    const current = change();
+    const result = await completeReleaseGateAfterFinalization({
+      store: store("/missing", current),
+      change: current,
+      changeId: current.id,
+      finalization: { ...shipped, status: "pending_merge" },
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error:
+        "Release gate requires successful Phase 9 finalization, got pending_merge",
+    });
+  });
+
   test("repairs release and Phase 9 metadata in an archived bundle without an active projection", async () => {
     const root = await createTempDir("adv-archive-proof-");
     try {
@@ -323,8 +339,11 @@ describe("archive terminal proof", () => {
         evidence: "Phase 9 finalization shipped; defaultBranch=trunk",
         change: current,
       });
-      expect(result.ok).toBe(false);
-      expect((result as { error: string }).error).toContain("status: missing");
+      expect(result).toMatchObject({
+        ok: false,
+        error:
+          "Cannot confirm release gate completion from disk projection (status: missing)",
+      });
     } finally {
       await cleanupTempDir(root);
     }
@@ -353,7 +372,11 @@ describe("archive terminal proof", () => {
         bundlePath: bundle,
         change: current,
       });
-      expect(result.ok).toBe(false);
+      expect(result).toMatchObject({
+        ok: false,
+        error:
+          "Cannot confirm release gate completion from disk projection (status: pending)",
+      });
     } finally {
       await cleanupTempDir(root);
     }

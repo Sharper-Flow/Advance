@@ -24,12 +24,39 @@ import {
   type GitFinalizeDeps,
 } from "../archive-helpers/git-finalize";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
-import { commitChangeProjection } from "../../storage/change-projection-transaction";
+import {
+  commitChangeProjection,
+  type ProjectionCommitOutcome,
+} from "../../storage/change-projection-transaction";
 import { canonicalSha256 } from "../../archive/projection";
 import { withArchiveProjectionLock } from "../../archive/projection-lock";
 import { refreshArchiveBundleProjectionUnderLock } from "../../archive/archive";
 
 const logger = createLogger("change");
+
+function formatArchiveBundleRefreshError(error: unknown): string {
+  return `Archive bundle refresh failed: ${error instanceof Error ? error.message : String(error)}`;
+}
+
+function getProjectionCommitError(
+  outcome: Exclude<ProjectionCommitOutcome, { kind: "committed" }>,
+): string {
+  switch (outcome.kind) {
+    case "committed_unverified":
+      return outcome.postconditionError;
+    case "state_revision_conflict":
+    case "operator_required":
+      return outcome.reason;
+    case "schema_error":
+    case "write_error":
+      return outcome.error;
+    case "stale_revision":
+    case "state_regression":
+    case "operation_conflict":
+    case "lock_timeout":
+      return `Archived bundle projection commit failed: ${outcome.kind}`;
+  }
+}
 
 export function getArchiveTaskPreflightError(change: {
   tasks: { id: string; title: string; status: string }[];
@@ -507,7 +534,7 @@ async function completeArchivedBundleRelease(input: {
       } catch (error) {
         return {
           ok: false,
-          error: `Archive bundle refresh failed: ${error instanceof Error ? error.message : String(error)}`,
+          error: formatArchiveBundleRefreshError(error),
         };
       }
       return {
@@ -594,22 +621,14 @@ async function completeArchivedBundleRelease(input: {
         } catch (error) {
           return {
             ok: false,
-            error: `Archive bundle refresh failed: ${error instanceof Error ? error.message : String(error)}`,
+            error: formatArchiveBundleRefreshError(error),
           };
         }
       },
     });
 
     if (outcome.kind !== "committed") {
-      const error =
-        "postconditionError" in outcome
-          ? outcome.postconditionError
-          : "reason" in outcome
-            ? outcome.reason
-            : "error" in outcome
-              ? outcome.error
-              : `Archived bundle projection commit failed: ${outcome.kind}`;
-      return { ok: false, error };
+      return { ok: false, error: getProjectionCommitError(outcome) };
     }
     const gate = outcome.readback.gates?.release;
     if (!gate || gate.status !== "done") {
