@@ -5,6 +5,7 @@ import { basename, join, relative } from "path";
 import { GATE_ORDER, type Change, type ProjectConfig } from "../../types";
 import type { Store } from "../../storage/store";
 import { loadAllSpecs, removeChangeDir } from "../../storage/json";
+import { loadChange } from "../../storage/change-projection-reader";
 import { validateChange } from "../../validator";
 import { advWorktreeDelete } from "../worktree";
 import { initStateDb as initWorktreeStateDb } from "../worktree/state";
@@ -642,31 +643,42 @@ export const advChangeArchiveHandler = async (
             `Worktree belongs to ${worktreeValidation.repoRoot}, expected ${activeStore.paths.root}.`,
         });
     }
-    // `change` comes from store.changes.get, which applies rq-terminalProjectionTruth01
-    // bundle dominance: an existing bundle synthesizes `status: "archived"` even when the
-    // active record was never retired (store-disk.ts). Dominance deliberately rewrites
-    // `status` only, so `lifecycleState` still carries the persisted truth. Gate the no-op
-    // on the retire step's own postcondition — status AND lifecycleState both archived, as
-    // asserted by the archive_transition verifyProjection below. Otherwise a bundle written
-    // before an interrupted retire makes every subsequent archive a silent no-op and the
-    // change can never leave the active list.
+    // Bundle dominance can synthesize archived status from the surviving bundle.
+    // A cleanly absent active projection therefore routes through bundle recovery
+    // even when a legacy bundle still carries open or missing lifecycle state.
     if (
       !dryRun &&
       change.status === "archived" &&
-      change.lifecycleState === "archived" &&
       existingBundlePath &&
       !archiveDeltaRepair
     ) {
-      return reconcileArchivedBundleRetry({
-        store: activeStore,
-        change,
+      const activeProjection = await loadChange(
+        activeStore.paths.changes,
         changeId,
-        archiveMode,
-        phase9,
-        existingBundlePath,
-        openOpsObligationsPayload,
-        validationWarnings: validationResult.warnings,
-      });
+      );
+      if (!activeProjection.success)
+        return formatToolOutput({
+          success: false,
+          error: activeProjection.error,
+          code: "CHANGE_PROJECTION_LOAD_FAILED",
+          projectionFailureType: activeProjection.type,
+          changeId,
+        });
+      if (
+        activeProjection.data === null ||
+        change.lifecycleState === "archived"
+      ) {
+        return reconcileArchivedBundleRetry({
+          store: activeStore,
+          change,
+          changeId,
+          archiveMode,
+          phase9,
+          existingBundlePath,
+          openOpsObligationsPayload,
+          validationWarnings: validationResult.warnings,
+        });
+      }
     }
 
     let archiveResult: import("../../archive/types").ArchiveOperationResult;
@@ -832,6 +844,9 @@ export const advChangeArchiveHandler = async (
         changeId,
         evidence: buildReleaseCompletionEvidence(finalization),
         finalization,
+        ...(releaseResult.recoveryMutation
+          ? { bundlePath: archiveResult.archivePath }
+          : {}),
         change,
       });
       if (!proof.ok)
@@ -849,6 +864,17 @@ export const advChangeArchiveHandler = async (
           ...openOpsObligationsPayload,
         });
       releaseGateCompletion = { ...releaseResult, gate: proof.gate };
+      if (releaseResult.recoveryMutation)
+        return reconcileArchivedBundleRetry({
+          store: activeStore,
+          change,
+          changeId,
+          archiveMode,
+          phase9,
+          existingBundlePath: archiveResult.archivePath,
+          openOpsObligationsPayload,
+          validationWarnings: validationResult.warnings,
+        });
     }
 
     if (

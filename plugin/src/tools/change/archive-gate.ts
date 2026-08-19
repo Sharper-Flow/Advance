@@ -518,7 +518,8 @@ async function completeArchivedBundleRelease(input: {
     const currentGate = loaded.data.gates?.release;
     if (
       currentGate?.status === "done" &&
-      loaded.data.phase9_status?.status === "done"
+      loaded.data.phase9_status?.status === "done" &&
+      loaded.data.lifecycleState === "archived"
     ) {
       try {
         const writeResult = await refreshArchiveBundleProjectionUnderLock({
@@ -556,6 +557,7 @@ async function completeArchivedBundleRelease(input: {
       changeId: input.changeId,
       releaseEvidence: evidence,
       phase9Status: "done",
+      lifecycleState: "archived",
     };
     const payloadHash = canonicalSha256(payload);
     const outcome = await commitChangeProjection({
@@ -578,6 +580,8 @@ async function completeArchivedBundleRelease(input: {
         }
         return {
           ...latest,
+          status: "archived",
+          lifecycleState: "archived",
           gates: {
             ...(latest.gates ?? {}),
             release:
@@ -604,6 +608,8 @@ async function completeArchivedBundleRelease(input: {
       },
       verify: ({ readback }) =>
         readback.id === input.changeId &&
+        readback.status === "archived" &&
+        readback.lifecycleState === "archived" &&
         readback.gates?.release?.status === "done" &&
         readback.phase9_status?.status === "done",
       afterCommit: async ({ readback }) => {
@@ -677,6 +683,15 @@ export async function verifyReleaseGateDurableForArchive(input: {
       error: loaded.error,
       code: "CHANGE_PROJECTION_LOAD_FAILED",
       projectionFailureType: loaded.type,
+    };
+  if (
+    input.bundlePath &&
+    loaded.data !== null &&
+    loaded.data.id !== input.changeId
+  )
+    return {
+      ok: false,
+      error: `Archive bundle identity mismatch: expected ${input.changeId}, got ${loaded.data.id}.`,
     };
   const gate = loaded.data?.gates?.release;
   const shipped = input.finalization?.status === "shipped";

@@ -38,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   closeLinkedIssue: vi.fn(),
   removeChangeDir: vi.fn(),
   loadAllSpecs: vi.fn(),
+  loadChange: vi.fn(),
   loadSpecsMap: vi.fn(),
   loadValidationContext: vi.fn(),
   validateChange: vi.fn(),
@@ -135,6 +136,17 @@ vi.mock("./recovery", () => ({
   loadSpecsMap: mocks.loadSpecsMap,
   closeLinkedIssue: mocks.closeLinkedIssue,
 }));
+
+vi.mock("../../storage/change-projection-reader", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("../../storage/change-projection-reader")
+    >();
+  return {
+    ...actual,
+    loadChange: mocks.loadChange,
+  };
+});
 
 vi.mock("./create-clarify", () => ({
   loadValidationContext: mocks.loadValidationContext,
@@ -293,6 +305,10 @@ describe("adv_change_archive partial archive-delta repair", () => {
     });
     mocks.loadSpecsMap.mockResolvedValue({});
     mocks.loadAllSpecs.mockResolvedValue([]);
+    mocks.loadChange.mockResolvedValue({
+      success: true,
+      data: makeChange(),
+    });
 
     mocks.readProjectionManifest.mockResolvedValue(null);
     mocks.archiveChange.mockImplementation(async (input: { change: Change }) =>
@@ -664,12 +680,8 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expect(mocks.archiveChange).not.toHaveBeenCalled();
   });
 
-  // Regression: store.changes.get applies bundle dominance, which synthesizes
-  // `status: "archived"` from an existing bundle while leaving lifecycleState at its
-  // persisted value. A change whose bundle was written but whose retire step never ran
-  // arrives here as status=archived + lifecycleState=open. Gating the no-op on status
-  // alone made every retry a silent no-op, stranding the change in the active list
-  // permanently. The retire path must still run.
+  // Bundle dominance can synthesize archived status while an active projection
+  // still carries open lifecycle state. Active state must continue through retire.
   it("still archives when bundle dominance synthesized the archived status", async () => {
     const change = makeChange({
       status: "archived",
@@ -689,6 +701,82 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expect(parsed.noOp).toBeUndefined();
     expect(mocks.reconcileArchivedBundleRetry).not.toHaveBeenCalled();
     expect(mocks.archiveChange).toHaveBeenCalled();
+  });
+
+  it("routes an open-lifecycle bundle to reconciliation when the active projection is absent", async () => {
+    const change = makeChange({
+      status: "archived",
+      lifecycleState: "open",
+      deltas: {},
+    });
+    seedForChange(change);
+    mocks.loadChange.mockResolvedValue({ success: true, data: null });
+    const store = makeStore(change);
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      { changeId: CHANGE_ID, phase9: "run" },
+      store,
+    );
+
+    expect(parseResult(result)).toMatchObject({ success: true, noOp: true });
+    expect(mocks.reconcileArchivedBundleRetry).toHaveBeenCalled();
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    expect(mocks.coordinateChangeMutation).not.toHaveBeenCalled();
+    expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
+  it("fails closed instead of reconciling when the active projection is corrupt", async () => {
+    const change = makeChange({
+      status: "archived",
+      lifecycleState: "open",
+      deltas: {},
+    });
+    seedForChange(change);
+    mocks.loadChange.mockResolvedValue({
+      success: false,
+      type: "corrupt",
+      error: "active projection is corrupt",
+    });
+    const store = makeStore(change);
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      { changeId: CHANGE_ID, phase9: "run" },
+      store,
+    );
+
+    expect(parseResult(result)).toMatchObject({
+      success: false,
+      code: "CHANGE_PROJECTION_LOAD_FAILED",
+      projectionFailureType: "corrupt",
+    });
+    expect(mocks.reconcileArchivedBundleRetry).not.toHaveBeenCalled();
+    expectNoRepairWrites();
+  });
+
+  it("proves a raced bundle recovery from the bundle and skips active retirement", async () => {
+    const change = makeChange({ status: "draft", deltas: {} });
+    seedForChange(change);
+    mocks.completeReleaseGateAfterFinalization.mockResolvedValue({
+      ok: true,
+      gate: { status: "done" },
+      alreadyDone: false,
+      recoveryMutation: true,
+    });
+    const store = makeStore(change);
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      { changeId: CHANGE_ID, phase9: "run" },
+      store,
+    );
+
+    expect(parseResult(result)).toMatchObject({ success: true, noOp: true });
+    expect(mocks.verifyReleaseGateDurableForArchive).toHaveBeenCalledWith(
+      expect.objectContaining({ bundlePath: BUNDLE_PATH }),
+    );
+    expect(mocks.coordinateChangeMutation).not.toHaveBeenCalled();
+    expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
   it("requires explicit approval before repairing an archived absent projection", async () => {

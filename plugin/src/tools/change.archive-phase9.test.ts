@@ -117,7 +117,7 @@ describe("archive terminal proof", () => {
       const archivedAt = "2026-01-02T03:04:05.000Z";
       const current = change({
         gates: { ...doneGates(), release: { status: "pending" } },
-        lifecycleState: "archived",
+        lifecycleState: "open",
         phase9_status: {
           status: "pending_merge",
           startedAt: "2026-01-02T02:00:00.000Z",
@@ -183,6 +183,7 @@ describe("archive terminal proof", () => {
       ) as Change;
       expect(repaired.gates?.release?.status).toBe("done");
       expect(repaired.phase9_status?.status).toBe("done");
+      expect(repaired.lifecycleState).toBe("archived");
       expect(repaired.phase9_status?.autoMergeArmed).toBe(true);
       expect(repaired.phase9_status?.mergeCommitSha).toBe("c".repeat(40));
       expect(repaired.projection_revision).toBe(1);
@@ -359,7 +360,6 @@ describe("archive terminal proof", () => {
         join(bundle, "change.json"),
         JSON.stringify(
           change({
-            id: "different",
             status: "active",
             gates: { ...doneGates(), release: { status: "pending" } },
           }),
@@ -376,6 +376,36 @@ describe("archive terminal proof", () => {
         ok: false,
         error:
           "Cannot confirm release gate completion from disk projection (status: pending)",
+      });
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
+  test("rejects release proof from a bundle with a foreign change identity", async () => {
+    const root = await createTempDir("adv-archive-proof-");
+    try {
+      const current = change();
+      const bundle = join(root, "bundle");
+      await mkdir(bundle, { recursive: true });
+      await writeFile(
+        join(bundle, "change.json"),
+        JSON.stringify(change({ id: "different" })),
+      );
+
+      const result = await verifyReleaseGateDurableForArchive({
+        store: store(root, current),
+        changeId: current.id,
+        evidence: "disk proof",
+        finalization: shipped,
+        bundlePath: bundle,
+        change: current,
+      });
+
+      expect(result).toMatchObject({
+        ok: false,
+        error:
+          "Archive bundle identity mismatch: expected example, got different.",
       });
     } finally {
       await cleanupTempDir(root);
