@@ -49,7 +49,7 @@ import {
   buildLiveStatusFailure,
   buildLiveStatusPayloadFromSummaries,
   filterTerminalSummaries,
-  loadLiveSummaries,
+  loadLiveSummariesWithResidue,
 } from "./lib/live-status";
 import {
   buildLiveEpicListFailure,
@@ -178,8 +178,8 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
     // The resume projection is advisory and is bounded independently. It must
     // never gate the status table — `.catch()` alone was insufficient because
     // it handles rejection but not a slow resolve.
-    const [summaries, terminalCounts, resumeOutcome] = await Promise.all([
-      loadLiveSummaries(projectId, now),
+    const [summaryLoad, terminalCounts, resumeOutcome] = await Promise.all([
+      loadLiveSummariesWithResidue(projectId, now),
       countTerminalChanges(root),
       settleWithinBudget(
         loadLiveResumeProjection(projectId),
@@ -187,13 +187,14 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       ),
     ]);
     const visibleSummaries = filterTerminalSummaries(
-      summaries,
+      summaryLoad.summaries,
       terminalCounts.terminalChangeIds,
     );
     const payload = buildLiveStatusPayloadFromSummaries(visibleSummaries, {
       projectId,
       now,
       ...terminalCounts,
+      summaryResidue: summaryLoad.summaryResidue,
     });
     // Always emit the state, even on success. An absent projection must be
     // explicable, never silently missing (DONT5).

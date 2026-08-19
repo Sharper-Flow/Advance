@@ -15,7 +15,37 @@ import {
 import type { ChangeRecord, ChangeSummary, LiveStatusPayload } from "./types";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { resolveAdvStateSubdir } from "./adv-state-paths";
+
+type SummaryResidue = NonNullable<LiveStatusPayload["summary_residue"]>;
+
+type SummaryCandidateClassification = {
+  valid: string[];
+  excluded: SummaryResidue["excluded"];
+};
+
+type SummaryCandidateClassifier = (
+  changesDir: string,
+  candidateIds: string[],
+) => Promise<SummaryCandidateClassification>;
+
+type LoadedSummaries = {
+  summaries: ChangeSummary[];
+  summaryResidue?: SummaryResidue;
+};
+
+type SummaryShard = {
+  id?: unknown;
+  title?: unknown;
+  status?: unknown;
+  phase?: unknown;
+  created_at?: unknown;
+  last_activity_at?: unknown;
+  completed_tasks?: unknown;
+  task_count?: unknown;
+  epic_membership?: { epic_id?: unknown };
+};
 
 export function summarizeLiveChanges(
   changes: ChangeRecord[],
@@ -103,6 +133,7 @@ export function buildLiveStatusPayloadFromSummaries(
     archivedCount: number;
     closedCount: number;
     now: Date;
+    summaryResidue?: SummaryResidue;
   },
 ): LiveStatusPayload {
   return {
@@ -117,6 +148,9 @@ export function buildLiveStatusPayloadFromSummaries(
       closed: options.closedCount,
     },
     changes: summaries,
+    ...(options.summaryResidue
+      ? { summary_residue: options.summaryResidue }
+      : {}),
   };
 }
 
@@ -132,6 +166,14 @@ export async function loadLiveSummaries(
   projectId: string,
   now: Date,
 ): Promise<ChangeSummary[]> {
+  const result = await loadSummariesFromDisk(projectId, now);
+  return result.summaries;
+}
+
+export async function loadLiveSummariesWithResidue(
+  projectId: string,
+  now: Date,
+): Promise<LoadedSummaries> {
   return loadSummariesFromDisk(projectId, now);
 }
 
@@ -154,55 +196,111 @@ function gateProgressFromPhase(phase: string): string {
  * path and are no longer updated. Reading summary pointers keeps the CLI
  * in sync with the aggregate launcher projection.
  */
-function loadSummariesFromDisk(projectId: string, now: Date): ChangeSummary[] {
+async function loadSummaryClassifier(): Promise<SummaryCandidateClassifier | null> {
+  const bundlePath =
+    process.env.ADV_SUMMARY_CANDIDATES_CLI_BUNDLE ??
+    join(import.meta.dir, "../../plugin/dist/summary-candidates-cli.js");
   try {
-    const summariesDir = resolveAdvStateSubdir(projectId, "summaries");
-    const entries = readdirSync(summariesDir);
-    const summaries: ChangeSummary[] = [];
-    for (const entry of entries) {
-      if (entry.startsWith(".")) continue;
-      try {
-        const pointer = JSON.parse(
-          readFileSync(join(summariesDir, entry, "current.json"), "utf8"),
-        );
-        if (!pointer.shard_path) continue;
-        const shard = JSON.parse(readFileSync(pointer.shard_path, "utf8"));
-        if (shard.status === "archived" || shard.status === "closed") continue;
+    const bundle = (await import(pathToFileURL(bundlePath).href)) as {
+      classifySummaryCandidates?: SummaryCandidateClassifier;
+    };
+    if (typeof bundle.classifySummaryCandidates !== "function") {
+      throw new Error("bundle does not export classifySummaryCandidates");
+    }
+    return bundle.classifySummaryCandidates;
+  } catch {
+    return null;
+  }
+}
 
-        const lastActivityAt = String(
-          shard.last_activity_at ?? shard.created_at ?? now.toISOString(),
-        );
-        const minutesSinceActivity = Math.max(
-          0,
-          Math.floor(
-            (now.getTime() - new Date(lastActivityAt).getTime()) / 60000,
-          ),
-        );
-        const phase = String(shard.phase ?? "proposal");
+async function loadSummariesFromDisk(
+  projectId: string,
+  now: Date,
+): Promise<LoadedSummaries> {
+  const summariesDir = resolveAdvStateSubdir(projectId, "summaries");
+  const changesDir = resolveAdvStateSubdir(projectId, "changes");
+  const classifySummaryCandidates = await loadSummaryClassifier();
+  let entries: string[];
+  try {
+    entries = readdirSync(summariesDir);
+  } catch {
+    return { summaries: [] };
+  }
+  const summaries: ChangeSummary[] = [];
+  const excluded: SummaryResidue["excluded"] = [];
+  const validationUnavailable = classifySummaryCandidates === null;
+  for (const entry of entries) {
+    if (entry.startsWith(".")) continue;
+    let shard: SummaryShard;
+    try {
+      const pointer = JSON.parse(
+        readFileSync(join(summariesDir, entry, "current.json"), "utf8"),
+      );
+      if (!pointer.shard_path) continue;
+      shard = JSON.parse(readFileSync(pointer.shard_path, "utf8"));
+    } catch {
+      // skip malformed summary pointer or shard
+      continue;
+    }
+    if (shard.status === "archived" || shard.status === "closed") continue;
 
-        summaries.push({
-          id: String(shard.id ?? entry),
-          title: String(shard.title ?? shard.id ?? entry),
-          status: String(shard.status ?? "draft"),
-          lifecycleState: "open",
-          recency: classifyRecency(minutesSinceActivity),
-          lastActivityAt,
-          minutesSinceActivity,
-          tasksDone: Number(shard.completed_tasks ?? 0),
-          tasksTotal: Number(shard.task_count ?? 0),
-          firstIncompleteGate: phase,
-          gateProgressStr: gateProgressFromPhase(phase),
-          ...(shard.epic_membership?.epic_id
-            ? { epicId: String(shard.epic_membership.epic_id) }
-            : {}),
-        });
-      } catch {
-        // skip malformed summary pointer or shard
+    const summaryId = String(shard.id ?? entry);
+    if (classifySummaryCandidates) {
+      const classification = await classifySummaryCandidates(changesDir, [
+        summaryId,
+      ]);
+      if (!classification.valid.includes(summaryId)) {
+        const exclusion = classification.excluded.find(
+          (candidate) => candidate.id === summaryId,
+        );
+        if (!exclusion) {
+          throw new Error(
+            `summary classifier did not classify candidate ${summaryId}`,
+          );
+        }
+        excluded.push(exclusion);
+        continue;
       }
     }
-    summaries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
-    return summaries;
-  } catch {
-    return [];
+
+    const lastActivityAt = String(
+      shard.last_activity_at ?? shard.created_at ?? now.toISOString(),
+    );
+    const minutesSinceActivity = Math.max(
+      0,
+      Math.floor(
+        (now.getTime() - new Date(lastActivityAt).getTime()) / 60000,
+      ),
+    );
+    const phase = String(shard.phase ?? "proposal");
+
+    summaries.push({
+      id: summaryId,
+      title: String(shard.title ?? shard.id ?? entry),
+      status: String(shard.status ?? "draft"),
+      lifecycleState: "open",
+      recency: classifyRecency(minutesSinceActivity),
+      lastActivityAt,
+      minutesSinceActivity,
+      tasksDone: Number(shard.completed_tasks ?? 0),
+      tasksTotal: Number(shard.task_count ?? 0),
+      firstIncompleteGate: phase,
+      gateProgressStr: gateProgressFromPhase(phase),
+      ...(shard.epic_membership?.epic_id
+        ? { epicId: String(shard.epic_membership.epic_id) }
+        : {}),
+    });
   }
+  summaries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
+  excluded.sort((a, b) => a.id.localeCompare(b.id));
+  const summaryResidue =
+    validationUnavailable || excluded.length > 0
+      ? {
+          excluded,
+          ...(validationUnavailable
+            ? { validation_unavailable: true as const }
+            : {}),
+        }
+      : undefined;
+  return { summaries, summaryResidue };
 }

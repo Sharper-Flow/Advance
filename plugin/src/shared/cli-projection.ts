@@ -113,6 +113,17 @@ export interface LiveStatusPayload {
    * full answer, so an absent projection is never silently ambiguous.
    */
   resume_projection_state?: unknown;
+  summary_residue?: {
+    excluded: Array<{
+      id: string;
+      reason:
+        | "canonical_missing"
+        | "canonical_terminal"
+        | "canonical_error";
+      detail?: string;
+    }>;
+    validation_unavailable?: true;
+  };
   error?: string;
   remediation?: string;
 }
