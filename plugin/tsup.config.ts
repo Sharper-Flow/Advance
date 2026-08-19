@@ -9,6 +9,7 @@ export default defineConfig({
     "mcp-server": "src/mcp-server/index.ts",
     "reconcile-cli": "src/reconcile-cli.ts",
     "doctor-cli": "src/doctor-cli.ts",
+    "summary-candidates-cli": "src/summary-candidates-cli.ts",
   },
   format: ["esm"],
   splitting: false,
