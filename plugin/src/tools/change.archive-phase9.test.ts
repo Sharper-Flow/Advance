@@ -239,6 +239,60 @@ describe("archive terminal proof", () => {
     }
   });
 
+  test("audits terminal status convergence instead of treating it as an exact replay", async () => {
+    const root = await createTempDir("adv-archive-proof-");
+    try {
+      const archivedAt = "2026-01-02T03:04:05.000Z";
+      const current = change({
+        status: "draft",
+        lifecycleState: "archived",
+        phase9_status: {
+          status: "done",
+          startedAt: "2026-01-02T02:00:00.000Z",
+          completedAt: "2026-01-02T03:00:00.000Z",
+        },
+      });
+      const bundle = join(root, "archive", "2026-01-02-example");
+      await mkdir(bundle, { recursive: true });
+      const initialChangeJson = `${JSON.stringify(current, null, 2)}\n`;
+      await writeFile(join(bundle, "change.json"), initialChangeJson);
+      await writeFile(
+        join(bundle, TERMINAL_SUMMARY_FILE),
+        serializeTerminalArchiveSummary(
+          buildTerminalArchiveSummary({
+            change: { ...current, status: "archived" },
+            archivedAt,
+            changeHash: sha256HexString(initialChangeJson),
+          }),
+        ),
+      );
+
+      const result = await completeReleaseGateAfterFinalization({
+        store: store(root, current),
+        change: current,
+        changeId: current.id,
+        finalization: shipped,
+        existingBundlePath: bundle,
+      });
+
+      expect(result).toMatchObject({
+        ok: true,
+        alreadyDone: false,
+        recoveryMutation: true,
+      });
+      const repaired = JSON.parse(
+        await readFile(join(bundle, "change.json"), "utf8"),
+      ) as Change;
+      expect(repaired.status).toBe("archived");
+      expect(repaired.projection_revision).toBe(1);
+      expect(repaired.projection_commits?.at(-1)?.mutation_kind).toBe(
+        "archive_release_recovery",
+      );
+    } finally {
+      await cleanupTempDir(root);
+    }
+  });
+
   test("does not route a corrupt active projection through archived-bundle recovery", async () => {
     const root = await createTempDir("adv-archive-proof-");
     try {

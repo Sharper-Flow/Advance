@@ -517,6 +517,7 @@ async function completeArchivedBundleRelease(input: {
 
     const currentGate = loaded.data.gates?.release;
     if (
+      loaded.data.status === "archived" &&
       currentGate?.status === "done" &&
       loaded.data.phase9_status?.status === "done" &&
       loaded.data.lifecycleState === "archived"
