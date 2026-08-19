@@ -1,0 +1,852 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchivedBundleProof",
+  "title": "Fix archived bundle proof",
+  "status": "archived",
+  "created_at": "2026-08-19T00:55:39.663Z",
+  "tasks": [
+    {
+      "id": "tk-3a6a62aed410",
+      "title": "Route legacy bundles through same-authority recovery",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-19T01:07:41.163Z",
+      "started_at": "2026-08-19T01:22:43.006Z",
+      "completed_at": "2026-08-19T01:54:42.007Z",
+      "verification": "Acceptance review found AC4 exact-replay guard could bypass audited status convergence. RED tr_mszfsnlx_3757af89 reproduced; GREEN tr_mszftb9w_bf4d71be passed 25 tests plus typecheck. Acceptance reviewer attempt 2 returned READY in report fixArchivedBundleProof|change:review:acceptance|adv-reviewer|2.",
+      "summary": "Acceptance review found AC4 exact-replay guard could bypass audited status convergence. RED tr_mszfsnlx_3757af89 reproduced; GREEN tr_mszftb9w_bf4d71be passed 25 tests plus typecheck. Acceptance reviewer attempt 2 returned READY in report fixArchivedBundleProof|change:review:acceptance|adv-reviewer|2.",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "291faae98cd1415d48d43ee235490a1eabe702e9",
+      "completedAt": "2026-08-19T01:54:42.007Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline"
+      }
+    },
+    {
+      "id": "tk-c13199620d6e",
+      "title": "Verify archived proof routing and regressions",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3a6a62aed410"
+        }
+      ],
+      "created_at": "2026-08-19T01:07:54.384Z",
+      "started_at": "2026-08-19T01:33:49.167Z",
+      "completed_at": "2026-08-19T01:45:19.858Z",
+      "verification": "Durable focused verification tr_mszfilrr_3da738ea passed 64 tests plus typecheck, lint, and scoped formatting. Independent adv-verifier ses_fe8589f55ffer4xTEJkRWhPocG ran full lane (5137 passed, 1 skipped, 12 todo), production build, and architecture check; all exited 0. Worktree remained clean.",
+      "summary": "Durable focused verification tr_mszfilrr_3da738ea passed 64 tests plus typecheck, lint, and scoped formatting. Independent adv-verifier ses_fe8589f55ffer4xTEJkRWhPocG ran full lane (5137 passed, 1 skipped, 12 todo), production build, and architecture check; all exited 0. Worktree remained clean.",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/handlers-archive.partial-repair.test.ts",
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "d62320e2f6bf3941d909399bd744345f59e0b759",
+      "completedAt": "2026-08-19T01:45:19.858Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      }
+    },
+    {
+      "id": "tk-e555d1cae864",
+      "title": "Deploy and complete archived release recovery",
+      "type": "ops",
+      "section": "Operations",
+      "status": "cancelled",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c13199620d6e"
+        }
+      ],
+      "created_at": "2026-08-19T01:08:08.125Z",
+      "completed_at": "2026-08-19T01:47:02.499Z",
+      "completedAt": "2026-08-19T01:47:02.499Z",
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Deployment and archive recovery are operator effects, not unit-test behavior. Proof comes from deploy output, adv_change_archive results, Git reachability, and seven-gate readback after runtime activation.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "artifact_reference",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "tdd_reason": "Operator deployment and archived-state recovery are verified through structural tool readback, not a logic-bearing test cycle.",
+        "delegation_hint": "inline"
+      },
+      "notes": "Sequencing repair: deploy/restart/archive recovery cannot run before acceptance and archive sign-off without creating a gate cycle. The same operation remains required as post-archive release continuation."
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBundleProof",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:proof-authority"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: archived-bundle release proof authority routing",
+      "sources": [
+        {
+          "label": "handlers-archive.ts reconcile gate + proof call",
+          "locator": "plugin/src/tools/change/handlers-archive.ts:645-670,813-852,930-992",
+          "summary": "Gate requires lifecycleState==='archived' to route reconcile; proof call at 830 passes no bundlePath; retire step runs coordinateChangeMutation against activeStore.paths.changes unconditionally when !dryRun."
+        },
+        {
+          "label": "archive-gate.ts recovery + verifier",
+          "locator": "plugin/src/tools/change/archive-gate.ts:483-705,707-791,793-868",
+          "summary": "completeArchivedBundleRelease only runs when loadChange(active).data===null, commits under withArchiveProjectionLock, returns recoveryMutation:true. verifyReleaseGateDurableForArchive already accepts bundlePath; no identity check on bundlePath reads. recoveryMutation returned only from bundle repair."
+        },
+        {
+          "label": "change-projection-transaction.ts fail-fast",
+          "locator": "plugin/src/storage/change-projection-transaction.ts:300-309,366-371",
+          "summary": "commitChangeProjection fails closed with operator_required when the projection file is absent ('change not found'). Retire step cannot succeed with missing active projection."
+        },
+        {
+          "label": "change-mutation-coordinator.ts",
+          "locator": "plugin/src/tools/change-mutation-coordinator.ts:64-72,91-109",
+          "summary": "Coordinator delegates to commitChangeProjectionWithSummary/commitChangeProjection; 'a missing projection directory remains a fail-closed operator-required result'."
+        },
+        {
+          "label": "Spec advance-workflow.md",
+          "locator": "docs/specs/advance-workflow.md:778-865,869-952",
+          "summary": "rq-releaseProjectionDurability01 main body + .3: active-absent + surviving bundle MUST repair via bundle commit; exact replay no-op. rq-archiveTerminalDurability01.1: existing-bundle reconciliation commits against the bundle 'without recreating active state'."
+        },
+        {
+          "label": "Tests pinning current semantics",
+          "locator": "plugin/src/tools/change.archive-phase9.test.ts:241-383; plugin/src/tools/change/handlers-archive.partial-repair.test.ts:359-364,644-692",
+          "summary": "Verifier standalone fail-closed tests (status: missing/pending), corrupt-active never routes to bundle recovery, bundlePath input already exercised; partial-repair harness mocks coordinateChangeMutation and pins lifecycleState=open general-path intent for the ACTIVE-PRESENT case."
+        }
+      ],
+      "architecture_assessment": "Causal path CONFIRMED at source level. (1) Legacy bundle (lifecycleState open/absent via dominance, handlers-archive.ts:645-652) fails the reconcile gate at :653-659 (requires lifecycleState==='archived'); zero-delta changes also skip the delta-repair gate at :404-405, so the run enters the general path. (2) completeReleaseGateAfterFinalization sees loadChange(active).data===null (the only way 'repaired archive bundle' is observable) and routes to completeArchivedBundleRelease, which commits release+phase9 into the bundle under withArchiveProjectionLock and returns recoveryMutation:true (archive-gate.ts:719-734,544,644). (3) The proof at handlers-archive.ts:830 passes no bundlePath, so verifyReleaseGateDurableForArchive reads the absent ACTIVE projection and emits exactly the observed 'Cannot confirm release gate completion from disk projection (status: missing)' (archive-gate.ts:669-672,686). Typed routing choice is sound: bundlePath is an existing tested verifier input (archive-gate.ts:654; test :352-383), recoveryMutation is the exact typed discriminator of 'durable completion now lives in the bundle', single production call site, and the iff-condition is load-bearing — unconditional bundlePath would false-block normal archives because the bundle is written at :690 BEFORE release completion. Lock/proof consistency holds: repair commits under archive projection lock with in-lock readback verify and archived_at-preserving refresh; the unlocked post-commit proof read matches the established reconcile pattern; shipped-authoritative evidence bypass is spec-sanctioned (rq-releaseProjectionDurability01.4). Active-path regression risk LOW: strictly conditional on recoveryMutation===true; active-present and corrupt-active runs keep identical behavior (corrupt never routes to bundle recovery, pinned by test :241-276). CRITICAL GAP: the fix is necessary but NOT sufficient for the observed live failure. After the proof passes, the same run reaches the archive_transition retire (handlers-archive.ts:930-992) which mutates activeStore.paths.changes via coordinateChangeMutation — and commitChangeProjection fails closed on an absent projection (change-projection-transaction.ts:300-309,366-371), returning ARCHIVE_MUTATION_OPERATOR_REQUIRED ('Archive status transition was not verified.'). The live archive moves from blocked-at-proof to blocked-at-retire. Spec-mandated route for active-absent + surviving bundle is existing-bundle reconciliation 'without recreating active state' (rq-archiveTerminalDurability01.1; rq-releaseProjectionDurability01 main body/.3), i.e. reconcileArchivedBundleRetry — which the legacy bundle currently cannot reach purely because of the lifecycleState clause.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Causal path, typed routing, lock/proof consistency, and low active-path regression risk all CONFIRMED. Caution (not fail) because the proposal as scoped does not complete the observed archive: with the proof fixed, the same run blocks at the retire step (ARCHIVE_MUTATION_OPERATOR_REQUIRED) since the active projection is absent — the very precondition that triggered bundle recovery. A companion routing repair is required in the same change, or the AC must be re-scoped to proof-consistency-only (contradicting the change goal)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Conditional bundlePath keeps the proof an independent durable read (vs verifying inside the repair commit, weakening the two-step complete-then-prove design).",
+          "Routing active-absent legacy bundles to reconcile makes retry a no-op success without terminal cleanup — but the general path's retire is structurally impossible there (fail-closed transaction), so reconcile is the only spec-compliant completion.",
+          "Extending gate 653 needs an explicit active-absent probe (loadChange) — one extra read per archive retry; cheap and explicit.",
+          "Reconcile path never runs closeLinkedIssue and never converges bundle lifecycleState to archived — stable idempotent no-op retries, but residual non-convergence vs rq-archiveTerminalDurability01 main-body agreement clause."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Conditional bundlePath proof routing (proposed) + gate-653 reconcile routing for active-absent bundles, landed together",
+            "disposition": "preferred",
+            "rationale": "Proof routing is correct, minimal, typed; routing repair (extend handlers-archive.ts:653: also reconcileArchivedBundleRetry when existingBundlePath is set and active projection is cleanly absent, via explicit loadChange probe) is the spec-mandated completion route (rq-archiveTerminalDurability01.1 'without recreating active state'; rq-releaseProjectionDurability01.3 exact-replay no-op). Preserves interrupted-retire protection: active-present + lifecycleState=open still takes general path (comment :645-652, partial-repair test :673-692)."
+          },
+          {
+            "option": "Proposed conditional bundlePath alone (as scoped in packet)",
+            "disposition": "deferred",
+            "rationale": "Necessary for proof/bundle consistency but insufficient: retire step then fails closed on missing active projection (change-projection-transaction.ts:300-309) — archive still cannot complete."
+          },
+          {
+            "option": "Unconditional bundlePath whenever a bundle exists",
+            "disposition": "rejected",
+            "rationale": "Bundle snapshot is written at :690 before release completion; reading it for proof would false-block normal archives with release pending."
+          },
+          {
+            "option": "Verifier-internal bundle fallback when active missing",
+            "disposition": "rejected",
+            "rationale": "Hidden lookup weakens caller-specified projection explicitness; semantics become implicit; identity of what was proven is murkier."
+          },
+          {
+            "option": "Recreate active projection so retire succeeds",
+            "disposition": "rejected",
+            "rationale": "Violates rq-archiveTerminalDurability01.1 'without recreating active state'; resurrection risk."
+          },
+          {
+            "option": "Commit archive_transition into the bundle inside the general path",
+            "disposition": "rejected",
+            "rationale": "Duplicates reconcile semantics outside the single reconciliation owner; more invasive; reconcile already implements it under lock."
+          }
+        ],
+        "recommendation": "Proceed CONFIRMED_WITH_CAUTION: land the conditional bundlePath exactly as proposed, plus in the same change (1) extend the gate at handlers-archive.ts:653 to also route to reconcileArchivedBundleRetry when existingBundlePath is set and the active projection is cleanly absent (explicit loadChange(activeStore.paths.changes, changeId) probe — corrupt still fails closed), so the observed legacy archive can actually complete; (2) add an identity guard (loaded.data.id === changeId) to verifyReleaseGateDurableForArchive when bundlePath is set, mirroring archive-gate.ts:511-516; (3) write the legacy lifecycle-open/absent bundle test END-TO-END through advChangeArchiveHandler with a real temp store and real retire path — the existing harness mocks coordinateChangeMutation (:359-364) and would mock away the retire-step block, pinning a false green; (4) optionally include lifecycleState:'archived' in the recovery mutation so the bundle record converges and future retries take the plain gate."
+      },
+      "recommendation": "CONFIRMED_WITH_CAUTION. Causal path verified end-to-end in source; proposed conditional bundlePath is correct, minimal, low-regression — but alone it relocates the live block from the proof step to the retire step (ARCHIVE_MUTATION_OPERATOR_REQUIRED, change-projection-transaction.ts:300-309). Pair it with the gate-653 routing repair (reconcile when bundle exists + active projection cleanly absent), add the bundlePath identity guard, and test through the real handler without mocking the retire mutation.",
+      "follow_ups": [
+        "Packet SCOPE KEY 'design-validation:proof-authority' is not lane-prefixed; typed schema requires researcher:<slug>; submitted as researcher:proof-authority — orchestrator should fix the spawn pattern.",
+        "Add identity check for bundlePath reads in verifyReleaseGateDurableForArchive (currently absent; foreign-id bundle accepted by routing, see change.archive-phase9.test.ts:352-383).",
+        "Reconcile path does not close linked issues (closeLinkedIssue only runs in the general path, handlers-archive.ts:1089) — verify the live change has no open linked issue or accept the gap.",
+        "Bundle lifecycleState never converges to archived via reconcile repair (no archive-writer sets it; grep shows pass-through only) — consider setting it in the recovery mutation per rq-archiveTerminalDurability01 agreement clause."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBundleProof",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBundleProof",
+      "task_id": "tk-3a6a62aed410",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3a6a62aed410"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+          "pnpm --dir plugin run typecheck",
+          "pnpm --dir plugin exec eslint src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+          "pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Focused archive recovery suites: 24/24 passed. TypeScript typecheck, scoped ESLint, and Prettier checks passed. git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Verification was limited to the two affected archive-recovery suites plus static checks; no broader suite was run."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec eslint src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBundleProof",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBundleProof",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "lifecycle-convergence-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/change/archive-gate.ts",
+          "line": 519,
+          "what": "A bundle with status other than archived but archived lifecycle, a done release gate, and done Phase 9 returns as already complete without correcting status.",
+          "why": "AC4 requires recovery to converge status, lifecycle, release gate, and Phase 9. The early idempotence condition checks only lifecycle, gate, and Phase 9, although the recovery mutation itself sets status.",
+          "fix": "Require loaded.data.status === \"archived\" for the no-op path; otherwise run the existing recovery mutation. Add a regression test starting with status draft and the other three fields complete."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change.archive-phase9.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "fail",
+        "evidence": "Focused Vitest passed: 2 files, 24 tests. `pnpm --dir plugin run check` reached prompt-budget validation and failed because floorBytes 232423 (+1142) exceeds 231281 and instructionCount 44 (+2) exceeds 42. The reviewed diff changes only four archive source/test files, so the check failure is not attributable to this diff, but it prevents independent green static verification."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Bundle status can remain non-archived while lifecycle, release gate, and Phase 9 report archived/done.",
+        "Repository-wide prompt-budget check is currently red outside this diff."
+      ],
+      "required_main_agent_actions": [
+        "Fix lifecycle-convergence-1 in plugin/src/tools/change/archive-gate.ts and add its focused regression test.",
+        "Diagnose and repair the repository prompt-budget regression before acceptance/archive quality can be green."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBundleProof",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBundleProof",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "pnpm --dir plugin exec tsc --noEmit"
+        ],
+        "results": "pass",
+        "evidence": "Focused archive terminal-proof suite passed: 1 file, 10 tests. TypeScript typecheck exited successfully. The repaired exact-replay guard now requires archived status; the added regression proves draft status triggers audited recovery, revision increment, and archived convergence."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBundleProof",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBundleProof",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "READY. Merge compatibility passed. Test coverage, production, documentation, cleanup, slop, and deployment dimensions checked with no blocking findings. Exact-replay spec wording remains correct because non-terminal status is not an exact terminal replay; no spec change required. Full lane 5,137 passed; build, typecheck, lint, format, and architecture checks passed. Cancelled ops task has explicit user approval and unchanged post-archive continuation.",
+      "findings": [],
+      "follow_ups": []
+    }
+  ],
+  "test_runs": {
+    "tk-3a6a62aed410": [
+      {
+        "runId": "tr_mszes9jb_eb56b9fc",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 2445.0618619997986,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T01:24:25.493Z"
+      },
+      {
+        "runId": "tr_mszeu2rs_2e09762a",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 2096.2202250002883,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T01:25:49.956Z"
+      },
+      {
+        "runId": "tr_mszeus78_6705194a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 2106.094144999981,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T01:26:22.865Z"
+      },
+      {
+        "runId": "tr_mszewc92_a43a6e74",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin run lint && pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 30052.513700999785,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T01:27:35.568Z"
+      },
+      {
+        "runId": "tr_mszfsnlx_3757af89",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 2381.909673999995,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T01:52:43.511Z"
+      },
+      {
+        "runId": "tr_mszftb9w_bf4d71be",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts && pnpm --dir plugin run typecheck",
+        "durationMs": 12312.67656599963,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T01:53:14.186Z"
+      }
+    ],
+    "tk-c13199620d6e": [
+      {
+        "runId": "tr_mszfilrr_3da738ea",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin run lint && pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 30115.310984000098,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T01:44:54.102Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-19T00:55:59.842Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the narrow tracked follow-up after reviewing the observed failure, root cause, scope, and preservation constraints."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-19T00:56:07.397Z",
+      "completed_by": "agent:adv-problem",
+      "approval_evidence": "Live post-restart evidence established the causal split: archive-bundle recovery mutation succeeded, but the general handler's subsequent verifyReleaseGateDurableForArchive call omitted bundlePath and read the absent active projection. Existing spec law already requires same-authority readback."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-19T01:07:08.338Z",
+      "completed_by": "agent:adv-design",
+      "approval_evidence": "Independent validator fixArchivedBundleProof|change:researcher:proof-authority|adv-researcher|1 returned CONFIRMED_WITH_CAUTION. Design now includes clean-absence early routing, bundle-backed proof, no active-retire fallthrough, lifecycle convergence, identity validation, and real handler-level coverage. No contract compromise or user-value tradeoff remains."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-19T01:22:03.948Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the three-task graph: inline-TDD implementation, independent verification, then merged-default deploy/restart and recovery of both archived changes."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-19T01:48:02.535Z",
+      "completed_by": "agent:adv-apply",
+      "approval_evidence": "Implementation and verification complete. RED tr_mszes9jb_eb56b9fc; focused/static verification tr_mszfilrr_3da738ea; full lane 5,137 passed; production build and architecture check passed; independent reviewer READY. User-approved cyclic ops task cancellation moved unchanged deployment/recovery work to post-archive continuation."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-19T02:17:11.394Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted same-authority archived-bundle recovery after READY review and full verification.; User replied “continue” to the fixArchivedBundleProof acceptance checkpoint after 5,137 passing tests, successful build/architecture checks, and READY independent review."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "# Fix archived bundle proof\n\n## Intent\n\nMake existing-bundle archive recovery select, mutate, prove, and finish from the surviving archive projection when no active projection exists.\n\n## Root Cause Analysis\n\n### Observed failure\n\nAfter deploying `fixArchivedReleaseRepair`, retry correctly committed `gates.release.status=done` and `phase9_status.status=done` into the archive bundle, but returned:\n\n`Archive durable release gate proof blocked: Cannot confirm release gate completion from disk projection (status: missing)`\n\n### Causal path\n\nLegacy bundles may have `status=archived` through bundle dominance while `lifecycleState` remains open or absent. The handler bypasses `reconcileArchivedBundleRetry` and follows the general archive path. Bundle recovery mutation then succeeds, but the next proof reads the deleted active projection. Even if that proof were corrected alone, the handler would next attempt active-only `archive_transition` and fail with `ARCHIVE_MUTATION_OPERATOR_REQUIRED`.\n\n### Owning invariant\n\nA cleanly absent active projection plus validated existing bundle must route the whole terminal recovery through that bundle. Mutation, proof, lifecycle convergence, and terminal return must share one authority; bundle recovery must never fall through to active retirement or cleanup.\n\n## Scope\n\n- Structurally route clean active absence to existing-bundle reconciliation before lifecycle-state heuristics.\n- Route any bundle recovery proof to the repaired bundle and skip active-only transition/cleanup.\n- Converge bundle lifecycle state in the recovery transaction.\n- Reject foreign-ID bundle proof.\n- Add real handler-level legacy lifecycle-open/absent regression coverage.\n- Preserve active projection behavior and all existing release-proof, locking, idempotence, and no-resurrection rules.\n- Deploy from merged trunk, restart runtime, then retry both archived recovery changes.\n\n## Spec-Law Impact\n\n**No spec-law change.** `rq-releaseProjectionDurability01.3` and `rq-archiveTerminalDurability01.1` already require same-authority bundle recovery, readback, terminal convergence, and exact replay.",
+    "problemStatement": "## Confirmed Problem\n\nArchive-bundle mutation now succeeds after active state removal, but the general archive path still performs its next durable proof against the missing active projection. Legacy bundles with open or absent `lifecycleState` therefore finish release state but report command failure.\n\n## Root Cause Analysis\n\nBundle dominance synthesizes terminal status without guaranteeing terminal lifecycle state. That bypasses the dedicated no-op reconciliation branch. The shared post-finalization proof call does not follow `releaseResult.recoveryMutation` back to `archiveResult.archivePath`, causing mutation-authority/proof-authority split.\n\n## Success Signal\n\nGiven a legacy archive bundle with release pending, no active projection, and lifecycle state open or absent, retry returns success; bundle readback reports release and Phase 9 done; exact replay remains a no-op; no active projection is recreated.",
+    "agreement": "# Agreement — Archived bundle proof alignment\n\n## Objectives\n\n- **O1:** Route cleanly active-absent legacy bundles through existing-bundle reconciliation regardless of stale or missing lifecycle state.\n- **O2:** Make any post-repair durable proof read the same archive bundle selected for recovery mutation.\n- **O3:** Converge the surviving bundle to terminal lifecycle state without recreating active state or attempting active retirement.\n- **O4:** Preserve release authority, lock order, idempotence, active-path behavior, and fail-closed guarantees.\n\n## Acceptance Criteria\n\n- **AC1:** A legacy bundle with active projection absent and `lifecycleState` open or missing returns archive success after shipped proof.\n- **AC2:** A clean active-projection absence plus validated existing bundle routes to `reconcileArchivedBundleRetry` before general-path archive transition; corrupt/unreadable active projection does not.\n- **AC3:** When `releaseResult.recoveryMutation === true`, durable proof reads `archiveResult.archivePath` and no active `archive_transition`, worktree cleanup, branch cleanup, or issue-closure side effect is attempted.\n- **AC4:** Archived bundle readback reports `gates.release.status=done`, `phase9_status.status=done`, and `lifecycleState=archived`.\n- **AC5:** Exact replay adds no projection revision and repeats no finalization or cleanup side effects.\n- **AC6:** Active-projection archives continue proving from active state before terminal synchronization.\n- **AC7:** Bundle-path verification rejects foreign bundle identity; corrupt, mismatched, or unverified bundle state still fails closed.\n- **AC8:** Focused archive tests, typecheck, lint, full suite, and production build pass.\n\n## Post-Archive Continuation\n\nAfter this change passes acceptance and archive sign-off, the release workflow must deploy from merged default, honor the required runtime restart, and retry both `fixArchivedReleaseRepair` and PokeEdge `unifyPricingSourcePrecedence` until archive success and seven done gates are proven. This remains part of the user-requested end-state but is not an execution-gate task, because archive and runtime activation must occur first.\n\n## Constraints\n\n- No active projection recreation or direct external-state editing.\n- No new tool, startup reconciler, sweep, or reaper.\n- No weaker Git/PR release evidence.\n- No duplicate archive writer.\n- No spec-law wording change unless implementation proves current law insufficient.\n\n## Avoidances\n\n- Do not infer clean absence from status alone; use typed projection read outcome.\n- Do not let a bundle recovery fall through to active-only retirement.\n- Do not accept a bundle whose internal change ID differs from the requested change.",
+    "design": "# Design — Align recovery route and proof authority\n\n## Architecture\n\n```text\nexisting bundle found\n  → load active projection structurally\n     ├─ corrupt/oversized/unreadable → fail closed\n     ├─ data === null               → reconcileArchivedBundleRetry\n     └─ active projection exists    → current archive path\n\ncurrent archive path race fallback\n  → completeReleaseGateAfterFinalization\n  → if recoveryMutation\n       verify bundlePath = archiveResult.archivePath\n       return reconciliation success without active retire/cleanup\n  → otherwise prove active projection and continue current transition\n```\n\n## Decisions\n\n### D1 — Clean absence routes before lifecycle heuristics\n\nAt the existing-bundle no-op gate, load the active projection. A successful `data === null` read is structural evidence that no active record survives. Route directly to `reconcileArchivedBundleRetry` even when the legacy bundle has open, absent, or stale `lifecycleState`. Typed read failures remain blockers.\n\n### D2 — Recovery mutation and proof share authority\n\nWhen `ArchiveReleaseGateResult.recoveryMutation === true`, call `verifyReleaseGateDurableForArchive` with `bundlePath: archiveResult.archivePath`. Active-backed results keep current proof inputs.\n\n### D3 — Recovery never falls through to active retirement\n\nAfter a bundle-backed proof, return reconciliation success before `coordinateChangeMutation(... archive_transition)`, issue closure, worktree cleanup, branch cleanup, or active-directory removal. This also closes the race where active state disappears after the initial structural probe.\n\n### D4 — Bundle lifecycle converges\n\n`completeArchivedBundleRelease` sets `lifecycleState: archived` in the same recovery transaction as release and Phase 9 completion. No active state is recreated.\n\n### D5 — Bundle proof verifies identity\n\n`verifyReleaseGateDurableForArchive` rejects a bundle projection whose internal `change.id` differs from the requested `changeId`, before accepting release evidence.\n\n## Test Strategy\n\n1. RED integration fixture: existing bundle, no active projection, lifecycle open/absent, release pending; current command repairs state then fails proof or active retire.\n2. GREEN: handler routes to reconciliation and returns success; bundle has release, Phase 9, and terminal lifecycle state.\n3. Race fallback: `recoveryMutation=true` selects bundle proof and skips active retire/cleanup.\n4. Exact replay: no extra projection revision or side effects.\n5. Active-path regression: proof remains active-backed when recovery mutation is absent.\n6. Foreign-ID, corrupt, and mismatched bundle regressions remain fail-closed.\n\n## Spec-Law Impact\n\nNo change. Existing `rq-releaseProjectionDurability01.3` and `rq-archiveTerminalDurability01.1` already mandate bundle-backed recovery, readback, terminal convergence, and no active recreation.\n\n## Validation\n\nIndependent validator verdict: **CONFIRMED_WITH_CAUTION**, high confidence. The original conditional proof fix was necessary but insufficient because the handler would next attempt active-only retirement. This design incorporates all required cautions: clean-absence early routing, bundle identity verification, lifecycle convergence, real handler-level regression coverage, and a race fallback that cannot reach active cleanup.",
+    "executiveSummary": "# Executive Summary\n\nAdvance now routes legacy archive bundles through the surviving archive projection whenever the active change projection is cleanly absent, even if the bundle still carries stale or missing lifecycle state.\n\nRecovery mutation, durable proof, lifecycle convergence, and terminal return now use the same bundle authority. Bundle-backed recovery cannot fall through to active-only retirement, cleanup, or issue closure. Corrupt active projections and foreign bundle identities remain fail-closed.\n\nExact replay requires status, lifecycle, release, and Phase 9 to be terminal before it can skip the audited recovery transaction. Active-projection archives keep their existing proof path.\n\nVerification passed: natural red/green reproductions, 64 focused tests, 5,137 full-suite tests, TypeScript checks, lint, formatting, architecture checks, and production build. Independent task and acceptance reviews are READY. Deployment, runtime restart, and recovery of the two already archived changes remain the approved post-archive continuation."
+  },
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "source_change_id": "unifyPricingSourcePrecedence",
+    "linked_at": "2026-08-19T00:55:38.340Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 30,
+  "projection_commits": [
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User approved the narrow tracked follow-up after reviewing the observed failure, root cause, scope, and preservation constraints.",
+      "operation_id": "mutation:gate_completion:fixArchivedBundleProof:894d5b76-5d30-4b06-b59f-dc0150d54ac6",
+      "payload_hash": "9d889c79bb98d8c54b6a0b9b356a5eeffa83a8c349e01c5edf3bbb6715edf478",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-19T00:55:59.847Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Live post-restart evidence established the causal split: archive-bundle recovery mutation succeeded, but the general handler's subsequent verifyReleaseGateDurableForArchive call omitted bundlePath and read the absent active projection. Existing spec law already requires same-authority readback.",
+      "operation_id": "mutation:gate_completion:fixArchivedBundleProof:6ae6fd73-8144-4f2d-99b8-26c1d01359f7",
+      "payload_hash": "e242a764215b8e2389bb1772258b9fce2993dfb07b47800ad016b0be5bf37978",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-19T00:56:07.423Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedBundleProof|change:researcher:proof-authority|adv-researcher|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedBundleProof:32a910d8-6659-4117-a061-6cd07f819e4b",
+      "payload_hash": "bc19949ffec22c4afc8c11ec9da7954992ae7a63d994cf3216a20310dba7e7ff",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-19T01:05:46.582Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivedBundleProof:294bc5c3-50c3-4687-b27c-5debcce638f4",
+      "payload_hash": "ec842de25fa048413817bce56e607ca56a54c4d5675c90eec751c952efdfe4ac",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-19T01:07:00.534Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Independent validator fixArchivedBundleProof|change:researcher:proof-authority|adv-researcher|1 returned CONFIRMED_WITH_CAUTION. Design now includes clean-absence early routing, bundle-backed proof, no active-retire fallthrough, lifecycle convergence, identity validation, and real handler-level coverage. No contract compromise or user-value tradeoff remains.",
+      "operation_id": "mutation:gate_completion:fixArchivedBundleProof:0f077e71-e925-4808-bbfb-ead836ce0cdc",
+      "payload_hash": "03c6838358ffa605e4d64641116be2d8e260b20372e038fc9dbdfddc30c4340d",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-19T01:07:08.341Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-3a6a62aed410",
+      "operation_id": "mutation:task_add:fixArchivedBundleProof:6bf75e72-fb5e-4bde-acf9-484517f1427a",
+      "payload_hash": "cb99edfbbc95afeb438e4f2a91076e1b906a0721371ac0c93e3f91acfba16eef",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-19T01:07:41.179Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-c13199620d6e",
+      "operation_id": "mutation:task_add:fixArchivedBundleProof:aa13db3a-a645-430c-8863-99289c280d78",
+      "payload_hash": "ba82afe92265cb1f6c0241ad21c335e8a6b76568134bc329c2f56927503bda76",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-19T01:07:54.389Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-e555d1cae864",
+      "operation_id": "mutation:task_add:fixArchivedBundleProof:4cb75030-69c2-4005-83a6-50edf67ddf49",
+      "payload_hash": "ec081401b28f842fc11acccb156c29c150bb2c38615bc0adbfbfdbbd60cfec86",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-19T01:08:08.127Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User approved the three-task graph: inline-TDD implementation, independent verification, then merged-default deploy/restart and recovery of both archived changes.",
+      "operation_id": "mutation:gate_completion:fixArchivedBundleProof:56759827-e54f-4fb2-af54-d61ce01e5df4",
+      "payload_hash": "fb79bdac046663df1aa1b52996f4dc58ca182b7554419eaae0eee814066ce682",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-19T01:22:03.962Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchivedBundleProof:ba03cc84-e38c-4044-bbc6-bb5b7b84f742",
+      "payload_hash": "e6e8817f70c7dc6a686243c8a84e787c31947dea01f88ce2a444c886db2727af",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-19T01:22:43.505Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedBundleProof:1ddad2b9-5a54-4584-84ff-acc538c38f12",
+      "payload_hash": "78d3277617c52a12f413ce87fad354d114bd2c54e5651afc11cb262de7e9582c",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-19T01:24:25.507Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedBundleProof:6c496451-fc79-4e37-a73a-01a3f00c0859",
+      "payload_hash": "8d16bc5a9bd2d664756c998d7bbbcf18e1b1c753135c0630dfaecafe92a94ef3",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-19T01:25:49.958Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedBundleProof:0ef79df0-66e7-411e-b969-fc1f331fc0ac",
+      "payload_hash": "5d0db0032b628831f46e487af2813b8ce4e729ee75554fecdef743e54542ab4e",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-19T01:26:22.867Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin run lint && pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedBundleProof:df187d1f-dd48-42ac-bfcf-8b9c72b132ca",
+      "payload_hash": "dcb78c0d2576a17d3fba7f450ce6889b9affb20041ba1de69b41be2ba7af4d86",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-19T01:27:35.571Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedBundleProof|tk-3a6a62aed410|adv-reviewer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedBundleProof:d96ccaf3-d19e-475c-ab9f-63ea46c329b3",
+      "payload_hash": "d701327fa721d09505d5b2fcf7352bc0b17e469dde4b2132987c75b03c2d431d",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-19T01:32:32.887Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "d62320e2f6bf3941d909399bd744345f59e0b759:Natural RED tr_mszes9jb_eb56b9fc reproduced lifecycle non-convergence, foreign bundle acceptance, wrong proof authority, and active-retire fallthrough. GREEN tr_mszeus78_6705194a passed 23 tests. Focused archive suites plus typecheck, lint, and scoped format tr_mszewc92_a43a6e74 passed 64 tests. Independent reviewer report fixArchivedBundleProof|tk-3a6a62aed410|adv-reviewer|1 returned READY with 24 focused tests and static checks passing.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivedBundleProof:af46a404-323b-497f-82dd-9a87d80b9789",
+      "payload_hash": "9abbff9013511b7ffdb4c2bc6052e7b193c173fe81f8d103f16c9edf6fb0780a",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-19T01:33:12.588Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchivedBundleProof:e72a1d65-6a34-4b5c-8881-633d26a24a9b",
+      "payload_hash": "e812b347d214140b0399906af43166374ec28ee50f0d5c65a16117fc42e99bb2",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-19T01:33:49.994Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin run lint && pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedBundleProof:9d84dae8-fb3a-4dbc-b0fb-c560dd5cc1c8",
+      "payload_hash": "252a7e75eef615f9729293904692140464c185204d69086b08b39b60be50607e",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-19T01:44:54.104Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "d62320e2f6bf3941d909399bd744345f59e0b759:Durable focused verification tr_mszfilrr_3da738ea passed 64 tests plus typecheck, lint, and scoped formatting. Independent adv-verifier ses_fe8589f55ffer4xTEJkRWhPocG ran full lane (5137 passed, 1 skipped, 12 todo), production build, and architecture check; all exited 0. Worktree remained clean.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivedBundleProof:fb7194e0-a6f2-4876-b653-a92d294d6e81",
+      "payload_hash": "c8359add8899a4b5f76edc1b8d23dcd8bc39562188811fb2bf0c99795c857ec8",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-19T01:45:19.887Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected “Cancel cyclic task (Recommended)” in the task-cancellation approval prompt.",
+      "operation_id": "mutation:task_cancelled:fixArchivedBundleProof:6f9e44fd-55b7-46cb-a18f-9560148688c7",
+      "payload_hash": "4be155f2a83f4c24cf89b5be54bf0e454b61756296150644db45dc8992076998",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-19T01:47:03.073Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "User selected “Cancel cyclic task (Recommended)” in the sequencing-repair prompt.",
+      "operation_id": "mutation:artifact_update:fixArchivedBundleProof:fb8ad363-a708-424a-835c-25ee504c6421",
+      "payload_hash": "125fb6374bcc41e9005a6734968e93efef866d0dd0e21b7e5ac9cf2bd0c17b6a",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-19T01:47:28.639Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Implementation and verification complete. RED tr_mszes9jb_eb56b9fc; focused/static verification tr_mszfilrr_3da738ea; full lane 5,137 passed; production build and architecture check passed; independent reviewer READY. User-approved cyclic ops task cancellation moved unchanged deployment/recovery work to post-archive continuation.",
+      "operation_id": "mutation:gate_completion:fixArchivedBundleProof:55df98cd-393c-47e5-8380-bb72991b325d",
+      "payload_hash": "00d51f7f6c312855cc4967c441d4c54339c90f34c716fa4048f7e751d1a0d0c5",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-19T01:48:02.550Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedBundleProof|change:review:acceptance|adv-reviewer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedBundleProof:9e2fc82d-5860-468f-810c-6f1dec683673",
+      "payload_hash": "b3a10bffc9ea6e61ea865fdc0d1f17c2571d2fbf0db02f6a72143f2611558c88",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-19T01:51:28.994Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedBundleProof:714c555a-069a-4871-9b79-7d087f638dfb",
+      "payload_hash": "bb6df8fa3695e16277445842f4a1b6672ee1b02f9e7c8a7fbfa1f72aef0d8084",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-19T01:52:43.515Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts && pnpm --dir plugin run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixArchivedBundleProof:91b36c26-a0be-44e7-9d7f-4c98500d8930",
+      "payload_hash": "0726e3521f0dc9a63de6a2931940a3b2d50409aa1534c395f84f1de51bedabaa",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-19T01:53:14.191Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedBundleProof|change:review:acceptance|adv-reviewer|2",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedBundleProof:8fb03c1a-1529-4cdc-b879-aa4d27c78942",
+      "payload_hash": "6b459725e19267512341c0cd4d47b1ef4652ae78390ee3264f3a65345d8e9552",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-19T01:54:09.019Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "291faae98cd1415d48d43ee235490a1eabe702e9:Acceptance review found AC4 exact-replay guard could bypass audited status convergence. RED tr_mszfsnlx_3757af89 reproduced; GREEN tr_mszftb9w_bf4d71be passed 25 tests plus typecheck. Acceptance reviewer attempt 2 returned READY in report fixArchivedBundleProof|change:review:acceptance|adv-reviewer|2.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivedBundleProof:33d66e31-79ba-4b4c-8f02-dea451551b70",
+      "payload_hash": "e6d99924100c566dc8985a00458dc1abba53d5d8d85565529f698a6ed4335930",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-19T01:54:42.026Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivedBundleProof:64659446-cc4d-4547-a7f4-40c7309f6e4f",
+      "payload_hash": "6d3bdd950597691d3ae03831e94d6e4f28df9fa321288c18ba0e09b1cdd92382",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-19T01:54:54.887Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User replied “continue” to the fixArchivedBundleProof acceptance checkpoint after 5,137 passing tests, successful build/architecture checks, and READY independent review.",
+      "operation_id": "mutation:gate_completion:fixArchivedBundleProof:c9ad7c3e-ba33-40e6-af56-af0abb2e7929",
+      "payload_hash": "e21911b12ab72ccd76d9763664b4f7f2e9dfc2f4988b3b48b7286ab3eb70e011",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-19T02:17:11.410Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedBundleProof|change:scanner-bundle:harden|adv-scanner-bundle|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedBundleProof:822e196e-d705-44ea-82dd-c91d957761b9",
+      "payload_hash": "542d4ec3437b5a9c1f33e92b2313c80372e20aa4a38fd4e8419cf2aae98a44cc",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-19T02:26:55.443Z"
+    }
+  ]
+}

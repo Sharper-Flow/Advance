@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-19T02:30:08.312Z",
+  "capabilities": [],
+  "change_hash": "84ab7d91f72df486ec09e7d59d7027f0e895d2beab0547499e5fce66d4da7a2b",
+  "change_id": "fixArchivedBundleProof",
+  "completed_tasks": 2,
+  "created_at": "2026-08-19T00:55:39.663Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-19T02:17:11.394Z",
+  "status": "archived",
+  "summary_hash": "0471ad982f493c6e6278a84557c56194634e95a890bb49d0326a346b0d04d966",
+  "task_count": 3,
+  "title": "Fix archived bundle proof",
+  "version": "1"
+}
