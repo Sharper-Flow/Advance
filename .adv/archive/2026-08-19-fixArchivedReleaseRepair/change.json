@@ -1,0 +1,1008 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchivedReleaseRepair",
+  "title": "Fix archived release repair",
+  "status": "archived",
+  "created_at": "2026-08-18T21:13:50.342Z",
+  "tasks": [
+    {
+      "id": "tk-65d5761c68f2",
+      "title": "Persist release repair in archived bundles",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-18T21:28:55.496Z",
+      "started_at": "2026-08-18T23:33:50.650Z",
+      "completed_at": "2026-08-19T00:39:40.728Z",
+      "verification": "Release hardening remediation: docs/spec header aligned, P42 comment cleaned, direct non-shipped guard and stronger fail-closed assertions added, duplicate error formatter removed, ProjectionCommitOutcome handling made exhaustive. Post-remediation run tr_mszd3vm4_2e9b6b4d passed 60 focused tests, typecheck, lint, and scoped formatting. Targeted re-scans marked all six findings resolved.",
+      "summary": "Release hardening remediation: docs/spec header aligned, P42 comment cleaned, direct non-shipped guard and stronger fail-closed assertions added, duplicate error formatter removed, ProjectionCommitOutcome handling made exhaustive. Post-remediation run tr_mszd3vm4_2e9b6b4d passed 60 focused tests, typecheck, lint, and scoped formatting. Targeted re-scans marked all six findings resolved.",
+      "filesTouched": [
+        "docs/specs/advance-workflow.md",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "d3aa6c1effa6f3392cc69a7e886e3f226543fdef",
+      "completedAt": "2026-08-19T00:39:40.728Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      }
+    },
+    {
+      "id": "tk-00c14e0ccfdb",
+      "title": "Verify archived release repair and bundle invariants",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-65d5761c68f2"
+        }
+      ],
+      "created_at": "2026-08-18T21:29:10.447Z",
+      "started_at": "2026-08-19T00:04:26.253Z",
+      "completed_at": "2026-08-19T00:09:25.384Z",
+      "verification": "Durable focused verification tr_mszc2oyz_eef543f2 passed 19 tests. adv-verifier session ses_fe8aa3048ffegms8SxAcq3zUiz independently ran bin/oc-test full (386 files passed, 1 skipped; 5132 tests passed, 1 skipped, 12 todo) and pnpm --dir plugin run build; both completed successfully with no edits. Worktree remained clean.",
+      "summary": "Durable focused verification tr_mszc2oyz_eef543f2 passed 19 tests. adv-verifier session ses_fe8aa3048ffegms8SxAcq3zUiz independently ran bin/oc-test full (386 files passed, 1 skipped; 5132 tests passed, 1 skipped, 12 todo) and pnpm --dir plugin run build; both completed successfully with no edits. Worktree remained clean.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/archive/archive.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/handlers-archive.partial-repair.test.ts",
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "599e5c142d95c506528379a3c4f1f3b17fd9d63e",
+      "completedAt": "2026-08-19T00:09:25.384Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC8"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:architecture-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Read-only repo-owned architecture validation: archived change retains release=pending; existing-bundle retry cannot complete release gate (packet scope key: fast-track:architecture-validation)",
+      "sources": [
+        {
+          "label": "archive-gate.ts — completeReleaseGateAfterFinalization / reconcileArchivedBundleRetry / recordPhase9Status / verifyReleaseGateDurableForArchive",
+          "locator": "plugin/src/tools/change/archive-gate.ts:448-659,228-257",
+          "summary": "Release-gate writer hardwired to store.paths.changes; existingBundlePath dead; bundle-aware durable-proof reader already exists; recordPhase9Status same active-only defect"
+        },
+        {
+          "label": "handlers-archive.ts — archive handler flow",
+          "locator": "plugin/src/tools/change/handlers-archive.ts:211,369-371,643-668,671-712,725-852,930-992,1037-1043",
+          "summary": "Bundle written pre-finalization; retire then removeChangeDir; reconcile entry conditions; no bundle re-sync anywhere"
+        },
+        {
+          "label": "archive.ts — bundle writer + lock usage",
+          "locator": "plugin/src/archive/archive.ts:106-206,829-844,1075-1099,1137-1144",
+          "summary": "writeArchiveBundleFiles is sole generated-file writer; reuseExistingBundlePath skips it; terminal-summary hash-bound to change.json bytes; archiveChange under withArchiveProjectionLock"
+        },
+        {
+          "label": "change-projection-transaction.ts — commitChangeProjection",
+          "locator": "plugin/src/storage/change-projection-transaction.ts:269-371",
+          "summary": "Exported transaction primitive: lock, revision, audit, in-lock readback; fails closed operator_required when projection absent (300-309)"
+        },
+        {
+          "label": "store-disk.ts / change-projection-reader.ts / json.ts / projection-lock.ts",
+          "locator": "plugin/src/storage/store-disk.ts:472-527; change-projection-reader.ts:366-404; json.ts:482-509; plugin/src/archive/projection-lock.ts:6-31",
+          "summary": "Bundle self-heal reads; not_found→null; removeChangeDir; dated bundle dirs; archive projection lock"
+        },
+        {
+          "label": "_recovery-writers.ts / helpers.ts — existing terminal writers",
+          "locator": "plugin/src/tools/_recovery-writers.ts:560-883; plugin/src/tools/change/helpers.ts:215-370",
+          "summary": "loadAuthoritativeBundleProjection + persistTerminalProjection precedent (no lock, no derived-file regen); saveRecoveredArchiveConvergence mutates only paths.changes"
+        },
+        {
+          "label": "advance-workflow.md — spec law",
+          "locator": "docs/specs/advance-workflow.md:452,780-863,869-953,958-1021,1450-1495,5295-5329,5370-5374",
+          "summary": "rq-releaseFinalization01, rq-releaseProjectionDurability01, rq-archiveTerminalDurability01, rq-archiveRecoveryConsistency01, rq-terminalProjectionTruth01, rq-archiveRetryIdempotence01, rq-briefingPacketArchiveDigest01"
+        },
+        {
+          "label": "ADV read — addMergeTriggeredArchive proposal",
+          "locator": "adv_change_show target_path=/home/jon/dev/advance changeId=addMergeTriggeredArchive include.proposal",
+          "summary": "Broader proposal explicitly carves out this focused repair as an independent precursor; documents the unifyPricingSourcePrecedence/PR#1277 repro"
+        }
+      ],
+      "architecture_assessment": "Defect chain source-proven. (1) The external archive bundle is written BEFORE finalization/gate completion (handlers-archive.ts:690/705 precede :725-750 and :813-819), freezing gates.release=pending into the durable terminal record via writeArchiveBundleFiles ({...change, status:'archived'} — archive.ts:113-117). (2) With reuseExistingBundlePath, writeArchiveBundleFiles is never invoked; only spec-projection.json is rewritten (archive.ts:1078-1099), so NO path ever updates the bundle change.json after gate completion. (3) completeReleaseGateAfterFinalization loads/mutates only store.paths.changes (archive-gate.ts:518-556); existingBundlePath (:511) is dead. After retire (handlers-archive.ts:932-981) and removeChangeDir (:1037; json.ts:482-487), the active projection is gone; store.changes.get self-heals reads from the bundle (store-disk.ts:502-514), making release=pending the dominant terminal truth. (4) Retry enters reconcileArchivedBundleRetry (handlers-archive.ts:444/:658), re-proves shipped (archive-gate.ts:591-596), then loadChange returns success+null (change-projection-reader.ts:375-376) → commitChangeProjection fails closed 'change not found' (change-projection-transaction.ts:300-309) → 'Release gate projection was not durably verified.' (archive-gate.ts:557-564). Sibling defect: recordPhase9Status (archive-gate.ts:228-257) uses the same active-only routing and is called in the reconcile success path (:634-645) — it throws when active is absent and phase9_status!=done; it MUST be in scope. Adjacent same-pattern site (follow-up, not this change): saveRecoveredArchiveConvergence (helpers.ts:288-294) validates the bundle but mutates only paths.changes. IMPORTANT: the first-run completed archive ALSO ends bundle-pending (unifyPricingSourcePrecedence repro confirms: terminal/archived + bundle pending), so the 'synchronize the generated archive bundle' leg must cover the first-run path (sync before removeChangeDir), not only reconcile. Structural owner fix: in completeReleaseGateAfterFinalization, branch on active-projection presence. Active-exists → unchanged coordinateChangeMutation + bundle derived-file sync. Active-absent + validated bundle → under withArchiveProjectionLock (projection-lock.ts:6-31; pass store root), mutate the bundle projection via the exported transaction primitive commitChangeProjection (change-projection-transaction.ts:269; per-change lock, revision bump, audit entry, in-lock readback) with changesDir=dirname(bundlePath) and changeId=basename(bundlePath) — the dated bundle dir name is the addressing key, exactly how verifyReleaseGateDurableForArchive already reads bundles (archive-gate.ts:468-472); the bundle change.json id is not checked against the dir name. Fold gates.release AND phase9_status done into ONE transaction (single revision bump; satisfies rq-archiveRecoveryConsistency01.1 'phase9 done before success'). Then regenerate derived bundle files through the EXISTING single writer writeArchiveBundleFiles (export it; archive.ts:106-206) so terminal-summary changeHash binding (:116-141) and digest overwrite semantics (rq-briefingPacketArchiveDigest01) stay coherent; reuse the ORIGINAL archivedAt from the existing terminal-summary for determinism; preserve spec-projection.json bytes and multi-repo metadata. Do NOT call coordinateChangeMutation at the bundle dir (summary-shard + launcher-aggregate side effects would pollute the archive namespace — change-mutation-coordinator.ts:91-126). Do NOT resurrect changes/<id> (store-disk.ts:483-484 dominance is read-only by design). Do NOT add a second archive writer (reuse writeArchiveBundleFiles). External-bundle sync does not invalidate in-repo git proofs: verifyProjectionAtGitCommit binds spec-projection.json, not bundle gates.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No blocking defects in the proposed contract. Caution items are accompaniments, not redesigns: (a) rq-archiveTerminalDurability01.1 'bundle re-writing is skipped on the reconciliation route' literally conflicts with 'regenerate all projection-derived bundle files' — amend wording to distinguish spec/bundle-creation rewrite (skipped) from terminal-record synchronization (required when release metadata lags); (b) recordPhase9Status shares the active-only defect and sits on the reconcile success path — must be in fix scope; (c) bundle sync must also cover first-run archives; (d) reuse original archivedAt for deterministic derived-file regeneration; (e) keep rq-archiveRetryIdempotence01.2's not-yet-archived route free of external-bundle rewrites."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Mutating a terminal record (bundle change.json) creates a new write path that must stay lock-disciplined and hash-coherent with derived files",
+          "Addressing the bundle by its dated directory name (basename) rather than canonical id is workable but must be pinned by tests",
+          "Spec wording amendment (rq-archiveTerminalDurability01.1) is required to keep law and implementation reading the same way",
+          "Scope must include recordPhase9Status routing and first-run bundle sync, or the visible defect persists on fresh archives"
+        ],
+        "alternatives_considered": [
+          {
+            "option": "coordinateChangeMutation pointed at the bundle dir",
+            "disposition": "rejected",
+            "rationale": "Coordinator publishes summary shards + launcher aggregate refresh derived from changesDir (change-mutation-coordinator.ts:91-126) — pollutes the archive namespace"
+          },
+          {
+            "option": "Temp active rehydration then normal flow",
+            "disposition": "rejected",
+            "rationale": "Violates no-resurrection; store-disk bundle dominance is read-only by design (store-disk.ts:483-484)"
+          },
+          {
+            "option": "Bare atomicWriteFile bundle edit à la persistTerminalProjection (_recovery-writers.ts:869-883)",
+            "disposition": "rejected",
+            "rationale": "No lock, no revision/audit, desyncs hash-bound terminal-summary.json; contract forbids direct state edits"
+          },
+          {
+            "option": "commitChangeProjection under withArchiveProjectionLock + writeArchiveBundleFiles regeneration",
+            "disposition": "preferred",
+            "rationale": "Reuses exported transaction primitive (lock/revision/audit/readback) and the sole generated-file writer; smallest cohesive mechanism"
+          },
+          {
+            "option": "Sweep/reaper/startup automation for stranded archives (addMergeTriggeredArchive)",
+            "disposition": "deferred",
+            "rationale": "Broader proposal explicitly keeps those mechanisms; this fix is its carved-out precursor"
+          }
+        ],
+        "recommendation": "Proceed with the two-leg contract using commitChangeProjection (not coordinateChangeMutation) under withArchiveProjectionLock for the bundle leg, writeArchiveBundleFiles as the single derived-file regenerator with original archivedAt, phase9_status folded into the same transaction, first-run bundle sync before removeChangeDir, and the rq-archiveTerminalDurability01.1 spec wording amendment landed with the code."
+      },
+      "recommendation": "Confirmed — proceed with the proposed contract as a fast-track fix, with four binding adjustments: (1) Include recordPhase9Status routing (or fold phase9_status=done into the single bundle transaction) — otherwise the reconcile path still throws after the gate fix. (2) Wire the bundle synchronization into the FIRST-RUN path (sync external bundle from the retired projection before removeChangeDir at handlers-archive.ts:1037), not only reconcile — fresh archives currently recreate the defect. (3) Land a small spec Modify for rq-archiveTerminalDurability01.1 distinguishing 'spec/bundle-creation rewrite skipped' from 'terminal-record synchronization required when release metadata lags'; optionally pin the post-retirement durability surface in rq-releaseProjectionDurability01. (4) Use commitChangeProjection (exported transaction primitive) under withArchiveProjectionLock for the bundle leg — not coordinateChangeMutation — and regenerate derived files via the existing writeArchiveBundleFiles single writer with original archivedAt. Tests: extend change.archive-phase9.test.ts (active-absent bundle mutation, seven-gates readback, revision+1, recovery audit evidence, idempotent second call, terminal-summary change_hash re-bind, no-resurrection of changes/<id>, corrupt/id-mismatch bundle fails closed); add reconcileArchivedBundleRetry integration with phase9_status=pending_merge → done via bundle; add first-run regression asserting bundle reflects release done before removeChangeDir; add distinction test keeping rq-archiveRetryIdempotence01.2's not-yet-archived route free of external-bundle rewrites; add lock-serialization test mirroring projection-lock.test.ts. Flag saveRecoveredArchiveConvergence as a named same-pattern follow-up. addMergeTriggeredArchive explicitly carves this out as its narrower precursor ('should land independently') — no conflict; keep lineage noted.",
+      "follow_ups": [
+        "Packet SCOPE KEY 'fast-track:architecture-validation' does not match the persisted-report schema regex (researcher|tron|scanner-bundle|verifier|visual-review|review:acceptance|harden:release prefixes); submitted as researcher:architecture-validation — orchestrator should align the spawn anchor with the report schema",
+        "Fix saveRecoveredArchiveConvergence (helpers.ts:288-294) active-only mutation — same-pattern site for gate-complete release recovery; reuse the new bundle-leg owner",
+        "Add spec scenario pinning the post-retirement durability surface for release-gate proof (rq-releaseProjectionDurability01 speaks Temporal-era 'store-backed gate read')"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedReleaseRepair",
+      "task_id": "tk-65d5761c68f2",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-65d5761c68f2"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change/archive-gate.ts",
+          "summary": "Preserved an existing Phase 9 mergeCommitSha when fresh shipped-finalization evidence omits it, so archive recovery retains complete PR merge proof.",
+          "verification": "pnpm test -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts; ESLint and Prettier passed."
+        },
+        {
+          "file": "plugin/src/tools/change.archive-phase9.test.ts",
+          "summary": "Covered archived-bundle recovery retaining an existing merge commit SHA while refreshing release and Phase 9 metadata.",
+          "verification": "pnpm test -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts passed."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "pnpm test -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+          "pnpm exec prettier --check src/tools/change/archive-gate.ts src/tools/change.archive-phase9.test.ts",
+          "pnpm exec eslint src/tools/change/archive-gate.ts src/tools/change.archive-phase9.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Vitest completed 386 files: 5,132 passed, 1 skipped, 12 todo; targeted formatting and ESLint passed; git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full pnpm check remains blocked by the packet's two base-branch-equivalent unrelated failures: prompt floor regression and src/manifest.ts formatting drift."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm test -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm exec prettier --check src/tools/change/archive-gate.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm exec eslint src/tools/change/archive-gate.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedReleaseRepair",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+          "pnpm --dir plugin run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "Focused archive/Phase 9 review suite passed: 2 files, 19 tests. TypeScript typecheck passed. Reviewed origin/trunk...HEAD for recovery identity, archived-only projection mutation, archive-before-change lock nesting, readback, terminal-summary preservation, sidecar preservation, replay revision behavior, and normal archive refresh. Existing durable evidence reports full lane 5,132 passed and build passed; the two complete-check failures are documented as base-branch equivalent."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full pnpm run check retains two documented base-branch-equivalent failures: prompt budget regression and pre-existing src/manifest.ts formatting drift."
+      ],
+      "required_main_agent_actions": [
+        "Record this READY independent acceptance review as acceptance evidence; no remediation is required."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedReleaseRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedReleaseRepair",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "READY. Merge compatibility passed. Test, production, documentation, cleanup, slop, and deployment dimensions checked. Two release blockers and four adjacent low findings were fixed and re-scanned resolved; direct orchestration-test duplication was rejected with evidence. Full tests and build were already green; focused post-remediation verification passed 60 tests plus typecheck, lint, and formatting.",
+      "findings": [],
+      "follow_ups": []
+    }
+  ],
+  "test_runs": {
+    "tk-65d5761c68f2": [
+      {
+        "runId": "tr_mszb1ar1_fee09f4c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/change.archive-phase9.test.ts",
+        "durationMs": 921.4214910008013,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:39:28.434Z"
+      },
+      {
+        "runId": "tr_mszb1j6b_4ca33041",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 2020.9975470006466,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:39:39.301Z"
+      },
+      {
+        "runId": "tr_mszb73ln_3526e377",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 2509.9538759998977,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:43:59.158Z"
+      },
+      {
+        "runId": "tr_mszb7qp3_1692577a",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 2201.4359550010413,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:44:28.883Z"
+      },
+      {
+        "runId": "tr_mszb8izp_4a06d561",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 2216.479648001492,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:45:05.548Z"
+      },
+      {
+        "runId": "tr_mszb983d_ff7c7aab",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 2310.708156000823,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:45:38.111Z"
+      },
+      {
+        "runId": "tr_mszbbyiz_68e9a81c",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts",
+        "durationMs": 2952.3738989997655,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:47:45.696Z"
+      },
+      {
+        "runId": "tr_mszbdwu3_ec7e2410",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts",
+        "durationMs": 3075.6829450000077,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:49:16.776Z"
+      },
+      {
+        "runId": "tr_mszbenvq_16935eb5",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 10135.872781001031,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-18T23:49:51.872Z"
+      },
+      {
+        "runId": "tr_mszbf7o0_581acfbb",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 9621.823346000165,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-18T23:50:17.661Z"
+      },
+      {
+        "runId": "tr_mszbg6a5_67661a5b",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 14312.940036000684,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-18T23:51:02.290Z"
+      },
+      {
+        "runId": "tr_mszbhg3f_09cb014a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec tsx scripts/check-lockfile-policy.ts && pnpm exec tsx scripts/check-skill-references.ts && pnpm run lint && pnpm run format:check",
+        "durationMs": 31102.52287000045,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-18T23:52:01.725Z"
+      },
+      {
+        "runId": "tr_mszbk1eh_1efbd2aa",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts",
+        "durationMs": 3437.284905999899,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:54:02.683Z"
+      },
+      {
+        "runId": "tr_mszbkaj0_6f11b0f6",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/__tests__/spec-id-shape-invariant.test.ts src/tools/spec.test.ts",
+        "durationMs": 2333.810419000685,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-18T23:54:14.524Z"
+      },
+      {
+        "runId": "tr_mszbmqm2_635ec7e1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck && pnpm run lint && pnpm exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.ts && pnpm run architecture:check",
+        "durationMs": 28538.0069280006,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-18T23:56:08.662Z"
+      },
+      {
+        "runId": "tr_mszbuwib_39c77705",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm test -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 45658.38336499967,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T00:02:29.524Z"
+      },
+      {
+        "runId": "tr_mszbw2tw_71c765d7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck",
+        "durationMs": 11941.031718999147,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T00:03:24.389Z"
+      },
+      {
+        "runId": "tr_mszd3vm4_2e9b6b4d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin run lint && pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 30391.06045700051,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T00:37:27.899Z"
+      }
+    ],
+    "tk-00c14e0ccfdb": [
+      {
+        "runId": "tr_mszc2oyz_eef543f2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 2699.489504000172,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T00:08:33.097Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-18T21:14:10.241Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed the focused defect quick contract: archived retry must persist verified release completion into the archive bundle when active projection is gone, atomically refresh derived archive files, and add normal/retry regression coverage without broadening into sweep/reaper features."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-18T21:27:57.640Z",
+      "completed_by": "agent:adv-task",
+      "approval_evidence": "Source-backed RCA and architecture census complete. Root cause: bundle generated before release completion; active-only completeReleaseGateAfterFinalization and recordPhase9Status cannot mutate after active removal. Independent researcher report fixArchivedReleaseRepair|change:researcher:architecture-validation|adv-researcher|1 confirmed the defect and lifecycle-routed archive transaction design. Spec-law impact classified Modify for rq-releaseProjectionDurability01 and rq-archiveTerminalDurability01; broader sweep/reaper proposal remains distinct."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-18T21:28:05.586Z",
+      "completed_by": "agent:adv-task",
+      "approval_evidence": "Validated design persisted: lifecycle-routed mutation; active path preserved; archive path uses commitChangeProjection under archive lock; one transaction sets release+Phase9; existing writer regenerates derived files with original archived_at; normal path syncs before removal; typed fail-closed behavior. Research verdict Confirmed with caution; all cautions incorporated. No user-value tradeoff or contract compromise remains."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-18T21:29:24.923Z",
+      "completed_by": "user",
+      "approval_evidence": "User-approved fast-track task graph: one inline-TDD implementation/spec task covering AC1-AC7, followed by one independent verification task for AC8. Isolated worktree created at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedReleaseRepair from origin/trunk 5272563366299087a9a7567fad9a5a9108fd556c. No overlap with broader addMergeTriggeredArchive sweep/reaper scope."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-19T00:09:56.600Z",
+      "completed_by": "agent:adv-apply",
+      "approval_evidence": "All approved tasks completed. Natural RED tr_mszb1j6b_4ca33041. Focused archive suite and typecheck tr_mszbw2tw_71c765d7 passed; spec tests tr_mszbkaj0_6f11b0f6 passed; independent reviewer READY with remediation; durable verification tr_mszc2oyz_eef543f2 passed; independent full lane 5132 passed and production build succeeded."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-19T00:17:42.103Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted the delivered archived-release repair after independent acceptance review and full verification.; User replied “continue” to the acceptance checkpoint after APPROVED review, 5,132 passing tests, and successful production build."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "# Fix archived release repair\n\n## Intent\n\nMake Phase 9 existing-bundle recovery durably complete the release gate after a change has already moved from the active store into its archive bundle. Preserve canonical shipped proof and regenerate the archive’s derived projection files atomically.\n\n## Root Cause Analysis\n\n### Observed failure\n\n`pokeedge::unifyPricingSourcePrecedence` shipped through merged PR #1277 (`f3786f535005b0155c6581da368bfa40e39221ff`). `adv_change_archive` returned `finalization.status=shipped`, but archived readback remained `gates.release.status=pending`. Existing-bundle retry again proved shipped status, then failed with `Archive release gate completion blocked: Release gate projection was not durably verified.` Direct gate recovery failed with `change not found`.\n\n### Causal path\n\nThe archive bundle is generated before Phase 9 finalization and release-gate completion. `completeReleaseGateAfterFinalization` and `recordPhase9Status` mutate only `store.paths.changes`. Once normal archive retirement removes the active directory, existing-bundle retry has no mutation target even though `existingBundlePath` identifies the surviving authoritative terminal projection. The retry therefore proves Git release successfully but cannot commit or verify release state.\n\n### Owning invariant\n\nA shipped archive must have one durable terminal projection: the archive bundle’s `change.json` and derived summaries must record release completion and Phase 9 completion even when active state no longer exists. Active-store mutation cannot be the sole persistence route after retirement.\n\n## Scope\n\n- `plugin/src/tools/change/archive-gate.ts`\n- `plugin/src/archive/archive.ts` and archive projection locking/terminal summary helpers\n- Focused Phase 9/archive tests\n- `.adv/specs/advance-workflow/spec.json` and its generated spec documentation where required\n\n## LBP Targets\n\n- Route writes by lifecycle location rather than assuming active state.\n- Use `commitChangeProjection` for revision/audit/readback and the existing archive projection lock for terminal bundle mutation.\n- Keep the archive bundle writer as the sole authority for `change.json`, terminal summary, archive summary, briefing digest, and narrative projection.\n- Fold release-gate and Phase 9 completion into one archive recovery transaction.\n- Preserve original `archived_at` across regeneration and make retries idempotent.\n\n## User Outcomes\n\n- A merged PR can finish ADV release state after session restart.\n- Archived changes never remain terminal with `release=pending` after shipped proof.\n- No manual state-file editing, active-change resurrection, purge, or retired repair tool is needed.\n\n## Spec-Law Impact\n\n**Modify.** Existing behavior is already required by `rq-releaseFinalization01`, `rq-releaseProjectionDurability01`, and `rq-archiveRecoveryConsistency01`. Two clarifications are needed:\n\n1. `rq-releaseProjectionDurability01` must pin the archive bundle as the durable release projection when active state is absent, including readback and derived-file consistency.\n2. `rq-archiveTerminalDurability01.1` must distinguish skipping spec/delta reapplication and bundle recreation from the required terminal release-metadata synchronization on existing-bundle reconciliation.\n\nNo new release authority or proof standard is introduced.",
+    "problemStatement": "## Confirmed Problem\n\nA shipped change can be moved into the archive bundle before its release gate is durably represented there. The existing-bundle retry proves the PR merge but still writes only through the deleted active-change path, so archive readback remains `release=pending` forever.\n\n## Root Cause Analysis\n\n`completeReleaseGateAfterFinalization` hardcodes `store.paths.changes` for load, coordinated mutation, and verification. `existingBundlePath` is accepted but not used as mutation authority. After active state retirement, no projection exists at the expected active location. The archived bundle remains the only durable projection, yet no supported mutation path updates it and its derived files.\n\n## Success Signal\n\nGiven a terminal archive bundle with release pending and canonical shipped PR proof, retry completes release in that archive bundle, regenerates its derived files consistently, returns success, and reads back all seven gates done without recreating active state.",
+    "agreement": "# Agreement — Repair archived release projection\n\n## Objectives\n\n**O1 — Complete release at the surviving lifecycle location.** Persist verified release and Phase 9 completion to active state when present and to the archive bundle when active state is absent.\n\n**O2 — Keep terminal bundle artifacts consistent.** Regenerate projection-derived archive files through the existing single writer under archive locking.\n\n**O3 — Preserve structural authority.** Use canonical Git release proof, `commitChangeProjection` revision/audit/readback, and idempotent operation identity; never edit state ad hoc or recreate active state.\n\n**O4 — Align spec law.** Clarify terminal reconciliation without changing release proof or approval boundaries.\n\n## Acceptance Criteria\n\n**AC1 — Active-absent retry succeeds.** Given a validated existing archive bundle with release pending, no active projection, and canonical `finalization.status=shipped`, archive retry returns success and archived readback reports all seven gates done.\n\n**AC2 — Phase 9 and release complete together.** The recovery transaction records `gates.release.status=done` with shipped evidence and `phase9_status.status=done`; no second active-only mutation is attempted.\n\n**AC3 — No active resurrection.** Recovery does not create `changes/<changeId>`, a temporary active projection, a compatibility shim, or a retired repair tool.\n\n**AC4 — Mutation is audited and idempotent.** Archive projection revision increments once with recovery authority/evidence and stable operation identity; exact replay returns the prior success without another increment.\n\n**AC5 — Derived bundle files agree.** `change.json`, `summary.v1.json` change hash, `ARCHIVE_SUMMARY.md`, and `BRIEFING_DIGEST.md` are regenerated from the committed release-done projection while preserving the original archive timestamp. Existing spec projection, narrative artifacts, wisdom, and multi-repo metadata are not lost.\n\n**AC6 — Normal finalization does not strand pending state.** Before active projection removal, the generated archive bundle is synchronized with release-done state. A fresh normal archive therefore reads release done without requiring recovery.\n\n**AC7 — Failures fail closed.** Invalid bundle identity/schema, missing shipped evidence, lock/commit failure, or derived-file regeneration failure returns a typed blocked/unverified result and never reports release success.\n\n**AC8 — Quality remains green.** Focused archive/Phase 9 tests, regression integration tests, `pnpm run check`, relevant smoke/full tests, and build pass on Node/Vitest and Bun-compatible output.\n\n## Constraints\n\n- Preserve `rq-releaseFinalization01` Git/PR proof standards and Tier B approval boundaries.\n- Preserve active-path behavior when active projection exists.\n- Use archive projection lock followed by per-change projection lock in the established order.\n- No direct external-state file edits outside the validated archive writer/transaction APIs.\n- No public tool/schema addition unless implementation proves unavoidable.\n\n## Avoidances\n\n- Do not broaden into `/adv-sweep`, startup reconciliation, shell reaping, or portfolio cleanup.\n- Do not revive `adv_archive_repair` or any retired recovery tool.\n- Do not paper over failure with shipped-only synthetic success.\n- Do not rewrite the archive through a second independent writer.\n- Do not change product/project archives unrelated to the targeted test fixtures.",
+    "design": "# Design — Lifecycle-aware archived release repair\n\n## Architecture\n\nRelease completion writes through one of two structurally selected legs:\n\n```text\nverified Git finalization.status=shipped\n  ├─ active projection exists\n  │    → existing coordinateChangeMutation gate path\n  │    → synchronize existing archive bundle before active removal\n  └─ active projection absent + validated existingBundlePath\n       → withArchiveProjectionLock(project root)\n       → commitChangeProjection(dirname(bundle), basename(bundle))\n       → one mutation sets release gate + phase9 done\n       → afterCommit regenerates projection-derived bundle files\n```\n\n## Decisions\n\n### D1 — Lifecycle location selects mutation authority\n\nKeep the active path unchanged when `store.paths.changes/<changeId>` exists. When it is absent and a validated existing bundle is supplied, target that bundle’s dated directory through `commitChangeProjection`; do not rehydrate active state.\n\n### D2 — One recovery transaction owns release and Phase 9 state\n\nThe archive leg commits `gates.release` and `phase9_status=done` together with stable recovery operation identity derived from change ID and released commit SHA. `reconcileArchivedBundleRetry` must not call active-only `recordPhase9Status` after an archive recovery mutation.\n\n### D3 — Derived files regenerate inside the committed transaction boundary\n\nExpose a narrow archive-module helper backed by the existing `writeArchiveBundleFiles` implementation. Invoke it from `commitChangeProjection.afterCommit` while locks remain held. Recompute terminal `change_hash`, archive summary, and briefing digest from readback. Leave existing spec projection, narratives, wisdom, and multi-repo sidecars intact unless their canonical projection content is present.\n\n### D4 — Preserve original archive time\n\nRead and validate the existing terminal summary before mutation and reuse `archived_at` during regeneration. A retry must not make the archive appear newly created or produce timestamp-only drift.\n\n### D5 — Normal path synchronizes before retirement\n\nAfter active release-gate completion succeeds, write the same release-done readback to the just-created bundle before `removeChangeDir`. This closes the first-run gap; the archive leg remains recovery for already-stranded bundles and session restarts.\n\n### D6 — Fail closed with typed evidence\n\nBundle ID/schema mismatch, missing terminal timestamp, transaction conflict, lock failure, and after-commit writer failure produce typed blocked/unverified outcomes. Success requires immediate archived readback of release done and Phase 9 done.\n\n## Spec Obligations\n\n- Modify `rq-releaseProjectionDurability01` with a scenario requiring archive-bundle release/Phase 9 persistence and derived-file readback when active projection is absent.\n- Modify `rq-archiveTerminalDurability01.1` so “bundle rewriting skipped” applies to spec/delta reapplication and bundle recreation, not terminal projection synchronization.\n- Preserve `rq-archiveRetryIdempotence01.1/.2` distinctions and `rq-archiveRecoveryConsistency01` proof rules.\n\n## Test Strategy\n\n1. RED: active-absent existing-bundle retry currently returns projection-not-verified.\n2. GREEN: retry returns success, all gates/Phase 9 done, revision/audit exact, no active directory.\n3. Exact replay: no revision or derived-hash drift.\n4. Normal archive: bundle release done before active removal.\n5. Derived artifacts: terminal summary hash binds exact regenerated `change.json`; original archive timestamp preserved.\n6. Failure cases: corrupt/mismatched bundle, writer failure, missing shipped proof, lock/commit failure.\n7. Regression: not-yet-archived route does not rewrite an external advisory bundle.\n\n## Validation\n\nIndependent researcher verdict: **Confirmed with caution**, high confidence, medium risk, no blockers. Caution incorporated: include the sibling active-only `recordPhase9Status` path, normal first-run synchronization, original timestamp preservation, and the two spec-law modifications.",
+    "executiveSummary": "# Executive Summary\n\nAdvance now finishes release state in the surviving archive bundle when the active change record has already been retired. A retry first re-verifies shipped Git or merged-PR proof, then records release and Phase 9 completion together without recreating active state.\n\nArchive-derived summaries are refreshed through the existing bundle writer while preserving the original archive timestamp and existing sidecars. Normal archives also synchronize their final terminal projection before active-record removal, preventing the stale-release condition on first completion.\n\nInvalid projections, missing shipped proof, transaction failures, and bundle refresh failures remain fail-closed. Release authority and archive sign-off boundaries are unchanged.\n\nVerification passed: focused archive and spec suites, TypeScript checks, lint, scoped formatting, dependency checks, the full 5,132-test lane, and the production plugin build. Independent task, acceptance, and hardening reviews found no remaining scoped defects.\n\n## Release Readiness Summary\n\nStatus: **READY**.\n\n- Release and production readiness: passed. Shipped proof, archive locking, transaction readback, and fail-closed behavior remain enforced.\n- Documentation and cleanup: passed after aligning the generated spec header and removing historical comment provenance.\n- Residual maintainability: passed after adding a direct non-shipped guard test, strengthening failure assertions, deduplicating refresh-error formatting, and making transaction-outcome handling exhaustive.\n- Deployment impact: no environment variables, migrations, external services, infrastructure, CI workflows, or frontend changes.\n- Merge compatibility: passed against current `origin/trunk`.\n- Report-created follow-up audit: 0 fixed, 0 rationale required.\n- Known unrelated baseline checks: prompt-budget floor and `src/manifest.ts` formatting also fail on current trunk; changed files pass scoped checks.\n- After closure: deploy from merged `trunk`, restart the plugin host, then retry the stranded PokeEdge archive release projection.\n\n## Approval Consequence Context\n\n1. delivered_value: delivered value — pass\n   Evidence: Archived changes can finish release after restart without active-state recreation; normal archives no longer strand release-pending state.\n   Source: Executive summary; acceptance review; scanner bundle fixArchivedReleaseRepair|change:scanner-bundle:harden|adv-scanner-bundle|1\n\n2. enabling_only_dependency: enabling-only/follow-up dependency — n/a\n   Evidence: This is a direct release-durability fix, not an enabling-only change.\n   Source: Agreement AC1-AC7\n\n3. ops_readiness: ops readiness — pass\n   Evidence: No new runtime configuration or service dependency. Deployment uses the existing merged-default deploy and restart procedure.\n   Source: Hardening deployment-readiness scan\n\n4. migration_data_impact: migration/data impact — n/a\n   Evidence: No database, schema, migration, or product-data changes.\n   Source: Changed-file audit\n\n5. frontend_preview_impact: frontend/preview impact — n/a\n   Evidence: Backend plugin workflow only; no frontend or preview surface changed.\n   Source: Changed-file audit\n\n6. collision_release_risk: collision/release risk — warning\n   Evidence: Merge compatibility, full tests, build, and scoped quality checks pass. Current trunk independently carries prompt-budget and manifest-format drift outside this change.\n   Source: Merge dry-run; tr_mszd3vm4_2e9b6b4d; base-branch probes\n\n7. open_follow_ups: open follow-ups — warning\n   Evidence: After merge, deploy Advance from trunk, restart the plugin host, and retry PokeEdge change unifyPricingSourcePrecedence. These steps do not change this agreement.\n   Source: Cross-project origin and deployment-readiness scan\n\n8. next_action: next action — pending\n   Evidence: Obtain Tier-B archive sign-off, then run adv_change_archive for fixArchivedReleaseRepair.\n   Source: Gate status: acceptance done, release pending"
+  },
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "source_change_id": "unifyPricingSourcePrecedence",
+    "linked_at": "2026-08-18T21:13:48.776Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 39,
+  "projection_commits": [
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User confirmed the focused defect quick contract: archived retry must persist verified release completion into the archive bundle when active projection is gone, atomically refresh derived archive files, and add normal/retry regression coverage without broadening into sweep/reaper features.",
+      "operation_id": "mutation:gate_completion:fixArchivedReleaseRepair:e9d116dc-e8af-44c0-97db-0daffdaa6d17",
+      "payload_hash": "a0c3e83f8d495600fa3a8001b8b4ecc3822bad45921b9c9c1f5627a3c04cab48",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-18T21:14:10.246Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedReleaseRepair|change:researcher:architecture-validation|adv-researcher|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedReleaseRepair:47a4486b-0d02-4336-8b67-dfeadd94eefc",
+      "payload_hash": "d60afcb0a1033c142235eaf60f8103ccc78461529a568fc1242562b44b579343",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-18T21:23:58.625Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivedReleaseRepair:7e483a3a-1464-419b-bb06-343c852a4f67",
+      "payload_hash": "7bba4c7c1b9fc0fdb1a377b9f5fbb67cb5f13910adb9f82999fd113b80d74356",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-18T21:27:46.979Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Source-backed RCA and architecture census complete. Root cause: bundle generated before release completion; active-only completeReleaseGateAfterFinalization and recordPhase9Status cannot mutate after active removal. Independent researcher report fixArchivedReleaseRepair|change:researcher:architecture-validation|adv-researcher|1 confirmed the defect and lifecycle-routed archive transaction design. Spec-law impact classified Modify for rq-releaseProjectionDurability01 and rq-archiveTerminalDurability01; broader sweep/reaper proposal remains distinct.",
+      "operation_id": "mutation:gate_completion:fixArchivedReleaseRepair:dd9fb242-8060-48aa-9264-fe119ece67f1",
+      "payload_hash": "dc9b576b0794ff11d1ac5cd2b57afddd5ad1e8c82403fc289f556d86d82d32bb",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-18T21:27:57.653Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Validated design persisted: lifecycle-routed mutation; active path preserved; archive path uses commitChangeProjection under archive lock; one transaction sets release+Phase9; existing writer regenerates derived files with original archived_at; normal path syncs before removal; typed fail-closed behavior. Research verdict Confirmed with caution; all cautions incorporated. No user-value tradeoff or contract compromise remains.",
+      "operation_id": "mutation:gate_completion:fixArchivedReleaseRepair:95e9c1af-13ce-4962-b1fb-501e1ef647d1",
+      "payload_hash": "be6e1da8e733201a55add0dd3826bf836a9603488afd402764657ad44e66baa4",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-18T21:28:05.590Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-65d5761c68f2",
+      "operation_id": "mutation:task_add:fixArchivedReleaseRepair:e3e75cf5-31f4-4998-a0ee-16f6ccd394fa",
+      "payload_hash": "212066aefc72ef18f3acd24b50116f0de7460deb88ddd07fb4ff8becad989000",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-18T21:28:55.500Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-00c14e0ccfdb",
+      "operation_id": "mutation:task_add:fixArchivedReleaseRepair:c9186437-8b3c-4bef-a59e-b91a23ef323c",
+      "payload_hash": "d2df5f1d5b4f789ab6356e267f6e6d2ba845352f83b5716c1e698b27a9d3cb44",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-18T21:29:10.458Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User-approved fast-track task graph: one inline-TDD implementation/spec task covering AC1-AC7, followed by one independent verification task for AC8. Isolated worktree created at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedReleaseRepair from origin/trunk 5272563366299087a9a7567fad9a5a9108fd556c. No overlap with broader addMergeTriggeredArchive sweep/reaper scope.",
+      "operation_id": "mutation:gate_completion:fixArchivedReleaseRepair:1002585d-bc4b-4957-8502-1c12976939e7",
+      "payload_hash": "ed94cac8be288fd2d808ff478fd490516d74300a58c50a45760cf2f82378d57e",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-18T21:29:24.956Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchivedReleaseRepair:82903b52-9e5e-48e0-ac93-b4c130c5ef11",
+      "payload_hash": "60ba6ba3984250f9be21dad0b1013baf4ac703d3ec1e697575a7b985299509e7",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-18T23:33:51.012Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- plugin/src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:f59cad4f-5d2a-41b7-82c3-3865e6aaa4ff",
+      "payload_hash": "979f1dc1b5c071c854daf49e7de7e8ea3202eb684b686afbda0046550e9dae27",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-18T23:39:28.453Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:8295673b-8922-4e4c-a1a5-e3895dc72246",
+      "payload_hash": "c894f617e9b131a06f6756422d2298cbfd5a945192baaa88a884789f910441fe",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-18T23:39:39.317Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:3004d06e-ec46-47f7-bbcf-eb91baed8a54",
+      "payload_hash": "f15e89f0be77eb584ad9cdc843395e6bebc97a999212b1b45b40beb3bfbe68fb",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-18T23:43:59.191Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:021b22d2-62aa-47f7-b04a-a84c76a56d06",
+      "payload_hash": "99458038c894320cdc63651b5da95932c84edccbec4de49c31964422e26f4488",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-18T23:44:28.898Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:8059a849-5310-4b33-af59-2aaf4adec07f",
+      "payload_hash": "d3733fa99403094d16a52ac1b7f4dfe3650848201ece80db154f6d4fc46404b3",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-18T23:45:05.566Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:43f0d7ac-e362-49c9-b361-86b531527e63",
+      "payload_hash": "5e4b9d5dba85bf82289b9fc096d398b96550d297eba32cc730929e74ebebeec4",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-18T23:45:38.114Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:b9b057a0-3a93-4bac-837f-437a243ea2fd",
+      "payload_hash": "155c696f9fa4713f9af54d562429b3a613cb24e9348a2126557687d4b949d639",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-18T23:47:45.714Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:5d9fa105-f1d9-4d82-b615-8d7f3c586f83",
+      "payload_hash": "d49b3f8a080f345daf1c9ca6a3dd33317e43effec32720d429b76139e17ff8a9",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-18T23:49:16.791Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:f0c1a5c7-cb39-4f6c-a574-a19558b3c6e3",
+      "payload_hash": "bf7baa5a60dcc8804a9e96b168cc0b6514fc87b34285a82023f9e6a7856fe7d1",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-18T23:49:51.884Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:290ba531-9de6-4764-848a-ca7ad502c541",
+      "payload_hash": "2f238e38270748a859808ab2b2be8a8d92b4bc7e8e9d39ddc9ba231beed8dfec",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-18T23:50:17.677Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:5d9dd434-1158-4f97-8086-15eac348173b",
+      "payload_hash": "d419047be894b5502f898f45ef94940846391a4b2ada09bc8210cbd572eb6fcc",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-18T23:51:02.305Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec tsx scripts/check-lockfile-policy.ts && pnpm exec tsx scripts/check-skill-references.ts && pnpm run lint && pnpm run format:check",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:6c8bc817-5c04-4391-9635-8333813f39bf",
+      "payload_hash": "50bd9fbca3c6637ce3001cac8f5d2413fdd11130e652481da8989988ead35556",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-18T23:52:01.728Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:34147cb8-461b-47fe-9336-8943f8c18c32",
+      "payload_hash": "00ce59accedc737cc702812db631ac2cd3284b2923b4a0668b2c08cbc06f46c4",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-18T23:54:02.688Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/__tests__/spec-id-shape-invariant.test.ts src/tools/spec.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:0de40bcd-4ef9-4595-82ae-2d28f0c7db9e",
+      "payload_hash": "ba93032074e442c64cf7fa925cff904ff35c47fd2b37d0352da3abc498767a02",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-18T23:54:14.535Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck && pnpm run lint && pnpm exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.ts && pnpm run architecture:check",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:7e5c0f12-c87b-4824-b219-25ad4863ddab",
+      "payload_hash": "0146174236591f7a09028d1512600ba63c7f61b3704cabee4064a4472248de2f",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-18T23:56:08.664Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedReleaseRepair|tk-65d5761c68f2|adv-reviewer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedReleaseRepair:453d0666-9429-4bf8-b174-0e58c1cd1ab2",
+      "payload_hash": "d89e0fc82a66e2b660ba6c82dcca734cfe8700398abb281ad1f07d317dc83a27",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-19T00:01:30.665Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm test -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:16152336-39fc-4436-ac5f-c154395bbcad",
+      "payload_hash": "0f1f1c3f8376d49d717bd5477c38b06a06d0c9bcf3928f35559442f5cdedb766",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-19T00:02:29.539Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:b31d7e89-bdc9-4cf0-ae2d-608da064cabe",
+      "payload_hash": "5c5db64be2a69ea3cf993d65a87a55cb77bdc7b50a25df434df4f13c84609460",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-19T00:03:24.407Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "599e5c142d95c506528379a3c4f1f3b17fd9d63e:Natural RED tr_mszb1j6b_4ca33041; focused archive/Phase 9 suite 59 passed plus typecheck tr_mszbw2tw_71c765d7; spec tests 26 passed tr_mszbkaj0_6f11b0f6; lint, scoped format, and architecture check passed tr_mszbmqm2_635ec7e1; independent REVIEWER_REPORT READY with remediation verified tr_mszbuwib_39c77705.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivedReleaseRepair:32d0a361-7c26-4ece-af67-264a6832bd17",
+      "payload_hash": "0f3579601f6ff53d77e01874680d57e2f6fca6da06786fe29cadf103aa5ea6a0",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-19T00:03:48.097Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchivedReleaseRepair:f0129a17-609a-47bb-8d0c-38f04f22f617",
+      "payload_hash": "f647596f9937154f9cde164438d2df53cd8d818aa60faf0b97053a31c438ad7d",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-19T00:04:26.527Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:c338ffad-449a-4d96-a5de-5e8e03657b46",
+      "payload_hash": "b904d8c545c235f102cfb902a28a7c175fd37fd3ee90dd80fe76b6553af59a8f",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-19T00:08:33.115Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "599e5c142d95c506528379a3c4f1f3b17fd9d63e:Durable focused verification tr_mszc2oyz_eef543f2 passed 19 tests. adv-verifier session ses_fe8aa3048ffegms8SxAcq3zUiz independently ran bin/oc-test full (386 files passed, 1 skipped; 5132 tests passed, 1 skipped, 12 todo) and pnpm --dir plugin run build; both completed successfully with no edits. Worktree remained clean.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivedReleaseRepair:e96c555c-40fa-4f72-8433-4fde17c71982",
+      "payload_hash": "d8ada9e5ccdb2d70b75fbbf52ef59b86589d117e6993d14ae3d2258cab97f11b",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-19T00:09:25.399Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "All approved tasks completed. Natural RED tr_mszb1j6b_4ca33041. Focused archive suite and typecheck tr_mszbw2tw_71c765d7 passed; spec tests tr_mszbkaj0_6f11b0f6 passed; independent reviewer READY with remediation; durable verification tr_mszc2oyz_eef543f2 passed; independent full lane 5132 passed and production build succeeded.",
+      "operation_id": "mutation:gate_completion:fixArchivedReleaseRepair:d692ac25-8507-42e6-93e2-6418bb8a2244",
+      "payload_hash": "52f8006cec8f3e3f291e24a519260fe23734a266994403f26bf3d7e3e923a564",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-19T00:09:56.604Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedReleaseRepair|change:review:acceptance|adv-reviewer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedReleaseRepair:e9236d1b-9e6f-4ae1-93a6-29f0c7927ebc",
+      "payload_hash": "648c40edf1f323db442d83282cb26e3ec54ce2b4564a9b3eb3fcfc8b0d38cddb",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-19T00:12:57.143Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivedReleaseRepair:6d1454bd-f57a-4152-85d8-03c3b30322a2",
+      "payload_hash": "b3528119345259827115c8a629637ac4d9595861eae030bf138abf8b76d77ac3",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-19T00:13:38.352Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User replied “continue” to the acceptance checkpoint after APPROVED review, 5,132 passing tests, and successful production build.",
+      "operation_id": "mutation:gate_completion:fixArchivedReleaseRepair:dbfb2d96-d5b2-413b-9045-cdda738bcf21",
+      "payload_hash": "a25fc441c5fae83acf618f21c431ff290c20aa296f4ca8d0130987ec4e93eb78",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-19T00:17:42.121Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/archive/archive.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin run lint && pnpm --dir plugin exec prettier --check src/tools/change/archive-gate.ts src/tools/change/handlers-archive.ts src/tools/change.archive-phase9.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivedReleaseRepair:88f05029-1c7e-4e5e-b44e-64063d5d9c2f",
+      "payload_hash": "bada6fa3a9c56ba8878490df65a160c58594bf75c61de54fcea7c71be1945016",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-19T00:37:27.902Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivedReleaseRepair|change:scanner-bundle:harden|adv-scanner-bundle|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivedReleaseRepair:76a6c967-475f-421b-84f0-ef4d9f8cf545",
+      "payload_hash": "e4e877a6ab4e68f37b061e9700bbdea229ba2de2ffd9faccd79776c87bcc93be",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-19T00:39:28.042Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "d3aa6c1effa6f3392cc69a7e886e3f226543fdef:Release hardening remediation: docs/spec header aligned, P42 comment cleaned, direct non-shipped guard and stronger fail-closed assertions added, duplicate error formatter removed, ProjectionCommitOutcome handling made exhaustive. Post-remediation run tr_mszd3vm4_2e9b6b4d passed 60 focused tests, typecheck, lint, and scoped formatting. Targeted re-scans marked all six findings resolved.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivedReleaseRepair:5e962d71-b901-41a8-83e9-86f9810c811e",
+      "payload_hash": "3c9e3a16e62d89595fe37b8ef5ff7714f57a68acfb2d2f367e3756cf1f7397f0",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-19T00:39:40.732Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivedReleaseRepair:fe7049e9-9aa1-4924-840d-93430ac84b8f",
+      "payload_hash": "cf5d5b38448d4f82c353cab5a45416897d8cba7d39f550f4c957a294faee0558",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-19T00:40:18.043Z"
+    }
+  ]
+}
