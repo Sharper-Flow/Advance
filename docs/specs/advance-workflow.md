@@ -779,7 +779,7 @@ When the spawned “adv-ci-waiter” returns a non-terminal outcome (timeout, bl
 
 **ID:** `rq-releaseProjectionDurability01` | **Priority:** **[MUST]**
 
-When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated by durable release-gate projection proof. Before `adv_change_archive phase9:"run"` reports success or performs archive retirement side effects, the store-backed gate read used by `adv_gate_status` MUST report `gates.release.status === "done"` with Phase 9 evidence in the release completion record. If this proof cannot be established, archive MUST return a blocked/recoverable result and MUST NOT claim shipped success, close linked issues, or run terminal cleanup as a successful retirement. Existing-bundle or completed-workflow retries MAY reconcile release metadata only after structural Phase 9 evidence is re-verified from the main checkout or PR branch state.
+When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated by durable release-gate projection proof. Before `adv_change_archive phase9:"run"` reports success or performs archive retirement side effects, the surviving authoritative projection used by `adv_gate_status` MUST report `gates.release.status === "done"` with Phase 9 evidence in the release completion record. If this proof cannot be established, archive MUST return a blocked/recoverable result and MUST NOT claim shipped success, close linked issues, or run terminal cleanup as a successful retirement. When the active projection is absent and a validated existing bundle survives, retry MUST re-verify structural Phase 9 evidence, commit release-gate and Phase 9 completion together against that bundle under the archive projection lock, regenerate projection-derived bundle files through the canonical archive writer while preserving the original archive timestamp, and make exact replay a no-op.
 
 **Tags:** `workflow`, `archive`, `release`, `projection`, `durability`
 
@@ -811,17 +811,19 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - The change is not retired as successfully archived
 - Linked issue closure and terminal worktree cleanup are not reported as successful retirement effects
 
-**Terminal retry repairs projection only with structural finalization evidence** (`rq-releaseProjectionDurability01.3`)
+**Terminal retry repairs the surviving archive projection** (`rq-releaseProjectionDurability01.3`)
 
 **Given:**
 - An archive bundle already exists or the change workflow has completed
-- Release gate metadata is stale or missing from the store-backed read
+- The active projection is absent and release or Phase 9 metadata is stale in the validated surviving bundle
 
 **When:** Archive retry attempts release projection repair
 
 **Then:**
-- Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair
-- PR archive mode re-verifies the change branch was pushed for PR handoff before repair
+- Direct and PR archive modes re-verify shipped default-branch or merged-PR reachability before repair
+- Release-gate and Phase 9 completion are committed together against the bundle through commitChangeProjection under the archive projection lock
+- Projection-derived bundle files are regenerated through the canonical archive writer without changing the original archived_at value
+- An exact replay adds no projection revision and repeats no finalization or cleanup side effect
 - If finalization evidence is missing or invalid, repair is rejected and release remains not done
 
 **Shipped finalization is git-authoritative when both release-gate projections lag** (`rq-releaseProjectionDurability01.4`)
@@ -874,18 +876,19 @@ Archive MUST prove the terminal transition through the authoritative disk projec
 
 #### Scenarios
 
-**Projection state never gates the transition request** (`rq-archiveTerminalDurability01.1`)
+**Terminal projection and surviving bundle converge before removal** (`rq-archiveTerminalDurability01.1`)
 
 **Given:**
-- A change whose disk or active projection already reports status archived
-- The change change projection has not recorded the archive transition
+- A normal archive has written its bundle before release completion, or an existing-bundle retry has no active projection
+- The surviving bundle does not yet contain the final release and Phase 9 projection
 
-**When:** adv_change_archive runs on any non-dry-run route, including the existing-bundle reconciliation route
+**When:** adv_change_archive reaches terminal projection or existing-bundle reconciliation
 
 **Then:**
-- The archive transition is requested through the store-backed save on every route
-- The existing bundle is reused and bundle re-writing is skipped on the reconciliation route
-- No projection read short-circuits the transition request
+- Normal archive writes synchronize the committed terminal projection into the surviving bundle before active projection removal
+- Existing-bundle reconciliation commits release and Phase 9 together against the bundle without recreating active state
+- Projection-derived files are regenerated through the canonical archive writer while preserving archived_at and existing spec, narrative, wisdom, and multi-repository sidecars
+- A failed or unverified bundle refresh blocks retirement side effects
 
 **Post-save proof fails closed when the change projection cannot be verified** (`rq-archiveTerminalDurability01.2`)
 

@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   readProjectionManifest: vi.fn(),
   archiveChange: vi.fn(),
   reconcileInRepoArchive: vi.fn(),
+  refreshArchiveBundleProjectionUnderLock: vi.fn(),
+  withArchiveProjectionLock: vi.fn(),
   verifyProjectionAtGitCommit: vi.fn(),
 
   detectArchiveMode: vi.fn(),
@@ -59,8 +61,14 @@ vi.mock("../../archive/archive", async (importOriginal) => {
     findArchiveBundle: mocks.findArchiveBundle,
     archiveChange: mocks.archiveChange,
     reconcileInRepoArchive: mocks.reconcileInRepoArchive,
+    refreshArchiveBundleProjectionUnderLock:
+      mocks.refreshArchiveBundleProjectionUnderLock,
   };
 });
+
+vi.mock("../../archive/projection-lock", () => ({
+  withArchiveProjectionLock: mocks.withArchiveProjectionLock,
+}));
 
 vi.mock("../../archive/projection-proof", async (importOriginal) => {
   const actual =
@@ -293,6 +301,10 @@ describe("adv_change_archive partial archive-delta repair", () => {
     mocks.reconcileInRepoArchive.mockResolvedValue(
       join(REPAIR_WORKTREE, ".adv", "archive", CHANGE_ID),
     );
+    mocks.refreshArchiveBundleProjectionUnderLock.mockResolvedValue({});
+    mocks.withArchiveProjectionLock.mockImplementation(
+      async (_root, operation) => operation(),
+    );
 
     mocks.verifyReleaseEvidenceFromMain.mockReturnValue({
       status: "shipped",
@@ -396,6 +408,7 @@ describe("adv_change_archive partial archive-delta repair", () => {
       archivePath: BUNDLE_PATH,
       errors: [],
       projectionManifest: makeManifest(change),
+      archivedAt: "2026-08-08T00:00:00.000Z",
     };
   }
 
@@ -449,6 +462,19 @@ describe("adv_change_archive partial archive-delta repair", () => {
         }),
       }),
     );
+    expect(mocks.refreshArchiveBundleProjectionUnderLock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        archivePath: BUNDLE_PATH,
+        archivedAt: "2026-08-08T00:00:00.000Z",
+        change: expect.objectContaining({
+          lifecycleState: "archived",
+          phase9_status: expect.objectContaining({ status: "done" }),
+        }),
+      }),
+    );
+    expect(
+      mocks.refreshArchiveBundleProjectionUnderLock.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocks.removeChangeDir.mock.invocationCallOrder[0]);
   });
 
   it("refuses a partial repair without prior phase9 attempt evidence", async () => {
@@ -696,11 +722,8 @@ describe("adv_change_archive partial archive-delta repair", () => {
   });
 });
 
-// rq-archiveRetirement01: a successful archive MUST create the durable bundle
-// for every change, including zero-delta changes. Regression coverage for the
-// 2026-08-16 restoreVendoredDesignSkills loss, where the no-delta synthetic
-// shortcut skipped archiveChange entirely and the active record was removed
-// with no bundle on disk.
+// A successful archive creates the durable bundle for every change, including
+// changes with no spec deltas.
 describe("adv_change_archive zero-delta bundle creation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -736,6 +759,10 @@ describe("adv_change_archive zero-delta bundle creation", () => {
 
     mocks.archiveChange.mockImplementation(async (input: { change: Change }) =>
       archiveResult(input.change),
+    );
+    mocks.refreshArchiveBundleProjectionUnderLock.mockResolvedValue({});
+    mocks.withArchiveProjectionLock.mockImplementation(
+      async (_root, operation) => operation(),
     );
 
     mocks.verifyReleaseEvidenceFromMain.mockReturnValue({
@@ -786,6 +813,7 @@ describe("adv_change_archive zero-delta bundle creation", () => {
       commitPaths: [],
       archivePath: BUNDLE_PATH,
       errors: [],
+      archivedAt: "2026-08-08T00:00:00.000Z",
     };
   }
 

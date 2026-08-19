@@ -14,6 +14,7 @@ import {
   serializeTerminalArchiveSummary,
   sha256HexString,
   TERMINAL_SUMMARY_FILE,
+  validateTerminalArchiveSummary,
 } from "./terminal-summary";
 import type {
   ArchiveContext,
@@ -88,7 +89,7 @@ async function archiveBundlePathForWrite(
   return bundlePath;
 }
 
-interface ArchiveBundleWriteResult {
+export interface ArchiveBundleWriteResult {
   terminalSummaryDegradation?: {
     reason: string;
     fallback: "legacy_change_json";
@@ -151,7 +152,7 @@ async function writeArchiveBundleFiles(
   }
 
   // Human-readable archive summary.
-  const summary = generateArchiveSummary(change);
+  const summary = generateArchiveSummary(change, archivedAt);
   await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
 
   // Archive-lane briefing digest (idempotent overwrite).
@@ -203,6 +204,49 @@ async function writeArchiveBundleFiles(
   }
 
   return {};
+}
+
+/**
+ * Regenerate projection-derived files for an existing archive bundle.
+ *
+ * Caller holds the archive projection lock. When no timestamp is supplied, the
+ * existing terminal summary supplies the archive timestamp so reconciliation
+ * cannot make the bundle appear newly archived.
+ */
+export async function refreshArchiveBundleProjectionUnderLock(input: {
+  change: Change;
+  archivePath: string;
+  archivedAt?: string;
+}): Promise<ArchiveBundleWriteResult> {
+  let archivedAt = input.archivedAt;
+  if (!archivedAt) {
+    const summaryRead = await readBoundedProjectionDocument(
+      join(input.archivePath, TERMINAL_SUMMARY_FILE),
+    );
+    if (summaryRead.kind !== "ok") {
+      throw new Error(
+        `Cannot preserve archive timestamp for ${input.change.id}: terminal summary is ${summaryRead.kind}.`,
+      );
+    }
+    const summary = validateTerminalArchiveSummary(
+      JSON.parse(summaryRead.content),
+    );
+    if (summary.change_id !== input.change.id) {
+      throw new Error(
+        `Archive bundle identity mismatch: expected ${input.change.id}, got ${summary.change_id}.`,
+      );
+    }
+    archivedAt = summary.archived_at;
+  }
+
+  const result = await writeArchiveBundleFiles(
+    input.change,
+    input.archivePath,
+    undefined,
+    archivedAt,
+  );
+  await syncDir(input.archivePath);
+  return result;
 }
 
 function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {
@@ -1235,13 +1279,13 @@ async function createArchive(
 /**
  * Generate a summary markdown file for the archive.
  */
-function generateArchiveSummary(change: Change): string {
+function generateArchiveSummary(change: Change, archivedAt: string): string {
   const lines: string[] = [];
 
   lines.push(`# Archive: ${change.title}`);
   lines.push("");
   lines.push(`**Change ID:** ${change.id}`);
-  lines.push(`**Archived:** ${new Date().toISOString()}`);
+  lines.push(`**Archived:** ${archivedAt}`);
   lines.push(`**Created:** ${change.created_at}`);
   if (change.created_by) {
     lines.push(`**Created By:** ${change.created_by}`);

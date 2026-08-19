@@ -35,7 +35,9 @@ import {
   findArchiveBundle,
   getArchiveContractProofErrors,
   reconcileInRepoArchive,
+  refreshArchiveBundleProjectionUnderLock,
 } from "../../archive/archive";
+import { withArchiveProjectionLock } from "../../archive/projection-lock";
 import {
   readProjectionManifest,
   verifyProjectionAtGitCommit,
@@ -990,6 +992,33 @@ export const advChangeArchiveHandler = async (
           changeId,
           archivePath: archiveResult.archivePath,
         });
+      try {
+        const refreshResult = await withArchiveProjectionLock(
+          activeStore.paths.root,
+          () =>
+            refreshArchiveBundleProjectionUnderLock({
+              change: outcome.value,
+              archivePath: archiveResult.archivePath,
+              archivedAt: archiveResult.archivedAt,
+            }),
+        );
+        if (refreshResult.terminalSummaryDegradation)
+          return formatToolOutput({
+            success: false,
+            error: `Archive bundle projection refresh blocked: ${refreshResult.terminalSummaryDegradation.reason}`,
+            requirement: "rq-archiveTerminalDurability01.1",
+            changeId,
+            archivePath: archiveResult.archivePath,
+          });
+      } catch (error) {
+        return formatToolOutput({
+          success: false,
+          error: `Archive bundle projection refresh blocked: ${error instanceof Error ? error.message : String(error)}`,
+          requirement: "rq-archiveTerminalDurability01.1",
+          changeId,
+          archivePath: archiveResult.archivePath,
+        });
+      }
       const epicProjection = await projectEpicTerminalSummaryAfterArchive({
         store: activeStore,
         change: outcome.value,

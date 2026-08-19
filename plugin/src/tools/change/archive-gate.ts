@@ -24,6 +24,10 @@ import {
   type GitFinalizeDeps,
 } from "../archive-helpers/git-finalize";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
+import { commitChangeProjection } from "../../storage/change-projection-transaction";
+import { canonicalSha256 } from "../../archive/projection";
+import { withArchiveProjectionLock } from "../../archive/projection-lock";
+import { refreshArchiveBundleProjectionUnderLock } from "../../archive/archive";
 
 const logger = createLogger("change");
 
@@ -171,6 +175,10 @@ export function preservePhase9Evidence(
       : {}),
     ...(previous.prHeadSha !== undefined && next.prHeadSha === undefined
       ? { prHeadSha: previous.prHeadSha }
+      : {}),
+    ...(previous.mergeCommitSha !== undefined &&
+    next.mergeCommitSha === undefined
+      ? { mergeCommitSha: previous.mergeCommitSha }
       : {}),
     ...(previous.defaultBranchSha !== undefined &&
     next.defaultBranchSha === undefined
@@ -445,6 +453,180 @@ function releaseGateEvidenceMatches(
   );
 }
 
+async function completeArchivedBundleRelease(input: {
+  store: Store;
+  changeId: string;
+  finalization: GitFinalizeOutcome;
+  existingBundlePath: string;
+}): Promise<ArchiveReleaseGateResult> {
+  if (input.finalization.status !== "shipped") {
+    return {
+      ok: false,
+      error: `Archived release recovery requires shipped finalization, got ${input.finalization.status}.`,
+    };
+  }
+  const evidence = buildReleaseCompletionEvidence(input.finalization);
+
+  return withArchiveProjectionLock(input.store.paths.root, async () => {
+    const changesDir = dirname(input.existingBundlePath);
+    const bundleId = basename(input.existingBundlePath);
+    const loaded = await loadChange(changesDir, bundleId);
+    if (!loaded.success || !loaded.data) {
+      return {
+        ok: false,
+        error: loaded.success
+          ? `Archive bundle projection not found: ${input.existingBundlePath}`
+          : loaded.error,
+        code: "CHANGE_PROJECTION_LOAD_FAILED",
+        projectionFailureType: loaded.success ? "not_found" : loaded.type,
+      };
+    }
+    if (loaded.data.id !== input.changeId) {
+      return {
+        ok: false,
+        error: `Archive bundle identity mismatch: expected ${input.changeId}, got ${loaded.data.id}.`,
+      };
+    }
+
+    const currentGate = loaded.data.gates?.release;
+    if (
+      currentGate?.status === "done" &&
+      loaded.data.phase9_status?.status === "done"
+    ) {
+      try {
+        const writeResult = await refreshArchiveBundleProjectionUnderLock({
+          change: loaded.data,
+          archivePath: input.existingBundlePath,
+        });
+        if (writeResult.terminalSummaryDegradation) {
+          return {
+            ok: false,
+            error: writeResult.terminalSummaryDegradation.reason,
+          };
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          error: `Archive bundle refresh failed: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
+      return {
+        ok: true,
+        gate: currentGate,
+        alreadyDone: true,
+        recoveryMutation: true,
+      };
+    }
+
+    const completedAt = new Date().toISOString();
+    const completion: GateCompletion = {
+      status: "done",
+      completed_at: completedAt,
+      completed_by: "adv-archive",
+      approval_evidence: evidence,
+    };
+    const payload = {
+      changeId: input.changeId,
+      releaseEvidence: evidence,
+      phase9Status: "done",
+    };
+    const payloadHash = canonicalSha256(payload);
+    const outcome = await commitChangeProjection({
+      changesDir,
+      changeId: bundleId,
+      operationId: `archive-release-recovery:${input.changeId}:${payloadHash}`,
+      payloadHash,
+      authority: {
+        kind: "recovery",
+        reason: "reconcile archived release and Phase 9 projection",
+        evidence,
+      },
+      mutationKind: "archive_release_recovery",
+      payload,
+      mutateLatest: (latest) => {
+        if (latest.id !== input.changeId) {
+          throw new Error(
+            `Archive bundle identity mismatch: expected ${input.changeId}, got ${latest.id}.`,
+          );
+        }
+        return {
+          ...latest,
+          gates: {
+            ...(latest.gates ?? {}),
+            release:
+              latest.gates?.release?.status === "done"
+                ? latest.gates.release
+                : completion,
+          },
+          phase9_status: preservePhase9Evidence(latest.phase9_status, {
+            status: "done",
+            startedAt: latest.phase9_status?.startedAt ?? completedAt,
+            completedAt,
+            changeTipSha: input.finalization.changeTipSha,
+            repo: input.finalization.repo,
+            prNumber: input.finalization.prNumber,
+            prUrl: input.finalization.prUrl,
+            route: input.finalization.route,
+            prHeadSha: input.finalization.prHeadSha,
+            defaultBranchSha: input.finalization.defaultBranchSha,
+            ...(input.finalization.mergeCommitSha
+              ? { mergeCommitSha: input.finalization.mergeCommitSha }
+              : {}),
+          }),
+        };
+      },
+      verify: ({ readback }) =>
+        readback.id === input.changeId &&
+        readback.gates?.release?.status === "done" &&
+        readback.phase9_status?.status === "done",
+      afterCommit: async ({ readback }) => {
+        try {
+          const writeResult = await refreshArchiveBundleProjectionUnderLock({
+            change: readback,
+            archivePath: input.existingBundlePath,
+          });
+          return writeResult.terminalSummaryDegradation
+            ? {
+                ok: false,
+                error: writeResult.terminalSummaryDegradation.reason,
+              }
+            : { ok: true };
+        } catch (error) {
+          return {
+            ok: false,
+            error: `Archive bundle refresh failed: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      },
+    });
+
+    if (outcome.kind !== "committed") {
+      const error =
+        "postconditionError" in outcome
+          ? outcome.postconditionError
+          : "reason" in outcome
+            ? outcome.reason
+            : "error" in outcome
+              ? outcome.error
+              : `Archived bundle projection commit failed: ${outcome.kind}`;
+      return { ok: false, error };
+    }
+    const gate = outcome.readback.gates?.release;
+    if (!gate || gate.status !== "done") {
+      return {
+        ok: false,
+        error: "Archived bundle release gate readback was not complete.",
+      };
+    }
+    return {
+      ok: true,
+      gate,
+      alreadyDone: outcome.idempotent === true,
+      recoveryMutation: true,
+    };
+  });
+}
+
 export async function verifyReleaseGateDurableForArchive(input: {
   store: Store;
   changeId: string;
@@ -519,12 +701,32 @@ export async function completeReleaseGateAfterFinalization(input: {
     input.store.paths.changes,
     input.changeId,
   );
-  if (!currentProjection.success)
+  if (
+    currentProjection.success &&
+    currentProjection.data === null &&
+    input.existingBundlePath !== undefined
+  ) {
+    return completeArchivedBundleRelease({
+      store: input.store,
+      changeId: input.changeId,
+      finalization: input.finalization,
+      existingBundlePath: input.existingBundlePath,
+    });
+  }
+  if (!currentProjection.success) {
     return {
       ok: false,
       error: currentProjection.error,
       code: "CHANGE_PROJECTION_LOAD_FAILED",
       projectionFailureType: currentProjection.type,
+    };
+  }
+  if (!currentProjection.data)
+    return {
+      ok: false,
+      error: `Change projection ${input.changeId} was not found.`,
+      code: "CHANGE_PROJECTION_LOAD_FAILED",
+      projectionFailureType: "not_found",
     };
   const current = currentProjection.data?.gates?.release;
   if (current?.status === "done")
@@ -630,18 +832,6 @@ export async function reconcileArchivedBundleRetry(input: {
         path: finalization.repoRoot,
         branch: finalization.defaultBranch,
       },
-    });
-  if (input.change.phase9_status?.status !== "done")
-    await recordPhase9Status({
-      store: input.store,
-      changeId: input.changeId,
-      status: preservePhase9Evidence(input.change.phase9_status, {
-        status: "done",
-        startedAt:
-          input.change.phase9_status?.startedAt ?? new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        changeTipSha: finalization.changeTipSha,
-      }),
     });
   return formatToolOutput({
     success: true,
