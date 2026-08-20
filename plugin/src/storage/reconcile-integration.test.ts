@@ -264,6 +264,85 @@ async function scanAndPlan(paths: ProjectPaths): Promise<{
 }
 
 describe("store reconciliation integration", () => {
+  test("backfills entry membership with dry-run and apply plan-hash parity", async () => {
+    const root = await createTempDir("adv-reconcile-backfill-");
+    const state = join(root, "state");
+    try {
+      const store = await createStore(root, { externalRoot: state });
+      const paths = getProjectPaths(root, {}, { externalRoot: state });
+      await store.epics.create("backfill-epic", "Backfill Epic", "fixture");
+      const created = await store.changes.create("Backfill child");
+      await mutateChange(paths, created.changeId, (change) => ({
+        ...change,
+        worktree_auto_managed: false,
+        epic_membership: {
+          epic_id: "backfill-epic",
+          entry_id: "backfill-entry",
+          order: 3,
+          title: "Backfill child",
+          linked_at: "2026-08-07T00:00:00.000Z",
+          source: "create",
+        },
+      }));
+      const loaded = await loadChange(paths.changes, created.changeId);
+      if (!loaded.success || !loaded.data) throw new Error("child missing");
+      await publishSummaryForChange(summaryIndexPaths(paths), loaded.data);
+
+      const scan = await runStoreResidueScan({
+        paths,
+        localProjectId: "fixture-project",
+      });
+      const plan = buildReconcilePlan(scan);
+      expect(
+        plan.records.some(
+          (record) =>
+            record.record_id === created.changeId &&
+            record.class === "epic_entry_missing",
+        ),
+      ).toBe(true);
+      const dryRun = parseToolOutput<Record<string, unknown>>(
+        await storeReconcileTools.adv_store_reconcile.execute(
+          { mode: "dry_run" },
+          store,
+        ),
+      );
+      expect(dryRun.plan_hash).toBe(plan.plan_hash);
+
+      const report = await runReconcileApply({
+        storePaths: paths,
+        plan,
+        planHash: plan.plan_hash,
+        confirmPlanHash: plan.plan_hash,
+        mode: "apply",
+        deps: {
+          localProjectId: "fixture-project",
+          runId: () => "backfill-run",
+        },
+      });
+      expect(
+        report.records.find((record) => record.record_id === created.changeId),
+      ).toMatchObject({
+        action: "backfill_epic_entry_from_fragment",
+        status: "mutated",
+      });
+      const epic = await store.epics.get("backfill-epic");
+      expect(epic).toMatchObject({
+        success: true,
+        data: {
+          entries: [
+            expect.objectContaining({
+              entry_id: "backfill-entry",
+              change_id: created.changeId,
+              linked_at: "2026-08-07T00:00:00.000Z",
+            }),
+          ],
+        },
+      });
+    } finally {
+      await cleanupTempDir(root);
+    }
+  }, 55_000);
+
   test("runs a pokeedge-shaped scan, approval, apply, receipts, audit, and proof", async () => {
     const fixture = await makeFixture();
     try {

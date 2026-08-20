@@ -29,6 +29,7 @@ import {
   reconstructFromChildFragmentsExecutor,
   formallyLostReportExecutor,
   clearDanglingMembershipExecutor,
+  backfillEpicEntryFromFragmentExecutor,
 } from "./reconcile-action-epic-recovery";
 import {
   normalizeAndRestoreExecutor,
@@ -80,6 +81,7 @@ import {
   loadActiveEpicProjection,
   saveActiveEpicProjection,
 } from "./epic-projection";
+import { createEpicDiskOps } from "./epics-disk";
 import type { Epic } from "../types";
 import type {
   ActionContext,
@@ -190,6 +192,7 @@ export const ACTION_EXECUTORS: Record<
   reconstruct_from_child_fragments: reconstructFromChildFragmentsExecutor,
   formally_lost_report: formallyLostReportExecutor,
   clear_dangling_membership: clearDanglingMembershipExecutor,
+  backfill_epic_entry_from_fragment: backfillEpicEntryFromFragmentExecutor,
   normalize_and_restore: normalizeAndRestoreExecutor,
   remain_quarantined_reported: remainQuarantinedReportedExecutor,
   quarantine_to_trash: quarantineToTrashExecutor,
@@ -560,6 +563,10 @@ export async function runReconcileApply({
           nextEpic,
           expectedVersion,
         ),
+      linkEpicChange: createEpicDiskOps({
+        activeEpicsDir: storePaths.activeEpics,
+        retiredEpicsDir: storePaths.retiredEpics,
+      }).linkChange,
       executorRegistry: deps.actionExecutors,
     };
 

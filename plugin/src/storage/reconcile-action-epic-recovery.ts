@@ -13,13 +13,17 @@ import {
   type EpicMembership,
 } from "../types";
 import { convergeEpicMembership } from "../tools/epic-convergence";
+import { createEpicDiskOps } from "./epics-disk";
 import type {
   ActionContext,
   ActionExecutor,
   ActionOutcome,
 } from "./reconcile-action-types";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
-import { loadActiveEpicProjection } from "./epic-projection";
+import {
+  loadActiveEpicProjection,
+  loadRetiredEpicProjection,
+} from "./epic-projection";
 import { listChangeDirs, loadChange } from "./json";
 
 /**
@@ -80,10 +84,11 @@ function checkAction(
   record: ReconcilePlanRecord,
   action: ReconcileAction,
   expected: ReconcileAction["action"],
+  expectedClass: ReconcileAction["class"] = "epic_owner_missing",
 ): ActionOutcome | null {
   if (
-    record.class !== "epic_owner_missing" ||
-    action.class !== "epic_owner_missing" ||
+    record.class !== expectedClass ||
+    action.class !== expectedClass ||
     action.action !== expected ||
     record.record_id.length === 0
   ) {
@@ -458,6 +463,157 @@ export const reconstructFromChildFragmentsExecutor: ActionExecutor = async (
       convergence_statuses: gate.statuses,
     },
   };
+};
+
+export const backfillEpicEntryFromFragmentExecutor: ActionExecutor = async (
+  record,
+  action,
+  ctx,
+): Promise<EpicRecoveryOutcome> => {
+  const invalid = checkAction(
+    record,
+    action,
+    "backfill_epic_entry_from_fragment",
+    "epic_entry_missing",
+  );
+  if (invalid) return invalid;
+
+  const source = await readChild(record);
+  if (isActionOutcome(source)) return source;
+  const epicId = await targetEpic(record, source.change);
+  if (!epicId) {
+    return {
+      status: "failed",
+      error_class: "epic_id_missing",
+      residual: `${record.record_id}: no Epic id survived in child membership`,
+    };
+  }
+
+  const owner = await ownerState(ctx, epicId);
+  if (owner.kind === "failed") return failed("owner_read_failed", owner.reason);
+  if (!owner.epic) {
+    const retired = await loadRetiredEpicProjection(
+      ctx.storePaths.retiredEpics,
+      epicId,
+    );
+    if (!retired.success) return failed("owner_read_failed", retired.error);
+    return retired.data
+      ? failed(
+          "owner_not_active",
+          `${epicId}: retired Epic cannot be backfilled`,
+        )
+      : failed("owner_missing", `${epicId}: active Epic was not found`);
+  }
+  if (
+    owner.epic.progress.status === "archived" ||
+    owner.epic.progress.status === "merged" ||
+    owner.epic.merged_into
+  ) {
+    return failed(
+      "owner_not_active",
+      `${epicId}: retired or merged Epic cannot be backfilled`,
+    );
+  }
+
+  const fragments = await findFragments(
+    ctx.storePaths.changes,
+    epicId,
+    ctx.localProjectId,
+  );
+  const fragmentReason = fragmentFailureReason(fragments);
+  if (fragmentReason) {
+    return failed(
+      "fragment_refused",
+      `${epicId}: backfill refused: ${fragmentReason}`,
+    );
+  }
+  const fragment = fragments.find(
+    ({ change }) => change.id === source.change.id,
+  );
+  if (!fragment) {
+    return failed(
+      "fragment_missing",
+      `${epicId}: source fragment ${source.change.id} was not recoverable`,
+    );
+  }
+  const entry = childEntry(fragment);
+  if (!entry) {
+    return failed(
+      "fragment_refused",
+      `${epicId}: backfill refused: terminal child fragment lacks a usable completion timestamp`,
+    );
+  }
+
+  try {
+    const linkEpicChange =
+      ctx.linkEpicChange ??
+      createEpicDiskOps({
+        activeEpicsDir: ctx.storePaths.activeEpics,
+        retiredEpicsDir: ctx.storePaths.retiredEpics,
+      }).linkChange;
+    await linkEpicChange(epicId, {
+      entryId: entry.entry_id,
+      changeId: source.change.id,
+      title: entry.title ?? fragment.membership.title,
+      order: entry.order,
+      linkedAt: entry.linked_at,
+      membershipStatus: entry.membership_status,
+      ...(entry.terminal_summary && {
+        terminalSummary: {
+          status: entry.terminal_summary.status,
+          completedAt: entry.terminal_summary.completed_at,
+        },
+      }),
+      linkedBy: entry.linked_by,
+      linkEvidence: entry.link_evidence,
+      changeProjectId: entry.change_ref?.project_id,
+    });
+    return {
+      status: "mutated",
+      evidence: {
+        epic_id: epicId,
+        fragment_count: fragments.length,
+        convergence_statuses: [entry.membership_status ?? "linked"],
+      },
+    };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code)
+        : "unknown";
+    if (code === "entry_already_exists") {
+      const latest = await ownerState(ctx, epicId);
+      if (latest.kind === "ok" && latest.epic) {
+        if (
+          latest.epic.entries.some(
+            (candidate) => candidate.entry_id === entry.entry_id,
+          )
+        ) {
+          return {
+            status: "skipped",
+            residual: `${epicId}: entry ${entry.entry_id} already exists`,
+            evidence: { epic_id: epicId, fragment_count: fragments.length },
+          };
+        }
+        const duplicateChange = latest.epic.entries.find(
+          (candidate) =>
+            candidate.kind === "change" &&
+            (candidate.change_id ?? candidate.change_ref?.change_id) ===
+              source.change.id,
+        );
+        if (duplicateChange) {
+          return failed(
+            "entry_already_exists",
+            `${epicId}: change ${source.change.id} already exists under entry ${duplicateChange.entry_id}`,
+          );
+        }
+      }
+    }
+    return failed(
+      code,
+      `${epicId}: backfill refused: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 };
 
 export const formallyLostReportExecutor: ActionExecutor = async (

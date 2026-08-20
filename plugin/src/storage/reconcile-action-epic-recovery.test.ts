@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   cleanupTempDir,
@@ -9,10 +9,13 @@ import {
 } from "../__tests__/setup";
 import { ChangeSchema, EpicSchema, type Change, type Epic } from "../types";
 import { getProjectPaths, type ProjectPaths } from "./json";
+import { createEpicDiskOps } from "./epics-disk";
+import { loadActiveEpicProjection } from "./epic-projection";
 import type { ActionContext } from "./reconcile-action-types";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
 import {
   clearDanglingMembershipExecutor,
+  backfillEpicEntryFromFragmentExecutor,
   formallyLostReportExecutor,
   reconstructFromChildFragmentsExecutor,
   verifyEpicReconstructionConvergence,
@@ -63,13 +66,14 @@ function record(
   childId: string,
   sourcePath: string,
   action: ReconcileAction["action"],
+  className: ReconcilePlanRecord["class"] = "epic_owner_missing",
 ): ReconcilePlanRecord {
   return {
     record_id: childId,
     source_path: sourcePath,
-    class: "epic_owner_missing",
+    class: className,
     evidence: ["missing Epic owner"],
-    actions: [{ class: "epic_owner_missing", action }],
+    actions: [{ class: className as "epic_owner_missing", action }],
   };
 }
 
@@ -110,16 +114,373 @@ async function fixture() {
         audit: {} as never,
       };
     },
-    saveEpicOptimistic: async (_epicId, epic) => {
+    saveEpicOptimistic: vi.fn(async (_epicId, epic) => {
       const { saveActiveEpicProjection } = await import("./epic-projection");
       await saveActiveEpicProjection(paths.activeEpics, epic);
       return { status: "saved" as const, epic };
-    },
+    }),
+    linkEpicChange: vi.fn(async (epicId, input) =>
+      createEpicDiskOps({
+        activeEpicsDir: paths.activeEpics,
+        retiredEpicsDir: paths.retiredEpics,
+      }).linkChange(epicId, input),
+    ),
   };
   return { paths, ctx, before, audits };
 }
 
 describe("Epic recovery reconcile action executors", () => {
+  test("backfills a missing entry from a surviving fragment", async () => {
+    const { paths, ctx } = await fixture();
+    const child = makeChange(
+      "child-one",
+      "existingEpic",
+      "entry-one",
+      4,
+      "First child",
+      "2026-08-07T00:00:00.000Z",
+    );
+    const sourcePath = await seedChange(paths, child);
+    await mkdir(paths.activeEpics, { recursive: true });
+    await mkdir(paths.retiredEpics, { recursive: true });
+    await createEpicDiskOps({
+      activeEpicsDir: paths.activeEpics!,
+      retiredEpicsDir: paths.retiredEpics!,
+    }).create("existingEpic", "Existing Epic", "");
+
+    const result = await backfillEpicEntryFromFragmentExecutor(
+      record(
+        child.id,
+        sourcePath,
+        "backfill_epic_entry_from_fragment",
+        "epic_entry_missing",
+      ),
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+      ctx,
+    );
+
+    expect(result.status).toBe("mutated");
+    const owner = JSON.parse(
+      await readFile(
+        join(paths.activeEpics, "existingEpic", "active-projection.json"),
+        "utf8",
+      ),
+    ) as Epic;
+    expect(owner.entries).toEqual([
+      expect.objectContaining({
+        entry_id: "entry-one",
+        order: 4,
+        title: "First child",
+        linked_at: "2026-08-07T00:00:00.000Z",
+        change_id: "child-one",
+      }),
+    ]);
+    expect(ctx.saveEpicOptimistic).not.toHaveBeenCalled();
+    expect(ctx.linkEpicChange).toHaveBeenCalledOnce();
+  });
+
+  test("skips an entry id that already exists without duplicating it", async () => {
+    const { paths, ctx } = await fixture();
+    const child = makeChange(
+      "child-one",
+      "existingEpic",
+      "entry-one",
+      4,
+      "First child",
+      "2026-08-07T00:00:00.000Z",
+    );
+    const sourcePath = await seedChange(paths, child);
+    await mkdir(paths.activeEpics, { recursive: true });
+    await mkdir(paths.retiredEpics, { recursive: true });
+    const ops = createEpicDiskOps({
+      activeEpicsDir: paths.activeEpics,
+      retiredEpicsDir: paths.retiredEpics,
+    });
+    await ops.create("existingEpic", "Existing Epic", "");
+    await ops.linkChange("existingEpic", {
+      entryId: "entry-one",
+      changeId: "different-child",
+      title: "Existing entry",
+    });
+
+    const result = await backfillEpicEntryFromFragmentExecutor(
+      record(
+        child.id,
+        sourcePath,
+        "backfill_epic_entry_from_fragment",
+        "epic_entry_missing",
+      ),
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+      ctx,
+    );
+
+    expect(result).toMatchObject({ status: "skipped" });
+    const owner = await loadActiveEpicProjection(
+      paths.activeEpics,
+      "existingEpic",
+    );
+    expect(owner).toMatchObject({
+      success: true,
+      data: { entries: [{ entry_id: "entry-one" }] },
+    });
+  });
+
+  test("refuses a change id already linked under another entry", async () => {
+    const { paths, ctx } = await fixture();
+    const child = makeChange(
+      "child-one",
+      "existingEpic",
+      "new-entry",
+      4,
+      "First child",
+      "2026-08-07T00:00:00.000Z",
+    );
+    const sourcePath = await seedChange(paths, child);
+    await mkdir(paths.activeEpics, { recursive: true });
+    await mkdir(paths.retiredEpics, { recursive: true });
+    const ops = createEpicDiskOps({
+      activeEpicsDir: paths.activeEpics,
+      retiredEpicsDir: paths.retiredEpics,
+    });
+    await ops.create("existingEpic", "Existing Epic", "");
+    await ops.linkChange("existingEpic", {
+      entryId: "old-entry",
+      changeId: child.id,
+      title: "Existing child",
+    });
+
+    const result = await backfillEpicEntryFromFragmentExecutor(
+      record(
+        child.id,
+        sourcePath,
+        "backfill_epic_entry_from_fragment",
+        "epic_entry_missing",
+      ),
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+      ctx,
+    );
+
+    expect(result).toMatchObject({
+      status: "failed",
+      error_class: "entry_already_exists",
+    });
+  });
+
+  test("refuses a retired owner without calling the locked writer", async () => {
+    const { paths, ctx } = await fixture();
+    const child = makeChange(
+      "child-one",
+      "retiredEpic",
+      "entry-one",
+      4,
+      "First child",
+      "2026-08-07T00:00:00.000Z",
+    );
+    const sourcePath = await seedChange(paths, child);
+    await mkdir(paths.activeEpics, { recursive: true });
+    await mkdir(paths.retiredEpics, { recursive: true });
+    const ops = createEpicDiskOps({
+      activeEpicsDir: paths.activeEpics,
+      retiredEpicsDir: paths.retiredEpics,
+    });
+    await ops.create("retiredEpic", "Retired Epic", "");
+    const owner = await loadActiveEpicProjection(
+      paths.activeEpics,
+      "retiredEpic",
+    );
+    if (!owner.success || !owner.data) throw new Error("Epic missing");
+    await ops
+      .retire("retiredEpic", {
+        expectedVersion: owner.data.version,
+        evidence: "fixture retirement",
+        retiredBy: "fixture",
+      })
+      .catch(async () => {
+        const entry = await ops.linkChange("retiredEpic", {
+          entryId: "terminal-entry",
+          changeId: "terminal-child",
+          title: "Terminal",
+          terminalSummary: {
+            status: "closed",
+            completedAt: "2026-08-07T00:00:00.000Z",
+          },
+        });
+        const complete = await loadActiveEpicProjection(
+          paths.activeEpics,
+          "retiredEpic",
+        );
+        if (!complete.success || !complete.data)
+          throw new Error("Epic missing");
+        expect(entry.entry_id).toBe("terminal-entry");
+        await ops.retire("retiredEpic", {
+          expectedVersion: complete.data.version,
+          evidence: "fixture retirement",
+          retiredBy: "fixture",
+        });
+      });
+
+    const result = await backfillEpicEntryFromFragmentExecutor(
+      record(
+        child.id,
+        sourcePath,
+        "backfill_epic_entry_from_fragment",
+        "epic_entry_missing",
+      ),
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+      ctx,
+    );
+    expect(result).toMatchObject({
+      status: "failed",
+      error_class: "owner_not_active",
+    });
+    expect(ctx.linkEpicChange).not.toHaveBeenCalled();
+  });
+
+  test("refuses conflicting surviving fragments without writing", async () => {
+    const { paths, ctx } = await fixture();
+    const first = makeChange(
+      "child-one",
+      "existingEpic",
+      "entry-one",
+      4,
+      "First",
+      "2026-08-07T00:00:00.000Z",
+    );
+    const second = makeChange(
+      "child-two",
+      "existingEpic",
+      "entry-one",
+      4,
+      "Different",
+      "2026-08-07T00:00:00.000Z",
+    );
+    const sourcePath = await seedChange(paths, first);
+    await seedChange(paths, second);
+    await mkdir(paths.activeEpics, { recursive: true });
+    await mkdir(paths.retiredEpics, { recursive: true });
+    const ops = createEpicDiskOps({
+      activeEpicsDir: paths.activeEpics,
+      retiredEpicsDir: paths.retiredEpics,
+    });
+    await ops.create("existingEpic", "Existing Epic", "");
+
+    const result = await backfillEpicEntryFromFragmentExecutor(
+      record(
+        first.id,
+        sourcePath,
+        "backfill_epic_entry_from_fragment",
+        "epic_entry_missing",
+      ),
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+      ctx,
+    );
+    expect(result).toMatchObject({
+      status: "failed",
+      error_class: "fragment_refused",
+    });
+    expect(
+      (await loadActiveEpicProjection(paths.activeEpics, "existingEpic")).data
+        ?.entries,
+    ).toEqual([]);
+  });
+
+  test("writes terminal summary and refuses terminal evidence without a timestamp", async () => {
+    const { paths, ctx } = await fixture();
+    const terminal = ChangeSchema.parse({
+      ...makeChange(
+        "terminal-child",
+        "existingEpic",
+        "terminal-entry",
+        1,
+        "Terminal",
+        "2026-08-07T00:00:00.000Z",
+      ),
+      status: "closed",
+      closed_at: "2026-08-08T00:00:00.000Z",
+    });
+    const sourcePath = await seedChange(paths, terminal);
+    await mkdir(paths.activeEpics, { recursive: true });
+    await mkdir(paths.retiredEpics, { recursive: true });
+    const ops = createEpicDiskOps({
+      activeEpicsDir: paths.activeEpics,
+      retiredEpicsDir: paths.retiredEpics,
+    });
+    await ops.create("existingEpic", "Existing Epic", "");
+    const result = await backfillEpicEntryFromFragmentExecutor(
+      record(
+        terminal.id,
+        sourcePath,
+        "backfill_epic_entry_from_fragment",
+        "epic_entry_missing",
+      ),
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+      ctx,
+    );
+    expect(result.status).toBe("mutated");
+    expect(
+      (await loadActiveEpicProjection(paths.activeEpics, "existingEpic")).data
+        ?.entries[0],
+    ).toMatchObject({
+      membership_status: "terminal",
+      terminal_summary: {
+        status: "closed",
+        completed_at: "2026-08-08T00:00:00.000Z",
+      },
+    });
+
+    const incomplete = ChangeSchema.parse({
+      ...makeChange(
+        "incomplete-child",
+        "otherEpic",
+        "entry-two",
+        2,
+        "Incomplete",
+        "2026-08-07T00:00:00.000Z",
+      ),
+      status: "closed",
+      archived_at: undefined,
+      closed_at: undefined,
+      updated_at: undefined,
+    });
+    const incompletePath = await seedChange(paths, incomplete);
+    await ops.create("otherEpic", "Other Epic", "");
+    const refused = await backfillEpicEntryFromFragmentExecutor(
+      record(
+        incomplete.id,
+        incompletePath,
+        "backfill_epic_entry_from_fragment",
+        "epic_entry_missing",
+      ),
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+      ctx,
+    );
+    expect(refused).toMatchObject({
+      status: "failed",
+      error_class: "fragment_refused",
+    });
+  });
+
   test("reconstructs an owner from child fragments and passes the convergence gate", async () => {
     const { paths, ctx } = await fixture();
     const first = makeChange(

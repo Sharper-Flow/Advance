@@ -420,10 +420,20 @@ export function createEpicDiskOps(options: {
             ? { change_ref: changeRef }
             : { change_id: input.changeId }),
           title: input.title,
-          membership_status: "projection_pending",
-          linked_at: new Date().toISOString(),
+          membership_status:
+            input.membershipStatus ??
+            (input.terminalSummary ? "terminal" : "projection_pending"),
+          linked_at: input.linkedAt ?? new Date().toISOString(),
           linked_by: input.linkedBy ?? "agent",
           ...(input.linkEvidence ? { link_evidence: input.linkEvidence } : {}),
+          ...(input.terminalSummary
+            ? {
+                terminal_summary: {
+                  status: input.terminalSummary.status,
+                  completed_at: input.terminalSummary.completedAt,
+                },
+              }
+            : {}),
         };
         epic.entries.push(entry);
         bumpVersion(epic);

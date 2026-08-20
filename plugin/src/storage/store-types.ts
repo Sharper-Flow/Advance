@@ -547,6 +547,12 @@ export interface CommandStore extends StoreBase {
         changeId: string;
         title: string;
         order?: number;
+        linkedAt?: string;
+        membershipStatus?: EpicMembershipStatus;
+        terminalSummary?: {
+          status: "archived" | "closed";
+          completedAt: string;
+        };
         linkedBy?: string;
         linkEvidence?: string;
         changeProjectId?: string;
@@ -911,6 +917,12 @@ export interface Store extends ReadStore, CommandStore {
         changeId: string;
         title: string;
         order?: number;
+        linkedAt?: string;
+        membershipStatus?: EpicMembershipStatus;
+        terminalSummary?: {
+          status: "archived" | "closed";
+          completedAt: string;
+        };
         linkedBy?: string;
         linkEvidence?: string;
         changeProjectId?: string;

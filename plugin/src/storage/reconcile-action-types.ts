@@ -9,6 +9,7 @@ import type {
 } from "./reconcile-audit";
 import type { ReconcileAction, ReconcilePlanRecord } from "./reconcile-plan";
 import type { ProjectPaths } from "./json";
+import type { Store } from "./store-types";
 
 export type ActionOutcome = {
   status: "mutated" | "skipped" | "failed";
@@ -44,6 +45,8 @@ export interface ActionContext {
     nextEpic: Epic,
     expectedVersion?: number,
   ) => Promise<EpicSaveResult>;
+  /** Locked Epic entry writer used by entry-recovery actions. */
+  linkEpicChange?: Store["epics"]["linkChange"];
   /** Internal registry override used by tests and future executor modules. */
   executorRegistry?: Partial<Record<ReconcileAction["action"], ActionExecutor>>;
 }
