@@ -627,6 +627,29 @@ export const advChangeUpdateHandler = async (
       return formatToolOutput({ error: existing.error });
     }
     if (!existing.data) {
+      // Epics and changes occupy separate stores but share one id namespace,
+      // so an Epic id resolves to no change here. Reporting it as missing
+      // sends the caller hunting an id problem that does not exist. The
+      // inverse case is already typed as EPIC_REQUIRED on the structural
+      // branch above.
+      //
+      // Fails open: this path is already returning an error, and an
+      // unreadable Epic store must not replace change-not-found with a
+      // store failure.
+      let epicWithSameId: unknown;
+      try {
+        const epicResult = await activeStore.epics?.get(changeId);
+        epicWithSameId = epicResult?.success ? epicResult.data : undefined;
+      } catch {
+        epicWithSameId = undefined;
+      }
+      if (epicWithSameId) {
+        return formatToolOutput({
+          error: `'${changeId}' is an Epic, not a change. Epics do not carry change artifacts.`,
+          code: "EPIC_ARTIFACTS_UNSUPPORTED",
+          hint: "Epics carry a narrative rather than proposal/problemStatement/agreement/design/executiveSummary. Read it with 'adv_epic_show' and edit Epic entries through 'adv_change_update link_change / unlink_change / reorder_entries'.",
+        });
+      }
       return formatToolOutput({
         error: `Change '${changeId}' not found.`,
         hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
