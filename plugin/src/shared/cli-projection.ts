@@ -116,10 +116,7 @@ export interface LiveStatusPayload {
   summary_residue?: {
     excluded: Array<{
       id: string;
-      reason:
-        | "canonical_missing"
-        | "canonical_terminal"
-        | "canonical_error";
+      reason: "canonical_missing" | "canonical_terminal" | "canonical_error";
       detail?: string;
     }>;
     validation_unavailable?: true;

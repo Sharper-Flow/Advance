@@ -175,7 +175,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-backlog": {
     name: "adv-backlog",
-    description: "Capture future work as backlog-status changes before proposal",
+    description:
+      "Capture future work as backlog-status changes before proposal",
     phase: "pre-implementation",
     requiresChangeId: false,
     prerequisites: [],

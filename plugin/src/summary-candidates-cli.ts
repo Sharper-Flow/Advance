@@ -5,9 +5,7 @@
  * only exposes that implementation to generated CLI consumers.
  */
 
-export {
-  classifySummaryCandidates,
-} from "./storage/change-projection-reader";
+export { classifySummaryCandidates } from "./storage/change-projection-reader";
 export type {
   SummaryCandidateClassification,
   SummaryCandidateExclusion,
