@@ -200,6 +200,10 @@ export function preservePhase9Evidence(
     ...(previous.changeTipSha !== undefined && next.changeTipSha === undefined
       ? { changeTipSha: previous.changeTipSha }
       : {}),
+    ...(previous.preArchiveTipSha !== undefined &&
+    next.preArchiveTipSha === undefined
+      ? { preArchiveTipSha: previous.preArchiveTipSha }
+      : {}),
     ...(previous.prHeadSha !== undefined && next.prHeadSha === undefined
       ? { prHeadSha: previous.prHeadSha }
       : {}),
@@ -231,6 +235,7 @@ export function buildPendingMergePhase9Status(input: {
     autoMergeArmed: input.finalization.autoMergeArmed,
     route: input.finalization.route,
     changeTipSha: input.finalization.changeTipSha,
+    preArchiveTipSha: input.finalization.preArchiveTipSha,
   });
 }
 
@@ -595,6 +600,7 @@ async function completeArchivedBundleRelease(input: {
             startedAt: latest.phase9_status?.startedAt ?? completedAt,
             completedAt,
             changeTipSha: input.finalization.changeTipSha,
+            preArchiveTipSha: input.finalization.preArchiveTipSha,
             repo: input.finalization.repo,
             prNumber: input.finalization.prNumber,
             prUrl: input.finalization.prUrl,

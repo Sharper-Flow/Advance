@@ -104,4 +104,12 @@ describe("Phase9FinalizationStatusSchema changeTipSha", () => {
       }).mergeCommitSha,
     ).toBe("b".repeat(40));
   });
+
+  test("round-trips the pre-archive branch tip", () => {
+    const parsed = Phase9FinalizationStatusSchema.parse({
+      ...baseStatus,
+      preArchiveTipSha: "c".repeat(40),
+    });
+    expect(parsed.preArchiveTipSha).toBe("c".repeat(40));
+  });
 });

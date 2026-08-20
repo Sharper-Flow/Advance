@@ -324,6 +324,9 @@ export async function saveRecoveredArchiveConvergence(input: {
           ...(input.finalization.changeTipSha
             ? { changeTipSha: input.finalization.changeTipSha }
             : {}),
+          ...(input.finalization.preArchiveTipSha
+            ? { preArchiveTipSha: input.finalization.preArchiveTipSha }
+            : {}),
           autoMergeArmed: false,
         }),
       }),

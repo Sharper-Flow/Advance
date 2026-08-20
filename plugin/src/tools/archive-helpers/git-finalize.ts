@@ -28,6 +28,8 @@ export interface GitFinalizeOutcome {
   /** SHA of the change branch tip captured before merge/cleanup so tree-SHA
    *  re-proof can survive branch deletion (rq-fixArchivedBranchFinalization SC1). */
   changeTipSha?: string;
+  /** SHA of the change branch tip before archive artifacts were committed. */
+  preArchiveTipSha?: string;
   /** Exact PR head SHA accepted for a direct-route merged-PR proof. */
   prHeadSha?: string;
   /** Current origin/default SHA containing the accepted PR merge commit. */
@@ -1368,6 +1370,7 @@ export function verifyDirectMergedPrProof(
     changeId: string;
     branchName?: string;
     changeTipSha?: string;
+    preArchiveTipSha?: string;
     sourceBranch?: string;
   },
   deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
@@ -1432,7 +1435,8 @@ export function verifyDirectMergedPrProof(
     };
   }
   const [expectedOwner, expectedName] = repoParts;
-  const localTip = input.changeTipSha?.trim();
+    const localTip = input.changeTipSha?.trim();
+    const preArchiveTip = input.preArchiveTipSha?.trim();
   const candidates: DirectMergedPrProof[] = [];
 
   for (const value of parsed.value) {
@@ -1490,8 +1494,8 @@ export function verifyDirectMergedPrProof(
       exactHeadRepository &&
       prHeadSha !== "" &&
       mergeCommitOid !== "" &&
-      localTip !== undefined &&
-      prHeadSha === localTip;
+      (localTip !== undefined || preArchiveTip !== undefined) &&
+      (prHeadSha === localTip || prHeadSha === preArchiveTip);
 
     if (!exactRecord) {
       candidates.push({
@@ -2039,6 +2043,7 @@ export function executePullRequestHandoff(
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
     changeTipSha?: string;
+    preArchiveTipSha?: string;
     sourceBranch?: string;
   },
   deps: GitFinalizeDeps = {},
@@ -2147,6 +2152,7 @@ export function executePullRequestHandoff(
       releasedCommitSha: reachability.mergeCommitOid,
       mergeCommitSha: reachability.mergeCommitOid,
       changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
       pushStatus: "pushed",
       pushFailureReason: input.pushFailureReason,
       prBranch: input.branch,
@@ -2168,6 +2174,7 @@ export function executePullRequestHandoff(
       prUrl: pr.url,
       autoMergeArmed: true,
       changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
     };
   }
 
@@ -2201,6 +2208,7 @@ export function completeMergeQueueHandoff(
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
     changeTipSha?: string;
+    preArchiveTipSha?: string;
     sourceBranch?: string;
   },
   deps: GitFinalizeDeps = {},
@@ -2237,6 +2245,7 @@ export function completeMergeQueueHandoff(
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
       changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
       sourceBranch: input.sourceBranch,
     },
     deps,
@@ -2255,6 +2264,7 @@ function completeProtectedBranchViaPullRequest(
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
     changeTipSha?: string;
+    preArchiveTipSha?: string;
     sourceBranch?: string;
   },
   deps: GitFinalizeDeps = {},
@@ -2315,6 +2325,7 @@ function completeProtectedBranchViaPullRequest(
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
       changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
       sourceBranch: input.sourceBranch,
     },
     deps,
@@ -3609,6 +3620,17 @@ export async function finalizeRelease(
   // fetch dedup. Mutations call invalidate(state, kind) to drop stale entries.
   const state = createState(repoRoot, defaultBranch, finalizationDeps);
 
+  let preArchiveTipSha: string | undefined;
+  try {
+    preArchiveTipSha = runGitOrThrow(
+      repoRoot,
+      ["rev-parse", sourceBranch],
+      finalizationDeps,
+    );
+  } catch {
+    preArchiveTipSha = undefined;
+  }
+
   // Commit in-repo archive artifacts before merge
   const commitResult = commitArchiveArtifacts(
     ctx.workdir,
@@ -3677,6 +3699,7 @@ export async function finalizeRelease(
           prTitleType: ctx.prTitleType,
           prTitlePolicy: ctx.prTitlePolicy,
           changeTipSha,
+          preArchiveTipSha,
           sourceBranch,
         },
         finalizationDeps,
@@ -3695,6 +3718,7 @@ export async function finalizeRelease(
         prTitleType: ctx.prTitleType,
         prTitlePolicy: ctx.prTitlePolicy,
         changeTipSha,
+        preArchiveTipSha,
         sourceBranch,
       },
       finalizationDeps,
@@ -3765,6 +3789,7 @@ export async function finalizeRelease(
         changeId: ctx.changeId,
         branchName: sourceBranch,
         changeTipSha,
+        preArchiveTipSha,
       },
       finalizationDeps,
     );
@@ -3800,6 +3825,7 @@ export async function finalizeRelease(
         prUrl: mergedPrProof.prUrl,
         prHeadSha: mergedPrProof.prHeadSha,
         defaultBranchSha: mergedPrProof.defaultBranchSha,
+        preArchiveTipSha,
         autoMergeArmed: false,
       };
     }
@@ -3882,6 +3908,7 @@ export async function finalizeRelease(
             releasedCommitSha: remoteDefault.sha,
             mergeCommitSha: merge.mergeCommitSha,
             changeTipSha,
+            preArchiveTipSha,
             pushStatus: "pushed",
           };
         }
@@ -3898,8 +3925,9 @@ export async function finalizeRelease(
                 changeTitle: ctx.changeTitle,
                 prTitleType: ctx.prTitleType,
                 prTitlePolicy: ctx.prTitlePolicy,
-                changeTipSha,
-                sourceBranch,
+            changeTipSha,
+            preArchiveTipSha,
+            sourceBranch,
               },
               finalizationDeps,
             );
@@ -3917,6 +3945,7 @@ export async function finalizeRelease(
                 prTitleType: ctx.prTitleType,
                 prTitlePolicy: ctx.prTitlePolicy,
                 changeTipSha,
+                preArchiveTipSha,
                 sourceBranch,
               },
               finalizationDeps,

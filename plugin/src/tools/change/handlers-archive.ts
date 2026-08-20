@@ -984,6 +984,7 @@ export const advChangeArchiveHandler = async (
                     startedAt: latest.phase9_status?.startedAt ?? archivedAt,
                     completedAt: archivedAt,
                     changeTipSha: finalization?.changeTipSha,
+                    preArchiveTipSha: finalization?.preArchiveTipSha,
                     repo: finalization?.repo,
                     prNumber: finalization?.prNumber,
                     prUrl: finalization?.prUrl,

@@ -3556,6 +3556,10 @@
           "minLength": 1,
           "type": "string"
         },
+        "preArchiveTipSha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
         "prHeadSha": {
           "minLength": 1,
           "type": "string"
