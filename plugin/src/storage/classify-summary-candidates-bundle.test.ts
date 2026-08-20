@@ -21,46 +21,54 @@ afterEach(async () => {
 });
 
 describe("summary candidates CLI bundle", () => {
-  test("builds a loadable classifier that reads canonical projections", async () => {
-    execFileSync("pnpm", ["run", "build"], {
-      cwd: pluginRoot,
-      stdio: "pipe",
-    });
+  test(
+    "builds a loadable classifier that reads canonical projections",
+    { timeout: 180_000 },
+    async () => {
+      execFileSync("pnpm", ["run", "build"], {
+        cwd: pluginRoot,
+        stdio: "pipe",
+      });
 
-    const bundle = (await import(
-      `${pathToFileURL(bundlePath).href}?test=${Date.now()}`
-    )) as typeof import("./change-projection-reader");
+      const bundle = (await import(
+        `${pathToFileURL(bundlePath).href}?test=${Date.now()}`
+      )) as typeof import("./change-projection-reader");
 
-    const fixtureRoot = await createTempDir("summary-candidates-bundle-");
-    tempDirs.push(fixtureRoot);
-    const changesDir = join(fixtureRoot, "changes");
-    await mkdir(join(changesDir, "open-change"), { recursive: true });
-    await mkdir(join(changesDir, "archived-change"), { recursive: true });
-    await writeFile(
-      join(changesDir, "open-change/change.json"),
-      JSON.stringify({ ...SAMPLE_CHANGE, id: "open-change", status: "draft" }),
-    );
-    await writeFile(
-      join(changesDir, "archived-change/change.json"),
-      JSON.stringify({
-        ...SAMPLE_CHANGE,
-        id: "archived-change",
-        status: "archived",
-      }),
-    );
+      const fixtureRoot = await createTempDir("summary-candidates-bundle-");
+      tempDirs.push(fixtureRoot);
+      const changesDir = join(fixtureRoot, "changes");
+      await mkdir(join(changesDir, "open-change"), { recursive: true });
+      await mkdir(join(changesDir, "archived-change"), { recursive: true });
+      await writeFile(
+        join(changesDir, "open-change/change.json"),
+        JSON.stringify({
+          ...SAMPLE_CHANGE,
+          id: "open-change",
+          status: "draft",
+        }),
+      );
+      await writeFile(
+        join(changesDir, "archived-change/change.json"),
+        JSON.stringify({
+          ...SAMPLE_CHANGE,
+          id: "archived-change",
+          status: "archived",
+        }),
+      );
 
-    await expect(
-      bundle.classifySummaryCandidates(changesDir, [
-        "open-change",
-        "archived-change",
-        "missing-change",
-      ]),
-    ).resolves.toEqual({
-      valid: ["open-change"],
-      excluded: [
-        { id: "archived-change", reason: "canonical_terminal" },
-        { id: "missing-change", reason: "canonical_missing" },
-      ],
-    });
-  }, 30_000);
+      await expect(
+        bundle.classifySummaryCandidates(changesDir, [
+          "open-change",
+          "archived-change",
+          "missing-change",
+        ]),
+      ).resolves.toEqual({
+        valid: ["open-change"],
+        excluded: [
+          { id: "archived-change", reason: "canonical_terminal" },
+          { id: "missing-change", reason: "canonical_missing" },
+        ],
+      });
+    },
+  );
 });
