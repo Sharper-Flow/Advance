@@ -532,6 +532,7 @@ function getReleaseFinalizationBlocker(input: {
       prHeadSha: input.change.phase9_status?.prHeadSha,
       repo: input.change.phase9_status?.repo,
       changeTipSha: input.change.phase9_status?.changeTipSha,
+      preArchiveTipSha: input.change.phase9_status?.preArchiveTipSha,
     });
     if (reachability.reachable) {
       return durableReleaseProofEvidence({
@@ -572,6 +573,7 @@ function getReleaseFinalizationBlocker(input: {
     prHeadSha: input.change.phase9_status?.prHeadSha,
     repo: input.change.phase9_status?.repo,
     changeTipSha: input.change.phase9_status?.changeTipSha,
+    preArchiveTipSha: input.change.phase9_status?.preArchiveTipSha,
   });
   if (reachability.reachable) {
     return durableReleaseProofEvidence({

@@ -294,7 +294,11 @@ export interface ReleaseReachabilityInput {
 export type ReleaseReachabilityProof =
   | {
       reachable: true;
-      proof: "local_merge" | "origin_default" | "pr_merged";
+      proof:
+        | "local_merge"
+        | "origin_default"
+        | "pr_merged"
+        | "pr_merged_by_tree_pre_archive";
       /** Route-neutral SHA from the authority that proved release (required). */
       releasedCommitSha: string;
       prNumber?: number;
@@ -1672,40 +1676,69 @@ export function detectSquashMergeByTree(
     // content-addressed tip instead of the live change/{id} ref so
     // detection survives branch deletion.
     changeTipSha?: string;
+    /** Persisted change branch tip from before archive artifacts were committed. */
+    preArchiveTipSha?: string;
     sourceBranch?: string;
   } = {},
-): { reachable: boolean; mergeCommitOid?: string } {
+):
+  | {
+      reachable: false;
+    }
+  | {
+      reachable: true;
+      mergeCommitOid: string;
+      proof: "pr_merged" | "pr_merged_by_tree_pre_archive";
+    } {
   const runGit = deps.runGit ?? defaultRunGit;
 
-  // Get tree SHA of change branch HEAD. Prefer the persisted tip SHA when
-  // available (survives branch deletion); fall back to the live branch ref.
-  const tipRef = deps.changeTipSha ?? deps.sourceBranch ?? `change/${changeId}`;
-  const changeTree = runGit(repoRoot, ["rev-parse", `${tipRef}^{tree}`]);
-  if (changeTree.status !== 0) {
-    return { reachable: false };
-  }
-  const changeTreeSha = changeTree.stdout.trim();
-  if (!changeTreeSha) {
-    return { reachable: false };
-  }
+  // Try the post-bundle tree first, then the pre-bundle tree. Each trunk walk
+  // remains bounded to the most recent 50 commits and uses exact tree-SHA
+  // equality. The second token preserves that the match is structural rather
+  // than an API-confirmed merged-PR proof.
+  const treeCandidates = [
+    {
+      tipRef: deps.changeTipSha ?? deps.sourceBranch ?? `change/${changeId}`,
+      proof: "pr_merged" as const,
+    },
+    ...(deps.preArchiveTipSha?.trim()
+      ? [
+          {
+            tipRef: deps.preArchiveTipSha,
+            proof: "pr_merged_by_tree_pre_archive" as const,
+          },
+        ]
+      : []),
+  ];
 
-  // Get recent trunk commits (last 50) with tree SHAs
-  const trunkCommits = runGit(repoRoot, [
-    "log",
-    "--format=%H %T",
-    "-50",
-    defaultBranch,
-  ]);
-  if (trunkCommits.status !== 0) {
-    return { reachable: false };
-  }
+  for (const candidate of treeCandidates) {
+    const changeTree = runGit(repoRoot, [
+      "rev-parse",
+      `${candidate.tipRef}^{tree}`,
+    ]);
+    if (changeTree.status !== 0) continue;
+    const changeTreeSha = changeTree.stdout.trim();
+    if (!changeTreeSha) continue;
 
-  // Parse and compare tree SHAs
-  const lines = splitLines(trunkCommits.stdout);
-  for (const line of lines) {
-    const [commitSha, treeSha] = line.split(/\s+/, 2);
-    if (treeSha === changeTreeSha && commitSha) {
-      return { reachable: true, mergeCommitOid: commitSha };
+    // Get recent trunk commits (last 50) with tree SHAs.
+    const trunkCommits = runGit(repoRoot, [
+      "log",
+      "--format=%H %T",
+      "-50",
+      defaultBranch,
+    ]);
+    if (trunkCommits.status !== 0) continue;
+
+    // Parse and compare tree SHAs.
+    const lines = splitLines(trunkCommits.stdout);
+    for (const line of lines) {
+      const [commitSha, treeSha] = line.split(/\s+/, 2);
+      if (treeSha === changeTreeSha && commitSha) {
+        return {
+          reachable: true,
+          mergeCommitOid: commitSha,
+          proof: candidate.proof,
+        };
+      }
     }
   }
 
@@ -2145,14 +2178,23 @@ export function executePullRequestHandoff(
     },
     deps,
   );
-  if (reachability.reachable && reachability.proof === "pr_merged") {
+  if (
+    reachability.reachable &&
+    (reachability.proof === "pr_merged" ||
+      reachability.proof === "pr_merged_by_tree_pre_archive")
+  ) {
     return {
       status: "shipped",
       repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       releasedCommitSha: reachability.mergeCommitOid,
-      mergeCommitSha: reachability.mergeCommitOid,
+      // A tree match proves released content, but does not provide the API
+      // confirmation required for the merged-PR commit field.
+      mergeCommitSha:
+        reachability.proof === "pr_merged"
+          ? reachability.mergeCommitOid
+          : undefined,
       changeTipSha: input.changeTipSha,
       preArchiveTipSha: input.preArchiveTipSha,
       pushStatus: "pushed",
@@ -2764,14 +2806,23 @@ export function redriveArchivedUnmergedBranch(
     },
     deps,
   );
-  if (reachability.reachable && reachability.proof === "pr_merged") {
+  if (
+    reachability.reachable &&
+    (reachability.proof === "pr_merged" ||
+      reachability.proof === "pr_merged_by_tree_pre_archive")
+  ) {
     return {
       status: "shipped",
       repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: route.route,
       releasedCommitSha: reachability.mergeCommitOid,
-      mergeCommitSha: reachability.mergeCommitOid,
+      // Keep structural pre-archive proof distinct from API-confirmed merge
+      // proof; only the latter populates mergeCommitSha.
+      mergeCommitSha:
+        reachability.proof === "pr_merged"
+          ? reachability.mergeCommitOid
+          : undefined,
       pushStatus: "pushed",
       prBranch: branch,
       prNumber: pr.number,
@@ -2963,13 +3014,14 @@ export function resolveReleaseReachability(
       {
         ...deps,
         changeTipSha: input.changeTipSha,
+        preArchiveTipSha: input.preArchiveTipSha,
         sourceBranch: input.sourceBranch,
       },
     );
     if (treeMatch.reachable && treeMatch.mergeCommitOid) {
       return {
         reachable: true,
-        proof: "pr_merged",
+        proof: treeMatch.proof,
         releasedCommitSha: treeMatch.mergeCommitOid,
         mergeCommitOid: treeMatch.mergeCommitOid,
       };
@@ -3051,13 +3103,14 @@ export function resolveReleaseReachability(
       {
         ...deps,
         changeTipSha: input.changeTipSha,
+        preArchiveTipSha: input.preArchiveTipSha,
         sourceBranch: input.sourceBranch,
       },
     );
     if (treeMatch.reachable && treeMatch.mergeCommitOid) {
       return {
         reachable: true,
-        proof: "pr_merged",
+        proof: treeMatch.proof,
         releasedCommitSha: treeMatch.mergeCommitOid,
         mergeCommitOid: treeMatch.mergeCommitOid,
       };

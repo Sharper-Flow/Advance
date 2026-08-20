@@ -1544,6 +1544,70 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("direct route + pre-archive tree fallback preserves its structural proof token", () => {
+    const result = resolveReleaseReachability(
+      {
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        changeId: "preArchiveFallback",
+        changeTipSha: "post-tip",
+        preArchiveTipSha: "pre-tip",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "HEAD")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "origin/trunk")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..change/preArchiveFallback"
+          )
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          if (args[0] === "rev-parse" && args[1] === "post-tip^{tree}")
+            return { status: 0, stdout: "post-tree\n", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "pre-tip^{tree}")
+            return { status: 0, stdout: "pre-tree\n", stderr: "" };
+          if (args[0] === "log" && args[1] === "--format=%H %T")
+            return {
+              status: 0,
+              stdout: "mergeCommitOidPre pre-tree\n",
+              stderr: "",
+            };
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected git ${args.join(" ")}`,
+          };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "list") {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged_by_tree_pre_archive",
+      mergeCommitOid: "mergeCommitOidPre",
+    });
+  });
+
   it("direct route + merge-commit ancestry returns origin_default", () => {
     const result = resolveReleaseReachability(
       {
@@ -4262,6 +4326,48 @@ describe("git-finalize helpers", () => {
   });
 
   describe("detectSquashMergeByTree", () => {
+    it("tries the pre-archive tree after the post-archive tree with a distinct proof", () => {
+      const calls: string[][] = [];
+      const result = detectSquashMergeByTree(
+        "/repo",
+        "origin/trunk",
+        "preArchiveTree",
+        {
+          changeTipSha: "post-tip",
+          preArchiveTipSha: "pre-tip",
+          runGit: (_cwd, args) => {
+            calls.push(args);
+            if (args[0] === "rev-parse" && args[1] === "post-tip^{tree}") {
+              return { status: 0, stdout: "post-tree\n", stderr: "" };
+            }
+            if (args[0] === "rev-parse" && args[1] === "pre-tip^{tree}") {
+              return { status: 0, stdout: "pre-tree\n", stderr: "" };
+            }
+            if (args[0] === "log" && args[1] === "--format=%H %T") {
+              return {
+                status: 0,
+                stdout: "squash-pre pre-tree\n",
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        reachable: true,
+        mergeCommitOid: "squash-pre",
+        proof: "pr_merged_by_tree_pre_archive",
+      });
+      expect(
+        calls.filter(
+          (args) => args[0] === "log" && args[1] === "--format=%H %T",
+        ),
+      ).toHaveLength(2);
+      expect(result).not.toMatchObject({ proof: "pr_merged" });
+    });
+
     it("returns reachable:true when tree SHA matches a trunk commit", async () => {
       const main = join(tempRoot, "squash-match");
       await mkdir(main);
