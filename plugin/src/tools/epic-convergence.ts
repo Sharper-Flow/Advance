@@ -82,6 +82,60 @@ export interface EpicMembershipConvergenceResult {
   repair?: ConvergenceRepair;
 }
 
+/**
+ * Resolve the change ID an Epic change entry names, preferring the flat
+ * `change_id` over the `change_ref` projection.
+ */
+export function getEpicEntryChangeId(
+  entry: Extract<EpicEntry, { kind: "change" }>,
+): string | undefined {
+  return entry.change_id ?? entry.change_ref?.change_id;
+}
+
+/**
+ * Selector for {@link findChangeEntry}.
+ *
+ * The mode is explicit and structural: `entry_id` cannot carry a `changeId`,
+ * so a caller holding only an entry_id can never resolve an entry through a
+ * change_id collision. Callers reconciling a child against its owner Epic —
+ * where either identifier may be the surviving one — opt into the wider
+ * `entry_id_or_change_id` match deliberately.
+ */
+export type EpicEntryQuery =
+  | { mode: "entry_id"; entryId?: string }
+  | { mode: "entry_id_or_change_id"; entryId?: string; changeId?: string };
+
+/**
+ * Find the Epic change entry a selector names.
+ *
+ * Non-change entries are never returned in any mode: shell entries share the
+ * `entry_id` namespace, and returning one would hand callers an entry with no
+ * child to project onto.
+ *
+ * Empty-string and absent selectors match nothing rather than falling through
+ * to the first change entry.
+ */
+export function findChangeEntry(
+  epic: { entries: EpicEntry[] },
+  query: EpicEntryQuery,
+): Extract<EpicEntry, { kind: "change" }> | undefined {
+  const entryId = query.entryId ? query.entryId : undefined;
+  const changeId =
+    query.mode === "entry_id_or_change_id" && query.changeId
+      ? query.changeId
+      : undefined;
+  if (!entryId && !changeId) return undefined;
+
+  return epic.entries.find(
+    (entry): entry is Extract<EpicEntry, { kind: "change" }> => {
+      if (entry.kind !== "change") return false;
+      if (entryId && entry.entry_id === entryId) return true;
+      if (changeId && getEpicEntryChangeId(entry) === changeId) return true;
+      return false;
+    },
+  );
+}
+
 function buildExpectedMembership(
   entry: Extract<EpicEntry, { kind: "change" }>,
   epicId: string,

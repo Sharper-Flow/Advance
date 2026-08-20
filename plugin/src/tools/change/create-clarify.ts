@@ -28,6 +28,7 @@ import {
   withTargetPathStore,
 } from "../target-project";
 import { loadProposalForContext } from "../change/artifacts";
+import { findChangeEntry } from "../epic-convergence";
 import {
   loadValidationInventory,
   raceWithDeadline,
@@ -260,9 +261,10 @@ async function validateEpicInStore(
       },
     };
   }
-  const entry = epicResult.data.entries.find(
-    (e) => e.entry_id === membership.entry_id,
-  );
+  const entry = findChangeEntry(epicResult.data, {
+    mode: "entry_id",
+    entryId: membership.entry_id,
+  });
   if (!entry) {
     return {
       error: {

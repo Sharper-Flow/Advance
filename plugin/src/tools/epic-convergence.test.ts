@@ -2,6 +2,8 @@ import { describe, test, expect } from "vitest";
 import type { Change, EpicEntry } from "../types";
 import {
   convergeEpicMembership,
+  findChangeEntry,
+  getEpicEntryChangeId,
   legacyMemberStatusFromConvergence,
   type ChildObservation,
 } from "./epic-convergence";
@@ -391,5 +393,138 @@ describe("legacyMemberStatusFromConvergence — shape preservation", () => {
       child: { kind: "absent" },
     });
     expect(legacyMemberStatusFromConvergence(result).status).toBe("stale");
+  });
+});
+
+describe("getEpicEntryChangeId", () => {
+  test("prefers the flat change_id", () => {
+    const entry = makeEntry({
+      change_id: "change-flat",
+      change_ref: { kind: "change", project_id: "p", change_id: "change-ref" },
+    } as Partial<ChangeEntry>);
+    expect(getEpicEntryChangeId(entry)).toBe("change-flat");
+  });
+
+  test("falls back to change_ref.change_id", () => {
+    const entry = makeEntry({
+      change_id: undefined,
+      change_ref: { kind: "change", project_id: "p", change_id: "change-ref" },
+    } as Partial<ChangeEntry>);
+    expect(getEpicEntryChangeId(entry)).toBe("change-ref");
+  });
+
+  test("returns undefined when the entry names no change", () => {
+    const entry = makeEntry({
+      change_id: undefined,
+      change_ref: undefined,
+    } as Partial<ChangeEntry>);
+    expect(getEpicEntryChangeId(entry)).toBeUndefined();
+  });
+});
+
+describe("findChangeEntry — mode discipline", () => {
+  const shellEntry = {
+    kind: "shell",
+    entry_id: "shared-id",
+    order: 0,
+    title: "Shell entry",
+  } as unknown as EpicEntry;
+
+  const changeEntry = makeEntry({
+    entry_id: "entry-1",
+    change_id: "change-A",
+  });
+
+  const refOnlyEntry = makeEntry({
+    entry_id: "entry-2",
+    change_id: undefined,
+    change_ref: { kind: "change", project_id: "p", change_id: "change-B" },
+  } as Partial<ChangeEntry>);
+
+  const epic = { entries: [shellEntry, changeEntry, refOnlyEntry] };
+
+  test("entry_id mode resolves a change entry by entry_id", () => {
+    const found = findChangeEntry(epic, {
+      mode: "entry_id",
+      entryId: "entry-1",
+    });
+    expect(found?.entry_id).toBe("entry-1");
+  });
+
+  test("entry_id mode never resolves a change_id", () => {
+    const found = findChangeEntry(epic, {
+      mode: "entry_id",
+      entryId: "change-A",
+    });
+    expect(found).toBeUndefined();
+  });
+
+  test("entry_id mode skips a shell entry sharing the entry_id", () => {
+    const found = findChangeEntry(epic, {
+      mode: "entry_id",
+      entryId: "shared-id",
+    });
+    expect(found).toBeUndefined();
+  });
+
+  test("entry_id_or_change_id mode resolves by entry_id", () => {
+    const found = findChangeEntry(epic, {
+      mode: "entry_id_or_change_id",
+      entryId: "entry-1",
+    });
+    expect(found?.entry_id).toBe("entry-1");
+  });
+
+  test("entry_id_or_change_id mode resolves by flat change_id", () => {
+    const found = findChangeEntry(epic, {
+      mode: "entry_id_or_change_id",
+      changeId: "change-A",
+    });
+    expect(found?.entry_id).toBe("entry-1");
+  });
+
+  test("entry_id_or_change_id mode resolves by change_ref.change_id", () => {
+    const found = findChangeEntry(epic, {
+      mode: "entry_id_or_change_id",
+      changeId: "change-B",
+    });
+    expect(found?.entry_id).toBe("entry-2");
+  });
+
+  test("entry_id_or_change_id mode skips a shell entry sharing the id", () => {
+    const found = findChangeEntry(epic, {
+      mode: "entry_id_or_change_id",
+      entryId: "shared-id",
+    });
+    expect(found).toBeUndefined();
+  });
+
+  test("entry_id_or_change_id mode with no selector matches nothing", () => {
+    const found = findChangeEntry(epic, { mode: "entry_id_or_change_id" });
+    expect(found).toBeUndefined();
+  });
+
+  test("empty-string selectors match nothing", () => {
+    expect(
+      findChangeEntry(epic, { mode: "entry_id", entryId: "" }),
+    ).toBeUndefined();
+    expect(
+      findChangeEntry(epic, { mode: "entry_id_or_change_id", changeId: "" }),
+    ).toBeUndefined();
+  });
+
+  test("an unknown selector returns undefined", () => {
+    expect(
+      findChangeEntry(epic, { mode: "entry_id", entryId: "nope" }),
+    ).toBeUndefined();
+  });
+
+  test("an epic with no entries returns undefined", () => {
+    expect(
+      findChangeEntry(
+        { entries: [] },
+        { mode: "entry_id", entryId: "entry-1" },
+      ),
+    ).toBeUndefined();
   });
 });

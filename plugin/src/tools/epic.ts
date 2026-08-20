@@ -45,6 +45,8 @@ import {
 } from "./target-project";
 import {
   convergeEpicMembership,
+  findChangeEntry,
+  getEpicEntryChangeId,
   type ChildObservation,
 } from "./epic-convergence";
 
@@ -384,10 +386,6 @@ function mapEpicEntry(entry: EpicEntry) {
           terminal_summary: entry.terminal_summary,
         }),
   };
-}
-
-function getEpicEntryChangeId(entry: Extract<EpicEntry, { kind: "change" }>) {
-  return entry.change_id ?? entry.change_ref?.change_id;
 }
 
 const COMPACT_HISTORY_LIMIT = 5;
@@ -902,20 +900,6 @@ function changeAlreadyInEpic(change: import("../types").Change) {
     code: "CHANGE_ALREADY_IN_EPIC",
     current_membership: change.epic_membership,
   });
-}
-
-function findChangeEntry(
-  epic: import("../types").Epic,
-  input: { entryId?: string; changeId?: string },
-) {
-  return epic.entries.find((entry) => {
-    if (entry.kind !== "change") return false;
-    if (input.entryId && entry.entry_id === input.entryId) return true;
-    if (input.changeId && getEpicEntryChangeId(entry) === input.changeId) {
-      return true;
-    }
-    return false;
-  }) as Extract<EpicEntry, { kind: "change" }> | undefined;
 }
 
 function requireChangeEntry(
@@ -2018,6 +2002,7 @@ export const epicTools = {
           }
 
           const parentEntry = findChangeEntry(currentEpic, {
+            mode: "entry_id",
             entryId: membership.entry_id,
           });
           const parentChangeId = parentEntry
@@ -2203,6 +2188,7 @@ export const epicTools = {
           return epicNotFound(epic_id);
         }
         const existingEntry = findChangeEntry(currentEpic, {
+          mode: "entry_id_or_change_id",
           changeId: change_id,
         });
         if (existingEntry) {
@@ -2396,6 +2382,7 @@ export const epicTools = {
           return epicNotFound(epic_id);
         }
         const entry = findChangeEntry(epic, {
+          mode: "entry_id_or_change_id",
           entryId: entry_id,
           changeId: change_id,
         });
@@ -2571,6 +2558,7 @@ export const epicTools = {
           return epicNotFound(to_epic_id);
         }
         const sourceEntry = findChangeEntry(fromEpic, {
+          mode: "entry_id_or_change_id",
           entryId: from_entry_id,
           changeId: change_id,
         });
