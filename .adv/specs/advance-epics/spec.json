@@ -4,7 +4,7 @@
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
   "version": "1.14.0",
-  "updated_at": "2026-08-04T00:50:00.000Z",
+  "updated_at": "2026-08-20",
   "requirements": [
     {
       "id": "rq-epicEntity01",
@@ -362,7 +362,7 @@
     {
       "id": "rq-epicCoordinateChangeCoverage01",
       "title": "Epic Coordination Analyzes All Nonterminal Changes Regardless of Epic Membership",
-      "body": "The `/adv-coordinate` command MUST analyze every nonterminal in-flight change from its project inventory regardless of Epic membership. Change-scoped analysis — including repository-overlap comparison, advisory sequencing, and refactor-coverage classification — MUST NOT be gated on the presence of active Epics. Epic-dependent phases MAY still short-circuit when no active Epics exist, but that short-circuit MUST NOT suppress change-scoped analysis. Inventory reads MUST follow `hasMore` and `resumeHint` until the in-flight population is exhausted; a single `adv_change_list` call MUST NOT be treated as complete. Existing coordination boundaries MUST be preserved: no task creation, no gate completion, no Epic auto-enrollment, advisory Epic order, approval-gated durable Epic actions, and change closure remaining routed to `/adv-cleanup`.",
+      "body": "The `/adv-coordinate` command MUST analyze every nonterminal in-flight change from its project inventory regardless of Epic membership. Change-scoped analysis \u2014 including repository-overlap comparison, advisory sequencing, and refactor-coverage classification \u2014 MUST NOT be gated on the presence of active Epics. Epic-dependent phases MAY still short-circuit when no active Epics exist, but that short-circuit MUST NOT suppress change-scoped analysis. Inventory reads MUST follow `hasMore` and `resumeHint` until the in-flight population is exhausted; a single `adv_change_list` call MUST NOT be treated as complete. Existing coordination boundaries MUST be preserved: no task creation, no gate completion, no Epic auto-enrollment, advisory Epic order, approval-gated durable Epic actions, and change closure remaining routed to `/adv-cleanup`.",
       "priority": "must",
       "tags": [
         "epics",
@@ -1131,7 +1131,7 @@
     {
       "id": "rq-epicOwnerRouting01",
       "title": "Epic Membership Tools Separate Owner Routing from Child target_path",
-      "body": "Epic membership mutation tools (adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change) MUST support explicit owner project routing separate from the child change target_path. The owner Epic MUST be resolved through an epic_owner_target_path parameter or the current project when omitted, and the child change MUST be resolved through target_path or the owner project when omitted. The supported routing matrix is: owner local + child local; owner local + child remote; owner remote + child same remote; owner remote + child different remote. Ambiguous or partial shapes—such as supplying only a child target_path when the Epic is not in the current project, or supplying an owner route without a distinct child route when the child is not in the owner project—MUST fail before durable mutation with typed OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED errors. Existing child-only target_path behavior MUST remain valid when the Epic owner is the current project.",
+      "body": "Epic membership mutation tools (adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change) MUST support explicit owner project routing separate from the child change target_path. The owner Epic MUST be resolved through an epic_owner_target_path parameter or the current project when omitted, and the child change MUST be resolved through target_path or the owner project when omitted. The supported routing matrix is: owner local + child local; owner local + child remote; owner remote + child same remote; owner remote + child different remote. Ambiguous or partial shapes\u2014such as supplying only a child target_path when the Epic is not in the current project, or supplying an owner route without a distinct child route when the child is not in the owner project\u2014MUST fail before durable mutation with typed OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED errors. Existing child-only target_path behavior MUST remain valid when the Epic owner is the current project.",
       "priority": "must",
       "tags": [
         "epics",
@@ -1280,6 +1280,20 @@
           "when": "The second mutation is applied against a stale version",
           "then": [
             "A typed conflict or stale-state response is returned"
+          ]
+        },
+        {
+          "id": "rq-epicErrors01.3",
+          "title": "Epic id on a change-artifact operation is typed, not not-found",
+          "given": [
+            "An Epic id is passed as the changeId of an artifact-only update",
+            "The id resolves in the Epic store and not in the change store"
+          ],
+          "when": "The update resolves",
+          "then": [
+            "A typed EPIC_ARTIFACTS_UNSUPPORTED error names the Epic/change distinction",
+            "The hint points at the Epic narrative and the structural facade for entry edits",
+            "An unreadable Epic store fails open to the existing change-not-found error"
           ]
         }
       ]
@@ -1781,6 +1795,76 @@
             "Pending intent remains on the existing Epic entry",
             "Owner truth remains readable",
             "The next relevant access retries convergence without a background daemon"
+          ]
+        },
+        {
+          "id": "rq-epicMembershipConvergence01.5",
+          "title": "Storage boundary refuses a conflicting expected projection",
+          "given": [
+            "A child change carries an epic_membership projection naming Epic A entry 1",
+            "A caller writes a new projection with expectedCurrent naming Epic B entry 9"
+          ],
+          "when": "setEpicMembership is called with the mismatched expectedCurrent",
+          "then": [
+            "A typed epic_membership_conflict is returned and nothing is written",
+            "The existing projection is preserved",
+            "A strictly older setAt is refused as a typed stale write while an equal setAt succeeds",
+            "A call with no expectedCurrent overwrites unconditionally, which direct convergence relies on"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicSeedAuthority01",
+      "title": "Create-Time Membership Seeding Derives From the Authoritative Entry",
+      "body": "Create-time Epic membership seeding MUST NOT persist a child epic_membership projection unless the authoritative Epic entry exists, and the persisted projection MUST be derived from that entry rather than from caller-supplied fields. Seed arguments select an entry; they do not supply projection content. Shell promotion MUST NOT pre-seed the child projection before the authoritative entry write succeeds.",
+      "priority": "must",
+      "tags": [
+        "epics",
+        "membership",
+        "create",
+        "write-authority"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-epicSeedAuthority01.1",
+          "title": "Seed naming a missing Epic or entry is refused before creation",
+          "given": [
+            "A same-project create carries epic_id, entry_id, and epic_title",
+            "The named Epic or entry does not exist in the local store"
+          ],
+          "when": "The create is attempted",
+          "then": [
+            "A typed EPIC_NOT_FOUND or ENTRY_NOT_FOUND error is returned",
+            "The ENTRY_NOT_FOUND error names parent_epic_id as the argument that creates an entry",
+            "No change is created"
+          ]
+        },
+        {
+          "id": "rq-epicSeedAuthority01.2",
+          "title": "Persisted projection matches the entry field for field",
+          "given": [
+            "A create seed resolves to an existing Epic entry whose title or order differs from the caller-supplied values"
+          ],
+          "when": "The change is created",
+          "then": [
+            "The persisted epic_membership carries the entry's entry_id, order, title, and linked_at",
+            "Caller epic_title and epic_order are not persisted as projection content",
+            "The same derivation applies to cross-project seeds"
+          ]
+        },
+        {
+          "id": "rq-epicSeedAuthority01.3",
+          "title": "Failed promotion leaves no phantom child projection",
+          "given": [
+            "A shell entry is promoted to a child change",
+            "The authoritative entry write fails after the child change is created"
+          ],
+          "when": "The promotion fails",
+          "then": [
+            "The child carries no epic_membership projection",
+            "The child remains a normal unlinked change that a retry can link against the same change_id",
+            "A successful promotion derives the projection from the promoted entry"
           ]
         }
       ]
