@@ -136,6 +136,32 @@ export function findChangeEntry(
   );
 }
 
+/**
+ * Decide whether an Epic change entry belongs to a project other than the
+ * Epic owner's, and so must be left to mutation-time and operator paths
+ * rather than converged locally.
+ *
+ * `change_ref.project_id` records the project the child lives in. It is
+ * written whenever the link had a resolved child context — including when
+ * the child lives in the SAME project as a remote-owner Epic, where child
+ * and owner stores are one and the same. Treating any recorded project as
+ * foreign therefore strands same-project entries at projection_pending
+ * forever, so the comparison must be against the owner's own project id.
+ *
+ * An unresolvable owner id yields `true`: without an identity to compare,
+ * converging risks writing through the wrong store, and skipping preserves
+ * the entry's existing membership_status untouched.
+ */
+export function isForeignProjectEntry(
+  entry: Extract<EpicEntry, { kind: "change" }>,
+  ownerProjectId: string | null | undefined,
+): boolean {
+  const entryProjectId = entry.change_ref?.project_id;
+  if (typeof entryProjectId !== "string" || entryProjectId === "") return false;
+  if (!ownerProjectId) return true;
+  return entryProjectId !== ownerProjectId;
+}
+
 function buildExpectedMembership(
   entry: Extract<EpicEntry, { kind: "change" }>,
   epicId: string,

@@ -4,6 +4,7 @@ import {
   convergeEpicMembership,
   findChangeEntry,
   getEpicEntryChangeId,
+  isForeignProjectEntry,
   legacyMemberStatusFromConvergence,
   type ChildObservation,
 } from "./epic-convergence";
@@ -419,6 +420,52 @@ describe("getEpicEntryChangeId", () => {
       change_ref: undefined,
     } as Partial<ChangeEntry>);
     expect(getEpicEntryChangeId(entry)).toBeUndefined();
+  });
+});
+
+describe("isForeignProjectEntry", () => {
+  const OWNER = "project-owner";
+
+  function entryIn(projectId?: string): ChangeEntry {
+    return makeEntry(
+      projectId === undefined
+        ? ({ change_ref: undefined } as Partial<ChangeEntry>)
+        : ({
+            change_id: undefined,
+            change_ref: {
+              kind: "change",
+              project_id: projectId,
+              change_id: "change-A",
+            },
+          } as Partial<ChangeEntry>),
+    );
+  }
+
+  test("an entry recording no project is local", () => {
+    expect(isForeignProjectEntry(entryIn(), OWNER)).toBe(false);
+  });
+
+  test("an entry recording an empty project is local", () => {
+    expect(isForeignProjectEntry(entryIn(""), OWNER)).toBe(false);
+  });
+
+  test("an entry recording the owner's own project is local", () => {
+    // The stranding case: a remote-owner Epic linking a change that lives in
+    // that same remote project records the owner's own id here.
+    expect(isForeignProjectEntry(entryIn(OWNER), OWNER)).toBe(false);
+  });
+
+  test("an entry recording a different project is foreign", () => {
+    expect(isForeignProjectEntry(entryIn("project-other"), OWNER)).toBe(true);
+  });
+
+  test("an unresolvable owner id leaves a project-bearing entry alone", () => {
+    expect(isForeignProjectEntry(entryIn("project-other"), null)).toBe(true);
+    expect(isForeignProjectEntry(entryIn(OWNER), undefined)).toBe(true);
+  });
+
+  test("an unresolvable owner id still treats a project-less entry as local", () => {
+    expect(isForeignProjectEntry(entryIn(), null)).toBe(false);
   });
 });
 

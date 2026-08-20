@@ -47,8 +47,10 @@ import {
   convergeEpicMembership,
   findChangeEntry,
   getEpicEntryChangeId,
+  isForeignProjectEntry,
   type ChildObservation,
 } from "./epic-convergence";
+import { getProjectId } from "../utils/project-id";
 
 const EPIC_ID_SCHEMA = z
   .string()
@@ -423,13 +425,15 @@ function memberStatusForEntry(entry: Extract<EpicEntry, { kind: "change" }>) {
     return {
       status: "stale" as const,
       last_checked_at: checkedAt,
-      message: "Child projection may be stale; run membership repair.",
+      message:
+        "Child projection may be stale; adv_epic_show convergence reconciles it.",
     };
   }
   return {
     status: "projection_missing" as const,
     last_checked_at: checkedAt,
-    message: "Child projection is pending or missing; run membership repair.",
+    message:
+      "Child projection is pending or missing; adv_epic_show convergence rebuilds it.",
   };
 }
 
@@ -943,6 +947,7 @@ function membershipFromChangeEntry(
 async function convergeEpicOnShow(
   ownerStore: Store,
   epic: import("../types").Epic,
+  ownerProjectId: string | null,
 ): Promise<{
   epic: import("../types").Epic;
   repairs: Array<{
@@ -973,15 +978,10 @@ async function convergeEpicOnShow(
     const changeId = getEpicEntryChangeId(entry);
     if (!changeId) continue;
 
-    // Skip cross-project entries (different change_ref.project_id).
-    // Those converge at mutation time and through explicit operator paths.
-    if (
-      entry.change_ref &&
-      typeof entry.change_ref.project_id === "string" &&
-      entry.change_ref.project_id !== ""
-    ) {
-      // Cross-project convergence requires routing; defer to operator paths.
-      // The entry's own membership_status is preserved as-is.
+    // Skip entries owned by a different project. Those converge at mutation
+    // time and through explicit operator paths; the entry's own
+    // membership_status is preserved as-is.
+    if (isForeignProjectEntry(entry, ownerProjectId)) {
       continue;
     }
 
@@ -1242,7 +1242,14 @@ export const epicTools = {
         }> = [];
         if (!isRetired) {
           try {
-            const converged = await convergeEpicOnShow(owner.store, baseEpic);
+            const ownerProjectId =
+              owner.context?.projectId ??
+              (await getProjectId(owner.store.paths.root));
+            const converged = await convergeEpicOnShow(
+              owner.store,
+              baseEpic,
+              ownerProjectId,
+            );
             if (converged.repairs.length > 0) {
               // Preserve existing post-convergence rendering: repaired entries
               // are reflected in member_status and terminal summaries.
