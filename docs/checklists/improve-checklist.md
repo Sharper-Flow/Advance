@@ -10,7 +10,7 @@ Referenced by `/adv-improve`. Enforces rigor to prevent shallow analysis passes 
 
 Every `/adv-improve` invocation MUST execute each step and report results. Mark `[x]` when completed (even if no findings):
 
-- [ ] **Context Loading (Phase 0)** — Load `adv_project_context`, `adv_change_list`, `adv_epic_list`, `adv_spec`. Detect worktree and tech stack. Verify source files exist before proceeding.
+- [ ] **Context Loading (Phase 0)** — Load `adv_project_context`, `adv_change_list`, and `adv_spec`. Use the MCP Tier-4 reads `tools.adv.epic_list`, `tools.adv.epic_show`, `tools.adv.backlog_list`, and `tools.adv.backlog_show`, bridged by `plugin/src/mcp-server/tier4-tool-map.ts` and reachable under Code Mode, not host `adv_*` tools. Detect worktree and tech stack. Verify source files exist before proceeding.
 - [ ] **Source Verification** — Confirm at least one source directory (`src/`, `lib/`, `app/`, `packages/`) or source file exists. Stop cleanly if none.
 - [ ] **Current-State Scan (Phase 1)** — Analyze all 6 categories (security, reliability, testing, observability, DX, code quality). Cap at 5 findings per category. Every finding has evidence.
 - [ ] **LBP / Reference Comparison (Phase 2)** — Context7 lookup for canonical architecture. Build deviation table. Document corrections for DRIFTED/ANTI-PATTERN. Include greenfield perspective.

@@ -43,7 +43,7 @@ Re-runs MUST NOT mutate existing filter. Manual edits to `.adv/github-project.js
 | GH open issues | `gh issue list --state open --limit 500 --json number,title,body,labels,url,createdAt` | issues + labels |
 | GH Project items | `gh project item-list <N> --owner <owner> --format json --limit 500` plus `--query "repo:<owner>/<repository_filter>"` when configured | items + fields |
 | Active ADV changes | `adv_change_list status: 'in-flight'` | id, title, summary |
-| Active ADV Epics | `adv_epic_list` then bounded `adv_epic_show` for plausible relevant Epics | id, title, narrative, entry order/status |
+| Active ADV Epics | MCP Tier-4 `tools.adv.epic_list` then bounded `tools.adv.epic_show` for plausible relevant Epics | Bridged by `plugin/src/mcp-server/tier4-tool-map.ts`; reachable under Code Mode, not host `adv_*` tools; extract id, title, narrative, entry order/status |
 | ADV wisdom | `adv_wisdom_list type: 'failure'` then `type: 'gotcha'` | snippets |
 | Cross-session notes | `glob .adv/CROSS-SESSION-NOTES-*.md` + `read` | bullets/headings/action lines |
 | TODO/FIXME | lgrep text search (query `TODO\|FIXME`, path `<repo-root>`) filtered to source dirs | file:line + text |

@@ -69,15 +69,22 @@ invoked, not WHETHER they are preferred.
 
 ## Tier-4 read catalog
 
-| Read | Host name | MCP name (`tools.adv.*`) |
+Backlog and Epic list/show are MCP Tier-4 reads bridged by
+`plugin/src/mcp-server/tier4-tool-map.ts`. Under Code Mode, reach them through
+`tools.adv.*`; they are not host `adv_*` tools. Their dispositions use the
+`keep-mcp-only` and `mcp+cli-additive` vocabulary from the CLI surface matrix.
+
+| Read | Host surface / disposition | MCP name (`tools.adv.*`) |
 |---|---|---|
 | Project status | `adv_status` | `tools.adv.status` |
 | Specs (list/show/search) | `adv_spec` | `tools.adv.spec` |
 | Wisdom list/search | `adv_wisdom_list` | `tools.adv.wisdom_list` |
 | Reflection list | `adv_reflection_list` | `tools.adv.reflection_list` |
 | Project context (project.md) | `adv_project_context` | `tools.adv.project_context` |
-| Backlog list / show | `adv_backlog_list` / `adv_backlog_show` | `tools.adv.backlog_list` / `tools.adv.backlog_show` |
-| Epic list / show | `adv_epic_list` / `adv_epic_show` | `tools.adv.epic_list` / `tools.adv.epic_show` |
+| Backlog list | `keep-mcp-only` (MCP, not host) | `tools.adv.backlog_list` |
+| Backlog show | `keep-mcp-only` (MCP, not host) | `tools.adv.backlog_show` |
+| Epic list | `mcp+cli-additive` (MCP, not host) | `tools.adv.epic_list` |
+| Epic show | `keep-mcp-only` (MCP, not host) | `tools.adv.epic_show` |
 | Work-in-progress state | `adv_wip_state` | `tools.adv.wip_state` |
 | Worktree triage | `adv_worktree_triage` | `tools.adv.worktree_triage` |
 | Tool catalog / describe | `adv_tool_catalog` / `adv_tool_describe` | `tools.adv.tool_catalog` / `tools.adv.tool_describe` |

@@ -72,10 +72,21 @@ class rather than operator-only.
 | Tool | Class | Notes |
 |---|---|---|
 | `adv_backlog_add` | orchestrator | Backlog item capture |
-| `adv_backlog_list` | orchestrator | Backlog read |
-| `adv_backlog_show` | orchestrator | Backlog read |
 | `adv_backlog_promote` | orchestrator | Promotion to change/Epic shell |
 | `adv_backlog_archive` | orchestrator | Soft-delete (archive) of a backlog item |
+
+### MCP Tier-4 reads
+
+These four reads are not host tools. The plugin bridges them through
+`plugin/src/mcp-server/tier4-tool-map.ts`; under Code Mode, use their
+`tools.adv.*` names. Dispositions use the CLI surface matrix vocabulary.
+
+| MCP read | Disposition | Notes |
+|---|---|---|
+| `tools.adv.backlog_list` | `keep-mcp-only` | Backlog read |
+| `tools.adv.backlog_show` | `keep-mcp-only` | Backlog read |
+| `tools.adv.epic_list` | `mcp+cli-additive` | Rich MCP agent-workflow read; reduced CLI enumeration is additive |
+| `tools.adv.epic_show` | `keep-mcp-only` | Epic read |
 
 ### Change lifecycle
 
@@ -111,8 +122,6 @@ class rather than operator-only.
 | Tool | Class | Notes |
 |---|---|---|
 | `adv_epic_create` | orchestrator | Epic creation |
-| `adv_epic_show` | orchestrator | Epic read |
-| `adv_epic_list` | orchestrator | Epic read |
 | `adv_epic_update` | orchestrator | Title/narrative update with optimistic concurrency |
 | `adv_epic_add_shell` | orchestrator | Shell entry add |
 | `adv_epic_promote_shell` | orchestrator | Shell promotion to change |
@@ -194,7 +203,7 @@ classifies retained tools only; removed names must never reappear in
 
 | Removed tool | Previous state | Replacement path |
 |---|---|---|
-| `adv_backlog_state` | Registered backlog-state reader | `/adv-triage` portfolio balance plus typed `adv_change_list` / `adv_epic_show` reads. The retired `adv_roadmap` tool has no compatibility wrapper. |
+| `adv_backlog_state` | Registered backlog-state reader | `/adv-triage` portfolio balance plus typed `adv_change_list` / `tools.adv.epic_show` reads. The retired `adv_roadmap` tool has no compatibility wrapper. |
 | `adv_project_wisdom_list` | Registered project-wisdom reader | `adv_wisdom_list` with `project_only: true`; `maxEntries` bounds the project-only listing and is applied after type and product-visibility filtering. `project_only` is mutually exclusive with `changeId` and `query` |
 | `adv_gate_criteria` | Latent definition, never registered | No agent-callable replacement. Gate criteria remain advisory checklists evaluated through the gate completion/status path (`adv_gate_status`, `adv_gate_complete`) |
 | `adv_epic_update_scope` | Latent definition, never registered | No agent-callable replacement. Audited, versioned Epic scope mutation remains Temporal storage/workflow behavior (`epicScopeUpdated` signal path, `rq-epicMutableScope01`) |

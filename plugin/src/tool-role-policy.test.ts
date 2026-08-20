@@ -135,6 +135,32 @@ describe("tool role policy — ownership matrix parity (docs/tool-ownership.md)"
       expect(found, `${tool} must have a dual matrix row`).toBe(true);
     }
   });
+
+  test("retired Epic and backlog reads carry no role-classified row", () => {
+    // dc461d3a retired these four from the host registry; they survive only as
+    // Tier-4 MCP reads bridged by plugin/src/mcp-server/tier4-tool-map.ts.
+    //
+    // Scoped to rows that assign a role class, because such a row asserts the
+    // name is a live host tool. Rows without a role class stay legal, which is
+    // what lets the removed-tools table and the replacement-path cells go on
+    // naming retired tools — the same freedom adv_roadmap and
+    // adv_backlog_state already rely on.
+    const retiredHostTools = [
+      "`adv_epic_list`",
+      "`adv_epic_show`",
+      "`adv_backlog_list`",
+      "`adv_backlog_show`",
+    ];
+    const staleRows = lines.filter(
+      (line) =>
+        ROLE_CLASSES.some((role) => line.includes(role)) &&
+        retiredHostTools.some((tool) => line.includes(tool)),
+    );
+    expect(
+      staleRows,
+      "these are tools.adv.* Tier-4 reads, not role-classified host tools",
+    ).toEqual([]);
+  });
 });
 
 describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
