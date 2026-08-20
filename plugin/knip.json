@@ -16,7 +16,8 @@
     "src/doctor-cli.ts",
     "src/index.ts",
     "src/mcp-server/index.ts",
-    "src/reconcile-cli.ts"
+    "src/reconcile-cli.ts",
+    "src/summary-candidates-cli.ts"
   ],
   "project": ["src/**/*.ts"],
   "ignore": ["src/__mocks__/**", "src/__tests__/**", "**/*.test.ts", "dist/**"],

@@ -65,6 +65,7 @@ async function writeSummaryProjection(
   summariesDir: string,
   changesDir: string,
   changeId: string,
+  writeCanonical = true,
 ): Promise<void> {
   const changeDir = join(summariesDir, changeId);
   const revDir = join(changeDir, "revisions");
@@ -100,6 +101,18 @@ async function writeSummaryProjection(
 
   await writeFile(shardPath, JSON.stringify(shard, null, 2));
   await writeFile(pointerPath, JSON.stringify(pointer, null, 2));
+  if (writeCanonical) {
+    await mkdir(join(changesDir, changeId), { recursive: true });
+    await writeFile(
+      join(changesDir, changeId, "change.json"),
+      JSON.stringify({
+        ...SAMPLE_CHANGE,
+        id: changeId,
+        status: "active",
+        lastSignalAt: new Date().toISOString(),
+      }),
+    );
+  }
 }
 
 describe("adv_launcher_projection_rebuild", () => {
@@ -223,6 +236,7 @@ describe("adv_launcher_projection_rebuild", () => {
       store.paths.summariesDir,
       store.paths.changes,
       changeId,
+      false,
     );
 
     const result =
