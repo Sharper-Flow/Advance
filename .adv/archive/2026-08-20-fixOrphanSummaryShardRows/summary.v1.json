@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-20T01:01:36.550Z",
+  "capabilities": [],
+  "change_hash": "50937bd6652cf22f7228e0e12df1c66b6d80e76fed3cfb825c1979e4295d8639",
+  "change_id": "fixOrphanSummaryShardRows",
+  "completed_tasks": 6,
+  "created_at": "2026-08-19T21:30:29.726Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-20T00:54:18.947Z",
+  "status": "archived",
+  "summary_hash": "a32c01dc2bbd2971485e53f62b24b01c05f2540dcb50a10d7aa2a073bcbaa599",
+  "task_count": 6,
+  "title": "Fix orphan summary shard rows",
+  "version": "1"
+}

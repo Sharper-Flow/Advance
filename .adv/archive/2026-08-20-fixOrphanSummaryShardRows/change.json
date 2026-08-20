@@ -1,0 +1,1877 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixOrphanSummaryShardRows",
+  "title": "Fix orphan summary shard rows",
+  "status": "archived",
+  "created_at": "2026-08-19T21:30:29.726Z",
+  "tasks": [
+    {
+      "id": "tk-2cd38fe47a53",
+      "title": "Add classifySummaryCandidates with four-way classification",
+      "type": "code",
+      "section": "Classifier",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-19T22:11:10.515Z",
+      "started_at": "2026-08-19T23:13:41.731Z",
+      "completed_at": "2026-08-19T23:21:35.784Z",
+      "verification": "Work already committed at 54942d7. Four-way classifier landed in plugin/src/storage/change-projection-reader.ts wrapping loadChange; test at plugin/src/storage/classify-summary-candidates.test.ts. Red run failed as required (TypeError: classifySummaryCandidates is not a function, exit 1), green run passed, independent verify run tr_mt0pt22j_56959eaa passed exit 0. Typecheck clean. No existing tests, loaders, call sites, or real ADV stores modified.",
+      "summary": "Work already committed at 54942d7. Four-way classifier landed in plugin/src/storage/change-projection-reader.ts wrapping loadChange; test at plugin/src/storage/classify-summary-candidates.test.ts. Red run failed as required (TypeError: classifySummaryCandidates is not a function, exit 1), green run passed, independent verify run tr_mt0pt22j_56959eaa passed exit 0. Typecheck clean. No existing tests, loaders, call sites, or real ADV stores modified.",
+      "filesTouched": [
+        "plugin/src/storage/change-projection-reader.ts",
+        "plugin/src/storage/classify-summary-candidates.test.ts"
+      ],
+      "checkpointSha": "54942d72f8a22405d3cfe8bc1b97a1014489c868",
+      "completedAt": "2026-08-19T23:21:35.784Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "respects": [
+          "C6",
+          "C7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-ce960785c9e8",
+      "title": "Ship the classifier as a standalone dist bundle",
+      "type": "code",
+      "section": "Classifier",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2cd38fe47a53"
+        }
+      ],
+      "created_at": "2026-08-19T22:11:23.022Z",
+      "started_at": "2026-08-19T23:22:10.472Z",
+      "completed_at": "2026-08-19T23:32:18.247Z",
+      "verification": "Work committed at 269c574. Bundle entrypoint is a pure re-export (C7 single authority holds); tsup entry added; dist/summary-candidates-cli.js builds at 155.64 KB. Verify run tr_mt0q77e2_ebe85e62 passed exit 0 including a test that imports the BUILT artifact and classifies a fixture store. Boundary guard cli-source-boundary.test.ts passes unmodified 3/0/38 including the transitive walk. Typecheck clean. Red was a build timeout rather than a semantic failure; mitigated by the independent verify run and the boundary guard.",
+      "summary": "Work committed at 269c574. Bundle entrypoint is a pure re-export (C7 single authority holds); tsup entry added; dist/summary-candidates-cli.js builds at 155.64 KB. Verify run tr_mt0q77e2_ebe85e62 passed exit 0 including a test that imports the BUILT artifact and classifies a fixture store. Boundary guard cli-source-boundary.test.ts passes unmodified 3/0/38 including the transitive walk. Typecheck clean. Red was a build timeout rather than a semantic failure; mitigated by the independent verify run and the boundary guard.",
+      "filesTouched": [
+        "plugin/src/storage/classify-summary-candidates-bundle.test.ts",
+        "plugin/src/summary-candidates-cli.ts",
+        "plugin/tsup.config.ts"
+      ],
+      "checkpointSha": "269c574f56e62a6cb1980e7bc93c8c87277e42eb",
+      "completedAt": "2026-08-19T23:32:18.247Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C3",
+          "C7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-7995c4ba8741",
+      "title": "Compose classification at buildLauncherProjection",
+      "type": "code",
+      "section": "Wiring",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2cd38fe47a53"
+        }
+      ],
+      "created_at": "2026-08-19T22:11:29.672Z",
+      "started_at": "2026-08-19T23:47:04.982Z",
+      "completed_at": "2026-08-19T23:55:36.021Z",
+      "verification": "Work committed at 7950e36. buildLauncherProjection classifies before writing the projection; change-summary-shard.ts byte-unchanged (C4). readSummaries confirmed test-only with no production caller, so live path always classifies. New regression test uses the real disk path with a positive control. Verify run tr_mt0r19yz_47979ee7 passed exit 0, 24 tests across launcher-projection, change-summary-shard including 641-709, and cross-surface-terminality. Typecheck clean.",
+      "summary": "Work committed at 7950e36. buildLauncherProjection classifies before writing the projection; change-summary-shard.ts byte-unchanged (C4). readSummaries confirmed test-only with no production caller, so live path always classifies. New regression test uses the real disk path with a positive control. Verify run tr_mt0r19yz_47979ee7 passed exit 0, 24 tests across launcher-projection, change-summary-shard including 641-709, and cross-surface-terminality. Typecheck clean.",
+      "filesTouched": [
+        "plugin/src/storage/launcher-projection.test.ts",
+        "plugin/src/storage/launcher-projection.ts"
+      ],
+      "checkpointSha": "7950e36a24161ea17b5e4947a9b401e3bd1fdfaa",
+      "completedAt": "2026-08-19T23:55:36.021Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-afd707275522",
+      "title": "Wire validation into loadSummariesFromDisk and add the residue field",
+      "type": "code",
+      "section": "Wiring",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ce960785c9e8"
+        }
+      ],
+      "created_at": "2026-08-19T22:11:44.023Z",
+      "started_at": "2026-08-19T23:32:30.545Z",
+      "completed_at": "2026-08-19T23:46:56.779Z",
+      "verification": "Work committed at f5054d5. Classification inserted after the shard terminal-status filter and before emit, verified by source inspection. Classifier loaded from the built bundle via ADV_SUMMARY_CANDIDATES_CLI_BUNDLE mirroring runReconcile/runDoctor. Optional summary_residue added to LiveStatusPayload, kept out of the changes array. Degraded mode sets validation_unavailable rather than exiting 2, with no fallback validator. Pinned names preserved. Forbidden-token scan clean. Independent guards all green: cli-source-boundary 3, dead-worker-query-paths 4, live-status 3, live-status-classification 2, cli-bridge-contract 11. Typecheck clean.",
+      "summary": "Work committed at f5054d5. Classification inserted after the shard terminal-status filter and before emit, verified by source inspection. Classifier loaded from the built bundle via ADV_SUMMARY_CANDIDATES_CLI_BUNDLE mirroring runReconcile/runDoctor. Optional summary_residue added to LiveStatusPayload, kept out of the changes array. Degraded mode sets validation_unavailable rather than exiting 2, with no fallback validator. Pinned names preserved. Forbidden-token scan clean. Independent guards all green: cli-source-boundary 3, dead-worker-query-paths 4, live-status 3, live-status-classification 2, cli-bridge-contract 11. Typecheck clean.",
+      "filesTouched": [
+        "bin/adv",
+        "bin/lib/live-status-classification.test.ts",
+        "bin/lib/live-status.ts",
+        "plugin/src/shared/cli-projection.ts"
+      ],
+      "checkpointSha": "f5054d5a86e25165aa1a5f981ee5c15275966839",
+      "completedAt": "2026-08-19T23:46:56.779Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-d64aee353ab2",
+      "title": "Verify structural guards pass unchanged",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-afd707275522"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7995c4ba8741"
+        }
+      ],
+      "created_at": "2026-08-19T22:11:56.038Z",
+      "started_at": "2026-08-19T23:55:54.957Z",
+      "completed_at": "2026-08-20T00:09:33.333Z",
+      "verification": "Work committed at 689bc9c. All four guards green and byte-unchanged (confirmed absent from the 11-file branch diff). Two branch-introduced regressions fixed: an unrealistic fixture in tools/launcher-projection.test.ts whose pointer named a canonical file it never wrote, and Knip entry-root registration for the new bundle entrypoint. Full suite now 5141 passed / 0 failed. The pnpm run check prompt-floor failure was reproduced byte-identically on clean trunk 57114b38 and is therefore pre-existing, already tracked as fixPreExistingTrunkCiFailures, and left untouched.",
+      "summary": "Work committed at 689bc9c. All four guards green and byte-unchanged (confirmed absent from the 11-file branch diff). Two branch-introduced regressions fixed: an unrealistic fixture in tools/launcher-projection.test.ts whose pointer named a canonical file it never wrote, and Knip entry-root registration for the new bundle entrypoint. Full suite now 5141 passed / 0 failed. The pnpm run check prompt-floor failure was reproduced byte-identically on clean trunk 57114b38 and is therefore pre-existing, already tracked as fixPreExistingTrunkCiFailures, and left untouched.",
+      "filesTouched": [
+        "plugin/knip.json",
+        "plugin/src/tools/launcher-projection.test.ts"
+      ],
+      "checkpointSha": "689bc9cb501e9070389890eb6a782711444916cd",
+      "completedAt": "2026-08-20T00:09:33.333Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      }
+    },
+    {
+      "id": "tk-20faebc50828",
+      "title": "Verify against the real affected store",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-afd707275522"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7995c4ba8741"
+        }
+      ],
+      "created_at": "2026-08-19T22:12:08.399Z",
+      "started_at": "2026-08-19T23:55:56.818Z",
+      "completed_at": "2026-08-20T00:10:01.894Z",
+      "verification": "Verified against the live affected store, read-only, no store contents mutated (C6 holds).\n\nStore: toolbox, project 3f9f88dbc6c65a2463945f1cfda1fc59794f411d. Method: rebuilt the bundles in the worktree, then ran the worktree bin/adv against that store with XDG_DATA_HOME pointed at its shard. Nothing was deployed.\n\nBASELINE, deployed unfixed adv: 10 active changes, including the four ghosts.\n\nAFTER, worktree adv: exactly 6 active changes — addKimiK3256kAsExploreFallback, enablePublicPenpotAccess, reduceClaudeMaxQuotaBurn, addPenpotMcpBrowserBridge, defaultGlobalMcpsOff, addPenpotVisionMcp. AC11 holds: all six survivors are the genuinely-active changes, each with a valid canonical record.\n\nAC10 holds exactly as predicted at design time. noteConcordStageInventory, diagnoseTailnetLag and addAdvResumeShortcut are reported canonical_missing; addProviderToolSearch is reported canonical_error with detail schema_error. All four are excluded from the active list and present in summary_residue, so none was silently dropped (AC3 confirmed on real data).\n\nremoveRedundantMcp correctly does not appear. It is genuinely archived and its absence here is right; the plugin store still listing it active is the separate defect tracked as toolbox bl-Ix9Sj6Hk.\n\nUNPLANNED FINDING, in scope to report. summary_residue surfaced 22 orphan shards, not the 4 anticipated. The additional 18 — including addImessageRelayPlaybook, cutAdvEngineerTokenBurn, hardenExploreAgentScope, restoreTabCueViaTerminalBell — are archived changes whose summary shards were never retracted when their canonical records moved to archive/. They previously reached bin/adv and were filtered late by the countTerminalChanges archive scan, which is why only 10 rows surfaced rather than 28; classification now excludes them earlier and reports them. Final active count is unaffected. This is the design's residue reporting working as intended, and it quantifies the named write-time-retraction follow-up: one store carries 22 orphan shards that GC never removes.\n\nCaveat on reason-code precision, recorded for review: those 18 are reported canonical_missing, which is literally accurate (no canonical under changes/) but conflates normal archival with a vanished record. Distinguishing them would require consulting archive/, duplicating hasArchiveBundle logic, and was not in scope.\n\nSCOPE BOUNDARY ON THIS TASK. The CLI half of AC10 is fully verified above. The launcher-render half is not verifiable here: zellij-project-launcher reads the DEPLOYED adv and the deployed plugin's active-launcher-state.json, and deploy may only run from the merged default branch per P32. Launcher row-count confirmation is therefore a post-merge deploy step, not a pre-merge one. The projection-side logic is covered by unit tests in launcher-projection.test.ts.",
+      "summary": "Verified against the live affected store, read-only, no store contents mutated (C6 holds).\n\nStore: toolbox, project 3f9f88dbc6c65a2463945f1cfda1fc59794f411d. Method: rebuilt the bundles in the worktree, then ran the worktree bin/adv against that store with XDG_DATA_HOME pointed at its shard. Nothing was deployed.\n\nBASELINE, deployed unfixed adv: 10 active changes, including the four ghosts.\n\nAFTER, worktree adv: exactly 6 active changes — addKimiK3256kAsExploreFallback, enablePublicPenpotAccess, reduceClaudeMaxQuotaBurn, addPenpotMcpBrowserBridge, defaultGlobalMcpsOff, addPenpotVisionMcp. AC11 holds: all six survivors are the genuinely-active changes, each with a valid canonical record.\n\nAC10 holds exactly as predicted at design time. noteConcordStageInventory, diagnoseTailnetLag and addAdvResumeShortcut are reported canonical_missing; addProviderToolSearch is reported canonical_error with detail schema_error. All four are excluded from the active list and present in summary_residue, so none was silently dropped (AC3 confirmed on real data).\n\nremoveRedundantMcp correctly does not appear. It is genuinely archived and its absence here is right; the plugin store still listing it active is the separate defect tracked as toolbox bl-Ix9Sj6Hk.\n\nUNPLANNED FINDING, in scope to report. summary_residue surfaced 22 orphan shards, not the 4 anticipated. The additional 18 — including addImessageRelayPlaybook, cutAdvEngineerTokenBurn, hardenExploreAgentScope, restoreTabCueViaTerminalBell — are archived changes whose summary shards were never retracted when their canonical records moved to archive/. They previously reached bin/adv and were filtered late by the countTerminalChanges archive scan, which is why only 10 rows surfaced rather than 28; classification now excludes them earlier and reports them. Final active count is unaffected. This is the design's residue reporting working as intended, and it quantifies the named write-time-retraction follow-up: one store carries 22 orphan shards that GC never removes.\n\nCaveat on reason-code precision, recorded for review: those 18 are reported canonical_missing, which is literally accurate (no canonical under changes/) but conflates normal archival with a vanished record. Distinguishing them would require consulting archive/, duplicating hasArchiveBundle logic, and was not in scope.\n\nSCOPE BOUNDARY ON THIS TASK. The CLI half of AC10 is fully verified above. The launcher-render half is not verifiable here: zellij-project-launcher reads the DEPLOYED adv and the deployed plugin's active-launcher-state.json, and deploy may only run from the merged default branch per P32. Launcher row-count confirmation is therefore a post-merge deploy step, not a pre-merge one. The projection-side logic is covered by unit tests in launcher-projection.test.ts.",
+      "filesTouched": [
+        "plugin/knip.json",
+        "plugin/src/tools/launcher-projection.test.ts"
+      ],
+      "checkpointSha": "689bc9cb501e9070389890eb6a782711444916cd",
+      "completedAt": "2026-08-20T00:10:01.894Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC10",
+          "AC11"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOrphanSummaryShardRows",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:validate-canonical-before-shard-emit"
+      },
+      "agent": "adv-researcher",
+      "topic": "Independent design validation: canonical validation before summary-shard emit",
+      "sources": [
+        {
+          "label": "live-status.ts shard filter + loadSummariesFromDisk",
+          "locator": "bin/lib/live-status.ts:157-207 (filter at :170)",
+          "summary": "Shard-status filter drops archived/closed before emit; CLI then applies a second filter (bin/adv:189) against terminalChangeIds from archive/ scan."
+        },
+        {
+          "label": "loadChange outcome enumeration",
+          "locator": "plugin/src/storage/change-projection-reader.ts:366-428; byte limit :35 (8 MiB); bounded reader :107-178",
+          "summary": "All outcomes: not_found->{success:true,data:null}; oversized/corrupt/unreadable/read_error->{success:false,type}; Zod fail->schema_error; JSON.parse fail->corrupt. data:null is exclusively the not_found path."
+        },
+        {
+          "label": "listSummaryChanges + shard schema + publish",
+          "locator": "plugin/src/storage/change-summary-shard.ts:658-746; status enum :83; deriveSummaryShard :188-216; publish :233-259; GC :754-779",
+          "summary": "Returns ALL shards, no status filter; only non-test consumer is buildLauncherProjection (launcher-projection.ts:92). Shard status copies canonical status at publish. GC never removes whole summaries/<id> dirs."
+        },
+        {
+          "label": "Shard-only-read contract + unit test",
+          "locator": "plugin/src/storage/change-summary-shard.test.ts:637-709",
+          "summary": "Unit test seeds shards+pointers with NO canonical change.json and expects 2 rows — in-place canonical validation inside listSummaryChanges breaks this test and the documented contract."
+        },
+        {
+          "label": "CLI source boundary test (transitive)",
+          "locator": "bin/lib/cli-source-boundary.test.ts:15-27,76-84,110-130",
+          "summary": "Walks projection-boundary.ts transitive relative-import graph; plugin/src/storage/ prefix is forbidden. Re-exporting a storage classifier through the boundary FAILS the test."
+        },
+        {
+          "label": "projection-boundary docblock",
+          "locator": "plugin/src/cli/projection-boundary.ts:1-28",
+          "summary": "Self-describes as pure graph (no storage). D4 contradicts the boundary's own contract."
+        },
+        {
+          "label": "Bridge contract + payload",
+          "locator": "plugin/src/cli-bridge-contract.test.ts:241-269; plugin/src/shared/cli-projection.ts:98-118",
+          "summary": "LiveStatusPayload is a TS interface (additive optional field safe); bridge tests are token guards, no strict payload schema; forbidden tokens '=== \"archive\"'/'=== \"cancel\"' do not match archived/closed checks."
+        },
+        {
+          "label": "Archive reconciliation layers",
+          "locator": "bin/adv:128-147,181-197; plugin/src/storage/launcher-projection.ts:98-111; plugin/src/storage/json.ts:498-542",
+          "summary": "CLI counts terminal from external-root archive/ only (misses in-repo .adv/archive layout, json.ts:146); launcher uses hasArchiveBundle which intentionally returns false for schema-invalid bundles (json.ts:531-538). Zombie-shadow phenomenon documented at json.ts:506-509."
+        },
+        {
+          "label": "Schema-invalid canonical premise",
+          "locator": "plugin/src/types/subagent-reports.ts:50,60-85,1049-1146; plugin/src/types/changes.ts:1131",
+          "summary": "laneFieldBoundsRefine rejects oversized strings at ChangeSchema.parse; legacy normalization fills missing fields but never truncates oversized ones — present-but-schema-invalid canonical is real."
+        },
+        {
+          "label": "Dist-bundle precedent for CLI->plugin code",
+          "locator": "bin/adv:83-101",
+          "summary": "runReconcile/runDoctor dynamically import plugin/dist/*.js bundles, never plugin source — established pattern for sharing plugin logic with the CLI."
+        },
+        {
+          "label": "Residue scan gap",
+          "locator": "plugin/src/storage/store-residue-scan.ts:270-294",
+          "summary": "Residue classes (summary_pointer_missing/stale) iterate the changes dir; orphan shards with no canonical are invisible — reconcile follow-up is load-bearing."
+        },
+        {
+          "label": "Terminality invariant test",
+          "locator": "plugin/src/storage/cross-surface-terminality.invariant.test.ts:54-106",
+          "summary": "Does not call listSummaryChanges directly; launcher assertion passes via undefined row — unaffected by the design."
+        }
+      ],
+      "architecture_assessment": "Defect confirmed real: archive never touches summaries/ (no retraction anywhere in plugin/src/archive/), so orphan shards persist forever and loadSummariesFromDisk (live-status.ts:157-207) trusts shard self-reported status with zero canonical cross-check. Read-time validation after the line-170 filter is the right shape and D2's outcome mapping is complete. However D4's placement is structurally impossible as stated, and changing listSummaryChanges in place contradicts its own documented contract and unit test. Both are repairable without abandoning the approach.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Must-change items (design amendment, not rejection): (1) D4 storage re-export through projection-boundary.ts fails cli-source-boundary.test.ts:110-130 transitive walk — storage/ prefix forbidden (:21-27). (2) In-place canonical validation inside listSummaryChanges breaks change-summary-shard.test.ts:641-709 and reverses the documented shard-only contract (:654-656, :637-641) — compose at the caller (buildLauncherProjection) instead. (3) Classifier should also drop canonical-status-terminal rows: a validly archived/closed canonical with a stale draft shard is emitted by the proposed {success:true,data:Change}->emit rule and survives both existing filters when the archive bundle is corrupt (json.ts:531-538) or the store uses the in-repo archive layout (bin/adv:136 vs json.ts:146)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Read-time validation hides orphans but never cleans them — summaries/ growth is unbounded until the reconcile ResidueClass follow-up lands (collectObsoleteSummaryShards only GCs revisions within a change dir, never the dir itself, change-summary-shard.ts:754-779).",
+          "Post-filter validation adds ~N_active bounded canonical loads (8 MiB cap, change-projection-reader.ts:35) per status invocation — marginal next to countTerminalChanges already parsing every archive record unbounded (bin/adv:137, bin/lib/changes.ts:59).",
+          "Single-classifier placement via dist bundle keeps one source of truth but adds a build target; duplicating a lightweight check in bin/lib risks CLI/plugin classification divergence on schema-invalid canonicals."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "D4 as proposed: re-export classifySummaryCandidates from plugin/src/storage/ through plugin/src/cli/projection-boundary.ts",
+            "disposition": "rejected",
+            "rationale": "Fails cli-source-boundary.test.ts:110-130 transitive graph walk; storage/ is a forbidden prefix (:22) and the boundary docblock promises a pure graph."
+          },
+          {
+            "option": "Validate inside listSummaryChanges in place",
+            "disposition": "rejected",
+            "rationale": "Breaks change-summary-shard.test.ts:641-709 (seeds shards with no canonical, expects 2 rows) and reverses the function's documented without-hydration contract (change-summary-shard.ts:654-656)."
+          },
+          {
+            "option": "CLI-local lightweight validation (JSON.parse + field checks) in bin/lib",
+            "disposition": "deferred",
+            "rationale": "Matches existing CLI style (live-status.ts:165-169 raw JSON.parse) but diverges from plugin loadChange on schema_error cases — the exact addProviderToolSearch class the design cites."
+          },
+          {
+            "option": "Shared classifier shipped as plugin/dist bundle, dynamically imported by bin/adv (runReconcile precedent, bin/adv:83-101)",
+            "disposition": "preferred",
+            "rationale": "Single implementation, satisfies both boundary tests (dist bundle is not plugin/src), established pattern (reconcile-cli.js, doctor-cli.js)."
+          }
+        ],
+        "recommendation": "Proceed with amended design: keep D1/D2/D3; replace D4 with a dist-bundle (or CLI-local fallback) classifier; compose validation at buildLauncherProjection caller level, not inside listSummaryChanges; extend D2 to four-way classification adding canonical_terminal drop for {success:true,data:Change} where data.status is archived/closed."
+      },
+      "recommendation": "Verdict CONCERNS. Core read-time-validation approach is sound and verified against source. Three amendments before implementation: (1) D4 placement is blocked by the transitive boundary test — use the dist-bundle pattern or extend the approved-import set with a genuinely pure module; never re-export storage through projection-boundary.ts. (2) Do not modify listSummaryChanges in place — its unit test seeds canonical-less shards and its contract is the perf design the change itself cites; add the classifier as a caller-side composition in buildLauncherProjection and in loadSummariesFromDisk. (3) Make classification four-way: emit / canonical_missing / canonical_error(type) / canonical_terminal — the extra filter catches stale-draft-shard + validly-terminal-canonical ghosts that no current defense catches when archive bundles are corrupt or in-repo. Also verify D3's excluded field name avoids the bridge-test forbidden tokens and keep the deploy-local.sh liveness greps green (source/live fields unchanged).",
+      "follow_ups": [
+        "Write-time shard retraction on archive/quarantine (named follow-up, load-bearing for disk hygiene)",
+        "Reconcile summariesDir orphan enumerator ResidueClass (residue scan currently cannot see orphan shards)",
+        "countTerminalChanges reads only resolveExternalRoot(projectId)/archive — in-repo .adv/archive layout stores are unreconciled; classifier removes the dependency but the archive-dir divergence deserves its own fix",
+        "addProviderToolSearch canonical is schema-invalid today (oversized researcher field vs RESEARCHER_FIELD_MAX=12_000) — the change fixes its ghost row but the record itself still needs quarantine/repair"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOrphanSummaryShardRows",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOrphanSummaryShardRows",
+      "task_id": "tk-2cd38fe47a53",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2cd38fe47a53"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/change-projection-reader.ts",
+        "plugin/src/storage/classify-summary-candidates.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt0pnrbr_b5eca2aa",
+          "command": "bin/oc-test targeted -- src/storage/classify-summary-candidates.test.ts",
+          "exit_code": 1,
+          "summary": "RED: the new test ran and failed because classifySummaryCandidates was not yet exported."
+        },
+        {
+          "test_run_id": "tr_mt0poin4_83f38075",
+          "command": "bin/oc-test targeted -- src/storage/classify-summary-candidates.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 1 test file and 1 test passed across valid, missing, schema-invalid, and archived canonical fixtures."
+        },
+        {
+          "test_run_id": "tr_mt0pqb4o_12b2a294",
+          "command": "bin/oc-test targeted -- src/storage/classify-summary-candidates.test.ts",
+          "exit_code": 0,
+          "summary": "Final targeted verification passed: 1 test file and 1 test passed."
+        },
+        {
+          "test_run_id": "tr_mt0pqqj9_92c55998",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript check passed with tsc --noEmit."
+        },
+        {
+          "test_run_id": "tr_mt0pq123_a60ff4b3",
+          "command": "pnpm --dir plugin exec prettier --check src/storage/change-projection-reader.ts src/storage/classify-summary-candidates.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier check passed for both touched files."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Placed the classifier beside loadChange and delegated canonical parsing entirely to loadChange.",
+          "why": "This keeps one canonical-validation implementation and preserves the existing bounded read, normalization, and schema-error contract."
+        },
+        {
+          "what": "Classified archived and closed canonical records as canonical_terminal before adding other successful records to valid.",
+          "why": "A stale non-terminal summary shard must not override a terminal canonical record."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Checked both touched storage files for the forbidden archive/cancel comparison literals and kept canonical validation centralized; no additional in-scope copies were found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented and tested the shared four-way classifier. loadChange returns success/data:null for absent change.json, success/data for parsed canonical records, and typed failures for schema and bounded-read errors. The classifier preserves candidate order and returns valid IDs plus typed exclusions.",
+        "suggested_next_action": "Checkpoint the task worktree, then proceed to the classifier bundle and caller wiring tasks."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-2cd38fe47a53_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-2cd38fe47a53-attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOrphanSummaryShardRows",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOrphanSummaryShardRows",
+      "task_id": "tk-ce960785c9e8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ce960785c9e8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/summary-candidates-cli.ts",
+        "plugin/tsup.config.ts",
+        "plugin/src/storage/classify-summary-candidates-bundle.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt0q4wsc_4593891d",
+          "command": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts",
+          "exit_code": 0,
+          "summary": "PASS: builds plugin/dist/summary-candidates-cli.js, dynamically imports it, and classifies valid, terminal, and missing canonical projections."
+        },
+        {
+          "test_run_id": "tr_mt0q12rc_61816a99",
+          "command": "bun test bin/lib/cli-source-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "PASS: all 3 unchanged CLI boundary tests pass, including the transitive projection-boundary storage walk."
+        },
+        {
+          "test_run_id": "tr_mt0q1fq6_937af8a0",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "PASS: TypeScript typecheck completes with no errors."
+        },
+        {
+          "test_run_id": "tr_mt0q0g2t_da47e6b5",
+          "command": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts --testTimeout=30000",
+          "exit_code": 0,
+          "summary": "PASS: initial implementation verification before final test-timeout cleanup."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added summary-candidates-cli.ts as a thin re-export of classifySummaryCandidates and its result types.",
+          "why": "Keeps one classification implementation in change-projection-reader.ts and avoids any bin/lib transitive import of plugin/src/storage."
+        },
+        {
+          "what": "Added summary-candidates-cli to plugin/tsup.config.ts rather than changing build:mcp-server or plugin/scripts/build-plugin.ts.",
+          "why": "The canonical full build invokes plugin/scripts/build-plugin.ts, which consumes tsup.config.ts; this is the same mechanism that already produces doctor-cli.js."
+        },
+        {
+          "what": "Reserved ADV_SUMMARY_CANDIDATES_CLI_BUNDLE as the environment override name.",
+          "why": "It follows the existing ADV_RECONCILE_CLI_BUNDLE and ADV_DOCTOR_CLI_BUNDLE convention. The next task owns the call site."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reviewed the CLI boundary and existing reconcile/doctor bundle pattern. No boundary or transitive-import changes were needed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Classifier bundle entrypoint and tsup output are implemented. Full build generated plugin/dist/summary-candidates-cli.js. Boundary tests pass unchanged; no bin/adv or live-status call site was added.",
+        "suggested_next_action": "Create the task checkpoint, then proceed to the next task that dynamically imports ADV_SUMMARY_CANDIDATES_CLI_BUNDLE."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-ce960785c9e8_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer:tk-ce960785c9e8:attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOrphanSummaryShardRows",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOrphanSummaryShardRows",
+      "task_id": "tk-afd707275522",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-afd707275522"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "bin/adv",
+        "bin/lib/live-status.ts",
+        "bin/lib/live-status-classification.test.ts",
+        "plugin/src/shared/cli-projection.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt0qmbi1_e4cb9436",
+          "command": "bun test bin/lib/live-status-classification.test.ts --timeout 120000",
+          "exit_code": 0,
+          "summary": "PASS: 2 tests; excluded rows were suppressed, residue reasons/details matched, and missing-bundle degradation preserved rows with validation_unavailable."
+        },
+        {
+          "test_run_id": "tr_mt0qmjhw_53aabaaf",
+          "command": "bun test bin/lib/live-status.test.ts --timeout 120000",
+          "exit_code": 0,
+          "summary": "PASS: 3 tests and 11 assertions."
+        },
+        {
+          "test_run_id": "tr_mt0qmpvl_d23e2fbd",
+          "command": "bun test bin/lib/cli-source-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "PASS: 3 tests and 38 assertions; CLI source boundary remained clean."
+        },
+        {
+          "test_run_id": "tr_mt0qm vhr_104760ee",
+          "command": "bun test bin/lib/dead-worker-query-paths.test.ts",
+          "exit_code": 0,
+          "summary": "PASS: 4 tests and 7 assertions; pinned loader names remain present."
+        },
+        {
+          "test_run_id": "tr_mt0qn5dj_868075ad",
+          "command": "bunx vitest run src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "PASS: 11 tests."
+        },
+        {
+          "test_run_id": "tr_mt0qnjv1_47338f8a",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "PASS: TypeScript typecheck completed with no errors."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Kept loadLiveSummaries returning ChangeSummary[] and added loadLiveSummariesWithResidue for the status command.",
+          "why": "Preserves existing dashboard consumers while allowing bin/adv to carry residue into the JSON payload."
+        },
+        {
+          "what": "Used summary_residue with excluded entries and an optional validation_unavailable marker.",
+          "why": "Keeps corruption separate from the active work list and makes degraded validation explicit."
+        },
+        {
+          "what": "Loaded only the built summary-candidates bundle with env override first and no fallback validator.",
+          "why": "Preserves one canonical ChangeSchema implementation and the CLI source boundary."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned live-status consumers and guard references; retained loadLiveSummaries compatibility and found no additional in-scope summary loader requiring this wiring.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Classification is inserted after the shard archived/closed filter at live-status.ts:245 and before summaries.push at line 277. summary_residue contains sorted {id, reason, detail?} exclusions; missing bundle leaves rows visible and sets validation_unavailable:true. Semantic red evidence: tr_mt0qhuon_bfff8403 failed on residue ordering before deterministic sorting. Green evidence: tr_mt0qmbi1_e4cb9436 passed. The exact requested bunx vitest live-status command cannot resolve bun:test; equivalent Bun test passed as tr_mt0qmjhw_53aabaaf.",
+        "suggested_next_action": "Review the worktree diff, then run the parent task checkpoint and downstream launcher-projection task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mt0qm vhr_104760ee"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOrphanSummaryShardRows",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOrphanSummaryShardRows",
+      "task_id": "tk-7995c4ba8741",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7995c4ba8741"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/launcher-projection.ts",
+        "plugin/src/storage/launcher-projection.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt0qtmlm_2787e7f9",
+          "command": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "RED: genuine assertion failure; orphan missing-change was emitted alongside valid-change before the fix."
+        },
+        {
+          "test_run_id": "tr_mt0qxz16_a5414647",
+          "command": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "GREEN: 9 launcher-projection tests passed, including missing canonical exclusion and valid canonical inclusion."
+        },
+        {
+          "test_run_id": "tr_mt0qy629_8d97e13e",
+          "command": "bunx vitest run src/storage/change-summary-shard.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "13 change-summary-shard tests passed unchanged, including the no-canonical list/status coverage at lines 641-709."
+        },
+        {
+          "test_run_id": "tr_mt0qyjc8_dc8c4f3a",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed with tsc --noEmit."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Classify IDs after the real listSummaryChanges call and before archive reconciliation.",
+          "why": "This preserves listSummaryChanges as a no-hydration shard lister while preventing missing, invalid, and terminal canonical records from entering the launcher projection."
+        },
+        {
+          "what": "Keep the injected readSummaries test seam unclassified.",
+          "why": "The seam supplies deterministic projection inputs for transformation tests; production launcher reads use listSummaryChanges and receive canonical classification."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified the second launcher read site uses the shared classifier and confirmed listSummaryChanges plus its no-hydration test remain untouched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "buildLauncherProjection now filters real shard-list results through classifySummaryCandidates before archive reconciliation. The regression covers one missing canonical and one valid canonical. listSummaryChanges source is byte-unchanged.",
+        "suggested_next_action": "Review the diff and proceed to the verification tasks."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-7995c4ba8741_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-7995c4ba8741-attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOrphanSummaryShardRows",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOrphanSummaryShardRows",
+      "task_id": "tk-d64aee353ab2",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d64aee353ab2"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/launcher-projection.test.ts",
+        "plugin/knip.json"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt0r8zux_5f3c4c59",
+          "command": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "Baseline reproduced exactly two failures: orphan canonical fixture active_count 0 and missing summary-candidates Knip root."
+        },
+        {
+          "test_run_id": "tr_mt0rbm4d_484bd74e",
+          "command": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "Targeted suite passed: 2 files, 7 tests."
+        },
+        {
+          "test_run_id": "tr_mt0rdryd_948b7637",
+          "command": "bunx vitest run --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "Full plugin unit suite passed; no failures."
+        },
+        {
+          "test_run_id": "tr_mt0rgppk_bcc0ca40",
+          "command": "bunx vitest run --maxWorkers=4 --reporter=json --outputFile=/tmp/fix-orphan-summary-full.json",
+          "exit_code": 0,
+          "summary": "Full-suite counts: 1415 suites passed; 5141 tests passed, 0 failed, 1 pending, 12 todo."
+        },
+        {
+          "test_run_id": "tr_mt0re5xg_66cd3e36",
+          "command": "bun test bin/lib/cli-source-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "Guard file remained green: 3 pass, 0 fail."
+        },
+        {
+          "test_run_id": "tr_mt0recyj_00b9e7ae",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added an opt-out parameter to writeSummaryProjection and passed false at call site 222.",
+          "why": "That test pre-seeds a canonical record with projection revision 21 and 12 tasks; the helper's standard SAMPLE_CHANGE fixture would overwrite the record and invalidate its canonical-count assertions."
+        },
+        {
+          "what": "Added lastSignalAt to generated canonical fixtures.",
+          "why": "The rebuild derives summary freshness from canonical lastSignalAt or created_at; a current signal keeps the existing degraded false assertion valid while using the established SAMPLE_CHANGE canonical shape."
+        },
+        {
+          "what": "Registered src/summary-candidates-cli.ts in plugin/knip.json entry.",
+          "why": "Knip entry roots explicitly list package scripts and every tsup production bundle entry; the new tsup entry must follow reconcile-cli.ts and doctor-cli.ts."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Inspected all three writeSummaryProjection call sites. Calls at 149 and 154 model ordinary active fixtures and use the default canonical writer. Call at 222 deliberately preserves a custom canonical record, so it opts out. Confirmed no guarded files changed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Both requested fixture/config failures are fixed. Full suite passes 1415 suites and 5141 tests with 0 failures; targeted, guard, and typecheck checks also pass. Only plugin/src/tools/launcher-projection.test.ts and plugin/knip.json changed.",
+        "suggested_next_action": "Review the two-file diff and proceed with the ADV task checkpoint."
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-2cd38fe47a53": [
+      {
+        "runId": "tr_mt0pnf62_a0c5eaff",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/storage/classify-summary-candidates.test.ts",
+        "durationMs": 1260.9204679988325,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:16:22.725Z"
+      },
+      {
+        "runId": "tr_mt0pnrbr_b5eca2aa",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/storage/classify-summary-candidates.test.ts",
+        "durationMs": 3145.279619000852,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:16:38.649Z"
+      },
+      {
+        "runId": "tr_mt0poin4_83f38075",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/classify-summary-candidates.test.ts",
+        "durationMs": 2778.5539790000767,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:17:13.616Z"
+      },
+      {
+        "runId": "tr_mt0pozlh_7ec9225e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 11249.166492000222,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-19T23:17:35.115Z"
+      },
+      {
+        "runId": "tr_mt0ppiaq_4728e852",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec prettier --check src/storage/change-projection-reader.ts src/storage/classify-summary-candidates.test.ts",
+        "durationMs": 874.4384289998561,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-19T23:18:00.160Z"
+      },
+      {
+        "runId": "tr_mt0pq123_a60ff4b3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec prettier --check src/storage/change-projection-reader.ts src/storage/classify-summary-candidates.test.ts",
+        "durationMs": 911.7258990015835,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-19T23:18:24.379Z"
+      },
+      {
+        "runId": "tr_mt0pqb4o_12b2a294",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/classify-summary-candidates.test.ts",
+        "durationMs": 2132.5592090003192,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:18:37.508Z"
+      },
+      {
+        "runId": "tr_mt0pqqj9_92c55998",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 9889.26630399935,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-19T23:18:57.431Z"
+      },
+      {
+        "runId": "tr_mt0pt22j_56959eaa",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/classify-summary-candidates.test.ts --maxWorkers=4",
+        "durationMs": 1333.5967540014535,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:20:45.656Z"
+      }
+    ],
+    "tk-ce960785c9e8": [
+      {
+        "runId": "tr_mt0pyxyf_2b1a11f2",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts",
+        "durationMs": 24095.42774700001,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:25:19.770Z"
+      },
+      {
+        "runId": "tr_mt0q0g2t_da47e6b5",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts --testTimeout=30000",
+        "durationMs": 23627.539896998554,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:26:29.867Z"
+      },
+      {
+        "runId": "tr_mt0q0uph_d943ecb1",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- bin/lib/cli-source-boundary.test.ts",
+        "durationMs": 852.9413469992578,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:26:48.569Z"
+      },
+      {
+        "runId": "tr_mt0q12rc_61816a99",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/cli-source-boundary.test.ts",
+        "durationMs": 74.01991599984467,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:26:59.281Z"
+      },
+      {
+        "runId": "tr_mt0q1fq6_937af8a0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 8662.162492999807,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:27:16.207Z"
+      },
+      {
+        "runId": "tr_mt0q3sie_3e0e29fa",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts",
+        "durationMs": 21707.318421000615,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:29:05.927Z"
+      },
+      {
+        "runId": "tr_mt0q4wsc_4593891d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts",
+        "durationMs": 22011.702036999166,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:29:58.003Z"
+      },
+      {
+        "runId": "tr_mt0q77e2_ebe85e62",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/classify-summary-candidates-bundle.test.ts src/storage/classify-summary-candidates.test.ts --maxWorkers=4 --testTimeout=120000",
+        "durationMs": 21829.491762999445,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:31:44.986Z"
+      }
+    ],
+    "tk-afd707275522": [
+      {
+        "runId": "tr_mt0qhj27_8101d17d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run bin/lib/live-status-classification.test.ts --testTimeout=120000",
+        "durationMs": 922.4086770005524,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:39:46.398Z"
+      },
+      {
+        "runId": "tr_mt0qhuon_bfff8403",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test bin/lib/live-status-classification.test.ts --timeout 120000",
+        "durationMs": 266.9379470013082,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:40:02.127Z"
+      },
+      {
+        "runId": "tr_mt0qilck_51f27a72",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/live-status-classification.test.ts --timeout 120000",
+        "durationMs": 202.54405499994755,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:40:36.502Z"
+      },
+      {
+        "runId": "tr_mt0qiwvr_f6bdf673",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/live-status.test.ts --timeout 120000",
+        "durationMs": 74.16005600057542,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:40:51.349Z"
+      },
+      {
+        "runId": "tr_mt0qj3k7_e57e55b7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/cli-source-boundary.test.ts",
+        "durationMs": 90.69399899989367,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:41:00.001Z"
+      },
+      {
+        "runId": "tr_mt0qjdsh_c973fa8e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/dead-worker-query-paths.test.ts",
+        "durationMs": 67.73809699900448,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:41:13.421Z"
+      },
+      {
+        "runId": "tr_mt0qjtmn_307bc65c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/cli-bridge-contract.test.ts",
+        "durationMs": 4538.592771999538,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:41:33.738Z"
+      },
+      {
+        "runId": "tr_mt0qk843_196a872e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 10835.412946000695,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:41:53.559Z"
+      },
+      {
+        "runId": "tr_mt0qkiv4_aa3d38b9",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run bin/lib/live-status.test.ts --testTimeout=120000",
+        "durationMs": 840.9861399997026,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:42:07.211Z"
+      },
+      {
+        "runId": "tr_mt0qmbi1_e4cb9436",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/live-status-classification.test.ts --timeout 120000",
+        "durationMs": 245.50575600005686,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:43:30.312Z"
+      },
+      {
+        "runId": "tr_mt0qmjhw_53aabaaf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/live-status.test.ts --timeout 120000",
+        "durationMs": 65.15431900136173,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:43:40.638Z"
+      },
+      {
+        "runId": "tr_mt0qmpvl_d23e2fbd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/cli-source-boundary.test.ts",
+        "durationMs": 79.08859900012612,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:43:48.902Z"
+      },
+      {
+        "runId": "tr_mt0qmvhr_104760ee",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/dead-worker-query-paths.test.ts",
+        "durationMs": 62.33038599975407,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:43:56.428Z"
+      },
+      {
+        "runId": "tr_mt0qn5dj_868075ad",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/cli-bridge-contract.test.ts",
+        "durationMs": 4218.003837000579,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:44:09.319Z"
+      },
+      {
+        "runId": "tr_mt0qnjv1_47338f8a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 8781.35735099949,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:44:27.626Z"
+      }
+    ],
+    "tk-7995c4ba8741": [
+      {
+        "runId": "tr_mt0qtmlm_2787e7f9",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+        "durationMs": 1358.2232060004026,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:49:11.091Z"
+      },
+      {
+        "runId": "tr_mt0qv9ia_4ec5eba1",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+        "durationMs": 1270.3260390013456,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:50:27.405Z"
+      },
+      {
+        "runId": "tr_mt0qxdow_5783f910",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+        "durationMs": 1390.6028979998082,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:52:06.373Z"
+      },
+      {
+        "runId": "tr_mt0qxz16_a5414647",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+        "durationMs": 1158.040211001411,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:52:33.854Z"
+      },
+      {
+        "runId": "tr_mt0qy629_8d97e13e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/change-summary-shard.test.ts --maxWorkers=4",
+        "durationMs": 1353.94242499955,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:52:43.360Z"
+      },
+      {
+        "runId": "tr_mt0qyjc8_dc8c4f3a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 7498.743006000295,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-19T23:53:00.366Z"
+      },
+      {
+        "runId": "tr_mt0r19yz_47979ee7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/storage/launcher-projection.test.ts src/storage/change-summary-shard.test.ts src/storage/cross-surface-terminality.invariant.test.ts --maxWorkers=4 --testTimeout=120000",
+        "durationMs": 1301.5204370003194,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-19T23:55:07.931Z"
+      }
+    ],
+    "tk-d64aee353ab2": [
+      {
+        "runId": "tr_mt0r8zux_5f3c4c59",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+        "durationMs": 1406.6493390016258,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T00:01:08.005Z"
+      },
+      {
+        "runId": "tr_mt0r9jj5_04bbecd6",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+        "durationMs": 1390.6204250007868,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T00:01:33.589Z"
+      },
+      {
+        "runId": "tr_mt0rbm4d_484bd74e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+        "durationMs": 1527.7819340005517,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T00:03:10.576Z"
+      },
+      {
+        "runId": "tr_mt0rdryd_948b7637",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run --maxWorkers=4",
+        "durationMs": 85982.76921599917,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T00:04:51.110Z"
+      },
+      {
+        "runId": "tr_mt0re5xg_66cd3e36",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/cli-source-boundary.test.ts",
+        "durationMs": 124.32548700086772,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T00:05:09.800Z"
+      },
+      {
+        "runId": "tr_mt0recyj_00b9e7ae",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 9229.599383000284,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T00:05:18.513Z"
+      },
+      {
+        "runId": "tr_mt0rgppk_bcc0ca40",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run --maxWorkers=4 --reporter=json --outputFile=/tmp/fix-orphan-summary-full.json",
+        "durationMs": 87079.11515200138,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T00:07:08.170Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-19T21:48:02.235Z",
+      "completed_by": "user",
+      "approval_evidence": "Problem statement confirmed by user. Defect-origin change carries a Root Cause Analysis section in proposal.md per rq-defectOriginRca01. Scope decision (fix in Advance rather than the zlauncher consumer) was made by the user at an explicit re-scope checkpoint after initial evidence was corrected."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-19T21:58:02.144Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. Codebase mapped with file:line evidence.\n\nDEFECT SITE. `loadSummariesFromDisk` (bin/lib/live-status.ts:157-207) enumerates summaries/<id>/, reads current.json then the revision shard, and filters ONLY on the shard's self-reported status field (line 170). It never reads changes/<id>/change.json, never calls loadChange, never lists changes/ or archive/. Per-entry errors are swallowed by an empty catch (199-201). The active count is literally the surviving shard count (buildLiveStatusPayloadFromSummaries, line 115).\n\nSECOND DEFECT SITE, same cause. listSummaryChanges (plugin/src/storage/change-summary-shard.ts:658-746) has the identical shard-only shape and feeds buildLauncherProjection (launcher-projection.ts:79-156), which writes active-launcher-state.json. The launcher falls back to that file when the live probe fails, so fixing only the CLI leaves the ghost path open. Both must be fixed.\n\nMISSING INVARIANT. A summary shard is a projection written from canonical at commit time (publishSummaryForChange, change-summary-shard.ts:233-262) and is never re-validated afterwards. Nothing retracts it when canonical stops loading.\n\nORPHAN-PRODUCING TRANSITIONS (five). executeQuarantine (tools/change-projection-quarantine.ts:353-365) renames canonical into .adv/quarantine and does not touch the shard. Schema-parse failure of canonical. Oversized canonical beyond PROJECTION_DOCUMENT_BYTE_LIMIT (change-projection-reader.ts:35). Operator hand-edit. adv_archive_purge (handlers-archive.ts:1188-1273) removes the change dir and legacy file but not summaries/<id>/. The two normal terminal paths (close, archive) do update the shard to a terminal status, which is why the line-170 status filter covers them — that filter is the only existing defense and it covers nothing else.\n\nMEASURED STORE STATE (toolbox project). 14 canonical changes/<id>/change.json, 116 legacy flat changes/<id>.json, 117 summaries. Per-ghost classification: noteConcordStageInventory, diagnoseTailnetLag, addAdvResumeShortcut all have NO canonical change.json (legacy flat only; noteConcordStageInventory's changes/<id>/ dir holds markdown artifacts but no change.json). addProviderToolSearch HAS canonical change.json at 159693 bytes but fails ChangeSchema because subagent_reports[0].architecture_assessment exceeds RESEARCHER_FIELD_MAX = 12_000 (types/subagent-reports.ts:50, enforced by laneFieldBoundsRefine at 60-85 and attached at 678). One oversized subfield rejects the entire change document.\n\nCONSEQUENCE FOR DESIGN. A cheap existence check catches 3 of 4; the 4th needs a real parse. loadChange (storage/change-projection-reader.ts:366-428) already returns exactly the needed three-way result: {success:true,data:null} for missing, {success:false,type:\"schema_error\"|\"oversized\"|\"corrupt\"} for invalid, {success:true,data:Change} for valid.\n\nPERFORMANCE TENSION RESOLVED. change-summary-shard.test.ts:638-641 documents shard-only reads as deliberate design so status need not hydrate every canonical record. Validating all 117 would reverse that. It is unnecessary: the shard-status filter at line 170 runs first and leaves roughly 10 candidates, so validation applied to post-filter survivors costs about 10 loads per call, not 117.\n\nCLI IMPORT BOUNDARY. bin/lib/ is structurally forbidden from importing plugin/src/storage/ (cli-source-boundary.test.ts:21-27). Only plugin/src/shared/cli-projection and plugin/src/cli/projection-boundary are permitted, and neither re-exports loadChange. A narrow validated-id reader must be exposed through one of those two modules.\n\nNO EXISTING RESIDUE CLASS. ResidueClassSchema (storage/store-residue-scan.ts:34-47) has no orphan-shard class, and the scanner's three enumerators (378-482) never visit paths.summariesDir. So reconcile, doctor, projection-health and status-hygiene are all structurally blind to this. Confirmed empirically: a reconcile plan over the affected store produced 218 records and zero that would repair the four ghosts.\n\nRESIDUE DESTINATION. bin/adv runStatus emits a fixed payload with no view selector, so the plugin-only hygiene view is unreachable from the CLI. Residue should attach as a separate field on LiveStatusPayload (shared/cli-projection.ts:98-118) rather than entering the active-change list.\n\nSTRUCTURAL GUARDS TO RESPECT. dead-worker-query-paths.test.ts:49-50 and cli-bridge-contract.test.ts:245-247 both pin the loadSummariesFromDisk name; no-psw-references.test.ts:141-142 forbids orphan-sweep tool names.\n\nVERIFICATION COMMANDS. bun test bin/lib/live-status.test.ts; bin/oc-test targeted -- src/storage/change-summary-shard.test.ts src/storage/store-residue-scan.test.ts; pnpm --dir plugin run check.\n\nOPEN FOR DESIGN. Whether write-time shard retraction (quarantine, archive-purge) belongs in this change or a named follow-up, and how far the residue operator surface (new ResidueClass plus summariesDir enumerator plus repair action) extends before it becomes its own change."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-19T22:10:19.635Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete and independently validated by adv-researcher (report persisted under scope key researcher:validate-canonical-before-shard-emit, attempt 1).\n\nVERDICT: CONCERNS — not CONFLICT, so no user checkpoint. Core approach (read-time canonical validation applied after the terminal-status filter) verified sound against source. Three blockers raised, all resolved in the amended design.\n\nB1 RESOLVED — D4 placement was factually wrong. cli-source-boundary.test.ts:110-130 walks projection-boundary.ts's TRANSITIVE relative-import graph and asserts no visited file lies under plugin/src/storage/; re-exporting a storage classifier through it fails that test. Verified directly against source. Amended to the established standalone-bundle pattern used by bin/adv:83-101 (reconcile) and 104-122 (doctor), which dynamically import plugin/dist/*-cli.js and never plugin source. This preserves a single Zod authority. The rejected alternative, a CLI-local check in bin/lib/, would re-implement lane bounds outside ChangeSchema and diverge on exactly the schema_error case the design exists to catch (C7 now forbids it explicitly). Degradation designed: status must not hard-fail like reconcile/doctor do, so an unavailable bundle emits rows with a validation_unavailable marker rather than either failing or silently trusting shards (AC9).\n\nB2 RESOLVED — in-place modification of listSummaryChanges would break its documented no-hydration contract (change-summary-shard.ts:654-656) and change-summary-shard.test.ts:641-709, which deliberately seeds shards with no canonical files and asserts rows are returned. That contract is the same perf property D1 relies on. Amended to compose classification at its only non-test consumer, buildLauncherProjection (launcher-projection.ts:92), leaving listSummaryChanges a pure shard lister. Site 2 in the design now names buildLauncherProjection, not listSummaryChanges. AC7 and C4 pin this.\n\nB3 RESOLVED — classification widened from three-way to four-way. Validator traced a case no existing or originally-proposed filter catches: canonical validly terminal while the shard still reads draft. The line-170 filter reads shard status, and countTerminalChanges scans only archive/, so an archived-in-place record (zombie shadow, json.ts:506-509) is not found there and the row would have survived the fix. Canonical is already parsed at that point, so checking its status is free. New reason code canonical_terminal, pinned by AC8.\n\nVALIDATOR CONFIRMATIONS. D2 outcome coverage complete — data:null genuinely means file-absent and nothing else maps to it (change-projection-reader.ts:375-376). Perf claim true and marginal in context: countTerminalChanges already reads and JSON-parses every archive record per status invocation (bin/adv:137, changes.ts:59), so ~10 bounded loads sit on top of an existing unbounded scan. LiveStatusPayload additive field safe — plain TS interface, optional-field precedent at cli-projection.ts:110-115, no strict schema gate in cli-bridge-contract.test.ts. Concurrency benign: shard writes are atomic renames, so a mid-read commit yields stale-but-valid or parse-fail-skip, self-healing next invocation. No orphan-producing path escapes read-time validation.\n\nINCIDENTAL COVERAGE RECORDED. countTerminalChanges resolves join(root, \"archive\") (bin/adv:136) while stores may use an in-repo .adv/archive layout (json.ts:146), so CLI terminal reconciliation reads the wrong directory for those stores. The classifier covers this class because it reads canonical status directly and never consults archive location. Recorded so the coverage is not mistaken for luck.\n\nTOKEN TRAP. cli-bridge-contract.test.ts:262-263 forbids the literals === \"archive\" and === \"cancel\" in bin/adv and live-status.ts. The statuses are archived and closed; implementation must not reintroduce the forbidden spellings.\n\nFOLLOW-UPS CONFIRMED LOAD-BEARING, STILL OUT OF SCOPE. Validator agreed the scope boundary is defensible but stressed the two named follow-ups are hygiene-critical rather than polish: the residue scan iterates the changes dir (store-residue-scan.ts:270-294) and structurally cannot see orphan shards, and GC never removes whole summaries/<id> directories (change-summary-shard.ts:754-779), so disk grows unbounded. Read-time validation hides that growth; it does not bound it. Both are named in design.md for promotion after this change lands.\n\n11 acceptance criteria, 7 constraints. Next: planning."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-19T23:13:29.362Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep approved by user. Contract coverage verified: uncoveredAcceptanceCriteria is empty; AC1-AC11 each carried by an implementing or verifying task, C1-C7 carried as respects refs.\n\nExecution caveats. Worktree change/fixOrphanSummaryShardRows off trunk at 57114b3. Task 2 (dist bundle) is the highest-risk item — it must satisfy the transitive import walk in cli-source-boundary.test.ts:110-130, which is what invalidated the original design. Task 6 verifies against a live external store (toolbox project 3f9f88dbc6c65a2463945f1cfda1fc59794f411d) read-only; the built CLI must be run from the worktree and must not be deployed. Advance runs CI, so release routes through adv-ci-waiter rather than the admin-merge policy that applies to toolbox."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-20T00:10:35.638Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks done. Branch change/fixOrphanSummaryShardRows off trunk 57114b3, 5 commits, 11 files, +596/-50. Not yet pushed; no PR opened.\n\nDELIVERED. classifySummaryCandidates in plugin/src/storage/change-projection-reader.ts wrapping loadChange with four-way classification (54942d7). Shipped as dist bundle plugin/dist/summary-candidates-cli.js from a pure re-export entrypoint, tsup entry, env override ADV_SUMMARY_CANDIDATES_CLI_BUNDLE (269c574). Wired into bin/lib/loadSummariesFromDisk after the terminal-status filter, with optional summary_residue on LiveStatusPayload and a validation_unavailable degraded mode (f5054d5). Composed at buildLauncherProjection, leaving listSummaryChanges byte-unchanged (7950e36). Two branch-introduced regressions remediated (689bc9c).\n\nACCEPTANCE CRITERIA. All 11 met. AC10 and AC11 verified against the live affected store rather than fixtures: baseline 10 active with the deployed CLI, 6 active with the worktree CLI, and exactly the four target ghosts reported in summary_residue with the predicted reason codes — three canonical_missing and addProviderToolSearch canonical_error/schema_error. The six survivors are the genuinely-active changes.\n\nCONSTRAINTS. All 7 hold. Names preserved (C1). Classification strictly after the terminal-status filter (C2). No plugin/src/storage import from bin/lib, direct or transitive (C3). change-summary-shard.ts byte-unchanged (C4). All five guard files absent from the branch diff (C5). No store contents repaired or mutated (C6). Exactly one canonical-validation implementation, with degraded mode reporting rather than substituting a second validator (C7).\n\nVERIFICATION. Full unit suite 1415 suites / 5141 passed / 0 failed. Guards green and unmodified: cli-source-boundary 3 including the transitive walk, dead-worker-query-paths 4, cli-bridge-contract 11, change-summary-shard 13 including the deliberate no-canonical case at 641-709. Typecheck clean. Forbidden-token scan clean.\n\nTWO REGRESSIONS FOUND AND FIXED DURING EXECUTION, both caught only by the full suite. tools/launcher-projection.test.ts asserted active_count 2 but received 0 because its local writeSummaryProjection helper wrote a pointer whose snapshot_path named a canonical file it never created — an impossible store state; fixture corrected, no assertion weakened, and the third call site was inspected and deliberately opted out to preserve its distinct intent. knip-entry-roots.test.ts required the new bundle entrypoint registered in plugin/knip.json alongside reconcile-cli and doctor-cli.\n\nPRE-EXISTING FAILURE, EXCLUDED. pnpm run check fails a prompt floor check at floorBytes 233453 (+2172) and instructionCount 44 (+2). Reproduced byte-identically against clean trunk 57114b38, so not attributable to this branch; already tracked as in-flight change fixPreExistingTrunkCiFailures. An initial verifier pass misattributed it to this branch for lack of a base comparison. Left untouched.\n\nUNPLANNED FINDING WORTH ESCALATING. summary_residue surfaced 22 orphan shards in the toolbox store, not the 4 anticipated. The extra 18 are archived changes whose shards were never retracted; they were previously masked by the late countTerminalChanges archive scan. Active count is unaffected and the four target ghosts are handled correctly, but this quantifies the named write-time-retraction follow-up as a live hygiene problem rather than a theoretical one. Recorded caveat: those 18 report canonical_missing, which is literally accurate but conflates normal archival with a vanished record; distinguishing them would require consulting archive/ and duplicating hasArchiveBundle logic, deliberately out of scope.\n\nDEFERRED TO POST-MERGE. The launcher-render half of AC10 cannot be verified pre-merge because zellij-project-launcher reads the deployed adv and deployed plugin, and deploy may only run from the merged default branch (P32). Projection-side logic is covered by unit tests."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-20T00:54:18.947Z",
+      "completed_by": "user",
+      "approval_evidence": "Accepted by user. All 11 acceptance criteria satisfied, all 7 constraints held.\n\nAC10/AC11 were verified against the live affected store rather than fixtures, which was the decisive evidence: the deployed CLI reported 10 active changes and the worktree CLI reported exactly the 6 genuinely-active ones, with the four ghosts appearing in summary_residue carrying the reason codes predicted at design time.\n\nResiduals disclosed to the user and accepted: 18 additional orphan shards beyond the four investigated, all archived changes whose shards were never retracted, reported as canonical_missing which is literally accurate but does not distinguish normal archival from a vanished record; the pre-existing trunk prompt-budget failure, left untouched and already tracked as fixPreExistingTrunkCiFailures; and the launcher-render confirmation deferred to post-merge deploy.\n\nOut of scope and still open after this change: the uninformative [ADV]? badge in zlauncher (toolbox), and toolbox backlog bl-Ix9Sj6Hk for the removeRedundantMcp stale active-list entry.\n\nBranch change/fixOrphanSummaryShardRows, 5 commits, 11 files, +596/-50, not yet pushed. Advance runs CI, so release must route through adv-ci-waiter rather than the admin-merge policy that applies to toolbox."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n## Summary\n\nMake `adv status --json` refuse to emit a change row that has no valid canonical record behind it. Today it lists from summary shards alone, so a shard that outlives its canonical record becomes a permanent phantom entry.\n\n## Root Cause Analysis\n\n### Causal path\n\n1. `bin/lib/live-status.ts:170-194` builds the active-change list by enumerating `summaries/<id>/` shards and reading each shard's `current.json`.\n2. The shard is a *projection*. It is written by `publishSummaryForChange` (`change-summary-shard.ts:233-262`) at mutation time and is never re-validated against its canonical source afterwards.\n3. The canonical record — `changes/<id>/change.json` — can subsequently become unreadable-as-canonical through at least four independent routes: never migrated from the legacy flat `changes/<id>.json` shape, moved to `.adv/quarantine/` by the projection quarantine path, failing `ChangeSchema.parse` because a field exceeds a lane bound, or absent entirely.\n4. None of those routes retract or invalidate the summary shard.\n5. The shard therefore keeps answering \"this change is active\" after the canonical record has stopped being able to say anything at all.\n\nThe invariant that is missing: **a summary shard must not be treated as evidence of an active change unless its canonical record loads and validates.** The shard is downstream state being read as upstream authority.\n\n### Why the plugin store disagrees\n\nThe plugin store reads canonical records directly and applies `ChangeSchema`. That is why it returns 7 and the CLI returns 10 — the two readers use different sources for the same question, and only one of them validates. The disagreement is the observable symptom of the missing invariant.\n\n### Why `adv reconcile` does not cover this\n\nVerified read-only on 2026-08-19, `plan_hash` `bfc7f56faab31d9aa811571123a39551429dfe662ac70bed5173500213de0294`, 218 records:\n\n- 112 records carry `normalize_and_restore`, but their `source_path` values sit under `changes/` while the executor requires paths under `.adv/quarantine/` (`reconcile-action-quarantine.ts:87-92`). Every one fails at the path guard before touching disk, and because `writeBeforeState` is only reached past that guard, they produce no recovery artifact either.\n- 90 `rebuild_summary_shard` actions fail with `canonical_projection_missing` or `canonical_projection_unparseable` — they need the canonical record that is exactly what is broken here.\n- Expected terminal state is exit 5, partial_failure, with approximately zero useful mutations against the four IDs.\n\nSo the residue path plans work it cannot execute, and the emit path never asks whether the record is real. Repairing store contents by hand would clear today's four ghosts and prevent none of the next ones.\n\n### Rejected: fix it in the consumer\n\n`zellij-project-launcher` could drop rows whose `changes/<id>/change.json` is missing or unparseable. Rejected: it encodes an ADV store-layout invariant in a bash consumer, leaves every other consumer of `adv status --json` still wrong, and drifts silently the next time the store layout moves.\n\n## Direction\n\nValidate before emit. `adv status --json` and the launcher-state projection should load the canonical record for each candidate shard and drop the row when it is missing, legacy-shaped, quarantined, or schema-invalid — surfacing those as residue rather than as work.\n\nTwo questions to settle in discovery and design:\n\n- Silent drop versus explicit residue reporting. A silently dropped row is invisible corruption; a reported one is actionable. Reporting is likely correct, but it must not push residue noise into the launcher's work list.\n- Whether the same validation belongs at shard *write* time, so the divergence cannot open in the first place, or only at read time. Read-time validation fixes the symptom for every existing store; write-time closes the source. They are not exclusive.\n\n## Evidence\n\n- Reproduction: `adv status --json` from `/home/jon/toolbox` → 10 rows; plugin store → 7; launcher `--adv-changes` → identical 10.\n- Shard reader: `bin/lib/live-status.ts:170-194`.\n- Shard writer: `change-summary-shard.ts:233-262`.\n- Quarantine guard blocking reconcile: `reconcile-action-quarantine.ts:87-92`.\n- Quarantine audit record for `noteConcordStageInventory`: `.adv/change-projection-quarantine-audit.jsonl`, `schema_error`, 2026-08-02T00:54:19Z.\n",
+    "problemStatement": "## Problem\n\n`adv status --json` reports active changes that do not exist as valid canonical records, and every downstream consumer inherits the error.\n\nMeasured in the toolbox project (`3f9f88dbc6c65a2463945f1cfda1fc59794f411d`) on 2026-08-19:\n\n- `adv status --json` run from `/home/jon/toolbox` returns **10** active changes.\n- The ADV plugin store API returns **7**.\n- `zellij-project-launcher --adv-changes /home/jon/toolbox` renders exactly the CLI's 10 rows — byte-for-byte the same set. The launcher is a faithful renderer; it is not the defect.\n\nThe 4 extra rows are `noteConcordStageInventory`, `diagnoseTailnetLag`, `addAdvResumeShortcut`, `addProviderToolSearch`.\n\n## Impact\n\nOperators pick work from these rows. A ghost row is unopenable work that consumes attention on every launcher invocation, and it is indistinguishable from real work in the picker. The count is also wrong everywhere it is quoted, so \"how much is in flight\" cannot be answered from the CLI.\n\nThis is not self-healing. Each of the four has persisted for weeks — the oldest quarantine event is dated 2026-08-02.\n\n## Scope of the divergence\n\nNot one bug with one cause. Four different canonical-record failures, one shared consequence:\n\n| change | canonical record state |\n|---|---|\n| `diagnoseTailnetLag` | legacy flat file `changes/diagnoseTailnetLag.json`; no `changes/<id>/change.json` directory |\n| `addAdvResumeShortcut` | same legacy flat shape |\n| `noteConcordStageInventory` | quarantined 2026-08-02T00:54:19Z for `schema_error`, still under `.adv/quarantine/changes/` |\n| `addProviderToolSearch` | `changes/<id>/change.json` present but fails `ChangeSchema.parse` — `subagent_reports[0].architecture_assessment` is 13791 chars against a 12000 lane bound |\n\nIn all four cases the summary shard under `summaries/<id>/` is intact and current.\n\n## Not in scope\n\n`removeRedundantMcp` was initially suspected of being wrongly hidden by the CLI. It is not. It is genuinely archived: all 7 gates done, phase9 done, PRs #198 and #200 merged, `releasedCommitSha` recorded. The CLI is correct to omit it. The plugin store's active-list still showing it is a separate stale-lifecycle defect tracked as toolbox backlog `bl-Ix9Sj6Hk`.\n",
+    "design": "## Design\n\nAmended after independent validation (verdict CONCERNS, blockers B1-B3, all resolved below).\n\n### The invariant being restored\n\nA summary shard is a projection derived from a canonical change record. It must not be treated as evidence that the change is active. Authority belongs to the canonical record; the shard is a cache of its fields.\n\nBoth current readers invert this. They enumerate shards, trust the shard's self-reported `status`, and never ask whether the canonical record still exists, still parses, or has since gone terminal.\n\n### Two sites, one cause\n\n| Site | File | Consumer |\n|---|---|---|\n| `loadSummariesFromDisk` | `bin/lib/live-status.ts:157-207` | `adv status --json`, dashboard |\n| `buildLauncherProjection` | `plugin/src/storage/launcher-projection.ts:92` | `active-launcher-state.json` |\n\nBoth must change. The launcher reads `active-launcher-state.json` whenever its live probe fails, so fixing only the CLI leaves the ghost path open through the fallback.\n\n### D1 — Validate only post-filter survivors\n\n`change-summary-shard.test.ts:638-641` documents shard-only reading as deliberate: status should not hydrate every canonical record. Validating all shards would reverse that benefit — the affected store holds 117 shards, several canonical records exceeding 150 KB.\n\nIt is unnecessary. The shard-status filter (`live-status.ts:170`) drops archived and closed shards *before* emit, leaving roughly 10 candidates. Validation applied after that filter costs about 10 loads per call.\n\nValidation confirmed the cost is marginal in context: `countTerminalChanges` already reads and JSON-parses every archive record on every `adv status` invocation (`bin/adv:137`, `bin/lib/changes.ts:59`). Ten additional bounded loads sit on top of an existing unbounded archive scan.\n\nOrdering is load-bearing: filter by shard status first, validate canonical second, emit third.\n\n### D2 — Four-way classification (amended, blocker B3)\n\nThe original three-way split missed a case the validator traced. If a change is validly terminal in canonical but its shard still says `draft`, every existing and proposed filter passes it: the line-170 filter reads the *shard* status, and `countTerminalChanges` only scans `archive/`, so an archived-in-place record (\"zombie shadow\", `plugin/src/storage/json.ts:506-509`) is not found there. That row would survive the fix.\n\nSince the canonical record is already parsed, checking its status costs nothing.\n\n| Canonical state | Disposition | Reason code |\n|---|---|---|\n| loads, status non-terminal | emit as active | — |\n| loads, status `archived` or `closed` | drop, report | `canonical_terminal` |\n| `{success: true, data: null}` | drop, report | `canonical_missing` |\n| `{success: false, type}` | drop, report | `canonical_error` + type |\n\nA boolean existence check is insufficient. Measured against the affected store, existence alone catches 3 of the 4 known ghosts; `addProviderToolSearch` has a 159693-byte canonical record that fails `ChangeSchema` because one `subagent_reports[].architecture_assessment` exceeds `RESEARCHER_FIELD_MAX = 12_000` (`types/subagent-reports.ts:50`, enforced at 60-85). One oversized subfield rejects the whole document; this class has wedged archives before (`subagent-reports.archive-through.test.ts:1-9`).\n\nDo not write `=== \"archive\"` or `=== \"cancel\"`: those exact tokens are forbidden in `bin/adv` and `live-status.ts` (`cli-bridge-contract.test.ts:262-263`). The statuses are `archived` and `closed`.\n\n### D3 — Report, never silently drop\n\nDropping a row without saying so converts visible-but-wrong into invisible-and-wrong. `addProviderToolSearch` is a real change whose record is corrupt; silently discarding it destroys the only signal that it needs repair.\n\nExcluded shards attach to `LiveStatusPayload` (`plugin/src/shared/cli-projection.ts:98-118`) as a distinct optional field carrying `{id, reason}` per exclusion, separate from the active-change list. Validation confirmed the payload is a plain TS interface with an established optional-field precedent (`resume_projection_state`, lines 110-115) and no strict schema gate in `cli-bridge-contract.test.ts`.\n\n`bin/adv runStatus` emits a fixed payload with no view selector, so the plugin-side hygiene view is unreachable from the CLI. A payload field is the only surface reaching both.\n\n### D4 — Dist-bundle classifier (amended, blocker B1)\n\n**The original placement was wrong.** `cli-source-boundary.test.ts:110-130` walks `projection-boundary.ts`'s *transitive* relative-import graph and asserts no visited file lies under `plugin/src/storage/`. Re-exporting a storage classifier through it pulls storage into that walk and fails the test. The boundary's docblock promises a pure graph (`plugin/src/cli/projection-boundary.ts:6-7`).\n\nUse the established standalone-bundle pattern instead. `bin/adv:83-101` and `104-122` already load `plugin/dist/reconcile-cli.js` and `plugin/dist/doctor-cli.js` by dynamic import with an env override, never plugin source. The classifier ships the same way.\n\nThis keeps a single Zod authority. The rejected alternative — a CLI-local check in `bin/lib/` — would re-implement lane bounds outside `ChangeSchema` and diverge on exactly the `schema_error` case D2 exists to catch. That is a duplicate validation path, and it would drift.\n\n**Degradation.** `runReconcile` and `runDoctor` return exit 2 when their bundle is absent. Status is the hot read path and must not hard-fail. If the classifier bundle is unavailable, emit rows unvalidated and set an explicit `validation_unavailable` marker on the residue field. There is deliberately no fallback validator: a second implementation is what this design exists to avoid, so the degraded mode reports that it could not check rather than checking differently.\n\nShape:\n\n```\nclassifySummaryCandidates(changesDir, candidateIds) -> {\n  valid:    string[]\n  excluded: Array<{ id: string; reason: \"canonical_missing\" | \"canonical_terminal\" | \"canonical_error\"; detail?: string }>\n}\n```\n\n### D5 — Compose at the caller, do not modify `listSummaryChanges` (amended, blocker B2)\n\n`listSummaryChanges` documents its contract as listing \"without hydrating full change projections\" (`change-summary-shard.ts:654-656`) — the exact perf property D1 leans on. `change-summary-shard.test.ts:641-709` seeds shards with no canonical files and asserts rows are returned; in-place validation would break that test and reverse the documented contract.\n\nIts only non-test consumer is `buildLauncherProjection` (`launcher-projection.ts:92`). Classification composes there, leaving `listSummaryChanges` a pure shard lister.\n\n### Incidental coverage\n\n`countTerminalChanges` resolves `join(root, \"archive\")` (`bin/adv:136`), but stores may use an in-repo `.adv/archive` layout (`plugin/src/storage/json.ts:146`). For those stores the CLI's terminal reconciliation reads the wrong directory. The classifier is unaffected because it reads canonical status directly and never consults archive location, so it covers this class too. Not separate scope; recorded so the coverage is not mistaken for luck.\n\n### Scope boundary\n\nIn scope: read-time validation at both sites, the dist-bundle classifier, the residue field, tests.\n\nNamed follow-ups, deliberately excluded — and load-bearing for hygiene, not polish:\n\n- **Write-time shard retraction.** `executeQuarantine` (`tools/change-projection-quarantine.ts:353-365`) and `adv_archive_purge` (`handlers-archive.ts:1188-1273`) remove canonical records without retracting the shard. Archive never touches `summaries/` at all. Read-time validation makes the orphans harmless but does not stop them being created.\n- **Reconcile operator surface.** `ResidueClassSchema` (`storage/store-residue-scan.ts:34-47`) has no orphan-shard class and the residue scan iterates the changes dir (`store-residue-scan.ts:270-294`), so it structurally cannot see orphan shards. GC never removes whole `summaries/<id>` directories (`change-summary-shard.ts:754-779`), so disk grows unbounded. Read-time validation hides that growth; it does not bound it.\n\nNeither is required for correct output, which is what this change owns.\n\n### Structural guards to respect\n\n- `dead-worker-query-paths.test.ts:49-50` and `cli-bridge-contract.test.ts:245-247` pin the `loadSummariesFromDisk` name — extend it, do not rename it.\n- `cli-source-boundary.test.ts:110-130` — no new `plugin/src/storage/` reachability from the CLI boundary module.\n- `no-psw-references.test.ts:141-142` forbids orphan-sweep tool names — this change adds no tool.\n\n### Acceptance criteria\n\n- **AC1** `loadSummariesFromDisk` excludes any surviving shard whose canonical record is absent, unloadable, or terminal, and emits only validated rows.\n- **AC2** `buildLauncherProjection` applies the same exclusion, so `active-launcher-state.json` carries no orphan entries.\n- **AC3** Every exclusion is reported with id and reason on the payload; no exclusion is silent.\n- **AC4** Canonical validation runs only on shards surviving the terminal-status filter; a store of N shards with K non-terminal performs K canonical loads, not N.\n- **AC5** One classifier implementation serves both call sites, shipped as a dist bundle; no second validator exists anywhere.\n- **AC6** `bin/lib/` imports no `plugin/src/storage/` module and `cli-source-boundary.test.ts` passes unchanged.\n- **AC7** `listSummaryChanges` keeps its no-hydration contract and `change-summary-shard.test.ts:641-709` passes unchanged.\n- **AC8** A shard whose canonical is validly terminal but whose shard status is non-terminal is excluded as `canonical_terminal`.\n- **AC9** When the classifier bundle is unavailable, status emits rows with an explicit `validation_unavailable` marker rather than failing or silently trusting shards.\n- **AC10** Measured against the affected toolbox store: `adv status --json` reports 6 active changes, with `noteConcordStageInventory`, `diagnoseTailnetLag`, `addAdvResumeShortcut` reported `canonical_missing` and `addProviderToolSearch` reported `canonical_error`.\n- **AC11** The 6 genuinely-active changes are unaffected, all having valid canonical records.\n\n### Constraints\n\n- **C1** Do not rename `loadSummariesFromDisk` or `loadLiveSummaries`.\n- **C2** Do not add validation before the terminal-status filter.\n- **C3** Do not import `plugin/src/storage/` from `bin/lib/`, directly or transitively through the CLI boundary module.\n- **C4** Do not modify `listSummaryChanges` in place.\n- **C5** Do not weaken or delete existing structural guard tests.\n- **C6** Do not repair store contents as part of this change; output correctness only.\n- **C7** Do not introduce a second canonical-validation implementation as a degradation fallback.\n",
+    "executiveSummary": "## Outcome\n\n`adv status --json` no longer reports dead records as active work. Measured against the store that exhibited the defect, the active count went from 10 to 6, and the four dead records now surface as reported residue instead of rendering as pickable work.\n\n## What was wrong\n\nA summary shard is a projection written from a canonical change record at commit time. Two readers treated it as authority instead: they enumerated `summaries/<id>/`, trusted each shard's self-reported status, and never asked whether the canonical record still existed, still parsed, or had since gone terminal. Nothing retracts a shard when its canonical record is quarantined, purged, left unmigrated, or corrupted, so a dead change kept reporting itself active indefinitely. The oldest was three weeks old.\n\nThe launcher was never the defect. It rendered its source faithfully; the source lied.\n\n## What changed\n\n`classifySummaryCandidates` wraps the existing `loadChange` and returns a four-way verdict: valid, `canonical_missing`, `canonical_terminal`, or `canonical_error` with the failure type. It runs after the terminal-status filter, so it validates roughly ten survivors rather than all 117 shards, preserving the no-hydration performance property the shard cache exists for.\n\nBoth read sites now use it — the CLI path in `loadSummariesFromDisk` and the launcher-projection path in `buildLauncherProjection`. There is exactly one implementation. The CLI reaches it through a generated `dist` bundle, matching how `reconcile` and `doctor` already cross that boundary, because `bin/lib/` may not import plugin storage even transitively.\n\nExclusions are reported on the payload, never silently dropped. One of the four ghosts is a genuine change whose record is corrupt; discarding it quietly would have destroyed the only signal that it needs repair.\n\n## Decisions worth remembering\n\nTwo design claims were wrong and were caught by independent validation before implementation. Re-exporting the classifier through the CLI projection boundary would have failed a transitive import-graph guard. Modifying `listSummaryChanges` in place would have broken its documented no-hydration contract and the test that deliberately seeds shards with no canonical records. Both were corrected: bundle instead of re-export, compose at the caller instead of editing the lister.\n\nValidation also found a case the original design missed — a change validly terminal in canonical while its shard still reads draft passes every filter, old and new. Classification widened from three-way to four-way to catch it. The record is already parsed at that point, so the check costs nothing.\n\nDegraded mode reports rather than substitutes. If the bundle is unavailable, status emits rows with `validation_unavailable` instead of exiting or quietly trusting shards. Adding a fallback validator would have recreated the duplicate-authority problem the single classifier exists to prevent.\n\n## What this exposed\n\nResidue reporting surfaced 22 orphan shards in one store, not the 4 under investigation. The additional 18 are archived changes whose shards were never retracted, previously masked by a late archive scan. Active counts were never wrong because of them, but nothing removes them from disk. This turns the write-time-retraction follow-up from a theoretical concern into a measured one.\n\n## Known limits\n\nThose 18 report `canonical_missing`, which is accurate but does not distinguish normal archival from a vanished record.\n\nRead-time validation makes orphans harmless; it does not stop them being created, and it does not bound disk growth. Two follow-ups remain named and unstarted: write-time shard retraction in quarantine and archive-purge, and a reconcile residue class with a `summariesDir` enumerator, since the residue scanner currently iterates the changes directory and structurally cannot see orphan shards.\n\nThe launcher-render confirmation is deferred to post-merge, because the launcher reads deployed artifacts and deploy runs only from a merged default branch.\n\nA prompt-budget failure in `pnpm run check` predates this branch. It was reproduced byte-identically on clean trunk and left untouched; `fixPreExistingTrunkCiFailures` owns it.\n"
+  },
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-08-19T21:30:27.835Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 84,
+  "projection_commits": [
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixOrphanSummaryShardRows|tk-ce960785c9e8|adv-engineer|1|cycle:ic_tk-ce960785c9e8_1",
+      "operation_id": "mutation:subagent_report_submitted:fixOrphanSummaryShardRows:270509c4-4ae8-4902-b6b9-f36d96a38cc6",
+      "payload_hash": "bf4f0a4249933b277d4326dc41fd3adddf44b45c126799ebf87c9ee3e4876906",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-19T23:30:23.799Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/storage/classify-summary-candidates-bundle.test.ts src/storage/classify-summary-candidates.test.ts --maxWorkers=4 --testTimeout=120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:b7387244-4f1a-44ba-9893-cc6ae8f01dc5",
+      "payload_hash": "a251183cbef85225bde1a3257a1c3de5c7d647836c1a2246f87fd3b457c09692",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-19T23:31:45.004Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "269c574f56e62a6cb1980e7bc93c8c87277e42eb:Classifier now ships as a generated standalone bundle, mirroring reconcile and doctor.\n\nEntrypoint plugin/src/summary-candidates-cli.ts is a pure re-export of classifySummaryCandidates from storage/change-projection-reader — no logic is duplicated, so the single-authority constraint C7 holds. Build wiring is one entry added to plugin/tsup.config.ts, following the canonical scripts/build-plugin.ts to tsup.config.ts mechanism that doctor-cli uses rather than the narrower build:mcp-server script. Env override ADV_SUMMARY_CANDIDATES_CLI_BUNDLE matches the existing ADV_RECONCILE_CLI_BUNDLE / ADV_DOCTOR_CLI_BUNDLE convention.\n\nBuild verified directly: npx tsup emits dist/summary-candidates-cli.js at 155.64 KB alongside the existing four bundles, plus a .d.ts, build success.\n\nTests: independent verify run tr_mt0q77e2_ebe85e62 passed exit 0, 2 files / 2 tests, covering both the classifier unit test and the new bundle test that imports the BUILT artifact by path and classifies a fixture store — proving the artifact bin/adv will load actually works, not just the source module.\n\nBoundary guard bin/lib/cli-source-boundary.test.ts passes unmodified, 3 pass / 0 fail / 38 assertions, including the transitive walk at 110-130 that invalidated the original design. C3 holds: nothing under bin/lib/ reaches plugin/src/storage/, and projection-boundary.ts was not touched.\n\nTypecheck clean.\n\nTDD caveat recorded honestly: the red run failed by exceeding Vitest's default 5s timeout during the bundle build rather than by a semantic assertion failure, so it is weaker evidence than a true red. Mitigated by the independent post-implementation verify run above and by the boundary guard, which is the property this task actually risks breaking. Subsequent runs use an explicit --testTimeout since bundle builds take about 20s.\n\nNo call site was added; bin/adv and bin/lib/live-status.ts are untouched, as scoped. Existing tests unmodified.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:6d57f5ff-3c5e-48e6-bed1-69f5e6f3387f",
+      "payload_hash": "34246ca552326b9408391c8c879f2801a6fbf5c195baf48d2e8d4cee6ddbcedf",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-19T23:32:06.913Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "269c574f56e62a6cb1980e7bc93c8c87277e42eb:Work committed at 269c574. Bundle entrypoint is a pure re-export (C7 single authority holds); tsup entry added; dist/summary-candidates-cli.js builds at 155.64 KB. Verify run tr_mt0q77e2_ebe85e62 passed exit 0 including a test that imports the BUILT artifact and classifies a fixture store. Boundary guard cli-source-boundary.test.ts passes unmodified 3/0/38 including the transitive walk. Typecheck clean. Red was a build timeout rather than a semantic failure; mitigated by the independent verify run and the boundary guard.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:33982492-0e3c-49a7-9dd9-e6dd29a5a298",
+      "payload_hash": "24377e7b6737101944d5966f3aa860035f6c64cb61f94e4220d5f0f2ff46e7a6",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-19T23:32:18.252Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixOrphanSummaryShardRows:2bcb9138-3c22-42fb-8222-2d878e646ae9",
+      "payload_hash": "11c6dc1f973ffabe6d693a62f864572b6a0add16ca1c9144e4c2a126022413ab",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-19T23:32:31.659Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run bin/lib/live-status-classification.test.ts --testTimeout=120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:cb6e145f-e954-4fcf-a4b9-d71712205417",
+      "payload_hash": "4528882df0d04269409e9a6c7cb13581dd962d1724dbf83c4f78f4f5f90d956d",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-19T23:39:46.412Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/live-status-classification.test.ts --timeout 120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:2cd8216e-b098-4920-8a05-753908416ff1",
+      "payload_hash": "f7f837db5f6d72240cae2e5ac8ddb5d3c90497a462fc8a256035d2c9111340d9",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-19T23:40:02.148Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/live-status-classification.test.ts --timeout 120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:4da4471f-015c-417f-bd7e-0d3c36982761",
+      "payload_hash": "f769865fc81abfa2f493e7a9adb0bf2d74b5f8005d87e8d85dff1cc297a505a0",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-19T23:40:36.517Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/live-status.test.ts --timeout 120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:d761532c-cbba-44a4-a37a-00feb1ec8acd",
+      "payload_hash": "157140a17efad4498e5df6730d9222b6edc1c4dfee10682bf058dac487cdd587",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-19T23:40:51.381Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/cli-source-boundary.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:826ed448-8481-47cd-ae19-46be0afdbb38",
+      "payload_hash": "8f74b2c5d0f231f8fe5d8926a00cda0eb495d7626376535d2fd6e4391de97a89",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-19T23:41:00.017Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/dead-worker-query-paths.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:25a6c657-38d6-4a73-a4e6-c96aa594d2e3",
+      "payload_hash": "dd13e0fb2c62f9cba69dda53bc4971345fe191f7c8bdfac267b0b5441efbb093",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-19T23:41:13.425Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/cli-bridge-contract.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:840e5c17-73b5-40ee-ad3d-5aab3f600fab",
+      "payload_hash": "93c84d8970e27a1864fac229f82b2e5ad3ee9b804fc969b26787fb7b88932bd0",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-19T23:41:33.743Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:454fbda5-2b68-45c8-8f16-8e3247359d9b",
+      "payload_hash": "af84a86872e690e2442f7b33e04960570c8caf2c99d0a2f9a91f22c8e46d01dc",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-08-19T23:41:53.635Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run bin/lib/live-status.test.ts --testTimeout=120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:d91de2e0-c27e-4a76-b0f9-bdfb09ae6973",
+      "payload_hash": "54473fe2c0d66096072e1e6983ffba6a226c03c72791593b0ab2be22e785be8d",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-08-19T23:42:07.219Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/live-status-classification.test.ts --timeout 120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:310cac19-0754-48a4-98e3-845ceef9ec89",
+      "payload_hash": "02da54555800475b1d9669df89d9353ab6aedf4fa39073fc9ac60777e3805efe",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-08-19T23:43:30.326Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/live-status.test.ts --timeout 120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:42ee95bf-267c-4559-833d-31034c3635b4",
+      "payload_hash": "b49db15cc1358ee0b10e920bf4dc852f50628b71312130353daea64c44102138",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-08-19T23:43:40.642Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/cli-source-boundary.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:5ba8f710-0658-47b5-9cfa-610a04db6956",
+      "payload_hash": "16d33d23602da3af158a5a2cd091232590eb8b6d45c7af14c600ed1cec85bfc1",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-08-19T23:43:48.918Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/dead-worker-query-paths.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:7bb17fde-ad56-4481-b0c7-738ef0974b7f",
+      "payload_hash": "7bfc419ce97bd6f108d9f771ee8a12755efd67712487c7a9395e774a4ba06c60",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-08-19T23:43:56.465Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/cli-bridge-contract.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:4151c958-0067-4d63-8744-2f241baeb112",
+      "payload_hash": "48ae8b48664692b83e9ecc58d30b72e540a04099df08a9860c10a2a7a1c73491",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-08-19T23:44:09.324Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:b40f3fbc-4c0e-4c15-9431-88109032921d",
+      "payload_hash": "401b6770b4150d5690a176dfd07186b4c5b798b8fa84ce1ec5ad84fb6064f99d",
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-08-19T23:44:27.642Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixOrphanSummaryShardRows|tk-afd707275522|adv-engineer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixOrphanSummaryShardRows:ccf657ea-5c0f-4143-bf5a-a0c647cfe4ec",
+      "payload_hash": "b41c22c188daea6b7d63cee3fdd678b07de5eb223d5801be9759be1817746d3c",
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-08-19T23:45:18.972Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "f5054d5a86e25165aa1a5f981ee5c15275966839:CLI read path now validates canonical before emitting rows.\n\nOrdering verified by direct source inspection, which is the load-bearing property: the shard terminal-status filter runs first, classification runs on survivors only, emit follows. AC4 holds — one loadChange per surviving candidate, not per shard.\n\nClassifier is loaded from the built bundle via ADV_SUMMARY_CANDIDATES_CLI_BUNDLE with a plugin/dist default, mirroring the runReconcile / runDoctor shape in bin/adv, including the export-is-a-function check. C3 holds: bin/lib/ imports nothing from plugin/src/storage/. Scan confirms the only two textual matches under bin/lib/ are the forbidden-prefix string constant inside cli-source-boundary.test.ts and a provenance comment in changes.ts, neither an import.\n\nResidue surfaces as optional summary_residue on LiveStatusPayload, following the resume_projection_state optional-field precedent, carrying {id, reason, detail?} per exclusion and kept strictly out of the changes array so the work picker sees only real work while corruption stays visible (AC3).\n\nDegraded mode: a missing or malformed bundle yields validation_unavailable: true with rows preserved unvalidated. Status does not exit 2 the way reconcile and doctor do, because it is the hot read path, and it does not silently claim to have validated. No fallback validator was added, so C7 holds.\n\nC1 respected: loadSummariesFromDisk and loadLiveSummaries both keep their names; a new loadLiveSummariesWithResidue carries the richer return rather than changing the pinned signature.\n\nForbidden-token scan clean: neither === \"archive\" nor === \"cancel\" appears in bin/adv or bin/lib/live-status.ts.\n\nIndependent guard runs, all green and all unmodified: cli-source-boundary 3 pass / 38 assertions including the transitive walk; dead-worker-query-paths 4 pass; live-status 3 pass; new live-status-classification 2 pass; cli-bridge-contract 11 pass. Typecheck clean. Red run tr_mt0qhuon_bfff8403 was a genuine assertion failure, green tr_mt0qmbi1_e4cb9436.\n\nReview note, not a defect: the classifier is invoked once per candidate inside the loop rather than batched across candidates. loadChange call count is identical either way so AC4 is unaffected, but the batch-shaped API is being used one-at-a-time and could be hoisted.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:8a908552-a315-41f9-81a9-44d19467af59",
+      "payload_hash": "43d4f1cf25bcb41c18e13364f21370e8584e08b956d5713b71beae7d80c9bccd",
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-08-19T23:46:43.688Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "f5054d5a86e25165aa1a5f981ee5c15275966839:Work committed at f5054d5. Classification inserted after the shard terminal-status filter and before emit, verified by source inspection. Classifier loaded from the built bundle via ADV_SUMMARY_CANDIDATES_CLI_BUNDLE mirroring runReconcile/runDoctor. Optional summary_residue added to LiveStatusPayload, kept out of the changes array. Degraded mode sets validation_unavailable rather than exiting 2, with no fallback validator. Pinned names preserved. Forbidden-token scan clean. Independent guards all green: cli-source-boundary 3, dead-worker-query-paths 4, live-status 3, live-status-classification 2, cli-bridge-contract 11. Typecheck clean.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:1acba246-a3be-4741-a742-6be94b2a8242",
+      "payload_hash": "7cf2cedbf51a25622956f520b18cdff1bb7c918cfe497f6b50dca17bd30912d4",
+      "prior_revision": 56,
+      "new_revision": 57,
+      "committed_at": "2026-08-19T23:46:56.784Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixOrphanSummaryShardRows:58d6533d-f058-4db7-85c1-56da1d75c0e2",
+      "payload_hash": "2741ccb87aa3e6c74ad7ebd6279ab7031ff68b972f1a453b19e0855343840d74",
+      "prior_revision": 57,
+      "new_revision": 58,
+      "committed_at": "2026-08-19T23:47:06.234Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:94a4fb69-5be9-4e4e-a870-520eeba577a1",
+      "payload_hash": "a74f604dded86b654a7e6ea130a165147c0bdc52c198628e0e15b4f7977ee444",
+      "prior_revision": 58,
+      "new_revision": 59,
+      "committed_at": "2026-08-19T23:49:11.096Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:d501cbda-c761-422e-9d4f-9361d0604f6e",
+      "payload_hash": "c821d346c55ecedfa51ea3d8c0c771fc18ae226341b809088754b60f7c3d8331",
+      "prior_revision": 59,
+      "new_revision": 60,
+      "committed_at": "2026-08-19T23:50:27.437Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:6b766a7e-d5f3-4a8a-9921-c2cbc28705ef",
+      "payload_hash": "c3155f94af0e25a4608a0503fdde8a840720b21dd4778d058ec6b3aa9a62241d",
+      "prior_revision": 60,
+      "new_revision": 61,
+      "committed_at": "2026-08-19T23:52:06.402Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/storage/launcher-projection.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:2476f525-29e9-41b8-9e0c-96aeff4ff004",
+      "payload_hash": "10f39924d11fc5ed2ec9f3790004af2af7f34d38e5c15ee3ea4bdf7f6da44b8a",
+      "prior_revision": 61,
+      "new_revision": 62,
+      "committed_at": "2026-08-19T23:52:33.868Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/storage/change-summary-shard.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:6c761eb9-86f0-4948-85bc-8b2fa8b6b476",
+      "payload_hash": "7e5d2052ac61465786a933cb41753ae236f106fccc1ecb5e378054a1a98fd7ce",
+      "prior_revision": 62,
+      "new_revision": 63,
+      "committed_at": "2026-08-19T23:52:43.389Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:9730a1a2-2e86-4168-820b-fbec5356ddf2",
+      "payload_hash": "d5a0bc2dea2be30fe290eb4fd80c8e332430e9a1dd22a349f2bbc8330e8ec475",
+      "prior_revision": 63,
+      "new_revision": 64,
+      "committed_at": "2026-08-19T23:53:00.384Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixOrphanSummaryShardRows|tk-7995c4ba8741|adv-engineer|1|cycle:ic_tk-7995c4ba8741_1",
+      "operation_id": "mutation:subagent_report_submitted:fixOrphanSummaryShardRows:e939a524-a6ed-42b5-af5a-e3238e95c078",
+      "payload_hash": "90982e55a2ea0a2e4f011b355be6c482a57da8d56fb4bb6558694457e91bb42d",
+      "prior_revision": 64,
+      "new_revision": 65,
+      "committed_at": "2026-08-19T23:54:04.495Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/storage/launcher-projection.test.ts src/storage/change-summary-shard.test.ts src/storage/cross-surface-terminality.invariant.test.ts --maxWorkers=4 --testTimeout=120000",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:f2bd0dc8-81da-42c9-b063-96797cee2d7c",
+      "payload_hash": "95f6da14603f65051339085dafee67d4b0de4b6feaa476ffe6abf2c1bcd539bf",
+      "prior_revision": 65,
+      "new_revision": 66,
+      "committed_at": "2026-08-19T23:55:07.950Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "7950e36a24161ea17b5e4947a9b401e3bd1fdfaa:Second and final read site closed. buildLauncherProjection now classifies shard candidates against canonical records before writing active-launcher-state.json, so the launcher's disk fallback path can no longer serve ghost rows.\n\nC4 verified byte-exact: git diff of plugin/src/storage/change-summary-shard.ts is empty. listSummaryChanges keeps its no-hydration contract and stays a pure shard lister; composition happens at the caller as designed.\n\nImport is direct from ./change-projection-reader — no bundle needed inside the plugin, and no duplicated logic, so the single-authority constraint holds.\n\nTest seam examined rather than assumed. Classification is skipped when the optional readSummaries injector is supplied. Confirmed this is test-only: repo-wide grep shows readSummaries has no non-test caller, and the two real callers, tools/launcher-projection.ts:51 and refreshLauncherAggregateAfterCommit at launcher-projection.ts:195, pass no injector, so production always classifies. This is a fixture seam, not a Guard-and-Go bypass of the new invariant.\n\nNew regression test verified non-vacuous. It goes through the real disk path with changesDir and summariesDir rather than the injector, seeds one shard with a valid canonical record and one with the canonical removed, and asserts the projection lists only the valid id with active_count 1. The valid entry is a positive control, so the assertion cannot pass by dropping everything.\n\nThe shared seedSummaryPointer helper was extended to also write a canonical change.json. That corrects fixtures which previously modelled an impossible store state (an active shard with no canonical record); it does not weaken any guard. The deliberate no-canonical case at change-summary-shard.test.ts:641-709 lives in a different file, is untouched, and still passes.\n\nIndependent verify run tr_mt0r19yz_47979ee7 passed exit 0: 3 files, 24 tests, covering launcher-projection, change-summary-shard including the 641-709 case, and the cross-surface-terminality invariant. Red was a genuine assertion failure. Typecheck clean.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:6af8d6db-7ca9-42e3-abae-a0e2d011ecb1",
+      "payload_hash": "5bcfa6b85cb771cc7d2a30e4a22a8534bb1919502bcd6aeff93cabd8f6fff8f8",
+      "prior_revision": 66,
+      "new_revision": 67,
+      "committed_at": "2026-08-19T23:55:25.912Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "7950e36a24161ea17b5e4947a9b401e3bd1fdfaa:Work committed at 7950e36. buildLauncherProjection classifies before writing the projection; change-summary-shard.ts byte-unchanged (C4). readSummaries confirmed test-only with no production caller, so live path always classifies. New regression test uses the real disk path with a positive control. Verify run tr_mt0r19yz_47979ee7 passed exit 0, 24 tests across launcher-projection, change-summary-shard including 641-709, and cross-surface-terminality. Typecheck clean.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:e17ece41-7eee-4a2a-b5d5-6feaf1bcb7e5",
+      "payload_hash": "df062cf15db73aeacea36a13056e8cdb487f833a0393bbed3b0ffe7964fb44ab",
+      "prior_revision": 67,
+      "new_revision": 68,
+      "committed_at": "2026-08-19T23:55:36.026Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixOrphanSummaryShardRows:7145c651-3e86-4181-b1b1-d7fcd309a6fd",
+      "payload_hash": "fac156d1655125ad6a5831782eded124cac0a5a1790154c5e043adb0b86773ff",
+      "prior_revision": 68,
+      "new_revision": 69,
+      "committed_at": "2026-08-19T23:55:56.141Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixOrphanSummaryShardRows:a0696d04-5d95-45d4-81f9-f7f0b47fd38a",
+      "payload_hash": "535dc6ddca012a520b8790eda44a031dfc43c10a07f04d111e665bb8fb65900b",
+      "prior_revision": 69,
+      "new_revision": 70,
+      "committed_at": "2026-08-19T23:55:57.648Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:594b4fb3-37dd-4fba-8b68-cb700070aff5",
+      "payload_hash": "2c9fc2f2abdf34c151e82cc97e74c980f1539fb35c814541dc90e5f806337a35",
+      "prior_revision": 70,
+      "new_revision": 71,
+      "committed_at": "2026-08-20T00:01:08.021Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:15089d06-72f7-4ce4-b161-2956e6d09498",
+      "payload_hash": "ce6ef838c2a0842614c57efa147992450cdeb35506da14c4312d51fd2f9e91bb",
+      "prior_revision": 71,
+      "new_revision": 72,
+      "committed_at": "2026-08-20T00:01:33.604Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run src/tools/launcher-projection.test.ts src/knip-entry-roots.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:6cccde8e-f565-4449-aa7d-0880b458709c",
+      "payload_hash": "a8d6e563f754492d6465e91443785d507b459722897cc0d061fad5b0fb22b65b",
+      "prior_revision": 72,
+      "new_revision": 73,
+      "committed_at": "2026-08-20T00:03:10.579Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:4062c861-387d-4d77-8f29-07323c097d84",
+      "payload_hash": "84ae348b23c10b26cc3a027e449f3436e92468e129dd09ad324b06dbfa6caea6",
+      "prior_revision": 73,
+      "new_revision": 74,
+      "committed_at": "2026-08-20T00:04:51.128Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bun test bin/lib/cli-source-boundary.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:9ef854e5-1b7f-4c80-ab07-2c5657011868",
+      "payload_hash": "c3edff4868a5073297e56625eefb84f0c1bde67f7e5ee5fceaa7d2dbdc55d65c",
+      "prior_revision": 74,
+      "new_revision": 75,
+      "committed_at": "2026-08-20T00:05:09.821Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:b9d80319-d5a8-4263-8cc6-124618beda5a",
+      "payload_hash": "532a650cef11ace3aaff3e25f642c6e6c72725abe53892b84e3f482fa725f683",
+      "prior_revision": 75,
+      "new_revision": 76,
+      "committed_at": "2026-08-20T00:05:18.517Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bunx vitest run --maxWorkers=4 --reporter=json --outputFile=/tmp/fix-orphan-summary-full.json",
+      "operation_id": "mutation:test_run_recorded:fixOrphanSummaryShardRows:671df10b-7498-41aa-8c49-a4ae3b651dac",
+      "payload_hash": "6349427c09b5320c8c304f604695d9245f45f161561e18bd5fc6287bf6e45012",
+      "prior_revision": 76,
+      "new_revision": 77,
+      "committed_at": "2026-08-20T00:07:08.186Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixOrphanSummaryShardRows|tk-d64aee353ab2|adv-engineer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixOrphanSummaryShardRows:8a5059f0-03e2-45de-80ba-50f5376ac241",
+      "payload_hash": "238d05d204e6608ce5216eab4d78fd9c4fb3fa3eda8d3524401cc4a90e83e8ac",
+      "prior_revision": 77,
+      "new_revision": 78,
+      "committed_at": "2026-08-20T00:07:55.289Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "689bc9cb501e9070389890eb6a782711444916cd:Structural guards verified green and unmodified; two branch-introduced regressions found and fixed.\n\nGUARD RESULTS, all passing and all byte-unchanged: cli-source-boundary 3 pass / 38 assertions including the transitive walk; dead-worker-query-paths 4 pass; cli-bridge-contract 11 pass including the forbidden-token check; change-summary-shard 13 pass including the deliberate no-canonical case at 641-709. git diff trunk...HEAD --name-only confirms none of the five protected guard files appear in the 11-file branch diff. C1, C3, C4, C5 all hold.\n\nForbidden-token scan clean: neither === \"archive\" nor === \"cancel\" appears in bin/adv or bin/lib/live-status.ts. The correct spelling === \"archived\" is present and is not a violation, since the banned literal requires a quote immediately after archive.\n\nTWO REGRESSIONS FOUND BY FULL SUITE, both introduced by this branch, both remediated.\n\nFirst, tools/launcher-projection.test.ts:174 failed with active_count 2 received 0. Root cause was fixture realism, not logic: the local helper writeSummaryProjection at line 64 wrote a shard and a pointer whose snapshot_path named changesDir/changeId/change.json but never created that file, so the fixture modelled an orphan state that cannot exist in a healthy store. Fixed by having the helper write a valid canonical record, matching the pattern already applied to the sibling seedSummaryPointer helper. The third call site at line 222 was inspected rather than blanket-converted; it deliberately exercises canonical-count rebuilding with custom revision and task data, so it opts out of the helper default to preserve its intent. No assertion was weakened, lowered, or disabled.\n\nSecond, knip-entry-roots.test.ts:111 required the new bundle entrypoint src/summary-candidates-cli.ts to be a Knip entry root. Registered in plugin/knip.json alongside the existing reconcile-cli and doctor-cli tsup entries.\n\nFULL SUITE NOW GREEN: 1415 suites, 5141 passed, 0 failed, 1 pending, 12 todo. Before remediation it was exactly 2 failures.\n\nPRE-EXISTING FAILURE EXCLUDED FROM SCOPE, verified rather than assumed. pnpm run check fails on a prompt floor regression: floorBytes 233453 (+2172) > 231281, instructionCount 44 (+2) > 42. I reproduced this identically by running scripts/check-prompt-budget.ts against the clean trunk checkout at 57114b38, with byte-identical numbers, so it is not attributable to this branch. Advance already tracks it as in-flight change fixPreExistingTrunkCiFailures. The initial verifier report misclassified it as branch-introduced because it had no base comparison. Left untouched per P40 scope discipline.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:edb63cfd-eae5-4a5b-a57e-f3f13132e8bc",
+      "payload_hash": "1ad7fc9e94ca141dcaa9a480f813a97bae2a5f0909be1a7edf3c10e335ddc7b3",
+      "prior_revision": 78,
+      "new_revision": 79,
+      "committed_at": "2026-08-20T00:09:21.681Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "689bc9cb501e9070389890eb6a782711444916cd:Work committed at 689bc9c. All four guards green and byte-unchanged (confirmed absent from the 11-file branch diff). Two branch-introduced regressions fixed: an unrealistic fixture in tools/launcher-projection.test.ts whose pointer named a canonical file it never wrote, and Knip entry-root registration for the new bundle entrypoint. Full suite now 5141 passed / 0 failed. The pnpm run check prompt-floor failure was reproduced byte-identically on clean trunk 57114b38 and is therefore pre-existing, already tracked as fixPreExistingTrunkCiFailures, and left untouched.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:fcebf545-8295-4ab7-922a-ce2fcdece621",
+      "payload_hash": "998c680339c0ab4493b9c5ea67a51af57e2a348cef10be3f015627b692fb8b37",
+      "prior_revision": 79,
+      "new_revision": 80,
+      "committed_at": "2026-08-20T00:09:33.338Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "689bc9cb501e9070389890eb6a782711444916cd:Verified against the live affected store, read-only, no store contents mutated (C6 holds).\n\nStore: toolbox, project 3f9f88dbc6c65a2463945f1cfda1fc59794f411d. Method: rebuilt the bundles in the worktree, then ran the worktree bin/adv against that store with XDG_DATA_HOME pointed at its shard. Nothing was deployed.\n\nBASELINE, deployed unfixed adv: 10 active changes, including the four ghosts.\n\nAFTER, worktree adv: exactly 6 active changes — addKimiK3256kAsExploreFallback, enablePublicPenpotAccess, reduceClaudeMaxQuotaBurn, addPenpotMcpBrowserBridge, defaultGlobalMcpsOff, addPenpotVisionMcp. AC11 holds: all six survivors are the genuinely-active changes, each with a valid canonical record.\n\nAC10 holds exactly as predicted at design time. noteConcordStageInventory, diagnoseTailnetLag and addAdvResumeShortcut are reported canonical_missing; addProviderToolSearch is reported canonical_error with detail schema_error. All four are excluded from the active list and present in summary_residue, so none was silently dropped (AC3 confirmed on real data).\n\nremoveRedundantMcp correctly does not appear. It is genuinely archived and its absence here is right; the plugin store still listing it active is the separate defect tracked as toolbox bl-Ix9Sj6Hk.\n\nUNPLANNED FINDING, in scope to report. summary_residue surfaced 22 orphan shards, not the 4 anticipated. The additional 18 — including addImessageRelayPlaybook, cutAdvEngineerTokenBurn, hardenExploreAgentScope, restoreTabCueViaTerminalBell — are archived changes whose summary shards were never retracted when their canonical records moved to archive/. They previously reached bin/adv and were filtered late by the countTerminalChanges archive scan, which is why only 10 rows surfaced rather than 28; classification now excludes them earlier and reports them. Final active count is unaffected. This is the design's residue reporting working as intended, and it quantifies the named write-time-retraction follow-up: one store carries 22 orphan shards that GC never removes.\n\nCaveat on reason-code precision, recorded for review: those 18 are reported canonical_missing, which is literally accurate (no canonical under changes/) but conflates normal archival with a vanished record. Distinguishing them would require consulting archive/, duplicating hasArchiveBundle logic, and was not in scope.\n\nSCOPE BOUNDARY ON THIS TASK. The CLI half of AC10 is fully verified above. The launcher-render half is not verifiable here: zellij-project-launcher reads the DEPLOYED adv and the deployed plugin's active-launcher-state.json, and deploy may only run from the merged default branch per P32. Launcher row-count confirmation is therefore a post-merge deploy step, not a pre-merge one. The projection-side logic is covered by unit tests in launcher-projection.test.ts.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOrphanSummaryShardRows:083efe55-8a37-4a64-b733-1aba69df272e",
+      "payload_hash": "4987d4eb4e82f09d8ad01299ea56debad253e8c0dd7a2af52818fe5a798d1eba",
+      "prior_revision": 80,
+      "new_revision": 81,
+      "committed_at": "2026-08-20T00:10:01.900Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "All 6 tasks done. Branch change/fixOrphanSummaryShardRows off trunk 57114b3, 5 commits, 11 files, +596/-50. Not yet pushed; no PR opened.\n\nDELIVERED. classifySummaryCandidates in plugin/src/storage/change-projection-reader.ts wrapping loadChange with four-way classification (54942d7). Shipped as dist bundle plugin/dist/summary-candidates-cli.js from a pure re-export entrypoint, tsup entry, env override ADV_SUMMARY_CANDIDATES_CLI_BUNDLE (269c574). Wired into bin/lib/loadSummariesFromDisk after the terminal-status filter, with optional summary_residue on LiveStatusPayload and a validation_unavailable degraded mode (f5054d5). Composed at buildLauncherProjection, leaving listSummaryChanges byte-unchanged (7950e36). Two branch-introduced regressions remediated (689bc9c).\n\nACCEPTANCE CRITERIA. All 11 met. AC10 and AC11 verified against the live affected store rather than fixtures: baseline 10 active with the deployed CLI, 6 active with the worktree CLI, and exactly the four target ghosts reported in summary_residue with the predicted reason codes — three canonical_missing and addProviderToolSearch canonical_error/schema_error. The six survivors are the genuinely-active changes.\n\nCONSTRAINTS. All 7 hold. Names preserved (C1). Classification strictly after the terminal-status filter (C2). No plugin/src/storage import from bin/lib, direct or transitive (C3). change-summary-shard.ts byte-unchanged (C4). All five guard files absent from the branch diff (C5). No store contents repaired or mutated (C6). Exactly one canonical-validation implementation, with degraded mode reporting rather than substituting a second validator (C7).\n\nVERIFICATION. Full unit suite 1415 suites / 5141 passed / 0 failed. Guards green and unmodified: cli-source-boundary 3 including the transitive walk, dead-worker-query-paths 4, cli-bridge-contract 11, change-summary-shard 13 including the deliberate no-canonical case at 641-709. Typecheck clean. Forbidden-token scan clean.\n\nTWO REGRESSIONS FOUND AND FIXED DURING EXECUTION, both caught only by the full suite. tools/launcher-projection.test.ts asserted active_count 2 but received 0 because its local writeSummaryProjection helper wrote a pointer whose snapshot_path named a canonical file it never created — an impossible store state; fixture corrected, no assertion weakened, and the third call site was inspected and deliberately opted out to preserve its distinct intent. knip-entry-roots.test.ts required the new bundle entrypoint registered in plugin/knip.json alongside reconcile-cli and doctor-cli.\n\nPRE-EXISTING FAILURE, EXCLUDED. pnpm run check fails a prompt floor check at floorBytes 233453 (+2172) and instructionCount 44 (+2). Reproduced byte-identically against clean trunk 57114b38, so not attributable to this branch; already tracked as in-flight change fixPreExistingTrunkCiFailures. An initial verifier pass misattributed it to this branch for lack of a base comparison. Left untouched.\n\nUNPLANNED FINDING WORTH ESCALATING. summary_residue surfaced 22 orphan shards in the toolbox store, not the 4 anticipated. The extra 18 are archived changes whose shards were never retracted; they were previously masked by the late countTerminalChanges archive scan. Active count is unaffected and the four target ghosts are handled correctly, but this quantifies the named write-time-retraction follow-up as a live hygiene problem rather than a theoretical one. Recorded caveat: those 18 report canonical_missing, which is literally accurate but conflates normal archival with a vanished record; distinguishing them would require consulting archive/ and duplicating hasArchiveBundle logic, deliberately out of scope.\n\nDEFERRED TO POST-MERGE. The launcher-render half of AC10 cannot be verified pre-merge because zellij-project-launcher reads the deployed adv and deployed plugin, and deploy may only run from the merged default branch (P32). Projection-side logic is covered by unit tests.",
+      "operation_id": "mutation:gate_completion:fixOrphanSummaryShardRows:d745e1bd-bcb5-4d96-b380-59a4be2b0758",
+      "payload_hash": "9946f82a4961eb9669da8386c057a238e1559e42ce933d401e640153932778c6",
+      "prior_revision": 81,
+      "new_revision": 82,
+      "committed_at": "2026-08-20T00:10:35.660Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Accepted by user. All 11 acceptance criteria satisfied, all 7 constraints held.\n\nAC10/AC11 were verified against the live affected store rather than fixtures, which was the decisive evidence: the deployed CLI reported 10 active changes and the worktree CLI reported exactly the 6 genuinely-active ones, with the four ghosts appearing in summary_residue carrying the reason codes predicted at design time.\n\nResiduals disclosed to the user and accepted: 18 additional orphan shards beyond the four investigated, all archived changes whose shards were never retracted, reported as canonical_missing which is literally accurate but does not distinguish normal archival from a vanished record; the pre-existing trunk prompt-budget failure, left untouched and already tracked as fixPreExistingTrunkCiFailures; and the launcher-render confirmation deferred to post-merge deploy.\n\nOut of scope and still open after this change: the uninformative [ADV]? badge in zlauncher (toolbox), and toolbox backlog bl-Ix9Sj6Hk for the removeRedundantMcp stale active-list entry.\n\nBranch change/fixOrphanSummaryShardRows, 5 commits, 11 files, +596/-50, not yet pushed. Advance runs CI, so release must route through adv-ci-waiter rather than the admin-merge policy that applies to toolbox.",
+      "operation_id": "mutation:gate_completion:fixOrphanSummaryShardRows:416604a0-61e8-422c-bfe4-097dacaa2ad1",
+      "payload_hash": "a994f7bc67c22049946766ab5323654bb6c3d229110535fc8fbd51bb08d1f5f2",
+      "prior_revision": 82,
+      "new_revision": 83,
+      "committed_at": "2026-08-20T00:54:18.952Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "User replied \"accept\" at the acceptance checkpoint after reviewing the live-store before/after, residuals, and deferred launcher verification.",
+      "operation_id": "mutation:artifact_update:fixOrphanSummaryShardRows:b15e33c0-d5a1-4f8d-9c6e-711d7f0aadbe",
+      "payload_hash": "92933493ca76000c2c1219d0e3eec17d7b290d62ba92623f10cbe908753f1d84",
+      "prior_revision": 83,
+      "new_revision": 84,
+      "committed_at": "2026-08-20T00:54:43.476Z"
+    }
+  ]
+}
