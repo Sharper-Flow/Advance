@@ -16,6 +16,7 @@ import {
 import {
   buildReleaseCompletionEvidence,
   completeReleaseGateAfterFinalization,
+  preservePhase9Evidence,
   verifyReleaseGateDurableForArchive,
 } from "./change/archive-gate";
 
@@ -93,6 +94,25 @@ describe("archive terminal proof", () => {
     } finally {
       await cleanupTempDir(root);
     }
+  });
+
+  test("preserves resume-after-merge proof while recording its merge commit", () => {
+    const previous = {
+      status: "pending_merge" as const,
+      startedAt: "2026-01-02T02:00:00.000Z",
+      preArchiveTipSha: "b".repeat(40),
+    } as unknown as import("../types").Phase9FinalizationStatus;
+    const next = preservePhase9Evidence(previous, {
+      status: "done",
+      startedAt: previous.startedAt,
+      completedAt: "2026-01-02T03:00:00.000Z",
+      mergeCommitSha: "c".repeat(40),
+    });
+
+    expect(next.mergeCommitSha).toBe("c".repeat(40));
+    expect((next as unknown as { preArchiveTipSha?: string }).preArchiveTipSha).toBe(
+      "b".repeat(40),
+    );
   });
 
   test("rejects non-shipped finalization before loading a release projection", async () => {

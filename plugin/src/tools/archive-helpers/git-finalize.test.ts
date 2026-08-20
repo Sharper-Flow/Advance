@@ -3610,6 +3610,210 @@ describe("git-finalize helpers", () => {
     expect(git(worktree, ["rev-parse", "change/example"])).toBe(prHeadSha);
   });
 
+  it("finalizeRelease resumes a squash-merged PR after the archive bundle commit", async () => {
+    const seed = join(tempRoot, "seed-resume-squash");
+    const remote = join(tempRoot, "remote-resume-squash.git");
+    const main = join(tempRoot, "main-resume-squash");
+    const mergeClone = join(tempRoot, "merge-resume-squash");
+    const worktree = join(tempRoot, "wt-resume-squash");
+    await mkdir(seed);
+    await mkdir(remote);
+    await mkdir(main);
+    await mkdir(mergeClone);
+
+    await initRepo(seed, "trunk");
+    git(tempRoot, ["init", "--bare", "-q", "-b", "trunk", remote]);
+    git(seed, ["remote", "add", "origin", remote]);
+    git(seed, ["push", "origin", "trunk"]);
+    git(tempRoot, ["clone", "-q", remote, main]);
+    git(main, ["config", "user.email", "adv-test@example.invalid"]);
+    git(main, ["config", "user.name", "ADV Test"]);
+    git(tempRoot, ["clone", "-q", remote, mergeClone]);
+    git(mergeClone, ["config", "user.email", "adv-test@example.invalid"]);
+    git(mergeClone, ["config", "user.name", "ADV Test"]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+    const preArchiveTipSha = git(worktree, ["rev-parse", "HEAD"]);
+    git(worktree, ["push", "-u", "origin", "change/example"]);
+
+    git(mergeClone, ["fetch", "origin", "change/example"]);
+    git(mergeClone, ["merge", "--squash", "origin/change/example"]);
+    git(mergeClone, ["commit", "-m", "squash merge"]);
+    const mergeCommitOid = git(mergeClone, ["rev-parse", "HEAD"]);
+    await writeFile(join(mergeClone, "later.txt"), "later\n");
+    git(mergeClone, ["add", "later.txt"]);
+    git(mergeClone, ["commit", "-m", "later trunk change"]);
+    git(mergeClone, ["push", "origin", "trunk"]);
+    const defaultBranchSha = git(mergeClone, ["rev-parse", "HEAD"]);
+
+    await mkdir(join(worktree, ".adv", "archive"), { recursive: true });
+    await writeFile(join(worktree, ".adv", "archive", "bundle.txt"), "bundle\n");
+
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          if (args[0] === "remote" && args[1] === "get-url") {
+            return {
+              status: 0,
+              stdout: "https://github.com/owner/repo.git\n",
+              stderr: "",
+            };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "list") {
+            return {
+              status: 0,
+              stdout: JSON.stringify([
+                {
+                  number: 405,
+                  url: "https://github.com/owner/repo/pull/405",
+                  state: "MERGED",
+                  mergedAt: "2026-08-08T00:00:00Z",
+                  mergeCommit: { oid: mergeCommitOid },
+                  headRefName: "change/example",
+                  headRefOid: preArchiveTipSha,
+                  baseRefName: "trunk",
+                  headRepositoryOwner: { login: "owner" },
+                  headRepository: {
+                    name: "repo",
+                    nameWithOwner: "owner/repo",
+                  },
+                  isCrossRepository: false,
+                },
+              ]),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected gh" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      route: "direct",
+      prNumber: 405,
+      prHeadSha: preArchiveTipSha,
+      mergeCommitSha: mergeCommitOid,
+      releasedCommitSha: defaultBranchSha,
+      defaultBranchSha,
+    });
+    expect(result.changeTipSha).not.toBe(preArchiveTipSha);
+  });
+
+  it("finalizeRelease resumes a merge-commit PR after the archive bundle commit", async () => {
+    const seed = join(tempRoot, "seed-resume-merge");
+    const remote = join(tempRoot, "remote-resume-merge.git");
+    const main = join(tempRoot, "main-resume-merge");
+    const mergeClone = join(tempRoot, "merge-resume-merge");
+    const worktree = join(tempRoot, "wt-resume-merge");
+    await mkdir(seed);
+    await mkdir(remote);
+    await mkdir(main);
+    await mkdir(mergeClone);
+
+    await initRepo(seed, "trunk");
+    git(tempRoot, ["init", "--bare", "-q", "-b", "trunk", remote]);
+    git(seed, ["remote", "add", "origin", remote]);
+    git(seed, ["push", "origin", "trunk"]);
+    git(tempRoot, ["clone", "-q", remote, main]);
+    git(main, ["config", "user.email", "adv-test@example.invalid"]);
+    git(main, ["config", "user.name", "ADV Test"]);
+    git(tempRoot, ["clone", "-q", remote, mergeClone]);
+    git(mergeClone, ["config", "user.email", "adv-test@example.invalid"]);
+    git(mergeClone, ["config", "user.name", "ADV Test"]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+    const preArchiveTipSha = git(worktree, ["rev-parse", "HEAD"]);
+    git(worktree, ["push", "-u", "origin", "change/example"]);
+
+    git(mergeClone, ["fetch", "origin", "change/example"]);
+    git(mergeClone, ["merge", "--no-ff", "origin/change/example", "-m", "merge commit"]);
+    const mergeCommitOid = git(mergeClone, ["rev-parse", "HEAD"]);
+    git(mergeClone, ["push", "origin", "trunk"]);
+    const defaultBranchSha = git(mergeClone, ["rev-parse", "HEAD"]);
+
+    await mkdir(join(worktree, ".adv", "archive"), { recursive: true });
+    await writeFile(join(worktree, ".adv", "archive", "bundle.txt"), "bundle\n");
+
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          if (args[0] === "remote" && args[1] === "get-url") {
+            return {
+              status: 0,
+              stdout: "https://github.com/owner/repo.git\n",
+              stderr: "",
+            };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "list") {
+            return {
+              status: 0,
+              stdout: JSON.stringify([
+                {
+                  number: 406,
+                  url: "https://github.com/owner/repo/pull/406",
+                  state: "MERGED",
+                  mergedAt: "2026-08-08T00:00:00Z",
+                  mergeCommit: { oid: mergeCommitOid },
+                  headRefName: "change/example",
+                  headRefOid: preArchiveTipSha,
+                  baseRefName: "trunk",
+                  headRepositoryOwner: { login: "owner" },
+                  headRepository: {
+                    name: "repo",
+                    nameWithOwner: "owner/repo",
+                  },
+                  isCrossRepository: false,
+                },
+              ]),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected gh" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      route: "direct",
+      prNumber: 406,
+      prHeadSha: preArchiveTipSha,
+      mergeCommitSha: mergeCommitOid,
+      releasedCommitSha: defaultBranchSha,
+      defaultBranchSha,
+    });
+    expect(result.changeTipSha).not.toBe(preArchiveTipSha);
+  });
+
   it("finalizeRelease in PR mode blocks when origin is missing", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
