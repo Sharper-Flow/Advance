@@ -28,7 +28,10 @@ import {
   withTargetPathStore,
 } from "../target-project";
 import { loadProposalForContext } from "../change/artifacts";
-import { findChangeEntry } from "../epic-convergence";
+import {
+  findChangeEntry,
+  membershipFromChangeEntry,
+} from "../epic-convergence";
 import {
   loadValidationInventory,
   raceWithDeadline,
@@ -247,11 +250,14 @@ export function buildEpicMembershipFromSeed(input: EpicSeedInput): {
   return {};
 }
 
-async function validateEpicInStore(
+export async function validateEpicInStore(
   store: Store,
-  context: TargetProjectContext,
+  context: Pick<TargetProjectContext, "root">,
   membership: NonNullable<Change["epic_membership"]>,
-): Promise<{ error?: { error: string; code: string } }> {
+): Promise<{
+  error?: { error: string; code: string; hint?: string };
+  entry?: Extract<import("../../types").EpicEntry, { kind: "change" }>;
+}> {
   const epicResult = await store.epics.get(membership.epic_id);
   if (!epicResult.success || !epicResult.data) {
     return {
@@ -270,10 +276,11 @@ async function validateEpicInStore(
       error: {
         error: `Epic entry not found: ${membership.entry_id} in Epic ${membership.epic_id}`,
         code: "ENTRY_NOT_FOUND",
+        hint: "Use parent_epic_id to create a new Epic entry; entry_id seeds an existing entry.",
       },
     };
   }
-  return {};
+  return { entry };
 }
 
 async function validateTargetEpic(input: {
@@ -285,8 +292,9 @@ async function validateTargetEpic(input: {
   epic_owner_confirmationEvidence?: string;
   sourceStore: Store;
 }): Promise<{
-  error?: { error: string; code: string };
+  error?: { error: string; code: string; hint?: string };
   ownerContext?: TargetProjectContext;
+  entry?: Extract<import("../../types").EpicEntry, { kind: "change" }>;
 }> {
   const ownerRoot = input.epic_owner_target_path
     ? resolve(input.epic_owner_target_path)
@@ -317,7 +325,7 @@ async function validateTargetEpic(input: {
           input.epicMembership,
         );
         if (result.error) return result;
-        return { ownerContext: context };
+        return { ownerContext: context, entry: result.entry };
       },
     );
   } catch (err) {
@@ -720,6 +728,7 @@ export async function createCrossProjectFollowUp({
         }
 
         let ownerContext: TargetProjectContext | undefined;
+        let derivedEpicMembership = epicMembership;
         if (epicMembership) {
           const epicValidation = await validateTargetEpic({
             epicMembership,
@@ -734,14 +743,22 @@ export async function createCrossProjectFollowUp({
             return formatToolOutput(epicValidation.error);
           }
           ownerContext = epicValidation.ownerContext;
+          if (epicValidation.entry) {
+            derivedEpicMembership = membershipFromChangeEntry(
+              epicMembership.epic_id,
+              epicValidation.entry,
+              epicMembership.title,
+              "create",
+            );
+          }
         }
 
         const initialMetadata: ChangeCreateInitialMetadata = {
           cross_project_origin: origin,
         };
-        if (epicMembership) {
+        if (derivedEpicMembership) {
           initialMetadata.epic_membership = {
-            ...epicMembership,
+            ...derivedEpicMembership,
             epic_project_id: ownerContext?.projectId ?? context.projectId,
             source: "create",
           };
@@ -770,7 +787,7 @@ export async function createCrossProjectFollowUp({
           target_path,
           _projectContext: formatTargetProjectContext(context),
         };
-        if (epicMembership) {
+        if (derivedEpicMembership) {
           output.epic_membership = initialMetadata.epic_membership;
         }
         if (result.duplicateWarning) {

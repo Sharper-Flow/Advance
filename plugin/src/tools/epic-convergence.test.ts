@@ -6,6 +6,7 @@ import {
   getEpicEntryChangeId,
   isForeignProjectEntry,
   legacyMemberStatusFromConvergence,
+  membershipFromChangeEntry,
   type ChildObservation,
 } from "./epic-convergence";
 
@@ -573,5 +574,29 @@ describe("findChangeEntry — mode discipline", () => {
         { mode: "entry_id", entryId: "entry-1" },
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("membershipFromChangeEntry", () => {
+  test("derives projection values from the Epic entry", () => {
+    expect(
+      membershipFromChangeEntry(
+        "epic-X",
+        makeEntry({
+          order: 7,
+          title: "Authoritative title",
+          linked_at: "2026-07-01T00:00:00.000Z",
+        }),
+        "Fallback title",
+        "create",
+      ),
+    ).toEqual({
+      epic_id: "epic-X",
+      entry_id: "entry-1",
+      order: 7,
+      title: "Authoritative title",
+      linked_at: "2026-07-01T00:00:00.000Z",
+      source: "create",
+    });
   });
 });

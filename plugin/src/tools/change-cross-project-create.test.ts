@@ -268,8 +268,8 @@ describe("adv_change_create cross-project Temporal routing", () => {
         {
           kind: "change",
           entry_id: "entry-1",
-          order: 2,
-          title: "Epic Entry One",
+          order: 7,
+          title: "Authoritative Epic Entry",
           change_id: "existingChange",
           linked_at: "2026-06-06T20:00:00.000Z",
           membership_status: "active",
@@ -326,8 +326,8 @@ describe("adv_change_create cross-project Temporal routing", () => {
         source_change_id: "sourceChange",
         epic_id: "addAuthEpic",
         entry_id: "entry-1",
-        epic_order: 2,
-        epic_title: "Epic Entry One",
+        epic_order: 99,
+        epic_title: "Caller supplied title",
       } as never,
       sourceStore,
     );
@@ -345,10 +345,11 @@ describe("adv_change_create cross-project Temporal routing", () => {
           epic_membership: expect.objectContaining({
             epic_id: "addAuthEpic",
             entry_id: "entry-1",
-            order: 2,
-            title: "Epic Entry One",
+            order: 7,
+            title: "Authoritative Epic Entry",
             epic_project_id: "target-project-id",
-            linked_at: expect.any(String),
+            linked_at: "2026-06-06T20:00:00.000Z",
+            source: "create",
           }),
         },
       }),
@@ -356,9 +357,11 @@ describe("adv_change_create cross-project Temporal routing", () => {
     expect(parsed.epic_membership).toMatchObject({
       epic_id: "addAuthEpic",
       entry_id: "entry-1",
-      order: 2,
-      title: "Epic Entry One",
+      order: 7,
+      title: "Authoritative Epic Entry",
+      linked_at: "2026-06-06T20:00:00.000Z",
       epic_project_id: "target-project-id",
+      source: "create",
     });
   });
 

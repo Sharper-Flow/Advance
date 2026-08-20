@@ -48,6 +48,7 @@ import {
   findChangeEntry,
   getEpicEntryChangeId,
   isForeignProjectEntry,
+  membershipFromChangeEntry,
   type ChildObservation,
 } from "./epic-convergence";
 import { getProjectId } from "../utils/project-id";
@@ -918,30 +919,6 @@ function requireChangeEntry(
     );
   }
   return entry;
-}
-
-function membershipFromChangeEntry(
-  epicId: string,
-  entry: Extract<EpicEntry, { kind: "change" }>,
-  fallbackTitle: string,
-  source: NonNullable<import("../types").Change["epic_membership"]>["source"],
-) {
-  const membership: NonNullable<import("../types").Change["epic_membership"]> =
-    {
-      epic_id: epicId,
-      entry_id: entry.entry_id,
-      order: entry.order,
-      title: entry.title ?? fallbackTitle,
-      linked_at: entry.linked_at ?? new Date().toISOString(),
-      source,
-    };
-  if (entry.change_ref?.project_id) {
-    membership.epic_project_id = entry.change_ref.project_id;
-  }
-  if (entry.change_ref?.repo_id) {
-    membership.repo_id = entry.change_ref.repo_id;
-  }
-  return membership;
 }
 
 async function convergeEpicOnShow(

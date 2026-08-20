@@ -30,6 +30,7 @@ import {
   appendClarifyNeededForCreatedChange,
   buildEpicMembershipFromSeed,
   createCrossProjectFollowUp,
+  validateEpicInStore,
   validateParentChange,
   resolveScopeRepos,
 } from "./create-clarify";
@@ -53,6 +54,7 @@ import { includeSnapshotSchema } from "../shared-args";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
 import { logger, formatD3Error } from "./helpers";
 import { epicTools } from "../epic";
+import { membershipFromChangeEntry } from "../epic-convergence";
 
 async function dispatchEpicTool(
   name: string,
@@ -229,7 +231,7 @@ export const advChangeCreateHandler = async (
   if (epicSeedResult.error) {
     return formatToolOutput(epicSeedResult.error);
   }
-  const epicMembership = epicSeedResult.membership;
+  let epicMembership = epicSeedResult.membership;
 
   // D3 enforcement: validate same_project_dependencies at create time.
   // Refuse creation if any hard prerequisite is nonterminal.
@@ -314,6 +316,24 @@ export const advChangeCreateHandler = async (
       store,
       forceRecreate,
     });
+  }
+  if (epicMembership) {
+    const epicValidation = await validateEpicInStore(
+      store,
+      { root: store.paths.root },
+      epicMembership,
+    );
+    if (epicValidation.error) {
+      return formatToolOutput(epicValidation.error);
+    }
+    if (epicValidation.entry) {
+      epicMembership = membershipFromChangeEntry(
+        epicMembership.epic_id,
+        epicValidation.entry,
+        epicMembership.title,
+        "create",
+      );
+    }
   }
   let fastFollowOf: FastFollowOf | undefined;
   if (parent_change_id) {

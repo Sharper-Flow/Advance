@@ -11,8 +11,7 @@
  * optional `repair` within their own bounded budget. Conflict refusal is
  * always preferred over overwrite (D1, C2).
  */
-import type { Change } from "../types";
-import type { EpicEntry } from "../types";
+import type { Change, EpicEntry } from "../types";
 
 export type ChildObservation =
   | { kind: "present"; change: Change }
@@ -134,6 +133,33 @@ export function findChangeEntry(
       return false;
     },
   );
+}
+
+/**
+ * Derive a child membership projection from the authoritative Epic entry.
+ * Seed arguments select the entry; they do not supply projection content.
+ */
+export function membershipFromChangeEntry(
+  epicId: string,
+  entry: Extract<EpicEntry, { kind: "change" }>,
+  fallbackTitle: string,
+  source: NonNullable<Change["epic_membership"]>["source"],
+): NonNullable<Change["epic_membership"]> {
+  const membership: NonNullable<Change["epic_membership"]> = {
+    epic_id: epicId,
+    entry_id: entry.entry_id,
+    order: entry.order,
+    title: entry.title ?? fallbackTitle,
+    linked_at: entry.linked_at ?? new Date().toISOString(),
+    source,
+  };
+  if (entry.change_ref?.project_id) {
+    membership.epic_project_id = entry.change_ref.project_id;
+  }
+  if (entry.change_ref?.repo_id) {
+    membership.repo_id = entry.change_ref.repo_id;
+  }
+  return membership;
 }
 
 /**
