@@ -112,6 +112,18 @@ function makeStore(opts?: { epic?: Partial<Epic>; changes?: Change[] }): Store {
           ? { success: true as const, data: found, source: "disk" as const }
           : { success: false as const, error: "not found" };
       }),
+      // Disk contract: the projection write persists the child's membership
+      // derived from the promoted entry (post-promotion projection step).
+      setEpicMembership: vi.fn(
+        async (id: string, { membership }: { membership: unknown }) => {
+          const target = createdChanges.get(id);
+          if (target)
+            (target as { epic_membership?: unknown }).epic_membership =
+              membership;
+          return target ?? null;
+        },
+      ),
+      clearEpicMembership: vi.fn(async () => null),
       list: vi.fn(async () => ({
         changes: changes.map((c) => ({
           id: c.id,
@@ -132,10 +144,27 @@ function makeStore(opts?: { epic?: Partial<Epic>; changes?: Change[] }): Store {
       get: vi.fn(async () => ({ success: true, data: epic })),
       list: vi.fn(async () => [epic]),
       addShell: vi.fn(async () => makeShellEntry()),
-      promoteShell: vi.fn(async () => ({
-        entryId: "shell-1",
-        changeId: "change-1",
-      })),
+      // Disk contract: promoteShell swaps the shell entry in place for a
+      // change entry under the SAME entry_id, so a subsequent epics.get
+      // returns the promoted state.
+      promoteShell: vi.fn(async (_epicId: string, entryId: string) => {
+        const index = epic.entries.findIndex(
+          (entry) => entry.entry_id === entryId,
+        );
+        if (index >= 0) {
+          epic.entries[index] = {
+            kind: "change",
+            entry_id: entryId,
+            order: epic.entries[index].order,
+            change_id: "change-1",
+            title: epic.entries[index].title,
+            membership_status: "projection_pending",
+            linked_at: "2026-06-25T00:00:00.000Z",
+            linked_by: "agent",
+          } as (typeof epic.entries)[number];
+        }
+        return { entryId, changeId: "change-1" };
+      }),
       linkChange: vi.fn(),
       unlinkChange: vi.fn(),
       retargetChange: vi.fn(),

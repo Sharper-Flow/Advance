@@ -33,7 +33,8 @@ describe("scanDebtMarkers", () => {
 
   test("parses an @YYYY-MM-DD deadline from a TODO comment", () => {
     const source = "// TODO @2026-08-15 ship this";
-    const result = scanDebtMarkers(source, 1);
+    const now = new Date("2026-08-01T00:00:00Z");
+    const result = scanDebtMarkers(source, 1, { now });
     expect(result.deadline).toBe("2026-08-15");
     expect(result.expired).toBe(false);
   });
