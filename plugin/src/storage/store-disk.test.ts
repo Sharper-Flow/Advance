@@ -441,9 +441,10 @@ describe("store-disk — Epic membership write guard (rq-epicMembershipConvergen
     };
   }
 
-  async function seed(
-    linkedAt: string = T0,
-  ): Promise<{ store: Awaited<ReturnType<typeof createDiskStore>>; id: string }> {
+  async function seed(linkedAt: string = T0): Promise<{
+    store: Awaited<ReturnType<typeof createDiskStore>>;
+    id: string;
+  }> {
     const dir = await makeTempProject();
     const store = await createDiskStore(dir);
     const created = await store.changes.create("Guarded Change", {});
