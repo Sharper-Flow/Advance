@@ -83,10 +83,27 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
             : {}),
         }),
       ),
-      promoteShell: vi.fn(async () => ({
-        entryId: "shell-1",
-        changeId: "change-1",
-      })),
+      promoteShell: vi.fn(async (_epicId, entryId, changeId) => {
+        const shell = epic.entries.find(
+          (entry): entry is Extract<EpicEntry, { kind: "shell" }> =>
+            entry.kind === "shell" && entry.entry_id === entryId,
+        );
+        if (shell) {
+          epic.entries = epic.entries.map((entry) =>
+            entry === shell
+              ? makeChangeEntry({
+                  entry_id: entryId,
+                  order: shell.order,
+                  title: shell.title,
+                  change_id: changeId,
+                  membership_status: "linked",
+                  linked_at: "2026-08-20T12:00:00.000Z",
+                })
+              : entry,
+          );
+        }
+        return { entryId, changeId };
+      }),
       linkChange: vi.fn(async () =>
         makeChangeEntry({ entry_id: "entry-2", change_id: "change-2" }),
       ),
@@ -1187,7 +1204,7 @@ describe("adv_epic_promote_shell", () => {
     );
   });
 
-  test("creates a change from shell and seeds epic membership", async () => {
+  test("creates a bare change from shell before promotion", async () => {
     const store = makeStore({
       entries: [makeShellEntry({ entry_id: "shell-1", order: 3 })],
     });
@@ -1201,13 +1218,146 @@ describe("adv_epic_promote_shell", () => {
     expect(store.changes.create).toHaveBeenCalledWith(
       "Shell One",
       expect.objectContaining({
-        initialMetadata: expect.objectContaining({
-          epic_membership: expect.objectContaining({
-            epic_id: "addAuthEpic",
-            entry_id: "shell-1",
-            order: 3,
-            title: "Shell One",
-          }),
+        artifacts: expect.any(Object),
+      }),
+    );
+    const [, createOptions] = (
+      store.changes.create as unknown as {
+        mock: { calls: [string, { initialMetadata?: unknown }][] };
+      }
+    ).mock.calls[0];
+    expect(createOptions.initialMetadata).toBeUndefined();
+  });
+
+  test("failed promotion leaves the newly created child without epic membership", async () => {
+    const store = makeStore({
+      entries: [makeShellEntry({ entry_id: "shell-1", order: 3 })],
+    });
+    store.epics.promoteShell = vi.fn(async () => {
+      throw new Error("promoteShell unavailable");
+    });
+
+    const output = await epicTools.adv_epic_promote_shell.execute(
+      { epic_id: "addAuthEpic", entry_id: "shell-1" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("EPIC_ERROR");
+    expect(store.changes.create).toHaveBeenCalled();
+    const [, createOptions] = (
+      store.changes.create as unknown as {
+        mock: { calls: [string, { initialMetadata?: unknown }][] };
+      }
+    ).mock.calls[0];
+    expect(createOptions.initialMetadata).toBeUndefined();
+    expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
+  });
+
+  test("projects successful promotion from the promoted Epic entry", async () => {
+    const linkedAt = "2026-08-20T12:00:00.000Z";
+    const promotedEntry = makeChangeEntry({
+      entry_id: "entry-1",
+      order: 7,
+      change_id: "change-1",
+      title: "Promoted title",
+      linked_at: linkedAt,
+      change_ref: {
+        change_id: "change-1",
+        project_id: "project-owner",
+        repo_id: "repo-owner",
+      },
+    });
+    const store = makeStore({
+      entries: [makeShellEntry({ entry_id: "shell-1", order: 3 })],
+    });
+    store.epics.get = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: true,
+        data: makeEpic({ entries: [makeShellEntry({ entry_id: "shell-1" })] }),
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: makeEpic({ entries: [promotedEntry] }),
+      });
+    store.epics.promoteShell = vi.fn(async () => ({
+      entryId: "entry-1",
+      changeId: "change-1",
+    }));
+
+    const output = await epicTools.adv_epic_promote_shell.execute(
+      { epic_id: "addAuthEpic", entry_id: "shell-1" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith("change-1", {
+      membership: {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-1",
+        order: 7,
+        title: "Promoted title",
+        linked_at: linkedAt,
+        source: "promote_shell",
+        epic_project_id: "project-owner",
+        repo_id: "repo-owner",
+      },
+      setAt: linkedAt,
+    });
+  });
+
+  test("retry after failed promotion succeeds with the same change_id", async () => {
+    const linkedAt = "2026-08-20T12:00:00.000Z";
+    const promotedEntry = makeChangeEntry({
+      entry_id: "entry-1",
+      order: 7,
+      change_id: "change-1",
+      title: "Promoted title",
+      linked_at: linkedAt,
+    });
+    const store = makeStore({
+      entries: [makeShellEntry({ entry_id: "shell-1" })],
+    });
+    store.epics.get = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: true,
+        data: makeEpic({ entries: [makeShellEntry({ entry_id: "shell-1" })] }),
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: makeEpic({ entries: [makeShellEntry({ entry_id: "shell-1" })] }),
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: makeEpic({ entries: [promotedEntry] }),
+      });
+    store.epics.promoteShell = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("promoteShell unavailable"))
+      .mockResolvedValueOnce({ entryId: "entry-1", changeId: "change-1" });
+
+    const firstOutput = await epicTools.adv_epic_promote_shell.execute(
+      { epic_id: "addAuthEpic", entry_id: "shell-1", change_id: "change-1" },
+      store,
+    );
+    expect(parseToolOutput(firstOutput).code).toBe("EPIC_ERROR");
+
+    const retryOutput = await epicTools.adv_epic_promote_shell.execute(
+      { epic_id: "addAuthEpic", entry_id: "shell-1", change_id: "change-1" },
+      store,
+    );
+
+    expect(parseToolOutput(retryOutput).success).toBe(true);
+    expect(store.changes.create).not.toHaveBeenCalled();
+    expect(store.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-1",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          entry_id: "entry-1",
+          source: "promote_shell",
         }),
       }),
     );

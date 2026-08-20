@@ -1809,29 +1809,53 @@ export const epicTools = {
           const problemStatement = `## Problem\n\n${shell.title}\n\n## Success Criteria\n\n${shell.success_hint}\n`;
           const createResult = await ownerStore.changes.create(shell.title, {
             artifacts: { proposal, problemStatement },
-            initialMetadata: {
-              epic_membership: {
-                epic_id: epic_id,
-                entry_id,
-                order: shell.order,
-                title: shell.title,
-                linked_at: new Date().toISOString(),
-              },
-            },
           });
           finalChangeId = createResult.changeId;
         }
 
-        await ownerStore.epics.promoteShell(
+        const promotion = await ownerStore.epics.promoteShell(
           epic_id,
           entry_id,
           finalChangeId,
           promoted_by ?? "agent",
         );
+        finalChangeId = promotion.changeId;
+
+        const promotedEpic = await loadEpic(ownerStore, epic_id);
+        const promotedEntry = promotedEpic
+          ? findChangeEntry(promotedEpic, {
+              mode: "entry_id",
+              entryId: promotion.entryId,
+            })
+          : undefined;
+        if (!promotedEntry) {
+          return formatToolOutput({
+            success: false,
+            error: `Promoted Epic entry not found: ${promotion.entryId}`,
+            code: "PROMOTED_ENTRY_NOT_FOUND",
+            entry_id: promotion.entryId,
+            change_id: promotion.changeId,
+          });
+        }
+
+        const membership = membershipFromChangeEntry(
+          epic_id,
+          promotedEntry,
+          shell.title,
+          "promote_shell",
+        );
+        const projectionError = await applyChildEpicMembership(
+          owner,
+          owner,
+          promotion.changeId,
+          membership,
+          promotedEntry,
+        );
+        if (projectionError) return projectionError;
 
         const output = formatToolOutput({
           success: true,
-          entry_id,
+          entry_id: promotion.entryId,
           change_id: finalChangeId,
           promoted: true,
           note: [

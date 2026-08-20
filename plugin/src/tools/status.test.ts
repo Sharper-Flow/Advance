@@ -279,6 +279,18 @@ describe("Status Tools", () => {
 
     test("active changes include compact Epic annotation", async () => {
       const { changeTools } = await import("./change");
+      // Seed attach requires the Epic and entry to exist (D1 contract:
+      // epic_id/entry_id select an existing entry; parent_epic_id creates one).
+      await store.epics.create(
+        "addAuthEpic",
+        "Add OAuth",
+        "OAuth rollout narrative.",
+      );
+      await store.epics.linkChange("addAuthEpic", {
+        entryId: "en-001",
+        changeId: "en-001-placeholder",
+        title: "Add OAuth",
+      });
       await changeTools.adv_change_create.execute(
         {
           summary: "Epic member change",
