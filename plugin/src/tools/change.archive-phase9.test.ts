@@ -110,9 +110,9 @@ describe("archive terminal proof", () => {
     });
 
     expect(next.mergeCommitSha).toBe("c".repeat(40));
-    expect((next as unknown as { preArchiveTipSha?: string }).preArchiveTipSha).toBe(
-      "b".repeat(40),
-    );
+    expect(
+      (next as unknown as { preArchiveTipSha?: string }).preArchiveTipSha,
+    ).toBe("b".repeat(40));
   });
 
   test("rejects non-shipped finalization before loading a release projection", async () => {

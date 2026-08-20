@@ -287,6 +287,8 @@ export interface ReleaseReachabilityInput {
   // tip instead of the live change/{id} git ref so reachability survives
   // branch deletion (squash-merge + branch cleanup before phase9:"run").
   changeTipSha?: string;
+  /** Persisted change branch tip from before archive artifacts were committed. */
+  preArchiveTipSha?: string;
 }
 
 export type ReleaseReachabilityProof =
@@ -1435,8 +1437,8 @@ export function verifyDirectMergedPrProof(
     };
   }
   const [expectedOwner, expectedName] = repoParts;
-    const localTip = input.changeTipSha?.trim();
-    const preArchiveTip = input.preArchiveTipSha?.trim();
+  const localTip = input.changeTipSha?.trim();
+  const preArchiveTip = input.preArchiveTipSha?.trim();
   const candidates: DirectMergedPrProof[] = [];
 
   for (const value of parsed.value) {
@@ -2891,6 +2893,7 @@ export function resolveReleaseReachability(
           defaultBranch: input.defaultBranch,
           changeId: input.changeId,
           changeTipSha: input.changeTipSha,
+          preArchiveTipSha: input.preArchiveTipSha,
           branchName: input.sourceBranch,
         },
         deps,
@@ -3925,9 +3928,9 @@ export async function finalizeRelease(
                 changeTitle: ctx.changeTitle,
                 prTitleType: ctx.prTitleType,
                 prTitlePolicy: ctx.prTitlePolicy,
-            changeTipSha,
-            preArchiveTipSha,
-            sourceBranch,
+                changeTipSha,
+                preArchiveTipSha,
+                sourceBranch,
               },
               finalizationDeps,
             );

@@ -647,6 +647,37 @@ describe("git-finalize helpers", () => {
       });
     });
 
+    it("fails closed when the merged PR head matches neither archive tip", () => {
+      expect(
+        verifyDirectMergedPrProof(
+          {
+            repoRoot: "/repo",
+            repo: "owner/repo",
+            defaultBranch: "trunk",
+            changeId: "example",
+            changeTipSha: "post-tip",
+            preArchiveTipSha: "pre-tip",
+          },
+          {
+            runGh: () => ({
+              status: 0,
+              stdout: JSON.stringify([
+                { ...validPayload, headRefOid: "other-tip" },
+              ]),
+              stderr: "",
+            }),
+            runGit: (_cwd, args) =>
+              args[0] === "merge-base"
+                ? { status: 0, stdout: "", stderr: "" }
+                : { status: 0, stdout: "current-default", stderr: "" },
+          },
+        ),
+      ).toMatchObject({
+        kind: "invalid",
+        reason: "MERGED_PR_PROOF_MISMATCH",
+      });
+    });
+
     it("selects one exact local-tip proof among historical merged PRs on the reused branch", () => {
       expect(
         proofRecords([
@@ -3649,7 +3680,10 @@ describe("git-finalize helpers", () => {
     const defaultBranchSha = git(mergeClone, ["rev-parse", "HEAD"]);
 
     await mkdir(join(worktree, ".adv", "archive"), { recursive: true });
-    await writeFile(join(worktree, ".adv", "archive", "bundle.txt"), "bundle\n");
+    await writeFile(
+      join(worktree, ".adv", "archive", "bundle.txt"),
+      "bundle\n",
+    );
 
     const result = await finalizeRelease(
       {
@@ -3743,13 +3777,22 @@ describe("git-finalize helpers", () => {
     git(worktree, ["push", "-u", "origin", "change/example"]);
 
     git(mergeClone, ["fetch", "origin", "change/example"]);
-    git(mergeClone, ["merge", "--no-ff", "origin/change/example", "-m", "merge commit"]);
+    git(mergeClone, [
+      "merge",
+      "--no-ff",
+      "origin/change/example",
+      "-m",
+      "merge commit",
+    ]);
     const mergeCommitOid = git(mergeClone, ["rev-parse", "HEAD"]);
     git(mergeClone, ["push", "origin", "trunk"]);
     const defaultBranchSha = git(mergeClone, ["rev-parse", "HEAD"]);
 
     await mkdir(join(worktree, ".adv", "archive"), { recursive: true });
-    await writeFile(join(worktree, ".adv", "archive", "bundle.txt"), "bundle\n");
+    await writeFile(
+      join(worktree, ".adv", "archive", "bundle.txt"),
+      "bundle\n",
+    );
 
     const result = await finalizeRelease(
       {

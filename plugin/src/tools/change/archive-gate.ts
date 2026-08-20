@@ -360,6 +360,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       prNumber: input.change?.phase9_status?.prNumber,
       prHeadSha: input.change?.phase9_status?.prHeadSha,
       changeTipSha: input.change?.phase9_status?.changeTipSha,
+      preArchiveTipSha: input.change?.phase9_status?.preArchiveTipSha,
       repo: input.change?.phase9_status?.repo,
     },
     input.deps,
@@ -383,6 +384,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       autoMergeArmed: false,
       pushStatus: route.route === "no_remote" ? "skipped" : "pushed",
       changeTipSha: input.change?.phase9_status?.changeTipSha,
+      preArchiveTipSha: input.change?.phase9_status?.preArchiveTipSha,
     };
   }
   if (reachability.proof === "origin_push_unverified")
