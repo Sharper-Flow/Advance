@@ -667,7 +667,7 @@ export const advChangeUpdateHandler = async (
         return formatToolOutput({
           error: `'${changeId}' is an Epic, not a change. Epics do not carry change artifacts.`,
           code: "EPIC_ARTIFACTS_UNSUPPORTED",
-          hint: "Epics carry a narrative rather than proposal/problemStatement/agreement/design/executiveSummary. Read it with 'adv_epic_show' and edit Epic entries through 'adv_change_update link_change / unlink_change / reorder_entries'.",
+          hint: "Epics carry a narrative rather than proposal/problemStatement/agreement/design/executiveSummary. In Code Mode, read it with 'tools.adv.epic_show' and edit Epic entries through 'adv_change_update link_change / unlink_change / reorder_entries'.",
         });
       }
       return formatToolOutput({

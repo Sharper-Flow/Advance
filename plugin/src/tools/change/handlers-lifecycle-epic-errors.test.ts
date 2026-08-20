@@ -68,6 +68,7 @@ describe("adv_change_update — Epic ids are reported as Epics", () => {
       // The reply must name the Epic's own narrative field so the caller can
       // retry without a schema lookup.
       expect(JSON.stringify(parsed)).toContain("narrative");
+      expect(String(parsed.hint)).toContain("tools.adv.epic_show");
     } finally {
       await cleanupTempDir(root);
     }

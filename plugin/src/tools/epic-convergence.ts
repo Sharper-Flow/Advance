@@ -200,9 +200,6 @@ export function membershipFromChangeEntry(
     linked_at: entry.linked_at ?? new Date().toISOString(),
     source,
   };
-  if (entry.change_ref?.project_id) {
-    membership.epic_project_id = entry.change_ref.project_id;
-  }
   if (entry.change_ref?.repo_id) {
     membership.repo_id = entry.change_ref.repo_id;
   }

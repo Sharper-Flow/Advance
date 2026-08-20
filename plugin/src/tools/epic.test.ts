@@ -1301,7 +1301,6 @@ describe("adv_epic_promote_shell", () => {
         title: "Promoted title",
         linked_at: linkedAt,
         source: "promote_shell",
-        epic_project_id: "project-owner",
         repo_id: "repo-owner",
       },
       setAt: linkedAt,
@@ -1541,11 +1540,14 @@ describe("adv_epic_link_change", () => {
         membership: expect.objectContaining({
           epic_id: "addAuthEpic",
           entry_id: "api-entry",
-          epic_project_id: "project-api",
           repo_id: "pokeedge-api",
         }),
       }),
     );
+    expect(
+      vi.mocked(targetStore.changes.setEpicMembership).mock.calls[0]?.[1]
+        ?.membership,
+    ).not.toHaveProperty("epic_project_id");
   });
 
   test("links existing same-project change and sets child epic_membership", async () => {
@@ -1590,11 +1592,13 @@ describe("adv_epic_link_change", () => {
           entry_id: "entry-2",
           order: 4,
           title: "Linked Change",
-          epic_project_id: "project-1",
           source: "link_existing",
         }),
       }),
     );
+    expect(
+      vi.mocked(store.changes.setEpicMembership).mock.calls[0]?.[1]?.membership,
+    ).not.toHaveProperty("epic_project_id");
   });
 
   test("repairs child projection idempotently when Epic entry already exists", async () => {
@@ -2408,6 +2412,14 @@ describe("Epic owner routing", () => {
     const childStore = makeStore();
     const currentStore = makeStore();
     currentStore.paths.root = "/workspace/current";
+    ownerStore.epics.linkChange = vi.fn(async () =>
+      makeChangeEntry({
+        change_ref: {
+          change_id: "change-2",
+          project_id: "project-child",
+        },
+      }),
+    );
     mockedWithTargetPathStore
       .mockImplementationOnce(async (_input, fn) =>
         fn({
@@ -2461,6 +2473,18 @@ describe("Epic owner routing", () => {
       root: "/workspace/child",
       projectId: "project-child",
     });
+    expect(childStore.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.objectContaining({
+        membership: expect.objectContaining({
+          epic_project_id: "project-owner",
+        }),
+      }),
+    );
+    expect(
+      vi.mocked(childStore.changes.setEpicMembership).mock.calls[0]?.[1]
+        ?.membership,
+    ).not.toHaveProperty("epic_project_id", "project-child");
   });
 
   test("adv_epic_link_change fails with OWNER_ROUTING_AMBIGUOUS when child-only target_path is provided for a non-local Epic", async () => {

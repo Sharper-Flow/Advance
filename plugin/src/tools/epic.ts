@@ -731,6 +731,15 @@ type EpicRoutingStore = {
   store: Store;
 };
 
+function setEpicOwnerProjectId(
+  membership: NonNullable<Change["epic_membership"]>,
+  owner: EpicRoutingStore,
+): NonNullable<Change["epic_membership"]> {
+  return owner.context
+    ? { ...membership, epic_project_id: owner.context.projectId }
+    : membership;
+}
+
 async function resolveEpicRoutingStores(
   store: Store,
   args: {
@@ -1838,11 +1847,14 @@ export const epicTools = {
           });
         }
 
-        const membership = membershipFromChangeEntry(
-          epic_id,
-          promotedEntry,
-          shell.title,
-          "promote_shell",
+        const membership = setEpicOwnerProjectId(
+          membershipFromChangeEntry(
+            epic_id,
+            promotedEntry,
+            shell.title,
+            "promote_shell",
+          ),
+          owner,
         );
         const projectionError = await applyChildEpicMembership(
           owner,
@@ -2039,11 +2051,14 @@ export const epicTools = {
                 change,
                 link_evidence,
               );
-            const rebuiltMembership = membershipFromChangeEntry(
-              epic_id,
-              entry,
-              title ?? change.title,
-              "link_existing",
+            const rebuiltMembership = setEpicOwnerProjectId(
+              membershipFromChangeEntry(
+                epic_id,
+                entry,
+                title ?? change.title,
+                "link_existing",
+              ),
+              routing.owner,
             );
             const projectionError = await applyChildEpicMembership(
               childStore,
@@ -2106,11 +2121,14 @@ export const epicTools = {
               change,
               link_evidence,
             );
-            const retargetedMembership = membershipFromChangeEntry(
-              epic_id,
-              retargetedEntry,
-              title ?? change.title,
-              "link_existing",
+            const retargetedMembership = setEpicOwnerProjectId(
+              membershipFromChangeEntry(
+                epic_id,
+                retargetedEntry,
+                title ?? change.title,
+                "link_existing",
+              ),
+              routing.owner,
             );
             const projectionError = await applyChildEpicMembership(
               childStore,
@@ -2152,11 +2170,14 @@ export const epicTools = {
             change,
             link_evidence,
           );
-          const refreshedMembership = membershipFromChangeEntry(
-            epic_id,
-            refreshedEntry,
-            title ?? change.title,
-            "link_existing",
+          const refreshedMembership = setEpicOwnerProjectId(
+            membershipFromChangeEntry(
+              epic_id,
+              refreshedEntry,
+              title ?? change.title,
+              "link_existing",
+            ),
+            routing.owner,
           );
           const projectionError = await applyChildEpicMembership(
             childStore,
@@ -2211,11 +2232,14 @@ export const epicTools = {
             change,
             link_evidence,
           );
-          const membership = membershipFromChangeEntry(
-            epic_id,
-            finalEntry,
-            title ?? change.title,
-            "link_existing",
+          const membership = setEpicOwnerProjectId(
+            membershipFromChangeEntry(
+              epic_id,
+              finalEntry,
+              title ?? change.title,
+              "link_existing",
+            ),
+            routing.owner,
           );
           const projectionError = await applyChildEpicMembership(
             childStore,
@@ -2268,11 +2292,14 @@ export const epicTools = {
             change,
             link_evidence,
           );
-        const membership = membershipFromChangeEntry(
-          epic_id,
-          entry,
-          title ?? change.title,
-          "link_existing",
+        const membership = setEpicOwnerProjectId(
+          membershipFromChangeEntry(
+            epic_id,
+            entry,
+            title ?? change.title,
+            "link_existing",
+          ),
+          routing.owner,
         );
         const projectionError = await applyChildEpicMembership(
           childStore,
@@ -2616,11 +2643,14 @@ export const epicTools = {
             targetPath: childStore.context?.root,
           }),
         );
-        const membership = membershipFromChangeEntry(
-          to_epic_id,
-          destEntry,
-          change.title,
-          "move",
+        const membership = setEpicOwnerProjectId(
+          membershipFromChangeEntry(
+            to_epic_id,
+            destEntry,
+            change.title,
+            "move",
+          ),
+          routing.owner,
         );
         const projectionError = await applyChildEpicMembership(
           childStore,
