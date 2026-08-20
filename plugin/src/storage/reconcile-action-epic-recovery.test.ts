@@ -85,6 +85,7 @@ async function fixture() {
   const audits: unknown[] = [];
   const ctx: ActionContext = {
     storePaths: paths,
+    localProjectId: "fixture-project",
     locksHeld: [],
     runId: "reconcile-epic-test",
     writeBeforeState: async (recordId, bytes) => {
@@ -244,6 +245,52 @@ describe("Epic recovery reconcile action executors", () => {
     expect(convergence).toMatchObject({ ok: false });
     expect(convergence.failures[0]).toContain("child-one");
     expect(paths.activeEpics).toContain("state");
+  });
+
+  test("excludes foreign-project fragments from owner reconstruction", async () => {
+    const { paths, ctx } = await fixture();
+    const local = makeChange(
+      "local-child",
+      "lostEpic",
+      "local-entry",
+      1,
+      "Local child",
+      "2026-08-07T00:00:00.000Z",
+      "fixture-project",
+    );
+    const foreign = makeChange(
+      "foreign-child",
+      "lostEpic",
+      "foreign-entry",
+      2,
+      "Foreign child",
+      "2026-08-07T01:00:00.000Z",
+      "remote-project",
+    );
+    const sourcePath = await seedChange(paths, local);
+    await seedChange(paths, foreign);
+
+    const result = await reconstructFromChildFragmentsExecutor(
+      record(local.id, sourcePath, "reconstruct_from_child_fragments"),
+      {
+        class: "epic_owner_missing",
+        action: "reconstruct_from_child_fragments",
+      },
+      ctx,
+    );
+
+    expect(result.status).toBe("mutated");
+    const owner = JSON.parse(
+      await readFile(
+        join(paths.activeEpics, "lostEpic", "active-projection.json"),
+        "utf8",
+      ),
+    ) as Epic;
+    expect(owner.entries).toHaveLength(1);
+    expect(owner.entries[0]).toMatchObject({
+      entry_id: "local-entry",
+      change_id: "local-child",
+    });
   });
 
   test("formal-loss action reports bounded loss without creating an Epic", async () => {

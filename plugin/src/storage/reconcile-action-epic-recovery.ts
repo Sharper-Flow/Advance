@@ -135,6 +135,7 @@ function isActionOutcome(
 async function findFragments(
   changesDir: string,
   epicId: string,
+  localProjectId?: string | null,
 ): Promise<EpicRecoveryFragment[]> {
   const fragments: EpicRecoveryFragment[] = [];
   for (const changeId of await listChangeDirs(changesDir)) {
@@ -143,7 +144,16 @@ async function findFragments(
     const membership = EpicMembershipSchema.safeParse(
       loaded.data.epic_membership,
     );
-    if (membership.success && membership.data.epic_id === epicId) {
+    if (
+      membership.success &&
+      membership.data.epic_id === epicId &&
+      !(
+        typeof localProjectId === "string" &&
+        typeof membership.data.epic_project_id === "string" &&
+        membership.data.epic_project_id.length > 0 &&
+        membership.data.epic_project_id !== localProjectId
+      )
+    ) {
       fragments.push({ change: loaded.data, membership: membership.data });
     }
   }
@@ -385,7 +395,11 @@ export const reconstructFromChildFragmentsExecutor: ActionExecutor = async (
   }
   const owner = await ownerState(ctx, epicId);
   if (owner.kind === "failed") return failed("owner_read_failed", owner.reason);
-  const fragments = await findFragments(ctx.storePaths.changes, epicId);
+  const fragments = await findFragments(
+    ctx.storePaths.changes,
+    epicId,
+    ctx.localProjectId,
+  );
   if (owner.epic) {
     const gate = verifyEpicReconstructionConvergence(
       owner.epic,
@@ -469,7 +483,11 @@ export const formallyLostReportExecutor: ActionExecutor = async (
       status: "skipped",
       evidence: { epic_id: epicId, fragment_count: 0 },
     };
-  const fragments = await findFragments(ctx.storePaths.changes, epicId);
+  const fragments = await findFragments(
+    ctx.storePaths.changes,
+    epicId,
+    ctx.localProjectId,
+  );
   const reason = fragmentFailureReason(fragments);
   if (!reason)
     return {
@@ -524,6 +542,7 @@ export const clearDanglingMembershipExecutor: ActionExecutor = async (
   const fragments = await findFragments(
     ctx.storePaths.changes,
     membership.epic_id,
+    ctx.localProjectId,
   );
   if (!fragmentFailureReason(fragments)) {
     return {

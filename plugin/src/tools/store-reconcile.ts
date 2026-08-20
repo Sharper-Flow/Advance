@@ -16,6 +16,7 @@ import { readReconcileProgress } from "../storage/reconcile-report";
 import { runStoreResidueScan } from "../storage/store-residue-scan";
 import type { Store } from "../storage/store-types";
 import { formatToolOutput } from "../utils/tool-output";
+import { getProjectId } from "../utils/project-id";
 import { TargetProjectError, withTargetPathStore } from "./target-project";
 
 const PLAN_HASH = /^[a-f0-9]{64}$/;
@@ -89,6 +90,9 @@ const storeReconcileToolDefinitions = {
     ): Promise<string> => {
       const mutation = args.mode === "apply";
       const run = async (targetStore: Store, targetContext?: unknown) => {
+        const localProjectId =
+          targetStore.productContext?.repoProjectId ??
+          (await getProjectId(targetStore.paths.root));
         const resumeProgress = args.resume_from
           ? await readReconcileProgress(
               `${targetStore.paths.reconcileDir}/runs/${args.resume_from}`,
@@ -105,6 +109,7 @@ const storeReconcileToolDefinitions = {
           }),
           ...(args.budget_ms !== undefined && { budgetMs: args.budget_ms }),
           ...(resumeAfter !== undefined && { resumeAfter }),
+          localProjectId,
         });
         const plan = buildReconcilePlan(scan);
 
@@ -149,9 +154,12 @@ const storeReconcileToolDefinitions = {
           mode: "apply",
           resumeFromRunId: args.resume_from,
           deps: {
-            scan: (paths) =>
+            localProjectId,
+            scan: (paths, options) =>
               runStoreResidueScan({
                 paths,
+                ...options,
+                localProjectId,
                 ...(args.max_records !== undefined && {
                   maxRecords: args.max_records,
                 }),

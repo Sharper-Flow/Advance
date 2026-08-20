@@ -18,6 +18,8 @@ const classes = [
   "unmigrated_artifact_metadata",
   "unmigrated_worktree_marker",
   "epic_owner_missing",
+  "epic_owner_foreign",
+  "epic_entry_missing",
   "quarantined_record",
   "unknown_store_noise",
   "store_artifact_missing",
@@ -60,6 +62,24 @@ describe("buildReconcilePlan", () => {
         expect(ReconcileActionSchema.safeParse(action).success).toBe(true);
       }
     }
+  });
+
+  test("reports foreign owners and defers entry backfill", () => {
+    const plan = buildReconcilePlan(
+      scan([
+        base("epic_owner_foreign", "foreign"),
+        base("epic_entry_missing", "entryless"),
+      ]),
+    );
+    expect(plan.records[0]?.actions).toEqual([
+      { class: "epic_owner_foreign", action: "report_only" },
+    ]);
+    expect(plan.records[1]?.actions).toEqual([
+      {
+        class: "epic_entry_missing",
+        action: "backfill_epic_entry_from_fragment",
+      },
+    ]);
   });
 
   test("normalization precedes summary rebuilding", () => {

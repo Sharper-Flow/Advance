@@ -5,8 +5,9 @@ import { describe, expect, test } from "vitest";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import { getProjectPaths } from "./json";
 import { publishSummaryForChange } from "./change-summary-shard";
-import { ChangeSchema } from "../types";
+import { ChangeSchema, EpicSchema, type Epic } from "../types";
 import { ResidueClassSchema, runStoreResidueScan } from "./store-residue-scan";
+import { saveActiveEpicProjection } from "./epic-projection";
 
 const now = "2026-08-07T00:00:00.000Z";
 
@@ -21,6 +22,26 @@ function change(id: string, extra: Record<string, unknown> = {}) {
     worktree_auto_managed: false,
     ...extra,
   };
+}
+
+function epic(id: string, entries: Epic["entries"] = []): Epic {
+  return EpicSchema.parse({
+    id,
+    title: id,
+    narrative: "",
+    entries,
+    progress: {
+      status: "active",
+      total_entries: entries.length,
+      completed_entries: 0,
+      active_entries: entries.length,
+      next_entry_id: entries[0]?.entry_id ?? null,
+      updated_at: now,
+    },
+    created_at: now,
+    updated_at: now,
+    version: 0,
+  });
 }
 
 async function fixture(
@@ -193,6 +214,88 @@ describe("runStoreResidueScan", () => {
     expect(
       scan.records.find((item) => item.record_id === "fixture-change")?.class,
     ).toBe("healthy");
+  });
+
+  test("classifies a foreign Epic owner without reconstructing locally", async () => {
+    const data = await fixture({
+      epic_membership: {
+        epic_id: "remote-epic",
+        entry_id: "remote-entry",
+        order: 0,
+        title: "Remote entry",
+        linked_at: now,
+        epic_project_id: "remote-project",
+      },
+    });
+    try {
+      const scan = await runStoreResidueScan({
+        directory: data.root,
+        localProjectId: "local-project",
+      });
+      expect(
+        scan.records.find((item) => item.record_id === data.id),
+      ).toMatchObject({ class: "epic_owner_foreign" });
+    } finally {
+      await cleanupTempDir(data.root);
+    }
+  });
+
+  test("classifies an active Epic with no matching entry", async () => {
+    const data = await fixture({
+      epic_membership: {
+        epic_id: "entryless-epic",
+        entry_id: "missing-entry",
+        order: 0,
+        title: "Missing entry",
+        linked_at: now,
+      },
+    });
+    try {
+      await saveActiveEpicProjection(
+        data.paths.activeEpics,
+        epic("entryless-epic"),
+      );
+      const scan = await runStoreResidueScan({ directory: data.root });
+      expect(
+        scan.records.find((item) => item.record_id === data.id),
+      ).toMatchObject({ class: "epic_entry_missing" });
+    } finally {
+      await cleanupTempDir(data.root);
+    }
+  });
+
+  test("does not classify an active Epic with a matching entry", async () => {
+    const data = await fixture({
+      epic_membership: {
+        epic_id: "linked-epic",
+        entry_id: "linked-entry",
+        order: 0,
+        title: "Linked entry",
+        linked_at: now,
+      },
+    });
+    try {
+      await saveActiveEpicProjection(
+        data.paths.activeEpics,
+        epic("linked-epic", [
+          {
+            kind: "change",
+            entry_id: "linked-entry",
+            order: 0,
+            change_id: data.id,
+            title: "Linked entry",
+            linked_at: now,
+            membership_status: "linked",
+          },
+        ]),
+      );
+      const scan = await runStoreResidueScan({ directory: data.root });
+      expect(
+        scan.records.find((item) => item.record_id === data.id),
+      ).toMatchObject({ class: "healthy" });
+    } finally {
+      await cleanupTempDir(data.root);
+    }
   });
 
   test("reconcile run artifacts are fully excluded from unknown noise", async () => {

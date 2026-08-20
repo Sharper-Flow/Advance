@@ -26,6 +26,8 @@ const actionForClass = {
     "formally_lost_report",
     "clear_dangling_membership",
   ],
+  epic_owner_foreign: ["report_only"],
+  epic_entry_missing: ["backfill_epic_entry_from_fragment"],
   quarantined_record: ["normalize_and_restore", "remain_quarantined_reported"],
   unknown_store_noise: ["quarantine_to_trash"],
   store_artifact_missing: ["rebuild_from_changes"],
@@ -63,6 +65,14 @@ export const ReconcileActionSchema = z.discriminatedUnion("class", [
   z.object({
     class: z.literal("epic_owner_missing"),
     action: z.enum(actionForClass.epic_owner_missing),
+  }),
+  z.object({
+    class: z.literal("epic_owner_foreign"),
+    action: z.enum(actionForClass.epic_owner_foreign),
+  }),
+  z.object({
+    class: z.literal("epic_entry_missing"),
+    action: z.enum(actionForClass.epic_entry_missing),
   }),
   z.object({
     class: z.literal("quarantined_record"),

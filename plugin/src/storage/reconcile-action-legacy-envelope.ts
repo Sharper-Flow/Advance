@@ -210,6 +210,17 @@ export const reportOnlyExecutor: ActionExecutor = async (
   action,
   ctx,
 ) => {
+  if (
+    record.class === "epic_owner_foreign" &&
+    action.class === "epic_owner_foreign" &&
+    action.action === "report_only"
+  ) {
+    return {
+      status: "skipped",
+      report_only: true,
+      residual: `${record.record_id}: foreign Epic owner reported without local mutation`,
+    } as ActionOutcome & { report_only: true };
+  }
   const invalid = checkAction(
     record,
     action,

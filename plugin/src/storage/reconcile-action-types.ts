@@ -26,6 +26,7 @@ export interface EpicSaveResult {
 
 export interface ActionContext {
   storePaths: ProjectPaths;
+  localProjectId?: string | null;
   locksHeld: readonly string[];
   runId: string;
   writeBeforeState: (

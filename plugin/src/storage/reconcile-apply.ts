@@ -161,6 +161,7 @@ const ACTION_NAMES = [
   "reconstruct_from_child_fragments",
   "formally_lost_report",
   "clear_dangling_membership",
+  "backfill_epic_entry_from_fragment",
   "normalize_and_restore",
   "remain_quarantined_reported",
   "quarantine_to_trash",
@@ -331,8 +332,12 @@ function freshPlan(scan: StoreResidueScan): ReconcilePlan {
 export interface ReconcileApplyDeps {
   scan?: (
     paths: ProjectPaths,
-    options?: { resumeAfter?: string },
+    options?: {
+      resumeAfter?: string;
+      localProjectId?: string | null;
+    },
   ) => Promise<StoreResidueScan>;
+  localProjectId?: string | null;
   actionExecutors?: Partial<Record<ReconcileAction["action"], ActionExecutor>>;
   auditWriter?: (
     event: ReconcileAuditEvent,
@@ -408,7 +413,12 @@ export async function runReconcileApply({
   try {
     scan = await (
       deps.scan ??
-      ((paths, options) => runStoreResidueScan({ paths, ...options }))
+      ((paths, options) =>
+        runStoreResidueScan({
+          paths,
+          ...options,
+          localProjectId: deps.localProjectId,
+        }))
     )(storePaths, resumeAfter !== undefined ? { resumeAfter } : undefined);
   } catch (error) {
     throw new ReconcileRefusalError(
@@ -519,6 +529,7 @@ export async function runReconcileApply({
         appendReconcileAudit(join(storePaths.reconcileDir, "audit"), event));
     const ctx: ActionContext = {
       storePaths,
+      localProjectId: deps.localProjectId,
       locksHeld: [reconcileTarget],
       runId,
       writeBeforeState: async (recordId, bytes) => {

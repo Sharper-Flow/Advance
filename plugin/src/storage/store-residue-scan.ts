@@ -10,7 +10,7 @@ import { access, readdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import { z } from "zod";
 
-import { ChangeSchema } from "../types";
+import { ChangeSchema, type EpicEntry } from "../types";
 import {
   normalizeProjectionDocument,
   readBoundedProjectionDocument,
@@ -30,6 +30,7 @@ import {
   readLegacyCounters,
 } from "./projection-counters";
 import { RETIRED_EVIDENCE_VALUES } from "./retired-evidence";
+import { findChangeEntry } from "../tools/epic-convergence";
 
 export const ResidueClassSchema = z.enum([
   "schema_drift_retired_enum",
@@ -40,6 +41,8 @@ export const ResidueClassSchema = z.enum([
   "unmigrated_artifact_metadata",
   "unmigrated_worktree_marker",
   "epic_owner_missing",
+  "epic_owner_foreign",
+  "epic_entry_missing",
   "quarantined_record",
   "unknown_store_noise",
   "store_artifact_missing",
@@ -93,6 +96,8 @@ export interface StoreResidueScanOptions {
   budgetMs?: number;
   /** Resume after the record id persisted by an interrupted bounded scan. */
   resumeAfter?: string;
+  /** Project identity used to distinguish local Epic owners from remote ones. */
+  localProjectId?: string | null;
 }
 
 export const RECONCILE_START_CURSOR = "__reconcile_start__";
@@ -108,6 +113,8 @@ const PRIMARY_PRECEDENCE: readonly ResidueClass[] = [
   "unmigrated_artifact_metadata",
   "unmigrated_worktree_marker",
   "epic_owner_missing",
+  "epic_owner_foreign",
+  "epic_entry_missing",
   "quarantined_record",
   "unknown_store_noise",
   "store_artifact_missing",
@@ -233,7 +240,8 @@ async function classifyCanonical(
   paths: ProjectPaths,
   id: string,
   sourcePath: string,
-  epicIds: ReadonlySet<string>,
+  epicIndex: ReadonlyMap<string, { entries: EpicEntry[]; retired: boolean }>,
+  localProjectId?: string | null,
 ): Promise<StoreResidueRecord> {
   const loaded = await readJson(sourcePath);
   if (loaded.kind !== "ok") {
@@ -363,21 +371,48 @@ async function classifyCanonical(
   }
 
   const membership = asRecord(raw.epic_membership);
-  if (
-    typeof membership?.epic_id === "string" &&
-    !epicIds.has(membership.epic_id)
-  ) {
-    signals.push({
-      class: "epic_owner_missing",
-      evidence: `epic_membership references missing epic ${membership.epic_id}`,
-    });
+  if (typeof membership?.epic_id === "string") {
+    const epic = epicIndex.get(membership.epic_id);
+    const epicProjectId = membership.epic_project_id;
+    if (
+      typeof epicProjectId === "string" &&
+      epicProjectId.length > 0 &&
+      typeof localProjectId === "string" &&
+      epicProjectId !== localProjectId
+    ) {
+      signals.push({
+        class: "epic_owner_foreign",
+        evidence: `epic_membership references foreign epic project ${epicProjectId}`,
+      });
+    } else if (!epic) {
+      signals.push({
+        class: "epic_owner_missing",
+        evidence: `epic_membership references missing epic ${membership.epic_id}`,
+      });
+    } else if (
+      !epic.retired &&
+      !findChangeEntry(epic, {
+        mode: "entry_id_or_change_id",
+        entryId:
+          typeof membership.entry_id === "string"
+            ? membership.entry_id
+            : undefined,
+        changeId: id,
+      })
+    ) {
+      signals.push({
+        class: "epic_entry_missing",
+        evidence: `epic_membership has no matching entry in active epic ${membership.epic_id}`,
+      });
+    }
   }
   return signalsToRecord(id, sourcePath, signals);
 }
 
 async function enumerateCanonicalRecords(
   paths: ProjectPaths,
-  epicIds: ReadonlySet<string>,
+  epicIndex: ReadonlyMap<string, { entries: EpicEntry[]; retired: boolean }>,
+  localProjectId: string | null | undefined,
   add: (record: StoreResidueRecord) => void,
   shouldStop: () => boolean,
 ): Promise<void> {
@@ -386,7 +421,15 @@ async function enumerateCanonicalRecords(
       if (shouldStop()) return;
       const sourcePath = join(parent, entry.name, "change.json");
       if (entry.isDirectory) {
-        add(await classifyCanonical(paths, entry.name, sourcePath, epicIds));
+        add(
+          await classifyCanonical(
+            paths,
+            entry.name,
+            sourcePath,
+            epicIndex,
+            localProjectId,
+          ),
+        );
       } else if (entry.name.endsWith(".json")) {
         const canonicalDir = join(parent, entry.name.slice(0, -5));
         if (!(await exists(canonicalDir))) {
@@ -528,12 +571,28 @@ export async function runStoreResidueScan(
     listActiveEpicProjections(paths.activeEpics),
     listRetiredEpicProjections(paths.retiredEpics),
   ]);
-  const epicIds = new Set<string>([
-    ...(activeEpics.success ? activeEpics.data.map((epic) => epic.id) : []),
-    ...(retiredEpics.success ? retiredEpics.data.map((epic) => epic.id) : []),
-  ]);
+  const epicIndex = new Map<
+    string,
+    { entries: EpicEntry[]; retired: boolean }
+  >();
+  if (activeEpics.success) {
+    for (const epic of activeEpics.data) {
+      epicIndex.set(epic.id, { entries: epic.entries, retired: false });
+    }
+  }
+  if (retiredEpics.success) {
+    for (const epic of retiredEpics.data) {
+      epicIndex.set(epic.id, { entries: epic.entries, retired: true });
+    }
+  }
 
-  await enumerateCanonicalRecords(paths, epicIds, add, shouldStop);
+  await enumerateCanonicalRecords(
+    paths,
+    epicIndex,
+    options.localProjectId,
+    add,
+    shouldStop,
+  );
   await enumerateQuarantine(paths, add, shouldStop);
   await enumerateUnknownStoreNoise(paths, add, shouldStop);
   const budgetExceeded = Date.now() >= deadline;
