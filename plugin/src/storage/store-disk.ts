@@ -131,6 +131,18 @@ async function persistChangeProjection(
 let lastMonotonicTs = 0;
 let monotonicSeq = 0;
 
+/**
+ * Typed refusal from the Epic membership write boundary, matching the
+ * `Object.assign(new Error(...), { code })` shape used by the Epic store so
+ * callers can discriminate a conflict from an infrastructure failure.
+ */
+function epicMembershipError(
+  message: string,
+  code: "epic_membership_conflict" | "epic_membership_stale_write",
+): Error & { code: string } {
+  return Object.assign(new Error(message), { code });
+}
+
 function monotonicId(prefix: string): string {
   const now = Date.now();
   if (now !== lastMonotonicTs) {
@@ -690,9 +702,42 @@ export async function createDiskStore(
       invalidate: async (_changeId: string): Promise<void> => {
         // intentional no-op
       },
-      setEpicMembership: async (changeId, { membership }) => {
+      setEpicMembership: async (
+        changeId,
+        { membership, expectedCurrent, setAt },
+      ) => {
         const result = await loadChange(paths.changes, changeId);
         if (!result.success || !result.data) return null;
+        const current = result.data.epic_membership;
+
+        // rq-epicMembershipConvergence01: a conflicting child projection must
+        // not be overwritten. Callers that know what they are replacing pass
+        // expectedCurrent; callers that own the authoritative entry — direct
+        // convergence — pass none and overwrite unconditionally, because
+        // requiring them to predict the current value would defeat the point.
+        if (expectedCurrent && current) {
+          if (
+            current.epic_id !== expectedCurrent.epic_id ||
+            current.entry_id !== expectedCurrent.entry_id
+          ) {
+            throw epicMembershipError(
+              `Cannot set Epic membership on ${changeId}: current projection is Epic ${current.epic_id} entry ${current.entry_id}, expected Epic ${expectedCurrent.epic_id} entry ${expectedCurrent.entry_id}`,
+              "epic_membership_conflict",
+            );
+          }
+        }
+        // An absent projection is deliberately NOT a conflict: fresh links and
+        // move-after-clear both arrive with an expectation and nothing to match.
+
+        // Reject only strictly older writes. Equal timestamps must succeed so
+        // idempotent convergence re-runs are not starved.
+        if (setAt && current?.linked_at && setAt < current.linked_at) {
+          throw epicMembershipError(
+            `Cannot set Epic membership on ${changeId}: write at ${setAt} is older than the current projection at ${current.linked_at}`,
+            "epic_membership_stale_write",
+          );
+        }
+
         result.data.epic_membership = membership;
         await persistChangeProjection(paths, result.data);
         return result.data;
@@ -706,8 +751,9 @@ export async function createDiskStore(
           current.epic_id !== expected.epic_id ||
           current.entry_id !== expected.entry_id
         ) {
-          throw new Error(
+          throw epicMembershipError(
             `Cannot clear Epic membership: current projection does not match expected Epic ${expected.epic_id} entry ${expected.entry_id}`,
+            "epic_membership_conflict",
           );
         }
         delete result.data.epic_membership;

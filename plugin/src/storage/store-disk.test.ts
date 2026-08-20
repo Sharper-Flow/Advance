@@ -420,3 +420,144 @@ describe("store-disk — init does not run artifact-metadata migration", () => {
     expect(after.artifacts.proposal.source).toBe("temporal");
   });
 });
+
+describe("store-disk — Epic membership write guard (rq-epicMembershipConvergence01)", () => {
+  const EPIC = "someEpic";
+  const OTHER_EPIC = "otherEpic";
+  const T0 = "2026-07-01T00:00:00.000Z";
+  const T1 = "2026-07-02T00:00:00.000Z";
+
+  function membership(
+    epicId: string,
+    entryId: string,
+    linkedAt: string,
+  ): NonNullable<Change["epic_membership"]> {
+    return {
+      epic_id: epicId,
+      entry_id: entryId,
+      order: 0,
+      title: "Linked",
+      linked_at: linkedAt,
+    };
+  }
+
+  async function seed(
+    linkedAt: string = T0,
+  ): Promise<{ store: Awaited<ReturnType<typeof createDiskStore>>; id: string }> {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const created = await store.changes.create("Guarded Change", {});
+    await store.changes.setEpicMembership(created.changeId, {
+      membership: membership(EPIC, "entry-1", linkedAt),
+    });
+    return { store, id: created.changeId };
+  }
+
+  test("an absent projection is not a conflict", async () => {
+    // Fresh links and move-after-clear both arrive with an expectation but no
+    // current projection. Refusing here would break them.
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const created = await store.changes.create("Fresh Link", {});
+
+    const written = await store.changes.setEpicMembership(created.changeId, {
+      membership: membership(EPIC, "entry-1", T0),
+      expectedCurrent: { epic_id: EPIC, entry_id: "entry-1" },
+      setAt: T0,
+    });
+
+    expect(written?.epic_membership?.entry_id).toBe("entry-1");
+  });
+
+  test("a mismatched expectation is refused and preserves the projection", async () => {
+    const { store, id } = await seed();
+
+    await expect(
+      store.changes.setEpicMembership(id, {
+        membership: membership(OTHER_EPIC, "entry-9", T1),
+        expectedCurrent: { epic_id: OTHER_EPIC, entry_id: "entry-9" },
+        setAt: T1,
+      }),
+    ).rejects.toMatchObject({ code: "epic_membership_conflict" });
+
+    const after = await store.changes.get(id);
+    expect(after.data?.epic_membership).toMatchObject({
+      epic_id: EPIC,
+      entry_id: "entry-1",
+    });
+  });
+
+  test("a matching expectation writes", async () => {
+    const { store, id } = await seed();
+
+    const written = await store.changes.setEpicMembership(id, {
+      membership: membership(EPIC, "entry-1", T1),
+      expectedCurrent: { epic_id: EPIC, entry_id: "entry-1" },
+      setAt: T1,
+    });
+
+    expect(written?.epic_membership?.linked_at).toBe(T1);
+  });
+
+  test("an equal setAt writes so idempotent convergence is not starved", async () => {
+    const { store, id } = await seed(T0);
+
+    const written = await store.changes.setEpicMembership(id, {
+      membership: membership(EPIC, "entry-1", T0),
+      setAt: T0,
+    });
+
+    expect(written?.epic_membership?.linked_at).toBe(T0);
+  });
+
+  test("a strictly older setAt is refused as a stale write", async () => {
+    const { store, id } = await seed(T1);
+
+    await expect(
+      store.changes.setEpicMembership(id, {
+        membership: membership(EPIC, "entry-1", T0),
+        setAt: T0,
+      }),
+    ).rejects.toMatchObject({ code: "epic_membership_stale_write" });
+
+    const after = await store.changes.get(id);
+    expect(after.data?.epic_membership?.linked_at).toBe(T1);
+  });
+
+  test("no expectation overwrites unconditionally, which convergence relies on", async () => {
+    const { store, id } = await seed();
+
+    const written = await store.changes.setEpicMembership(id, {
+      membership: membership(OTHER_EPIC, "entry-9", T1),
+    });
+
+    expect(written?.epic_membership).toMatchObject({
+      epic_id: OTHER_EPIC,
+      entry_id: "entry-9",
+    });
+  });
+
+  test("clearEpicMembership refuses a mismatch with a typed conflict", async () => {
+    const { store, id } = await seed();
+
+    await expect(
+      store.changes.clearEpicMembership(id, {
+        expected: { epic_id: OTHER_EPIC, entry_id: "entry-9" },
+      }),
+    ).rejects.toMatchObject({ code: "epic_membership_conflict" });
+
+    const after = await store.changes.get(id);
+    expect(after.data?.epic_membership).toBeDefined();
+  });
+
+  test("clearEpicMembership removes a matching projection", async () => {
+    const { store, id } = await seed();
+
+    await store.changes.clearEpicMembership(id, {
+      expected: { epic_id: EPIC, entry_id: "entry-1" },
+    });
+
+    const after = await store.changes.get(id);
+    expect(after.data?.epic_membership).toBeUndefined();
+  });
+});

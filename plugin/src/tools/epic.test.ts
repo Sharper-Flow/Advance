@@ -1480,8 +1480,46 @@ describe("adv_epic_link_change", () => {
           epic_id: "addAuthEpic",
           entry_id: "entry-2",
         }),
+        // The entry already exists, so the child's projection should already
+        // name it. Stating the expectation makes a drifted child a typed
+        // conflict at the storage boundary rather than a silent overwrite.
+        expectedCurrent: { epic_id: "addAuthEpic", entry_id: "entry-2" },
       }),
     );
+  });
+
+  test("re-linking an existing entry surfaces a drifted child projection", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_id: "change-2",
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          membership_status: "projection_pending",
+        }),
+      ],
+    });
+    // Storage refuses because the child now belongs to a different Epic.
+    store.changes.setEpicMembership = vi.fn(async () => {
+      throw Object.assign(new Error("conflicting projection"), {
+        code: "epic_membership_conflict",
+      });
+    });
+
+    const parsed = parseToolOutput(
+      await epicTools.adv_epic_link_change.execute(
+        {
+          epic_id: "addAuthEpic",
+          change_id: "change-2",
+          link_evidence: "Retry after drift.",
+        },
+        store,
+      ),
+    );
+
+    expect(parsed.success).not.toBe(true);
+    expect(JSON.stringify(parsed)).toContain("conflicting projection");
   });
 
   test("rejects duplicate membership before linking", async () => {

@@ -2222,6 +2222,12 @@ export const epicTools = {
             change_id,
             membership,
             finalEntry,
+            // Re-linking an entry that already exists: the child's projection
+            // should already name it. Stating that expectation turns a child
+            // that has drifted to another Epic into a typed conflict instead
+            // of a silent overwrite. A child with no projection yet is not a
+            // conflict, so the rebuild case still works.
+            { epic_id, entry_id: finalEntry.entry_id },
           );
           if (projectionError) return projectionError;
           const output = formatToolOutput({
