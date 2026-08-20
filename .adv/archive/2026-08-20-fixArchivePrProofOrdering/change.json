@@ -1,0 +1,1454 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchivePrProofOrdering",
+  "title": "Fix archive PR proof ordering",
+  "status": "archived",
+  "created_at": "2026-08-20T15:43:15.221Z",
+  "tasks": [
+    {
+      "id": "tk-7d888f91adc5",
+      "title": "RED: scenario-B regression tests at integration and handler level",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-20T16:10:40.351Z",
+      "completed_at": "2026-08-20T16:20:45.802Z",
+      "verification": "Recorded red evidence run tr_mt1q8cve_457abd30: targeted integration and archive-phase9 tests fail on the new scenario-B and preservation assertions, while existing tests remain green.",
+      "summary": "Recorded red evidence run tr_mt1q8cve_457abd30: targeted integration and archive-phase9 tests fail on the new scenario-B and preservation assertions, while existing tests remain green.",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "checkpointSha": "32efee5109caf699dc4f99807f9889fa240cd2c7",
+      "completedAt": "2026-08-20T16:20:45.802Z",
+      "contract_refs": {
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC9"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-f31795e482cb",
+      "title": "Add preArchiveTipSha to the schema and thread it through every writer",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d888f91adc5"
+        }
+      ],
+      "created_at": "2026-08-20T16:10:57.129Z",
+      "completed_at": "2026-08-20T16:24:05.221Z",
+      "verification": "Red run tr_mt1q96lf_6567063a failed before threading. Green run tr_mt1qcrgh_e0516eb2 passed 17 tests across schema round-trip and Phase 9 preservation coverage; schemas:generate completed successfully.",
+      "summary": "Red run tr_mt1q96lf_6567063a failed before threading. Green run tr_mt1qcrgh_e0516eb2 passed 17 tests across schema round-trip and Phase 9 preservation coverage; schemas:generate completed successfully.",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/handlers-archive.ts",
+        "plugin/src/tools/change/helpers.ts",
+        "plugin/src/types/changes.archive-passthrough.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "4c246dab14a256be5f9a2532b0a5e4cac49f863f",
+      "completedAt": "2026-08-20T16:24:05.221Z",
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "AC10"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-19e66fe6a47e",
+      "title": "GREEN: capture the pre-bundle tip and accept either candidate in merged-PR proof",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d888f91adc5"
+        }
+      ],
+      "created_at": "2026-08-20T16:11:08.156Z",
+      "completed_at": "2026-08-20T16:28:40.655Z",
+      "verification": "Red run tr_mt1qe1t0_6c7e7bf4 reproduced both scenario-B integration failures with pre-tip capture disabled. Green run tr_mt1qi7bt_bc0653d6 passed 171 targeted tests, including squash-merge, merge-commit, and neither-tip fail-closed coverage. schemas:check also passes.",
+      "summary": "Red run tr_mt1qe1t0_6c7e7bf4 reproduced both scenario-B integration failures with pre-tip capture disabled. Green run tr_mt1qi7bt_bc0653d6 passed 171 targeted tests, including squash-merge, merge-commit, and neither-tip fail-closed coverage. schemas:check also passes.",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "af88b9fcc20711364d2afeb48c65151f3961b557",
+      "completedAt": "2026-08-20T16:28:40.655Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "AC5",
+          "AC9"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-6307dc842aa0",
+      "title": "Tree re-proof: try the pre-bundle tree under a DISTINCT proof token",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-19e66fe6a47e"
+        }
+      ],
+      "created_at": "2026-08-20T16:11:25.697Z",
+      "completed_at": "2026-08-20T16:56:17.230Z",
+      "verification": "Added pre-archive tree structural proof coverage; targeted archive helper tests, typecheck, Prettier check, and full Vitest suite with maxWorkers=4 pass. The pre-archive token remains distinct from API-confirmed pr_merged; structural detection performs up to two bounded 50-commit walks (100 probes max).",
+      "summary": "Added pre-archive tree structural proof coverage; targeted archive helper tests, typecheck, Prettier check, and full Vitest suite with maxWorkers=4 pass. The pre-archive token remains distinct from API-confirmed pr_merged; structural detection performs up to two bounded 50-commit walks (100 probes max).",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "22027e3ff429af06536f26c21b63100086440cec",
+      "completedAt": "2026-08-20T16:56:17.230Z",
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-80c460800fcf",
+      "title": "Verify: scenario A preserved, historical-repair untouched, full suite",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f31795e482cb"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-19e66fe6a47e"
+        }
+      ],
+      "created_at": "2026-08-20T16:11:35.694Z",
+      "started_at": "2026-08-20T17:01:36.481Z",
+      "completed_at": "2026-08-20T17:01:56.669Z",
+      "verification": "Verification-only task, no code changes.\n\nAC5 — scenario-A tests preserved, proven by diff structure rather than assertion. All four hunks in git-finalize.test.ts are pure insertions (-N,0 form, zero deletions) at lines 649, 1515, 3612, 4017. None touches the pinned tests at 3057/3205/3344, which are therefore byte-unmodified.\n\nAC10 — historical-repair.ts absent from the branch diff. Confirmed by git diff --name-only trunk...HEAD.\n\nAC11 — full suite green via bin/oc-test full (host-throttled runner), exit 0, runId tr_mt1rn6ms_814aa5ff, 126s.\n\nPre-existing failure classification, reproduced on base before attributing:\n- dead-code:check MAINT-003 ratchet: 20 fingerprints on branch, 20 on trunk baseline. Pre-existing AND unchanged; this change introduces no new fingerprints despite adding code.\n- OSV GHSA-2v37-7h3g-55p8 (nanoid 3.3.17): plugin/pnpm-lock.yaml is absent from the diff, so the advisory is untouched.\nBoth remain owned by fixPreExistingTrunkCiFailures.\n\nOne site beyond the planned seven: plugin/src/tools/gate.ts:535,575 threads preArchiveTipSha into getReleaseFinalizationBlocker's reachability calls. Correct and necessary — those call sites already passed prHeadSha and changeTipSha positionally, so omitting the new field would have made release-gate reachability blind to scenario B.\n\nAccepted consequence confirmed unchanged: in scenario B the shipped return pushes nothing, so the default branch never receives the in-repo bundle; the store-side bundle remains the durable artifact.",
+      "summary": "Verification-only task, no code changes.\n\nAC5 — scenario-A tests preserved, proven by diff structure rather than assertion. All four hunks in git-finalize.test.ts are pure insertions (-N,0 form, zero deletions) at lines 649, 1515, 3612, 4017. None touches the pinned tests at 3057/3205/3344, which are therefore byte-unmodified.\n\nAC10 — historical-repair.ts absent from the branch diff. Confirmed by git diff --name-only trunk...HEAD.\n\nAC11 — full suite green via bin/oc-test full (host-throttled runner), exit 0, runId tr_mt1rn6ms_814aa5ff, 126s.\n\nPre-existing failure classification, reproduced on base before attributing:\n- dead-code:check MAINT-003 ratchet: 20 fingerprints on branch, 20 on trunk baseline. Pre-existing AND unchanged; this change introduces no new fingerprints despite adding code.\n- OSV GHSA-2v37-7h3g-55p8 (nanoid 3.3.17): plugin/pnpm-lock.yaml is absent from the diff, so the advisory is untouched.\nBoth remain owned by fixPreExistingTrunkCiFailures.\n\nOne site beyond the planned seven: plugin/src/tools/gate.ts:535,575 threads preArchiveTipSha into getReleaseFinalizationBlocker's reachability calls. Correct and necessary — those call sites already passed prHeadSha and changeTipSha positionally, so omitting the new field would have made release-gate reachability blind to scenario B.\n\nAccepted consequence confirmed unchanged: in scenario B the shipped return pushes nothing, so the default branch never receives the in-repo bundle; the store-side bundle remains the durable artifact.",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "22027e3ff429af06536f26c21b63100086440cec",
+      "completedAt": "2026-08-20T17:01:56.669Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC5",
+          "AC10",
+          "AC11"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrProofOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation-pre-archive-tip"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: preArchiveTipSha dual-SHA archive PR proof fix",
+      "sources": [
+        {
+          "label": "Tip capture ordering defect",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:3613-3645",
+          "summary": "commitArchiveArtifacts precedes changeTipSha = rev-parse sourceBranch"
+        },
+        {
+          "label": "Proof equality + guards",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1482-1494,1565-1569,1528-1537",
+          "summary": "prHeadSha === localTip among 8 conjuncts; mergeCommitOid reachability; ambiguous fails closed"
+        },
+        {
+          "label": "commitArchiveArtifacts",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:3340-3399",
+          "summary": "returns {committed:false} when clean (3372-3374); unconditional new commit when dirty (3385-3389)"
+        },
+        {
+          "label": "detectSquashMergeByTree",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1660-1707",
+          "summary": "50-commit tree collision scan; call sites 2550, 2945, 3033 emit proof:'pr_merged'"
+        },
+        {
+          "label": "Phase9FinalizationStatusSchema",
+          "locator": "plugin/src/types/changes.ts:980-1012",
+          "summary": "Zod object, unknown keys stripped; signals.ts:732-735 reuses it"
+        },
+        {
+          "label": "preservePhase9Evidence + writers",
+          "locator": "plugin/src/tools/change/archive-gate.ts:181-219,221-235,593-607; handlers-archive.ts:765-775,806-815,982-996; change/helpers.ts:304-328",
+          "summary": "field-enumerating preservation needs explicit clause; five construction sites, packet listed four"
+        },
+        {
+          "label": "historical-repair passthrough",
+          "locator": "plugin/src/archive/historical-repair.ts:75-88,111-139",
+          "summary": ".passthrough() schema; loadBaselineSpec uses changeTipSha^ then changeTipSha — safe untouched"
+        },
+        {
+          "label": "Bundle nondeterminism",
+          "locator": "plugin/src/archive/delta.ts:320,377; plugin/src/archive/archive.ts:351,520,884,1341-1355,1145-1162",
+          "summary": "updated_at/generated_at/archivedAt = wall clock on every run; in-repo bundle lands in commitPaths"
+        },
+        {
+          "label": "replaceReleaseEvidence RCA-2",
+          "locator": "ADV artifact: change replaceReleaseEvidence, proposal (project bdf259aa162ae192af5b18899ccdc653b085528d)",
+          "summary": "tree-collision scan flagged HIGH; demands distinct pr_merged_by_tree token if heuristic retained"
+        },
+        {
+          "label": "Scenario A pinning test",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.test.ts:3040-3069",
+          "summary": "comment 3055-3056 pins post-bundle tip"
+        },
+        {
+          "label": "Worktree portfolio",
+          "locator": "~/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/* (22 worktrees)",
+          "summary": "15 carry prHeadSha===localTip; improveCrossProject has neither that nor verifyDirectMergedPrProof and deletes historical-repair.ts; fixReleaseGateProjection et al. predate the proof function entirely"
+        },
+        {
+          "label": "GitHub PR head semantics",
+          "locator": "https://docs.github.com/en/rest/pulls/pulls",
+          "summary": "head SHA / headRefOid is the current tip of the PR head branch at query time (used at git-finalize.ts:1391)"
+        }
+      ],
+      "architecture_assessment": "Defect verified: commitArchiveArtifacts (git-finalize.ts:3340-3399) runs at 3613, changeTipSha captured AFTER at 3636-3645, and verifyDirectMergedPrProof:1494 requires prHeadSha === that post-bundle tip, so a PR merged pre-bundle (scenario B) can never prove. Items 1-2 of the design (capture preArchiveTipSha before the commit; accept either SHA) are sound and minimal. Both candidate SHAs are tips of the same change/{id} branch captured one commit apart inside one finalizeRelease invocation; the proof still requires MERGED state, head branch name, base branch, exact head repo, non-cross-repo, non-empty mergeCommitOid, and origin/default reachability of the merge commit (1482-1494, 1565-1569); multiple exact matches fail closed MERGED_PR_PROOF_AMBIGUOUS (1528-1537). committed:false degenerates pre===post so the acceptance set collapses to a singleton — no weakening, no degenerate amplification. Only prHeadSha equality in the codebase is the defect line itself (repo-wide grep: 2 hits, one being it). Scenario A pinning test confirmed at git-finalize.test.ts:3055-3058. Items 3 and 5 need redesign; item 4 is incomplete.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "C1: item 3 as written (second tree try, same 'pr_merged' token) doubles the tree-collision surface (50→100 equality probes, git-finalize.ts:1686-1704) on a path an approved-direction change (replaceReleaseEvidence RCA-2, QUAL-012 HIGH) already flags as too permissive and wants a distinct token for. C2: item 5 (amend) is unsafe — the real-case branch was pushed; amend rewrites a public tip requiring force-push (host-prohibited anti-pattern), and post-amend the PR headRefOid no longer matches any captured SHA, invalidating the evidence the fix exists to create. Root cause of duplicate bundle commits is nondeterministic timestamps: delta.ts:320/377 set spec.updated_at = now on every successful apply; archive.ts:520 generated_at, :884/:1341-1355 archivedAt embedded via writeArchiveBundleFiles into in-repo bundle files that land in commitPaths (archive.ts:1156). Skip-if-unchanged already exists at git-finalize.ts:3372-3374; fix determinism and duplicates vanish. C3: item 4 misses types/changes.ts:980 (Zod strips unknown keys on every round-trip; readback verify at archive-gate.ts:610-615 checks only status, so loss is silent) and the change/helpers.ts:304 archive_convergence writer. C4 (accepted consequence, document it): scenario-B 'shipped' means trunk never receives the in-repo bundle commit (shipped return 3787-3804 pushes nothing); the store-side archive bundle remains the durable artifact and historical-repair.ts:111-139 reads specs from the persisted post-bundle changeTipSha — consistent."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Accepting either of two candidate SHAs widens the exactness check from one tip to two tips of the same branch — bounded, PR-correlated, still fail-closed on ambiguity",
+          "Second tree candidate doubles tree-collision probes 50→100 unless token-split and correlated (replaceReleaseEvidence RCA-2)",
+          "Scenario-B shipped result persists prHeadSha(pre) alongside changeTipSha(post); downstream consumers use them positionally, never compared — safe today, must stay that way",
+          "Scenario-B shipped means trunk never receives the in-repo bundle commit; store-side bundle remains durable — accept and document"
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Dual-SHA equality (preArchiveTipSha || post-bundle changeTipSha)",
+            "disposition": "preferred",
+            "rationale": "Minimal, additive, preserves fail-closed posture and AMBIGUOUS guard; both SHAs are ADV-authored tips of the same branch one commit apart"
+          },
+          {
+            "option": "merge-base --is-ancestor prHeadSha changeTipSha",
+            "disposition": "rejected",
+            "rationale": "Comparable complexity but strictly more permissive: blesses PRs merged at any stale tip while local tip advanced — the lost-work case the 3755-3758 comment guards"
+          },
+          {
+            "option": "Compare prHeadSha against persisted phase9_status.prHeadSha",
+            "disposition": "rejected",
+            "rationale": "Fails first-run scenario B: no prior phase9_status exists when archive first runs after a manual merge"
+          },
+          {
+            "option": "Amend existing bundle commit (design item 5)",
+            "disposition": "rejected",
+            "rationale": "Rewrites pushed tip (force-push, host-prohibited) and invalidates the headRefOid evidence afterward; root cause is timestamp nondeterminism, not commit mechanics"
+          },
+          {
+            "option": "Deterministic bundle regeneration + existing skip-if-clean (replaces design item 5)",
+            "disposition": "preferred",
+            "rationale": "delta.ts:320/377 and archive.ts:520/1341 embed wall-clock stamps on every run; making them stable turns retries into the already-implemented no-op at git-finalize.ts:3372-3374"
+          }
+        ],
+        "recommendation": "Proceed with items 1-2; item 3 only with a distinct proof token aligned to replaceReleaseEvidence RCA-2; drop item 5 for bundle determinism; complete threading via types/changes.ts:980 schema + preservePhase9Evidence clause + five writer sites (packet listed four; change/helpers.ts:304 missed); add scenario-B regression tests at finalizeRelease integration level and handler level for rewrite resistance."
+      },
+      "recommendation": "Land the design with three amendments: (1) items 1-2 as proposed — correct and minimal; (2) item 3 only with a distinct proof token (e.g. pr_merged_by_tree_pre_archive), aligned with replaceReleaseEvidence RCA-2 — as written it doubles an already-flagged unauditable authorization path; (3) drop item 5 (amend) — it rewrites a pushed tip (force-push, host-prohibited) and would invalidate the very headRefOid evidence afterward; instead make bundle regeneration deterministic (delta.ts updated_at, archive.ts generated_at/archivedAt preserved on identical content) — skip-if-unchanged already exists at git-finalize.ts:3372-3374 and then naturally no-ops. Complete item 4 threading: add preArchiveTipSha to Phase9FinalizationStatusSchema (types/changes.ts:980) or Zod strips it on every round-trip silently (readback verify checks only status, archive-gate.ts:610-615); add preservePhase9Evidence clause (archive-gate.ts:181-219); writer sites are FIVE not four — packet missed change/helpers.ts:304 (archive_convergence) alongside handlers-archive.ts:982, archive-gate.ts:593, buildPendingMergePhase9Status (archive-gate.ts:226). historical-repair.ts untouched is correct (its phase9_status schema is .passthrough, 75-88). Rewrite-resistance: add a scenario-B regression test at finalizeRelease integration level (fixture like git-finalize.test.ts:3040-3069) AND a handler-level assertion (change.archive-phase9.test.ts) — improveCrossProject's wholesale rewrite deletes verifyDirectMergedPrProof and historical-repair.ts entirely, so only an integration-level contract test forces any rewrite to keep resume-after-merge shipping.",
+      "follow_ups": [
+        "Align item 3 proof token with replaceReleaseEvidence RCA-2 direction (pr_merged_by_tree) before implementation",
+        "Bundle determinism follow-up: spec.updated_at (delta.ts:320,377), generated_at (archive.ts:520), archivedAt (archive.ts:1341) — replaces design item 5",
+        "adv-cleanup: 4 of the 5 'in-flight' worktrees (improveCrossProject, fixReleaseGateProjection, addDefaultSignalHandler, reconcileStoreMigrationResidue) have no active ADV change — orphaned drift; only fixTaskUpdatePersistence is active (release phase)",
+        "Packet scope_key 'design-validation-pre-archive-tip' does not match the persisted-report schema regex; submitted as researcher:design-validation-pre-archive-tip"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrProofOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrProofOrdering",
+      "task_id": "tk-7d888f91adc5",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7d888f91adc5"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt1q8cve_457abd30",
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "RED: new squash/merge scenario-B integration tests and Phase 9 preservation assertion failed against the pre-fix implementation."
+        },
+        {
+          "test_run_id": "tr_mt1qi7bt_bc0653d6",
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "GREEN: scenario-B integration, handler-level preservation, and existing targeted coverage passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added rewrite-resistant integration coverage for both squash-merged and merge-commit PRs with an archive bundle commit between PR head capture and finalization.",
+          "why": "The observable contract must prove resume-after-merge ships with mergeCommitSha; helper-only tests could be lost in a wholesale rewrite."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Added explicit neither-tip fail-closed coverage in the direct merged-PR proof suite.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Scenario-B integration coverage fails before the implementation and passes after it. The three existing post-bundle changeTipSha assertions remain untouched.",
+        "suggested_next_action": "Review the three task checkpoints and proceed with acceptance."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mt1qi7bt_bc0653d6"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrProofOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrProofOrdering",
+      "task_id": "tk-f31795e482cb",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f31795e482cb"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/types/changes.archive-passthrough.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/handlers-archive.ts",
+        "plugin/src/tools/change/helpers.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt1q96lf_6567063a",
+          "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "RED: preArchiveTipSha round-trip/preservation behavior failed before the schema and writer threading changes."
+        },
+        {
+          "test_run_id": "tr_mt1qcrgh_e0516eb2",
+          "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "GREEN: 17 schema and Phase 9 preservation tests passed."
+        },
+        {
+          "test_run_id": "tr_mt1qsa3k_59ac54db",
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Generated JSON schemas match source schemas."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added preArchiveTipSha to Phase9FinalizationStatusSchema before threading writers, then regenerated change.schema.json.",
+          "why": "Zod strips unknown keys on round-trip; schema-first prevents silent evidence loss."
+        },
+        {
+          "what": "Added the field to preservePhase9Evidence and archive convergence/recovery writers.",
+          "why": "Phase 9 status transitions can omit the field, so explicit carry-forward is required."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified Phase9StatusUpdatedSignalPayloadSchema references Phase9FinalizationStatusSchema automatically; no signals.ts edit was needed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Schema round-trip and explicit preservation both pass. historical-repair.ts was not modified.",
+        "suggested_next_action": "Review the task-2 checkpoint, then complete acceptance with the full unit-suite evidence."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrProofOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrProofOrdering",
+      "task_id": "tk-19e66fe6a47e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-19e66fe6a47e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt1qe1t0_6c7e7bf4",
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts --maxWorkers=4",
+          "exit_code": 1,
+          "summary": "RED: disabling pre-archive capture reproduced both scenario-B integration failures."
+        },
+        {
+          "test_run_id": "tr_mt1qi7bt_bc0653d6",
+          "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "GREEN: 171 targeted tests passed, including squash-merge, merge-commit, and neither-tip fail-closed coverage."
+        },
+        {
+          "test_run_id": "tr_mt1qqeu5_4b08ecc5",
+          "command": "pnpm exec vitest run --maxWorkers=4 --testTimeout=120000",
+          "exit_code": 0,
+          "summary": "Full plugin unit suite passed: 389 files, 5145 passed, 1 skipped, 12 todo."
+        },
+        {
+          "test_run_id": "tr_mt1qt8yr_6eda1311",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Captured preArchiveTipSha immediately before commitArchiveArtifacts and retained changeTipSha after the commit.",
+          "why": "Existing post-bundle semantics and pinned scenario-A tests must remain unchanged while scenario B needs the earlier merged head."
+        },
+        {
+          "what": "Accepted a merged PR head matching either post-bundle or pre-bundle tip while retaining every repository, branch, state, merge-commit, and ancestry check.",
+          "why": "The two tips are the complete same-invocation candidate set; unrelated or divergent heads still fail closed."
+        },
+        {
+          "what": "Threaded preArchiveTipSha through persisted recheck input as well as finalization handoffs.",
+          "why": "A later archive proof must retain the same exact candidate set after the worktree is gone."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all changeTipSha finalization returns and Phase 9 status writers; added the field to every relevant handoff, recovery, convergence, and readback path. historical-repair.ts and pinned scenario-A assertions are unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implementation and tests are committed in three checkpoints. Full suite, typecheck, schema check, and targeted tests pass. The initial full-suite default timeout was resolved by the repository's normal 120-second per-test setting; the same suite then passed.",
+        "suggested_next_action": "Review the clean worktree and proceed to acceptance."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrProofOrdering",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrProofOrdering",
+      "task_id": "tk-6307dc842aa0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6307dc842aa0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt1qxylz_173b694a",
+          "command": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+          "exit_code": 1,
+          "summary": "RED: new pre-archive tree test failed before implementation; current detector returned unreachable."
+        },
+        {
+          "test_run_id": "tr_mt1r169t_fd430de3",
+          "command": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+          "exit_code": 0,
+          "summary": "GREEN: distinct pre-archive proof test passed."
+        },
+        {
+          "test_run_id": "tr_mt1r3xzv_dedc1120",
+          "command": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"pre-archive tree|tree fallback\"",
+          "exit_code": 0,
+          "summary": "Structural fallback and proof-token tests passed."
+        },
+        {
+          "test_run_id": "tr_mt1r2c87_ad60e93e",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed."
+        },
+        {
+          "test_run_id": "tr_mt1rfn6v_5b86a4dc",
+          "command": "pnpm --dir plugin exec prettier --check src/tools/archive-helpers/git-finalize.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/gate.ts",
+          "exit_code": 0,
+          "summary": "Prettier check passed."
+        },
+        {
+          "test_run_id": "tr_mt1ri0x3_4d24d178",
+          "command": "pnpm --dir plugin exec vitest run --maxWorkers=4",
+          "exit_code": 0,
+          "summary": "Full plugin Vitest suite passed with capped four workers."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Use proof token pr_merged_by_tree_pre_archive for a pre-bundle tree match.",
+          "why": "Keeps structural evidence auditable and prevents conflation with API-confirmed pr_merged."
+        },
+        {
+          "what": "Walk the post-bundle tree first, then the pre-bundle tree, with a separate bounded 50-commit log for each.",
+          "why": "Preserves existing post-bundle behavior and adds scenario-B coverage without widening either walk; maximum tree probes doubles from 50 to 100."
+        },
+        {
+          "what": "Allow structural proof to complete reachability while leaving mergeCommitSha unset.",
+          "why": "Callers can ship released content, but the structural token is not treated as API-confirmed merge proof."
+        },
+        {
+          "what": "Thread preArchiveTipSha through gate.ts release rechecks.",
+          "why": "Gate consumers must be able to reproduce the same pre-bundle structural fallback from persisted Phase 9 state."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Traced resolveReleaseReachability direct and PR structural fallbacks, executePullRequestHandoff, redriveArchivedUnmergedBranch, archive-gate evidence projection, and gate.ts durable proof recording. New token remains distinct; only pr_merged populates mergeCommitSha. No historical-repair.ts or timestamp logic changed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Checkpoint 22027e3ff429af06536f26c21b63100086440cec contains the pre-archive tree fallback and distinct pr_merged_by_tree_pre_archive token. Full Vitest, typecheck, targeted tests, and formatting checks pass. False-positive class is unchanged, but maximum tree-probe surface doubles from 50 to 100.",
+        "suggested_next_action": "Proceed to acceptance verification, including scenario-A preservation and historical-repair unchanged checks."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk6307dc842aa0_attempt1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer-report-tk6307dc842aa0-attempt1"
+        }
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-7d888f91adc5": [
+      {
+        "runId": "tr_mt1q8cve_457abd30",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts --maxWorkers=4",
+        "durationMs": 11132.13901399076,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:20:24.712Z"
+      }
+    ],
+    "tk-f31795e482cb": [
+      {
+        "runId": "tr_mt1q96lf_6567063a",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+        "durationMs": 3432.4559340029955,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:21:03.667Z"
+      },
+      {
+        "runId": "tr_mt1qcrgh_e0516eb2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+        "durationMs": 4232.913663998246,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:23:50.911Z"
+      },
+      {
+        "runId": "tr_mt1qsa3k_59ac54db",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run schemas:check",
+        "durationMs": 1250.7222940027714,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-20T16:35:54.276Z"
+      }
+    ],
+    "tk-19e66fe6a47e": [
+      {
+        "runId": "tr_mt1qe1t0_6c7e7bf4",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts --maxWorkers=4",
+        "durationMs": 12344.143172994256,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:24:50.687Z"
+      },
+      {
+        "runId": "tr_mt1qexej_18546f7c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+        "durationMs": 10490.721714004874,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:25:31.604Z"
+      },
+      {
+        "runId": "tr_mt1qi7bt_bc0653d6",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+        "durationMs": 10437.682270005345,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:28:04.352Z"
+      },
+      {
+        "runId": "tr_mt1qm5i1_be6bc743",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run --maxWorkers=4",
+        "durationMs": 131718.9501210004,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:31:08.544Z"
+      },
+      {
+        "runId": "tr_mt1qnk55_de71a609",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts --testTimeout=120000 --maxWorkers=1",
+        "durationMs": 31171.767619997263,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:32:14.368Z"
+      },
+      {
+        "runId": "tr_mt1qqeu5_4b08ecc5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --maxWorkers=4 --testTimeout=120000",
+        "durationMs": 120171.5466620028,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:34:27.352Z"
+      },
+      {
+        "runId": "tr_mt1qt8yr_6eda1311",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 10991.83365099132,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-20T16:36:39.500Z"
+      }
+    ],
+    "tk-6307dc842aa0": [
+      {
+        "runId": "tr_mt1qxnp9_10565c86",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run plugin/src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+        "durationMs": 744.7696509957314,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:40:05.658Z"
+      },
+      {
+        "runId": "tr_mt1qxylz_173b694a",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+        "durationMs": 1728.4937369972467,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:40:19.501Z"
+      },
+      {
+        "runId": "tr_mt1r169t_fd430de3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+        "durationMs": 1733.8128270059824,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:42:49.510Z"
+      },
+      {
+        "runId": "tr_mt1r1y3a_bdb96406",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts",
+        "durationMs": 10237.769888997078,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:43:25.487Z"
+      },
+      {
+        "runId": "tr_mt1r2c87_ad60e93e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 10215.799148008227,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-20T16:43:43.689Z"
+      },
+      {
+        "runId": "tr_mt1r3xzv_dedc1120",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"pre-archive tree|tree fallback\"",
+        "durationMs": 1880.5450540035963,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:44:58.678Z"
+      },
+      {
+        "runId": "tr_mt1raxom_6fe1ec50",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test full",
+        "durationMs": 300114.2473360002,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:50:24.760Z"
+      },
+      {
+        "runId": "tr_mt1re9bb_39e2c0a5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run --maxWorkers=4",
+        "durationMs": 124045.18339000642,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:52:59.609Z"
+      },
+      {
+        "runId": "tr_mt1rejkh_aad06bae",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec prettier --check src/tools/archive-helpers/git-finalize.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/gate.ts",
+        "durationMs": 1799.3318420052528,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-20T16:53:13.222Z"
+      },
+      {
+        "runId": "tr_mt1rfn6v_5b86a4dc",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec prettier --check src/tools/archive-helpers/git-finalize.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/gate.ts",
+        "durationMs": 2069.0860359966755,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-20T16:54:04.329Z"
+      },
+      {
+        "runId": "tr_mt1ri0x3_4d24d178",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run --maxWorkers=4",
+        "durationMs": 103092.10363100469,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:55:55.369Z"
+      }
+    ],
+    "tk-80c460800fcf": [
+      {
+        "runId": "tr_mt1rn6ms_814aa5ff",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test full",
+        "durationMs": 126773.94438800216,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-20T16:59:56.062Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-20T15:44:32.395Z",
+      "completed_by": "user",
+      "approval_evidence": "Defect-origin change with RCA persisted in proposal.md. Root cause: git-finalize.ts captures changeTipSha at line 3638, after commitArchiveArtifacts at line 3613, while verifyDirectMergedPrProof at line 1494 requires prHeadSha === localTip against a GitHub-recorded pre-bundle head. One field, two contradictory consumer contracts."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-20T15:56:05.959Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery via explore recon. Corrected the proposal's design direction: both proof consumers want \"the tip that was actually merged\", which is post-bundle when archive precedes merge and pre-bundle when merge precedes archive. Moving the capture would break scenario A and three tests that deliberately pin post-bundle semantics, so the fix must be additive. Confirmed the failing path (finalizeRelease:3760) is a deliberate resume-after-merge feature defeated by tip ordering. Confirmed schema is additive-safe, historical-repair can stay untouched, and commitArchiveArtifacts has no idempotency guard. Surfaced significant sequencing risk: five in-flight branches rewrite git-finalize.ts wholesale, one of which deletes historical-repair.ts."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-20T16:09:37.287Z",
+      "completed_by": "user",
+      "approval_evidence": "Mandatory independent validation ran (adv-researcher, scope design-validation-pre-archive-tip, attempt 1): verdict CONCERN, no CONFLICT. Three amendments folded into design.md: (1) the proposed amend mechanism was rejected as harmful — force-push prohibited, and amending post-merge destroys the proof; root cause of duplicate commits identified as nondeterministic timestamps in bundle regeneration; (2) pre-bundle tree match must emit a distinct proof token to avoid moving against replaceReleaseEvidence RCA-2; (3) threading map corrected — the proposal missed Phase9FinalizationStatusSchema, where Zod would strip the field silently, and change/helpers.ts convergence path. Sequencing risk corrected: four of five conflicting branches are orphaned worktrees with no active change. Two simpler alternatives evaluated and rejected with reasons."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-20T16:15:35.157Z",
+      "completed_by": "user",
+      "approval_evidence": "Contract coverage clean across AC1-AC11."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-20T17:02:05.565Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks complete with checkpoints (32efee51, 4c246dab, af88b9fc, 22027e3f). Red/green evidence recorded per task. Independent verification runId tr_mt1rn6ms_814aa5ff via bin/oc-test full, exit 0. Scenario-A preservation proven by diff structure (all hunks pure insertions, none near the pinned tests). historical-repair.ts absent from diff. Dead-code ratchet reproduced on trunk baseline before attribution: 20 fingerprints both sides, unchanged."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-20T17:02:50.696Z",
+      "completed_by": "user"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "# Fix archive PR proof ordering\n\n## Why\n\n<!-- What problem does this change solve? Why is it needed now? -->\n\n## What Changes\n\n<!-- Describe the specific modifications: new files, modified APIs, changed behavior -->\n\n## User Outcomes\n\n<!-- What user-perspective outcomes should this change deliver? Keep these implementation-free; discovery firms AC/SC. -->\n\n- [ ] User outcome 1\n- [ ] User outcome 2\n- [ ] Discovery will firm acceptance criteria and success criteria\n\n## Affected Code\n\n<!-- List files, modules, or subsystems that will be modified -->\n\n- `path/to/file.ts` — description of change\n- `path/to/other.ts` — description of change\n\n## Constraints\n\n<!-- Technical, time, or resource constraints that shape the solution -->\n\n## Impact\n\n<!-- Who/what is affected? Breaking changes? Migration needed? -->\n\n## Risks\n\n<!-- What could go wrong? Dependencies on external systems? -->\n\n## Validation Plan\n\n<!-- How will correctness be verified? TDD: write tests first (red → green → refactor) -->\n\n- Write failing tests for new behavior (red phase)\n- Implement to make tests pass (green phase)\n- Run full test suite to verify no regressions\n",
+    "problemStatement": "`adv_change_archive phase9:\"run\"` fails reproducibly with `MERGED_PR_PROOF_MISMATCH` (rq-releaseFinalization01) for any change whose PR was merged before archive runs.\n\nObserved 2026-08-20 archiving toolbox change `fixAdvStatusMarker`. PR #221 was genuinely merged with complete proof — `state=MERGED`, `headRefOid` exactly equal to the change tip, `baseRefName=master`, merge commit reachable on `origin/master`, tree byte-identical. Archive still refused, twice.\n\nConsequence: the merge-then-archive sequence cannot complete Phase 9 finalization. The operator must fall back to `phase9:\"skip\"` and record release evidence by hand, which discards the durable git-finalization record that rq-releaseFinalization01 exists to produce.\n</problemStatement>\n<parameter name=\"proposal\">## Root Cause Analysis\n\n### The defect is an ordering/contract collision, not a merge-strategy problem\n\n`plugin/src/tools/archive-helpers/git-finalize.ts`:\n\n```\n3613:  const commitResult = commitArchiveArtifacts(...)   // bundle commit lands here\n...\n3636:  let changeTipSha: string | undefined;\n3638:    changeTipSha = runGitOrThrow(repoRoot, [\"rev-parse\", sourceBranch], ...)\n```\n\n`changeTipSha` is captured **after** the archive bundle is committed to the change branch. That commit advances the branch tip.\n\n`verifyDirectMergedPrProof` then consumes the same field as the merged-PR head comparison:\n\n```\n1435:  const localTip = input.changeTipSha?.trim();\n...\n1493:      localTip !== undefined &&\n1494:      prHeadSha === localTip;\n```\n\n`prHeadSha` is the PR's `headRefOid`, which is by definition the tip **as it existed when the PR was merged** — before the bundle commit. `localTip` is the tip **after** the bundle commit. The two can never be equal on this path.\n\nFailure is deterministic, not racy. Every `phase9:\"run\"` attempt commits another bundle commit and then fails the same comparison. Confirmed empirically: two `phase9:\"run\"` attempts against `fixAdvStatusMarker` produced exactly two `Archive fixAdvStatusMarker: apply spec deltas and bundle` commits (`49c7fbb`, `b6d1e4e`), and the branch tip diverged from PR #221's `headRefOid` (`2468fc16…`) at the first one.\n\n### One field, two incompatible contracts\n\nThe capture site is not accidental. The comment at 3633-3635 states the intent:\n\n> Capture the change-tip SHA after committing archive artifacts but before any finalization path can merge, delete, or move the branch. Tree-SHA re-proof must compare the exact branch content that Phase 9 releases.\n\nThat reasoning is **correct for `detectSquashMergeByTree`**, which must hash the content actually being released, i.e. post-bundle.\n\nIt is **wrong for `verifyDirectMergedPrProof`**, which compares against a GitHub-recorded head SHA that is necessarily pre-bundle.\n\n`changeTipSha` therefore serves two consumers with contradictory requirements. Satisfying the tree-re-proof consumer structurally breaks the merged-PR consumer. This is the root cause; the merge strategy is irrelevant to it.\n\n### Merge strategy is a red herring\n\nAn initial diagnosis blamed squash merge for destroying change-tip ancestry. That diagnosis is wrong and is recorded here so it is not repeated.\n\nAncestry is checked at line 1565 (`merge-base --is-ancestor mergeCommitOid origin/{default}`) and would have **passed** — the merge commit is reachable. Control flow never reaches it, because `exactRecord` already failed at 1494 and returned at 1496-1505. A merge-commit PR fails at exactly the same line for exactly the same reason: the bundle commit advances the tip regardless of how the PR was merged.\n\n### Blast radius\n\nAny repository where the PR merges before `adv_change_archive` runs. That includes every repo following a merge-then-archive operator flow, and every repo whose policy mandates PR-based merges.\n\n## Relationship to existing Advance changes\n\nNeither of these covers this defect; both touch the same subsystem, so sequencing matters.\n\n- **`replaceReleaseEvidence`** (RCA-2) targets `detectSquashMergeByTree` being *too permissive* — a tree-SHA collision emitting `proof: 'pr_merged'` without correlation. That is a false-positive concern at the same boundary. This change is the mirror image: a false negative in `verifyDirectMergedPrProof`. Fixing one does not fix the other, but both edit the same file and the same proof path, so whichever lands second must rebase carefully.\n- **`addMergeTriggeredArchive`** targets the session-bound archive *exit* — merged PRs stranding in-flight, sweep/reaper surfaces. It assumes archive finalization works once triggered. This defect means it does not, on the PR path. This change is a prerequisite for that one delivering value.\n\nRecommend landing this first: it is narrow, and it unblocks the operator flow both siblings assume.\n\n## Proposed direction\n\nSeparate the two contracts. Capture the pre-bundle tip before `commitArchiveArtifacts`, and have `verifyDirectMergedPrProof` compare against that, while `detectSquashMergeByTree` keeps using the post-bundle tip it correctly requires.\n\nDesign gate should settle:\n\n1. Whether the merged-PR comparison accepts pre-bundle tip only, or either tip (accepting both weakens the exactness guarantee and needs justification).\n2. Whether `Phase9FinalizationStatusSchema` should persist both SHAs — `plugin/src/types/changes.ts:1002` currently persists one, constrained to 40-hex, and `historical-repair.ts:117-120` reads it.\n3. Whether existing archived changes carrying a post-bundle `changeTipSha` need a legacy read path, or whether the field's meaning can be narrowed in place.\n\n## Out of scope\n\n- `detectSquashMergeByTree` permissiveness — owned by `replaceReleaseEvidence`.\n- Sweep, reaper, and merge-triggered reconciliation — owned by `addMergeTriggeredArchive`.\n- The pre-existing trunk CI failures (dead-code ratchet, `nanoid` OSV) — owned by `fixPreExistingTrunkCiFailures`.\n\n## Acceptance criteria\n\n- AC1 — A change whose PR merged before archive completes `phase9:\"run\"` with `proof: 'pr_merged'` and a recorded `releasedCommitSha`, without operator fallback to `phase9:\"skip\"`.\n- AC2 — Regression test reproducing the exact failure: bundle commit advances the tip, PR `headRefOid` equals the pre-bundle tip, proof succeeds. Test must fail against current code.\n- AC3 — Squash-merged and merge-commit PRs both satisfy AC1; the fix is merge-strategy agnostic and a test asserts both.\n- AC4 — `detectSquashMergeByTree` continues to receive the post-bundle tip; its existing tests stay green and unmodified.\n- AC5 — Repeated `phase9:\"run\"` attempts do not accumulate duplicate archive-bundle commits.\n- AC6 — Existing archived changes with a persisted post-bundle `changeTipSha` remain readable; `historical-repair.ts` behaviour is unchanged or explicitly migrated.\n- AC7 — Full plugin unit suite green.\n</parameter>\n</invoke>\n",
+    "design": "## Root cause\n\n`plugin/src/tools/archive-helpers/git-finalize.ts` commits the archive bundle at 3613, then captures `changeTipSha` at 3638. `verifyDirectMergedPrProof` requires `prHeadSha === localTip` at 1494, but `prHeadSha` is GitHub's `headRefOid` — the tip as merged. When the PR merged before archive ran, that is the pre-bundle tip, so the equality cannot hold.\n\nReproduced twice. Merge strategy is irrelevant: ancestry is checked at 1565 and would pass, but control flow returns at 1496 before reaching it.\n\nThe failing path (`finalizeRelease:3760`, `route === \"direct\"`) is a deliberate capability. Comment at 3755-3758: \"A direct route may be resumed after the change branch was already squash-merged through GitHub.\"\n\n## Scenario matrix\n\n| | Ordering | `headRefOid` equals | Status |\n|---|---|---|---|\n| A | archive, then merge | post-bundle tip | works today; pinned by tests 3057/3205/3344 |\n| B | merge, then archive | pre-bundle tip | **the defect** |\n| C | PR open, archive pushes bundle, then merge | post-bundle tip | behaves as A |\n| D | force-push/rebase between PR and archive | neither | correctly fails closed |\n\nValidation confirmed `{pre, post}` is a complete candidate set for non-adversarial flows. D failing closed is correct posture, not a gap.\n\n## Design (post-validation)\n\n`changeTipSha` retains its post-bundle meaning. `historical-repair.ts` stays untouched — its `phase9_status` schema is `.passthrough()` (75-88), so a new field survives its reads.\n\n1. **Capture `preArchiveTipSha`** via `rev-parse sourceBranch` before `commitArchiveArtifacts` (3613). Feasible: `sourceBranch` resolved at 3566, `validateChangeWorktree` at 3571 guarantees the workdir is on that branch.\n\n2. **Merged-PR proof accepts either candidate.** `prHeadSha === changeTipSha || prHeadSha === preArchiveTipSha`.\n\n   Validation confirmed this is not a weakening. The equality is one conjunct of eight (1482-1494) — MERGED state, `headRefName === change/{id}`, `baseRefName === defaultBranch`, non-cross-repo, exact head repo, non-empty `mergeCommitOid` — plus a post-hoc ancestry check at 1565. Both candidates are tips of the same branch one commit apart within a single invocation. An unrelated PR matching `preArchiveTipSha` would have to have head branch literally `change/{changeId}` at exactly our pre-bundle tip; if that merged, our content landed. Multiple exact matches already fail closed via `MERGED_PR_PROOF_AMBIGUOUS` (1528-1537).\n\n   Degenerate case is benign: when `commitArchiveArtifacts` returns `{committed:false}` (3372-3374), pre and post are identical and the candidate set collapses to today's singleton.\n\n3. **Tree re-proof — amended.** Trying the pre-bundle tree is retained, but it **must emit a distinct proof token** (e.g. `pr_merged_by_tree_pre_archive`) rather than collapsing into `pr_merged`.\n\n   Rationale: active change `replaceReleaseEvidence` (RCA-2, QUAL-012, HIGH) already identifies `detectSquashMergeByTree` as too permissive and explicitly requires a distinct token if the heuristic is retained — \"Collapsing both into `'pr_merged'` is the part that makes the heuristic unauditable.\" A second candidate tree takes 50 probes to 100. The false-positive *class* is unchanged (both trees differ only in `.adv/` artifacts), but the exposure doubles, and emitting an undifferentiated token would move directly against that change's approved direction.\n\n4. **Threading — corrected and expanded.** The proposal listed four sites and was wrong on both counts.\n\n   Mandatory, previously missed:\n   - **`types/changes.ts:980-1012`** — `Phase9FinalizationStatusSchema`. Zod strips unknown keys on every round-trip, and the readback verify at `archive-gate.ts:610-615` checks only `status`. Without the schema field the value is dropped **silently and invisibly**. This is the same silent-failure class as the defect being fixed.\n   - **`change/helpers.ts:304-328`** — archive_convergence path.\n\n   Confirmed sites: `handlers-archive.ts:982-996`, `archive-gate.ts:593-607`, `buildPendingMergePhase9Status` (`archive-gate.ts:221-235`).\n\n   `preservePhase9Evidence` (`archive-gate.ts:181-219`) enumerates fields explicitly and needs a clause, or the value is dropped whenever the next status omits it — for example the failed-status write at `handlers-archive.ts:765-775`.\n\n   `GitFinalizeOutcome` must carry the field, and every return that sets `changeTipSha` must set it too: shipped (3787-3804), PR-route handoffs (3679, 3697).\n\n   `signals.ts:732-735` picks it up automatically once the schema carries it.\n\n5. **Duplicate bundle commits — amend rejected, root cause found.**\n\n   The proposal's amend mechanism is wrong on three counts, all confirmed:\n   - The branch is typically already pushed, so amend rewrites a public tip and requires force-push, which host policy prohibits outright.\n   - Amending after a merge destroys the evidence: the post-amend tip matches neither captured SHA, breaking the very proof this change creates.\n   - Skip-if-unchanged already exists at 3372-3374 and does not fire.\n\n   Actual root cause: bundle regeneration embeds wall-clock timestamps on every run — `delta.ts:320` and `:377` set `spec.updated_at = new Date().toISOString()` on every successful apply; `archive.ts:520` sets `generated_at`; `archive.ts:884` and `:1341-1355` thread `archivedAt` into `writeArchiveBundleFiles`. Those files are in `commitPaths` (`archive.ts:1156`), so status is always dirty and a new commit always follows.\n\n   The correct fix is deterministic regeneration — preserve prior timestamps when content is otherwise unchanged — after which the existing skip-if-unchanged guard handles retries naturally.\n\n   **Scope decision required** (see below).\n\n## Accepted consequence to document\n\nIn scenario B the shipped return (3787-3804) pushes nothing, so the default branch never receives the in-repo bundle. The store-side bundle is the durable artifact, and `historical-repair.ts:111-139` reads specs from the persisted post-bundle `changeTipSha`. Consistent, but it must be written down rather than discovered later.\n\n## Sequencing — corrected\n\nThe discovery framing overstated this. Of the five branches rewriting `git-finalize.ts`, only `fixTaskUpdatePersistence` is an active ADV change (at release). `improveCrossProject`, `fixReleaseGateProjection`, `addDefaultSignalHandler` and `reconcileStoreMigrationResidue` have worktrees but **no active change** — orphaned drift, and `adv-cleanup` candidates.\n\nThree of those are *older snapshots* that predate `verifyDirectMergedPrProof` entirely, so rebasing them inherits the trunk fix wholesale. The genuine risk is `improveCrossProject`, whose `git-finalize.ts` has no `verifyDirectMergedPrProof`, no `headRefOid`, no exact-SHA proof at all, and which deletes `historical-repair.ts`.\n\n**Rewrite-resistance mechanism:** anchor the fix with a scenario-B regression test at `finalizeRelease` integration level (fixture style of `git-finalize.test.ts:3040-3069`) plus a handler-level assertion in `change.archive-phase9.test.ts`. Unit tests on `verifyDirectMergedPrProof` alone would be deleted along with the function during a rewrite; an integration test asserting \"resume-after-merge ships with mergeCommitSha\" forces any rewrite to keep the contract or consciously weaken it in review.\n\n## Alternatives rejected\n\n- **`merge-base --is-ancestor prHeadSha changeTipSha`** — one command, no threading, covers A/B/C, but strictly more permissive: it blesses a PR merged at any stale ancestor while the local tip advanced, marking unmerged work shipped. That is precisely the duplicate-merge case the comment at 3755-3758 guards against. Comparable complexity, worse safety.\n- **Compare against persisted `phase9_status.prHeadSha`** — dead on arrival for first-run scenario B; `phase9_status` is constructed only after finalization (`handlers-archive.ts:806-815`), so nothing exists to compare against.\n\n## Acceptance criteria\n\n- AC1 — A change whose PR merged before archive completes `phase9:\"run\"` with a recorded `releasedCommitSha`, without falling back to `phase9:\"skip\"`.\n- AC2 — Scenario-B regression test at `finalizeRelease` integration level, failing against current code.\n- AC3 — Handler-level scenario-B assertion in `change.archive-phase9.test.ts`.\n- AC4 — Squash-merged and merge-commit PRs both satisfy AC1.\n- AC5 — Scenario A preserved: tests 3057/3205/3344 green and unmodified; `changeTipSha` keeps post-bundle meaning.\n- AC6 — `preArchiveTipSha` persists across a round-trip, proven by readback rather than by write-site inspection.\n- AC7 — `preservePhase9Evidence` carries the field forward when the next status omits it.\n- AC8 — Pre-bundle tree match emits a distinct proof token, never bare `pr_merged`.\n- AC9 — Scenario D (force-push/rebase divergence) still fails closed.\n- AC10 — `historical-repair.ts` unmodified; existing archived records parse unchanged.\n- AC11 — Full plugin unit suite green.\n",
+    "executiveSummary": "## Outcome\n\n`adv_change_archive phase9:\"run\"` now completes for a change whose PR merged before archive ran. Previously it failed deterministically with `MERGED_PR_PROOF_MISMATCH`, forcing the operator to fall back to `phase9:\"skip\"` and record release evidence by hand — discarding the durable git-finalization record that rq-releaseFinalization01 exists to produce.\n\nFound while archiving toolbox change `fixAdvStatusMarker`, whose PR #221 was genuinely merged with complete proof and was still refused twice.\n\n## Root cause\n\n`git-finalize.ts` commits the archive bundle at 3613, then captures `changeTipSha` at 3638. `verifyDirectMergedPrProof` requires `prHeadSha === localTip` at 1494, but `prHeadSha` is GitHub's `headRefOid` — the tip **as merged**. When the merge preceded archive, that is the pre-bundle tip, so the equality could never hold.\n\nThe failing path is a deliberate capability, not an accident. The comment at 3755-3758 states it: \"A direct route may be resumed after the change branch was already squash-merged through GitHub.\"\n\n## Two diagnoses were wrong before the right one\n\nRecorded because the pattern matters more than the conclusion.\n\n1. **\"Squash merge destroys change-tip ancestry.\"** Wrong. Ancestry is checked at 1565 and would have passed — the merge commit is reachable. Control flow returns at 1496 first. A merge-commit PR fails identically. Merge strategy is irrelevant to this defect.\n2. **\"`detectSquashMergeByTree` needs the post-bundle tip, only the PR check needs pre-bundle.\"** Wrong. Both consumers want *the tip that was actually merged*, which is post-bundle when archive precedes merge and pre-bundle when merge precedes archive. The axis is ordering, not consumer identity.\n\nBoth were asserted with more confidence than the evidence supported, and both were caught before costing anything — the first by reading the code, the second by discovery.\n\n## Scenario matrix\n\n| | Ordering | `headRefOid` | Status |\n|---|---|---|---|\n| A | archive, then merge | post-bundle tip | worked before, preserved |\n| B | merge, then archive | pre-bundle tip | the defect, now fixed |\n| C | PR open, archive pushes bundle, then merge | post-bundle tip | behaves as A |\n| D | force-push/rebase divergence | neither | fails closed, correctly |\n\n## What shipped\n\n- `preArchiveTipSha` captured before `commitArchiveArtifacts`; `changeTipSha` unchanged in meaning and position.\n- `verifyDirectMergedPrProof` accepts either candidate. All seven other conjuncts and the ancestry check are intact, as is `MERGED_PR_PROOF_AMBIGUOUS`.\n- `detectSquashMergeByTree` tries the pre-bundle tree under a **distinct** token, `pr_merged_by_tree_pre_archive`. The structural path never populates an API-confirmed `mergeCommitSha`.\n- Threaded through the schema and eight sites.\n\n## Decisions worth recording\n\n**Accepting two candidate SHAs is not a weakening.** The equality is one conjunct of eight, both candidates are tips of the same branch one commit apart within a single invocation, and an impostor would need head branch literally `change/{id}` at exactly the pre-bundle tip — in which case the content did land. Multiple exact matches still fail closed.\n\n**The distinct tree token is a cross-change constraint, not a preference.** Active change `replaceReleaseEvidence` (RCA-2, QUAL-012, HIGH) identifies this heuristic as unauditable precisely because it collapses inferred and API-confirmed merges into one token. Emitting bare `pr_merged` here would have moved against its approved direction. Probe surface honestly doubles from 50 to 100; the false-positive class is unchanged.\n\n**Two simpler alternatives were rejected.** `merge-base --is-ancestor prHeadSha changeTipSha` is one command with no threading, but blesses a PR merged at any stale ancestor while the local tip advanced — the duplicate-merge case the code already guards. Comparing against persisted `phase9_status.prHeadSha` is dead on arrival: nothing exists to compare against on first run.\n\n## Near-misses\n\n- **The schema site.** The original threading map omitted `Phase9FinalizationStatusSchema`. Zod strips unknown keys on every round-trip and the readback verify checks only `status`, so writes would have appeared to succeed while the value vanished — the same silent-failure class as the defect itself. Acceptance now requires round-trip readback proof, not write-site inspection.\n- **`gate.ts`.** Not in the planned site list. Its reachability calls pass `prHeadSha` and `changeTipSha` positionally, so omitting the new field would have fixed archive while leaving the release gate blind to scenario B.\n\n## Deliberately not done\n\n- **Bundle timestamp determinism** — split into `makeArchiveBundleDeterministic`. Retries stack duplicate archive commits because regeneration restamps `spec.updated_at`, `generated_at` and `archivedAt` every run, so the existing skip-if-unchanged guard never fires. The naive repair (amend) was rejected: the branch is normally pushed, so it needs a force-push, and amending post-merge destroys the proof this change creates.\n- **`detectSquashMergeByTree` permissiveness** — owned by `replaceReleaseEvidence`.\n- **Pre-existing trunk CI failures** — owned by `fixPreExistingTrunkCiFailures`. Verified unchanged: 20 dead-code fingerprints on both branch and trunk, and `pnpm-lock.yaml` untouched.\n\n## Accepted consequence\n\nIn scenario B the shipped return pushes nothing, so the default branch never receives the in-repo bundle. The store-side bundle is the durable artifact, and `historical-repair.ts` reads specs from the persisted post-bundle `changeTipSha`. Consistent, but written down rather than left to be rediscovered.\n\n## Open validation\n\nProven by unit and handler tests, not yet by a live archive. The real confirmation is the next change completing `phase9:\"run\"` instead of falling back to skip — which requires this merged and deployed.\n\nFour orphaned worktrees surfaced during discovery (`improveCrossProject`, `fixReleaseGateProjection`, `addDefaultSignalHandler`, `reconcileStoreMigrationResidue`) have branches but no active change. They are `adv-cleanup` candidates.\n"
+  },
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-08-20T15:43:13.450Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 48,
+  "projection_commits": [
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Defect-origin change with RCA persisted in proposal.md. Root cause: git-finalize.ts captures changeTipSha at line 3638, after commitArchiveArtifacts at line 3613, while verifyDirectMergedPrProof at line 1494 requires prHeadSha === localTip against a GitHub-recorded pre-bundle head. One field, two contradictory consumer contracts.",
+      "operation_id": "mutation:gate_completion:fixArchivePrProofOrdering:a9a821f7-70b0-4753-9438-416dc34fb3f3",
+      "payload_hash": "20ac18c3970ed7e87eaa45915c8abf38695be5d084dcd7c92be3a34f7fbe3b45",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-20T15:44:32.400Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivePrProofOrdering:5d3c059a-2d12-41b7-99ce-975d6738db96",
+      "payload_hash": "162803e7f42d34246916dfd3ea480a5dc884c9c06561f4b8accd1e7c621e5f59",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-20T15:55:57.018Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Discovery via explore recon. Corrected the proposal's design direction: both proof consumers want \"the tip that was actually merged\", which is post-bundle when archive precedes merge and pre-bundle when merge precedes archive. Moving the capture would break scenario A and three tests that deliberately pin post-bundle semantics, so the fix must be additive. Confirmed the failing path (finalizeRelease:3760) is a deliberate resume-after-merge feature defeated by tip ordering. Confirmed schema is additive-safe, historical-repair can stay untouched, and commitArchiveArtifacts has no idempotency guard. Surfaced significant sequencing risk: five in-flight branches rewrite git-finalize.ts wholesale, one of which deletes historical-repair.ts.",
+      "operation_id": "mutation:gate_completion:fixArchivePrProofOrdering:f1eb4bc7-9481-4709-9a05-0f7abbddc3d8",
+      "payload_hash": "5a01174dc1e1d6d9150fd7deddeff69af89dfb357e05aead15ecaedbf7048454",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-20T15:56:05.991Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivePrProofOrdering|change:researcher:design-validation-pre-archive-tip|adv-researcher|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivePrProofOrdering:7e56d9b2-b7a3-476e-a441-9c2b49f8623a",
+      "payload_hash": "c6386eb54ff6858cd187b80fd1d8aaa4156bb271310ae8222035624126857879",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-20T16:06:58.795Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivePrProofOrdering:5ab18403-8d05-4f2d-b4be-2dbc99ddbfe9",
+      "payload_hash": "cd143352bdbc09a54de161d5020b1a061b6c4fb9126de59443de258059517bc5",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-20T16:08:43.499Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Mandatory independent validation ran (adv-researcher, scope design-validation-pre-archive-tip, attempt 1): verdict CONCERN, no CONFLICT. Three amendments folded into design.md: (1) the proposed amend mechanism was rejected as harmful — force-push prohibited, and amending post-merge destroys the proof; root cause of duplicate commits identified as nondeterministic timestamps in bundle regeneration; (2) pre-bundle tree match must emit a distinct proof token to avoid moving against replaceReleaseEvidence RCA-2; (3) threading map corrected — the proposal missed Phase9FinalizationStatusSchema, where Zod would strip the field silently, and change/helpers.ts convergence path. Sequencing risk corrected: four of five conflicting branches are orphaned worktrees with no active change. Two simpler alternatives evaluated and rejected with reasons.",
+      "operation_id": "mutation:gate_completion:fixArchivePrProofOrdering:b59d664b-3216-44d4-8b85-dca6353ff87a",
+      "payload_hash": "2c4f1da9dafeb24eb2315042c0146b64db0d41b2ca8a2104b12e8b2442148755",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-20T16:09:37.321Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-7d888f91adc5",
+      "operation_id": "mutation:task_add:fixArchivePrProofOrdering:ec3abb14-ee14-496b-9b60-66185cad56ed",
+      "payload_hash": "32b060034e4d2dad136b4bcd30000279849932f9a37c07a97c827404043bfda7",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-20T16:10:40.433Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-f31795e482cb",
+      "operation_id": "mutation:task_add:fixArchivePrProofOrdering:e918676b-bd84-40d6-8f7e-978f4020b35c",
+      "payload_hash": "0cd78a320233090842701a4206e644b865293aedef1f1d42c5de0c2eb7266927",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-20T16:10:57.144Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-19e66fe6a47e",
+      "operation_id": "mutation:task_add:fixArchivePrProofOrdering:64eed6c0-1451-4af8-ad13-9d2b979d81b6",
+      "payload_hash": "b3e22eb49099d32769bc408a426d75fe26fdbee9a66dff9a1b0148a025c136c4",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-20T16:11:08.162Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-6307dc842aa0",
+      "operation_id": "mutation:task_add:fixArchivePrProofOrdering:17f2d915-8bc4-4f7c-84e5-4e255b16ccd4",
+      "payload_hash": "4e07a529ae630f08034a1368fcc9dd90395e584eaef03567ba0e06b161321c3d",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-20T16:11:25.714Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-80c460800fcf",
+      "operation_id": "mutation:task_add:fixArchivePrProofOrdering:23b3ade0-bcdc-4909-8094-985a289432d4",
+      "payload_hash": "15439bd36da722c1596c99e71020f43c62c28b322d50830143d8fcce56fb57f1",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-20T16:11:35.701Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Contract coverage clean across AC1-AC11.",
+      "operation_id": "mutation:gate_completion:fixArchivePrProofOrdering:37707691-515b-4eaf-bf79-8b8644cc40e7",
+      "payload_hash": "22104d385109ad87488eeb53f8cf916d10e5c0cd0730ced51da539c6b8996204",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-20T16:15:35.193Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:1dec3ac9-a4dc-4f43-9727-64c375146cd8",
+      "payload_hash": "1d0ef22aceedd9db11f942ce265fb2105015b701a2c1f700b870c11eb6efb101",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-20T16:20:24.726Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "32efee5109caf699dc4f99807f9889fa240cd2c7:Recorded red evidence run tr_mt1q8cve_457abd30: targeted integration and archive-phase9 tests fail on the new scenario-B and preservation assertions, while existing tests remain green.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivePrProofOrdering:02544dcf-0918-4fea-b4a2-d236afe3aa42",
+      "payload_hash": "e1d9832c1cea4dd1d291d42b2168eb54dcf93678a46d78ae48b826d250b991d4",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-20T16:20:45.806Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:4dc201d0-c3a1-47b8-aa6e-5b4d0e1ae961",
+      "payload_hash": "55843ad5ef9f7d9e8c62f551ccbb1f7f105537338973ae90d305255800607977",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-20T16:21:03.673Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:c0a1ba1e-ba4d-4334-9127-45207cc560e3",
+      "payload_hash": "137f11a0b6533d7626ad4117c900276cc03b6c5792b7265cb1b42fc3d5461954",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-20T16:23:50.919Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "4c246dab14a256be5f9a2532b0a5e4cac49f863f:Red run tr_mt1q96lf_6567063a failed before threading. Green run tr_mt1qcrgh_e0516eb2 passed 17 tests across schema round-trip and Phase 9 preservation coverage; schemas:generate completed successfully.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivePrProofOrdering:99265bd4-9646-4cec-9e02-2f304a789d00",
+      "payload_hash": "4a3b289c91cdd7f77e0025fc726ba7ff86a0c8dd577e2d62796f2d212eca90a9",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-20T16:24:05.224Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:bb5e064b-c246-4265-8255-053937a6c834",
+      "payload_hash": "47e15adc7f30e8a62764ef5a1191a31478c9cd54808aeec9ac9f9c4e409550b5",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-20T16:24:50.697Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:1da64f4e-96a3-4ebf-9eb9-fa8fc61a9628",
+      "payload_hash": "55d834fe7e422a29f44f9c99e0a1ce04271f51879d1a2ea77fdc98928418e67b",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-20T16:25:31.607Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/changes.archive-passthrough.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:74689e4e-4b7e-4c5c-aa2b-4f7fd1e835b6",
+      "payload_hash": "7a244ec94b96589924f73420f8c20d698080047dd6069cbfb7ea878d2a518187",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-20T16:28:04.385Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "af88b9fcc20711364d2afeb48c65151f3961b557:Red run tr_mt1qe1t0_6c7e7bf4 reproduced both scenario-B integration failures with pre-tip capture disabled. Green run tr_mt1qi7bt_bc0653d6 passed 171 targeted tests, including squash-merge, merge-commit, and neither-tip fail-closed coverage. schemas:check also passes.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivePrProofOrdering:f294fe95-3745-4455-be1e-62d690ee43cf",
+      "payload_hash": "3dcf2b5bf10536f8e0544a4ee93efc1e300104422c9dc4e91c822d5a5d5b7801",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-20T16:28:40.679Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:c868ddcf-2e57-4354-911e-276cd02a55be",
+      "payload_hash": "7dda4650608883a9ccf424491123530693120ef250610ff4f18903f7952d3b48",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-20T16:31:08.550Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/storage/classify-summary-candidates-bundle.test.ts --testTimeout=120000 --maxWorkers=1",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:0c51b768-5d32-4bf8-a582-e6cbd6bf39df",
+      "payload_hash": "d57e4c4e244062441a117eca234536ef520d440397ae543cbf80b684621d0a18",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-20T16:32:14.372Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run --maxWorkers=4 --testTimeout=120000",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:b802aff4-4bfd-402a-9d5a-27ed4d265b39",
+      "payload_hash": "2adbefc78079528259b8730cde5cf7100928113c5c882a37a0232fc985e7964b",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-20T16:34:27.358Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivePrProofOrdering|tk-7d888f91adc5|adv-engineer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivePrProofOrdering:eb48ccc4-7960-430a-98f5-7768f42089dc",
+      "payload_hash": "ccda300a902b3fc6264d697c63e185917af7b16b2aacac1721463c8058ce06b0",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-20T16:35:12.382Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run schemas:check",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:1ff26669-1cc2-470f-84a0-edec6ed1d0b3",
+      "payload_hash": "f88f677788ab1e209d51ac6aab7e58f54dfc42ea6111355a46304c92e01bc23b",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-20T16:35:54.311Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivePrProofOrdering|tk-f31795e482cb|adv-engineer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivePrProofOrdering:7b95d2cf-55d6-4bad-aec9-2d27bc2a07d7",
+      "payload_hash": "a8efd3adebe14895a04c50d2bb31f40860f7d7296765fbe29a276880b56c5ee0",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-20T16:36:10.680Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:abb10529-a3dd-4445-8e7d-dcc4b58ba1cc",
+      "payload_hash": "9c6648b5a4e6b815aea1404b1bbfd9ed1772b2a293ffafd7e3276384f59ea9d1",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-20T16:36:39.536Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivePrProofOrdering|tk-19e66fe6a47e|adv-engineer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivePrProofOrdering:38ff2faf-6c23-4dc6-b4f4-91f1ce190bf0",
+      "payload_hash": "a6bfcee90957307b5e185166252ef83041b75897e715cdac2b5d76afa33cf156",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-20T16:36:59.592Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run plugin/src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:245a61f7-c71c-4c1b-96bc-8274afe48f63",
+      "payload_hash": "955e2ababb023ba18b39008d3ae023674478b43962be461bd3e62a5bf119e37b",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-20T16:40:05.689Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:d6de75f4-2f77-4700-9fec-60630ddd96ec",
+      "payload_hash": "23db638aa0cad41feeae753a2171d390479f7af051f6e8505b92f1ab283e02ee",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-20T16:40:19.520Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"tries the pre-archive tree\"",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:a849ad93-90f2-48e1-b1ee-c49a9dfa3bc4",
+      "payload_hash": "6aea5fb9b2874a1a2a6fc25771e63fd5756b98f2a8b3d793b33e3d779598b517",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-20T16:42:49.536Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:2583feaa-108f-4667-a27a-2041e9a1c0f1",
+      "payload_hash": "e3cafb4bbbd6bf189a50cbdf594cdbf99e9480d939ffeba5e75e7c0f6af609ab",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-20T16:43:25.491Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin run typecheck",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:fc92f20a-c263-400e-b30b-cecad26edc31",
+      "payload_hash": "6a0e794be2a8b310eda9bf57f1641f43ba3627b2b939a1a65390dd4f8f067d33",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-20T16:43:43.722Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"pre-archive tree|tree fallback\"",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:00c0c858-f01b-442b-ad39-6773e9248985",
+      "payload_hash": "35166282b7182ee764f85d2d89820838cbdbaa718f2b17011e4955c92c1476d0",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-20T16:44:58.695Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test full",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:f76a59ba-5518-47f9-b7b4-c824b716e41d",
+      "payload_hash": "1b9ec11476c9a4a3ac3883b1fbbcccc88e618f1757c40e7b8dfefb6dd8d6ebd8",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-20T16:50:24.783Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec vitest run --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:69e9f81a-8dd6-43f5-bda1-a80966de61cb",
+      "payload_hash": "7e12bed7b5ddc56647c206181a49cb77ff02a0b7f990be25cbf72426261e29c8",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-20T16:52:59.623Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec prettier --check src/tools/archive-helpers/git-finalize.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/gate.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:7dfbf574-c521-4888-82e6-2cd8495f062c",
+      "payload_hash": "11f52a5160d40f245f362412df70f9b1702a29bc74fe1128e534047b11b782f4",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-20T16:53:13.239Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec prettier --check src/tools/archive-helpers/git-finalize.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/gate.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:5f0cc927-06e7-429f-bedf-a5ef68582cda",
+      "payload_hash": "2d45951a898495d71189866bee1da540e9a263ee10fd682ad361bdd7b92e68c0",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-20T16:54:04.339Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm --dir plugin exec vitest run --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:c0218bf7-b3bf-4616-aff7-e1c9d49c45a2",
+      "payload_hash": "30ab363d9863340cf71e4fa0e5caea41e4c021f70a3c150f1cd523afc2cb9f78",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-20T16:55:55.443Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "22027e3ff429af06536f26c21b63100086440cec:Added pre-archive tree structural proof coverage; targeted archive helper tests, typecheck, Prettier check, and full Vitest suite with maxWorkers=4 pass. The pre-archive token remains distinct from API-confirmed pr_merged; structural detection performs up to two bounded 50-commit walks (100 probes max).",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivePrProofOrdering:39dbe3f8-7a72-41e2-bc6c-f91ab9802fa7",
+      "payload_hash": "20aee816fd4d2dbf67170f29aef3e5d734f85d1c0782ecee14e2791d30eabd63",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-20T16:56:17.234Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchivePrProofOrdering|tk-6307dc842aa0|adv-engineer|1|cycle:ic_tk6307dc842aa0_attempt1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchivePrProofOrdering:26212b50-ea3b-43e2-bbe8-7f2685797766",
+      "payload_hash": "fe10c324b3cc709c3d184cdf77140800081a5824e9017e105041f269efc8c8cc",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-20T16:57:05.774Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test full",
+      "operation_id": "mutation:test_run_recorded:fixArchivePrProofOrdering:1daa26e7-f7be-4f7e-a2d3-9f4f0f430ce2",
+      "payload_hash": "28f6b86d631c82b843b5dfc225dae010f73cc7cf5c8bfafa68fc079d9697d62d",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-20T16:59:56.080Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchivePrProofOrdering:d18787a9-e52a-4f57-9b24-39b559c2ead4",
+      "payload_hash": "d71f29d31df487a0230fd3075cf6f4e100235999c06568d0ea69c2e38ec4fa51",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-20T17:01:37.277Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "22027e3ff429af06536f26c21b63100086440cec:Verification-only task, no code changes.\n\nAC5 — scenario-A tests preserved, proven by diff structure rather than assertion. All four hunks in git-finalize.test.ts are pure insertions (-N,0 form, zero deletions) at lines 649, 1515, 3612, 4017. None touches the pinned tests at 3057/3205/3344, which are therefore byte-unmodified.\n\nAC10 — historical-repair.ts absent from the branch diff. Confirmed by git diff --name-only trunk...HEAD.\n\nAC11 — full suite green via bin/oc-test full (host-throttled runner), exit 0, runId tr_mt1rn6ms_814aa5ff, 126s.\n\nPre-existing failure classification, reproduced on base before attributing:\n- dead-code:check MAINT-003 ratchet: 20 fingerprints on branch, 20 on trunk baseline. Pre-existing AND unchanged; this change introduces no new fingerprints despite adding code.\n- OSV GHSA-2v37-7h3g-55p8 (nanoid 3.3.17): plugin/pnpm-lock.yaml is absent from the diff, so the advisory is untouched.\nBoth remain owned by fixPreExistingTrunkCiFailures.\n\nOne site beyond the planned seven: plugin/src/tools/gate.ts:535,575 threads preArchiveTipSha into getReleaseFinalizationBlocker's reachability calls. Correct and necessary — those call sites already passed prHeadSha and changeTipSha positionally, so omitting the new field would have made release-gate reachability blind to scenario B.\n\nAccepted consequence confirmed unchanged: in scenario B the shipped return pushes nothing, so the default branch never receives the in-repo bundle; the store-side bundle remains the durable artifact.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchivePrProofOrdering:94e9693e-ac8f-45aa-aa22-dbc626578d1b",
+      "payload_hash": "ff1b77fef34a90fce71f143aa942cfe1de91e2d339f11e4d5fdecb7ce4b1b506",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-20T17:01:56.674Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "All 5 tasks complete with checkpoints (32efee51, 4c246dab, af88b9fc, 22027e3f). Red/green evidence recorded per task. Independent verification runId tr_mt1rn6ms_814aa5ff via bin/oc-test full, exit 0. Scenario-A preservation proven by diff structure (all hunks pure insertions, none near the pinned tests). historical-repair.ts absent from diff. Dead-code ratchet reproduced on trunk baseline before attribution: 20 fingerprints both sides, unchanged.",
+      "operation_id": "mutation:gate_completion:fixArchivePrProofOrdering:c73606f7-4691-4fb6-bd15-74a9f83b1983",
+      "payload_hash": "24656c3bd0c6779ebb2d2b291a04be7ac7c6b31666177cb852577b17e677b03e",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-20T17:02:05.571Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate acceptance completion",
+      "operation_id": "mutation:gate_completion:fixArchivePrProofOrdering:0bd4887d-02fc-462b-aa36-fa8432e41deb",
+      "payload_hash": "977257ea38f87672291619590a578a45e3ea0b10f4551c0eeae9294dbb4af940",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-08-20T17:02:50.701Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchivePrProofOrdering:74ce37fe-c5c3-48b4-a73e-316a6cfbb4a9",
+      "payload_hash": "95ff2015784c651ef1fb98cee6ad5beab32a66261a0bc5d0218a1acbdd0417a0",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-08-20T17:03:24.735Z"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-20T17:05:02.737Z",
+  "capabilities": [],
+  "change_hash": "995c8b2e55f95bfd5c4f17dbae67f088a0a7ecbdd90e5c0e76e7bc349e3ce3af",
+  "change_id": "fixArchivePrProofOrdering",
+  "completed_tasks": 5,
+  "created_at": "2026-08-20T15:43:15.221Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-20T17:02:50.696Z",
+  "status": "archived",
+  "summary_hash": "046fcc622b6599ba84674d1a4b4dfd2a4062b65062866516a3e8f1e746ed254f",
+  "task_count": 5,
+  "title": "Fix archive PR proof ordering",
+  "version": "1"
+}
