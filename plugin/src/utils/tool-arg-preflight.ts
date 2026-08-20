@@ -81,6 +81,12 @@ const ARTIFACT_FIELDS = [
   "executiveSummary",
 ];
 
+// Structural Epic operations on adv_change_update. These mutate the Epic's
+// entry list rather than writing narrative content, so they carry no artifact
+// field and must be counted as operations in their own right — otherwise the
+// artifact-only guard rejects them before the handler can dispatch.
+const STRUCTURAL_FIELDS = ["link_change", "unlink_change", "reorder_entries"];
+
 // rq-toolPlaceholderPolicy01: preflight is the pure/synchronous tool-boundary
 // policy executor. Keep this table limited to structural placeholder decisions;
 // no fs/store lookups here.
@@ -139,6 +145,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     priorApprovalEvidence: { blank: "omit" },
     link_change: { blank: "omit" },
     unlink_change: { blank: "omit" },
+    // Strict-mode providers fill optional arrays with []. Normalize to omitted
+    // so an empty reorder is never counted as a requested operation.
+    reorder_entries: { emptyArray: "omit" },
   },
   adv_change_show: {
     target_path: { blank: "omit" },
@@ -499,21 +508,41 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     return invalid;
   },
   adv_change_update: (args) => {
-    // rq-toolArgBlankArtifactLinkage01.1 (revised): per-field blank: "omit"
-    // policies normalize each blank artifact to omitted before this validator
-    // runs. The remaining job is to ensure at least one artifact was actually
-    // provided post-normalization — equivalent to "you sent something to
-    // change". Sending all blanks naturally trips this check because every
-    // artifact gets normalized out.
-    const provided = ARTIFACT_FIELDS.filter((field) => field in args);
-    if (provided.length === 0) {
+    // rq-toolArgBlankArtifactLinkage01.1 (revised): per-field blank/emptyArray
+    // "omit" policies normalize placeholder fills to omitted before this
+    // validator runs, so presence here means the caller really asked for the
+    // operation.
+    //
+    // adv_change_update dispatches two kinds of work: an artifact write and a
+    // structural Epic operation. Any number of artifacts is one write, while
+    // each structural field is its own operation. Counting operations rather
+    // than requiring an artifact is what keeps the structural route reachable.
+    const artifacts = ARTIFACT_FIELDS.filter((field) => field in args);
+    const structural = STRUCTURAL_FIELDS.filter((field) => field in args);
+    const operations = (artifacts.length > 0 ? 1 : 0) + structural.length;
+
+    if (operations === 0) {
       return [
         {
-          field: ARTIFACT_FIELDS.join("|"),
-          message: "At least one artifact field must be provided.",
+          field: [...ARTIFACT_FIELDS, ...STRUCTURAL_FIELDS].join("|"),
+          message: `adv_change_update requires one operation: an artifact field (${ARTIFACT_FIELDS.join(", ")}) or a structural field (${STRUCTURAL_FIELDS.join(", ")}).`,
         },
       ];
     }
+
+    if (operations > 1) {
+      const requested = [
+        ...(artifacts.length > 0 ? [artifacts.join("+")] : []),
+        ...structural,
+      ];
+      return [
+        {
+          field: [...artifacts, ...structural].join("|"),
+          message: `adv_change_update accepts one operation at a time; received ${requested.length}: ${requested.join(", ")}.`,
+        },
+      ];
+    }
+
     return [];
   },
 };

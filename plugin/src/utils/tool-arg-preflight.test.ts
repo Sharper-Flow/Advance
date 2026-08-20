@@ -1789,25 +1789,24 @@ describe("tool arg preflight", () => {
       design: z.string().optional(),
     };
 
-    // No artifact provided at all → at-least-one-of guard fires.
+    // No operation provided at all → the operation-count guard fires.
     expect(
       validateToolArgsBeforeExecute("adv_change_update", schema, {
         changeId: "abc",
       }).invalid[0]?.message,
-    ).toContain("At least one artifact field");
+    ).toContain("requires one operation");
 
     // T2 (rq-toolArgBlankArtifactLinkage01.1 revised): all blanks normalize
-    // to omitted; the at-least-one-of guard then fires because no artifact
-    // survived normalization. Result: same error message as "no artifact
-    // provided" — semantically correct ("you didn't send anything to
-    // change").
+    // to omitted; the operation-count guard then fires because no operation
+    // survived normalization. Result: same error as "nothing provided" —
+    // semantically correct ("you didn't send anything to change").
     expect(
       validateToolArgsBeforeExecute("adv_change_update", schema, {
         changeId: "abc",
         proposal: "",
         agreement: "   ",
       }).invalid[0]?.message,
-    ).toContain("At least one artifact field");
+    ).toContain("requires one operation");
 
     // Valid case unchanged: real content → ok.
     expect(
@@ -1848,6 +1847,137 @@ describe("tool arg preflight", () => {
         executiveSummary: "post-acceptance narrative",
       }).ok,
     ).toBe(true);
+  });
+
+  describe("adv_change_update structural operations reach the handler", () => {
+    const schema = {
+      changeId: z.string(),
+      proposal: z.string().optional(),
+      design: z.string().optional(),
+      link_change: z.string().optional(),
+      unlink_change: z.string().optional(),
+      reorder_entries: z.array(z.string()).optional(),
+    };
+
+    test("link_change alone passes preflight", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "someEpic",
+          link_change: "someChange",
+        },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.invalid).toEqual([]);
+    });
+
+    test("unlink_change alone passes preflight", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "someEpic",
+          unlink_change: "someChange",
+        },
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    test("reorder_entries alone passes preflight", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "someEpic",
+          reorder_entries: ["entry-2", "entry-1"],
+        },
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    test("several artifacts together count as one operation", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "abc",
+          proposal: "real",
+          design: "also real",
+        },
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    test("an empty reorder_entries normalizes out and is not an operation", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "someEpic",
+          reorder_entries: [],
+        },
+      );
+      expect(result.ok).toBe(false);
+      expect(result.normalizedArgs).not.toHaveProperty("reorder_entries");
+      expect(result.invalid[0]?.message).toContain("requires one operation");
+    });
+
+    test("a blank structural field normalizes out and is not an operation", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "someEpic",
+          link_change: "   ",
+        },
+      );
+      expect(result.ok).toBe(false);
+      expect(result.invalid[0]?.message).toContain("requires one operation");
+    });
+
+    test("no operation at all names both artifact and structural routes", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "abc",
+        },
+      );
+      expect(result.ok).toBe(false);
+      const message = result.invalid[0]?.message ?? "";
+      expect(message).toContain("requires one operation");
+      expect(message).toContain("proposal");
+      expect(message).toContain("link_change");
+    });
+
+    test("mixing an artifact with a structural operation is refused", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "someEpic",
+          proposal: "real content",
+          link_change: "someChange",
+        },
+      );
+      expect(result.ok).toBe(false);
+      expect(result.invalid[0]?.message).toContain("one operation at a time");
+    });
+
+    test("mixing two structural operations is refused", () => {
+      const result = validateToolArgsBeforeExecute(
+        "adv_change_update",
+        schema,
+        {
+          changeId: "someEpic",
+          link_change: "changeA",
+          unlink_change: "changeB",
+        },
+      );
+      expect(result.ok).toBe(false);
+      expect(result.invalid[0]?.message).toContain("one operation at a time");
+    });
   });
 
   test("enforces adv_change_create artifact and origin linkage constraints", () => {
@@ -2087,9 +2217,7 @@ describe("tool arg preflight", () => {
         target_path: "",
       });
       expect(result.ok).toBe(false);
-      expect(result.invalid[0]?.message).toContain(
-        "At least one artifact field must be provided",
-      );
+      expect(result.invalid[0]?.message).toContain("requires one operation");
       // All blanks normalized out.
       expect(result.normalizedArgs).toEqual({ changeId: "c" });
     });
