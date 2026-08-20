@@ -198,6 +198,27 @@ describe("renderBriefingPacket", () => {
     );
   });
 
+  it("points an unverified Epic membership at reconcile", () => {
+    const packet = render({
+      ...baseInput,
+      epic_membership: {
+        epic_id: "epicCleanup",
+        entry_id: "entry-1",
+        order: 2,
+        title: "Cleanup initiative",
+        linked_at: "2026-07-02T18:00:00.000Z",
+      },
+      epic_membership_verification: "entry_missing",
+    });
+    const epic = packet.sections.find((s) => s.kind === "epic_context");
+    const content = epic?.content as {
+      verification: string;
+      reconcile: string;
+    };
+    expect(content.verification).toBe("entry_missing");
+    expect(content.reconcile).toMatch(/reconcile/i);
+  });
+
   it("emits explicit unavailable markers and section when state is missing", () => {
     const packet = render({
       change_id: "addBriefingPackets",

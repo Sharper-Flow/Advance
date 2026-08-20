@@ -18,6 +18,7 @@ import {
   getBriefingPacketArchiveAnchors,
   getBriefingPacketLaneAnchors,
 } from "../types";
+import type { EpicMembershipVerification } from "../types/epics";
 
 // =============================================================================
 // Input Types
@@ -78,6 +79,7 @@ export interface BriefingPacketRendererInput {
     title: string;
     linked_at: string;
   } | null;
+  epic_membership_verification?: EpicMembershipVerification;
   verification_expectations?: string[];
   durable_facts?: BriefingFact[];
   archive_digest?: {
@@ -393,12 +395,19 @@ function buildEpicContextSection(
     });
   }
   const { epic_id, title, order } = input.epic_membership;
-  return section("epic_context", "epic.membership", {
+  const content: Record<string, unknown> = {
     present: true,
     epic_id,
     title,
     order,
-  });
+  };
+  if (input.epic_membership_verification) {
+    content.verification = input.epic_membership_verification;
+    if (input.epic_membership_verification === "entry_missing") {
+      content.reconcile = "adv-store-reconcile";
+    }
+  }
+  return section("epic_context", "epic.membership", content);
 }
 
 function buildVerificationExpectationsSection(

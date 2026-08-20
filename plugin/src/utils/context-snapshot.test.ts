@@ -174,6 +174,22 @@ describe("formatContextSnapshot", () => {
     expect(output).toContain("Add OAuth");
   });
 
+  test("points an unverified Epic membership at reconcile", () => {
+    const output = formatContextSnapshot({
+      ...baseInput,
+      epicMembership: {
+        epic_id: "addAuthEpic",
+        entry_id: "en-001",
+        order: 0,
+        title: "Add OAuth",
+        linked_at: "2026-06-24T00:00:00.000Z",
+      },
+      epicMembershipVerification: "entry_missing",
+    });
+    expect(output).toContain("entry_missing");
+    expect(output).toMatch(/reconcile/i);
+  });
+
   test("omits Epic line when epicMembership is absent", () => {
     const output = formatContextSnapshot(baseInput);
     expect(output).not.toContain("Epic:");

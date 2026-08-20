@@ -2,6 +2,7 @@ import { describe, test, expect } from "vitest";
 import type { Change, EpicEntry } from "../types";
 import {
   convergeEpicMembership,
+  classifyMembershipVerification,
   findChangeEntry,
   getEpicEntryChangeId,
   isForeignProjectEntry,
@@ -50,6 +51,88 @@ function presentWithMembership(
 }
 
 const EPIC_ID = "epic-X";
+
+function membership(
+  overrides?: Partial<NonNullable<Change["epic_membership"]>>,
+) {
+  return {
+    epic_id: EPIC_ID,
+    entry_id: "entry-1",
+    order: 0,
+    title: "Test change",
+    linked_at: "2026-07-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("classifyMembershipVerification", () => {
+  const matchingEntry = makeEntry();
+
+  test.each([
+    ["active", false, "verified"],
+    ["retired", true, "verified"],
+  ] as const)(
+    "classifies %s owner with a matching entry",
+    (status, retired, expected) => {
+      expect(
+        classifyMembershipVerification(membership(), {
+          kind: "available",
+          localProjectId: "project-A",
+          epic: { entries: [matchingEntry], retired },
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test("classifies an active owner without its entry as entry_missing", () => {
+    expect(
+      classifyMembershipVerification(membership(), {
+        kind: "available",
+        localProjectId: "project-A",
+        epic: { entries: [], retired: false },
+      }),
+    ).toBe("entry_missing");
+  });
+
+  test("accepts the change id as a matching-entry fallback", () => {
+    expect(
+      classifyMembershipVerification(
+        membership({ entry_id: "stale-entry-id" }),
+        {
+          kind: "available",
+          changeId: "change-A",
+          localProjectId: "project-A",
+          epic: { entries: [matchingEntry], retired: false },
+        },
+      ),
+    ).toBe("verified");
+  });
+
+  test("classifies a retired owner without its entry as owner_missing", () => {
+    expect(
+      classifyMembershipVerification(membership(), {
+        kind: "available",
+        localProjectId: "project-A",
+        epic: { entries: [], retired: true },
+      }),
+    ).toBe("owner_missing");
+  });
+
+  test("classifies a foreign owner without a local Epic as owner_foreign", () => {
+    expect(
+      classifyMembershipVerification(
+        membership({ epic_project_id: "project-B" }),
+        { kind: "available", localProjectId: "project-A" },
+      ),
+    ).toBe("owner_foreign");
+  });
+
+  test("classifies a failed Epic lookup as unknown", () => {
+    expect(
+      classifyMembershipVerification(membership(), { kind: "unavailable" }),
+    ).toBe("unknown");
+  });
+});
 
 describe("convergeEpicMembership — child unreachable", () => {
   test("returns target_unreachable with no repair proposal", () => {

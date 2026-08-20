@@ -127,6 +127,8 @@ export {
   type Epic,
   EpicMembershipSchema,
   type EpicMembership,
+  EpicMembershipVerificationSchema,
+  type EpicMembershipVerification,
   RetiredEpicProjectionStatusSchema,
   type RetiredEpicProjectionStatus,
   RetiredEpicProjectionSchema,

@@ -70,6 +70,16 @@ import { CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS } from "./helpers";
 import { listPeerSessions } from "../session";
 import { epicTools } from "../epic";
 import { backlogShellTools } from "../backlog-shell";
+import { getProjectId } from "../../utils/project-id";
+import {
+  listActiveEpicProjections,
+  listRetiredEpicProjections,
+} from "../../storage/epic-projection-reader";
+import {
+  classifyMembershipVerification,
+  type EpicMembershipLookup,
+  type EpicMembershipVerification,
+} from "../epic-convergence";
 
 async function dispatchFacadeRead(
   group: Record<string, unknown>,
@@ -81,6 +91,55 @@ async function dispatchFacadeRead(
     execute: (args: unknown, store: Store) => Promise<string>;
   };
   return definition.execute(args, store);
+}
+
+/** Build one active/retired Epic index for a membership-bearing change read. */
+async function verifyEpicMembership(
+  store: Store,
+  change: Change,
+): Promise<EpicMembershipVerification> {
+  const membership = change.epic_membership;
+  if (!membership) return "unknown";
+  let localProjectId: string | null | undefined =
+    store.productContext?.repoProjectId ?? undefined;
+  if (localProjectId === undefined) {
+    try {
+      localProjectId = await getProjectId(store.paths.root);
+    } catch {
+      localProjectId = undefined;
+    }
+  }
+
+  try {
+    const [activeEpics, retiredEpics] = await Promise.all([
+      listActiveEpicProjections(store.paths.activeEpics),
+      listRetiredEpicProjections(store.paths.retiredEpics),
+    ]);
+    if (!activeEpics.success || !retiredEpics.success) {
+      return classifyMembershipVerification(membership, {
+        kind: "unavailable",
+      });
+    }
+
+    const epicIndex = new Map<
+      string,
+      NonNullable<EpicMembershipLookup["epic"]>
+    >();
+    for (const epic of activeEpics.data) {
+      epicIndex.set(epic.id, { entries: epic.entries, retired: false });
+    }
+    for (const epic of retiredEpics.data) {
+      epicIndex.set(epic.id, { entries: epic.entries, retired: true });
+    }
+    return classifyMembershipVerification(membership, {
+      kind: "available",
+      changeId: change.id,
+      localProjectId,
+      epic: epicIndex.get(membership.epic_id),
+    });
+  } catch {
+    return classifyMembershipVerification(membership, { kind: "unavailable" });
+  }
 }
 
 export const advChangeShowHandler = async (
@@ -129,7 +188,12 @@ export const advChangeShowHandler = async (
   },
   store: Store,
 ) => {
-  const epic = store.epics ? await store.epics.get(changeId) : undefined;
+  let epic: Awaited<ReturnType<Store["epics"]["get"]>> | undefined;
+  try {
+    epic = store.epics ? await store.epics.get(changeId) : undefined;
+  } catch {
+    epic = undefined;
+  }
   if (epic?.success && epic.data) {
     return dispatchFacadeRead(
       epicTools as Record<string, unknown>,
@@ -221,6 +285,9 @@ export const advChangeShowHandler = async (
       changeId,
       change.title,
     );
+    const epicMembershipVerification = change.epic_membership
+      ? await verifyEpicMembership(activeStore, change)
+      : undefined;
     const paged = paginate(change.tasks, {
       limit,
       offset,
@@ -232,6 +299,9 @@ export const advChangeShowHandler = async (
       tasks: paged.items,
       _taskPagination: paged.pagination,
       ...(projectContext ? { _projectContext: projectContext } : {}),
+      ...(change.epic_membership && epicMembershipVerification
+        ? { epic_membership_verification: epicMembershipVerification }
+        : {}),
     };
     if (validate) output.validation = validationOutput;
     // Surface linked ops follow-up state structurally. The full profile
@@ -374,6 +444,7 @@ export const advChangeShowHandler = async (
               gates: normalizedGates,
               workdir: activeStore.paths.root,
               directive,
+              epicMembershipVerification,
             });
           } catch (e) {
             output._contextSnapshotError =
@@ -523,6 +594,7 @@ export const advChangeShowHandler = async (
             change,
             lane,
             include.briefingPacketRequest,
+            epicMembershipVerification,
           );
           return renderBriefingPacket(packetInput);
         });

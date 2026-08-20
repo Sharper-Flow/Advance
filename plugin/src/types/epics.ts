@@ -370,6 +370,18 @@ export type Epic = z.infer<typeof EpicSchema>;
 // Change Epic Membership Projection
 // =============================================================================
 
+export const EpicMembershipVerificationSchema = z.enum([
+  "verified",
+  "entry_missing",
+  "owner_foreign",
+  "owner_missing",
+  "unknown",
+]);
+
+export type EpicMembershipVerification = z.infer<
+  typeof EpicMembershipVerificationSchema
+>;
+
 /**
  * Optional projection on a child change for fast Epic context loading and
  * Visibility lookup. Mirrors the compact lineage shape of `fast_follow_of`.

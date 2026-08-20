@@ -35,6 +35,7 @@ import { classifyBriefingFacts } from "../../utils/briefing-fact-classifier";
 import { type BriefingPacketRendererInput } from "../../utils/briefing-packet-renderer";
 import type { GitFinalizeOutcome } from "../archive-helpers/git-finalize";
 import type { ReadDeadline } from "./validation-projection";
+import type { EpicMembershipVerification } from "../epic-convergence";
 
 export const logger = createLogger("change");
 
@@ -439,6 +440,7 @@ export async function buildBriefingPacketForChange(
   change: Change,
   lane: BriefingPacketLane = DEFAULT_BRIEFING_PACKET_LANE,
   request?: string,
+  epicMembershipVerification?: EpicMembershipVerification,
 ): Promise<BriefingPacketRendererInput> {
   const artifacts = await readArtifacts(store, change.id, [
     "proposal",
@@ -497,6 +499,9 @@ export async function buildBriefingPacketForChange(
     })),
     affected_files: Array.from(affectedFiles),
     epic_membership: change.epic_membership ?? null,
+    ...(change.epic_membership && epicMembershipVerification
+      ? { epic_membership_verification: epicMembershipVerification }
+      : {}),
     verification_expectations:
       verificationExpectations.length > 0
         ? verificationExpectations

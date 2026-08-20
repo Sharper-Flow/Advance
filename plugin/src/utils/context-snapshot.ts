@@ -15,6 +15,7 @@
 import { GATE_COMMAND } from "./phase-plan";
 import { observedAttemptCount } from "../types/tasks";
 import type { WorkflowDirective } from "./workflow-directive";
+import type { EpicMembershipVerification } from "../types/epics";
 
 export interface GateInfo {
   status: string;
@@ -57,6 +58,7 @@ export interface ContextSnapshotInput {
     title: string;
     linked_at: string;
   };
+  epicMembershipVerification?: EpicMembershipVerification;
   /**
    * Optional Resume Freshness advisory (added by addResumeFreshnessAdvisory).
    * When present and not skipped, renders a `Freshness:` line.
@@ -115,6 +117,7 @@ type SnapshotChangeLike = {
   tasks: SnapshotTaskLike[];
   wisdom?: SnapshotWisdomLike[];
   epic_membership?: ContextSnapshotInput["epicMembership"];
+  epic_membership_verification?: ContextSnapshotInput["epicMembershipVerification"];
 };
 
 export function countUserOutcomes(proposalText?: string): number | undefined {
@@ -202,6 +205,7 @@ export function buildChangeContextSnapshot({
   workdir,
   directive,
   resumeFreshness,
+  epicMembershipVerification,
 }: {
   change: SnapshotChangeLike;
   proposalText?: string;
@@ -209,6 +213,7 @@ export function buildChangeContextSnapshot({
   workdir?: string;
   directive?: WorkflowDirective;
   resumeFreshness?: ContextSnapshotResumeFreshness;
+  epicMembershipVerification?: EpicMembershipVerification;
 }): string {
   const { taskCounts, currentTask, touchedFilesCount, errorBudgetProximity } =
     summarizeTasks(change.tasks);
@@ -228,6 +233,7 @@ export function buildChangeContextSnapshot({
     errorBudgetProximity,
     directive,
     epicMembership: change.epic_membership,
+    epicMembershipVerification,
     resumeFreshness,
   });
 }
@@ -361,6 +367,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     errorBudgetProximity,
     directive,
     epicMembership,
+    epicMembershipVerification,
     resumeFreshness,
   } = input;
 
@@ -407,7 +414,14 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
   const lines: string[] = [`CONTEXT: ${displayChangeId}`, title];
 
   if (epicMembership) {
-    lines.push(`Epic: ${epicMembership.epic_id} · ${epicMembership.title}`);
+    const verification = epicMembershipVerification
+      ? ` · ${epicMembershipVerification}`
+      : "";
+    const reconcile =
+      epicMembershipVerification === "entry_missing" ? " · reconcile" : "";
+    lines.push(
+      `Epic: ${epicMembership.epic_id} · ${epicMembership.title}${verification}${reconcile}`,
+    );
   } else {
     lines.push("");
   }

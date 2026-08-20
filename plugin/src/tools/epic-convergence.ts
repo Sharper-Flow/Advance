@@ -12,6 +12,8 @@
  * always preferred over overwrite (D1, C2).
  */
 import type { Change, EpicEntry } from "../types";
+import type { EpicMembershipVerification } from "../types/epics";
+export type { EpicMembershipVerification } from "../types/epics";
 
 export type ChildObservation =
   | { kind: "present"; change: Change }
@@ -104,6 +106,13 @@ export type EpicEntryQuery =
   | { mode: "entry_id"; entryId?: string }
   | { mode: "entry_id_or_change_id"; entryId?: string; changeId?: string };
 
+export interface EpicMembershipLookup {
+  kind: "available" | "unavailable";
+  changeId?: string;
+  localProjectId?: string | null;
+  epic?: { entries: EpicEntry[]; retired: boolean };
+}
+
 /**
  * Find the Epic change entry a selector names.
  *
@@ -133,6 +142,44 @@ export function findChangeEntry(
       return false;
     },
   );
+}
+
+/**
+ * Classify the read-time truth of a child's stored Epic membership.
+ *
+ * This function is deliberately pure. The caller performs one bounded Epic
+ * lookup and supplies either its result or an unavailable marker. Missing
+ * entries on active Epics are actionable residue; retired Epics preserve
+ * verified history when their entry is still present.
+ */
+export function classifyMembershipVerification(
+  membership: NonNullable<Change["epic_membership"]>,
+  epicLookup: EpicMembershipLookup,
+): EpicMembershipVerification {
+  if (epicLookup.kind === "unavailable") return "unknown";
+
+  const { epic, localProjectId, changeId } = epicLookup;
+  const foreignProjectId = membership.epic_project_id;
+  if (
+    typeof foreignProjectId === "string" &&
+    foreignProjectId.length > 0 &&
+    ((typeof localProjectId === "string" &&
+      localProjectId.length > 0 &&
+      foreignProjectId !== localProjectId) ||
+      !epic)
+  ) {
+    return "owner_foreign";
+  }
+
+  if (!epic) return "owner_missing";
+
+  const matchingEntry = findChangeEntry(epic, {
+    mode: "entry_id_or_change_id",
+    entryId: membership.entry_id,
+    changeId,
+  });
+  if (matchingEntry) return "verified";
+  return epic.retired ? "owner_missing" : "entry_missing";
 }
 
 /**

@@ -19,6 +19,11 @@ const mocks = vi.hoisted(() => {
     getChangeHandle: vi.fn(() => ({ query: vi.fn() })),
     waitForGateCompletion: vi.fn(),
     getProjectId: vi.fn(async () => "test-project-id"),
+    listActiveEpicProjections: vi.fn(async () => ({ success: true, data: [] })),
+    listRetiredEpicProjections: vi.fn(async () => ({
+      success: true,
+      data: [],
+    })),
     validateCrossRepoTarget: vi.fn(async () => ({ ok: true }) as const),
     runClarifyReadinessChecks: vi.fn(() => ({ findings: [] })),
   };
@@ -57,6 +62,11 @@ vi.mock("../storage/store-disk", () => ({
   }),
 }));
 
+vi.mock("../storage/epic-projection-reader", () => ({
+  listActiveEpicProjections: mocks.listActiveEpicProjections,
+  listRetiredEpicProjections: mocks.listRetiredEpicProjections,
+}));
+
 import { changeTools } from "./change";
 
 function createMockStore(changeOverride: Partial<Change> = {}): Store {
@@ -88,10 +98,13 @@ function createMockStore(changeOverride: Partial<Change> = {}): Store {
       root: "/tmp/test",
       changes: "/tmp/test/.adv/changes",
       archive: "/tmp/test/.adv/archive",
+      activeEpics: "/tmp/test/.adv/active-epics",
+      retiredEpics: "/tmp/test/.adv/retired-epics",
     } as Store["paths"],
     config: {
       features: { clarify_enforcement: "advisory" },
     },
+    productContext: { repoProjectId: "test-project-id" },
     init: vi.fn(),
     sync: vi.fn(),
     close: vi.fn(),
@@ -250,5 +263,51 @@ describe("adv_change_show enrichment best-effort integration", () => {
 
     expect(parsed.problemStatementExists).toBe(false);
     expect(parsed.problemStatementPath).toBeUndefined();
+  });
+
+  test("surfaces Epic membership verification on projection, snapshot, and briefing reads", async () => {
+    mocks.listActiveEpicProjections.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: "epic-test",
+          entries: [],
+        },
+      ],
+    });
+    mocks.listRetiredEpicProjections.mockResolvedValue({
+      success: true,
+      data: [],
+    });
+    const store = createMockStore({
+      epic_membership: {
+        epic_id: "epic-test",
+        entry_id: "entry-missing",
+        order: 0,
+        title: "Test membership",
+        linked_at: "2026-01-01T00:00:00Z",
+      },
+    });
+
+    const result = await changeTools.adv_change_show.execute(
+      {
+        changeId: "test-change",
+        include: { snapshot: true, briefingPacket: true },
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+    const epicSection = parsed._briefingPacket.sections.find(
+      (section: { kind: string }) => section.kind === "epic_context",
+    );
+
+    expect(parsed.epic_membership_verification).toBe("entry_missing");
+    expect(parsed._contextSnapshot).toContain("entry_missing");
+    expect(parsed._contextSnapshot).toMatch(/reconcile/i);
+    expect(epicSection.content).toMatchObject({
+      verification: "entry_missing",
+      reconcile: "adv-store-reconcile",
+    });
+    assertNoWorkflowCalls(store);
   });
 });
