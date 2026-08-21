@@ -1780,9 +1780,9 @@ export const epicTools = {
           });
         }
 
-        // D3 enforcement: refuse promotion if same-project prerequisites are
-        // nonterminal. Edges were validated at shell-add time; we only check
-        // terminal status here.
+        // Refuse promotion when same-project prerequisites are nonterminal.
+        // Edges are validated at shell-add time; promotion only checks terminal
+        // status.
         const d3Ctx = await buildD3ContextFromStore(ownerStore);
         const d3Result = enforceD3ForShellPromote(
           shell.blocked_by ?? [],

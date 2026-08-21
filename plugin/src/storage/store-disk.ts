@@ -710,8 +710,8 @@ export async function createDiskStore(
         if (!result.success || !result.data) return null;
         const current = result.data.epic_membership;
 
-        // rq-epicMembershipConvergence01: a conflicting child projection must
-        // not be overwritten. Callers that know what they are replacing pass
+        // A conflicting child projection must not be overwritten. Callers
+        // that know what they are replacing pass
         // expectedCurrent; callers that own the authoritative entry — direct
         // convergence — pass none and overwrite unconditionally, because
         // requiring them to predict the current value would defeat the point.

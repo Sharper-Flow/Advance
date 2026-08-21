@@ -1,15 +1,15 @@
 /**
  * Epic membership direct convergence primitives.
  *
- * Per design D1/D3 of `replaceRecoveryToolSprawl`: Epic entries own desired
- * child membership; child `epic_membership` is derived and rebuildable.
+ * Epic entries own desired child membership; child `epic_membership` is
+ * derived and rebuildable.
  * `adv_epic_show` and other access points call these primitives to observe
  * authoritative + derived state and produce a typed convergence result
  * instead of trusting a stale stored Epic-side `membership_status`.
  *
  * The primitives are pure: callers own store reads/writes and apply the
  * optional `repair` within their own bounded budget. Conflict refusal is
- * always preferred over overwrite (D1, C2).
+ * always preferred over overwrite.
  */
 import type { Change, EpicEntry } from "../types";
 import type { EpicMembershipVerification } from "../types/epics";
@@ -281,7 +281,7 @@ function buildExpectedMembership(
  *  Entry unlinked + child still has matching projection
  *                               → conflict, repair=clear_child_projection
  */
-// rq-epicMembershipConvergence01: classify Epic change entry vs child membership and emit repairable convergence.
+// Classify an Epic change entry against child membership and emit a bounded repair.
 export function convergeEpicMembership(
   input: EpicMembershipConvergenceInput,
 ): EpicMembershipConvergenceResult {

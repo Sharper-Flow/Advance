@@ -508,10 +508,9 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     return invalid;
   },
   adv_change_update: (args) => {
-    // rq-toolArgBlankArtifactLinkage01.1 (revised): per-field blank/emptyArray
-    // "omit" policies normalize placeholder fills to omitted before this
-    // validator runs, so presence here means the caller really asked for the
-    // operation.
+    // Per-field blank/emptyArray "omit" policies normalize placeholder fills
+    // before this validator runs, so presence here means the caller requested
+    // the operation.
     //
     // adv_change_update dispatches two kinds of work: an artifact write and a
     // structural Epic operation. Any number of artifacts is one write, while

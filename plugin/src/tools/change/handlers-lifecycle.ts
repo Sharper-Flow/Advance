@@ -233,8 +233,8 @@ export const advChangeCreateHandler = async (
   }
   let epicMembership = epicSeedResult.membership;
 
-  // D3 enforcement: validate same_project_dependencies at create time.
-  // Refuse creation if any hard prerequisite is nonterminal.
+  // Validate same_project_dependencies at create time and refuse creation
+  // when any hard prerequisite is nonterminal.
   const deps = same_project_dependencies ?? [];
   if (deps.length > 0) {
     const projectId = (await getProjectId(store.paths.root)) ?? "";
