@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-21T00:42:31.119Z",
+  "capabilities": [],
+  "change_hash": "c65173320898ef5e2ef536b416b3c371085570b4c42c750d4a91f7e426bbf162",
+  "change_id": "fixEpicMembershipWritePath",
+  "completed_tasks": 14,
+  "created_at": "2026-08-20T17:27:00.367Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-21T00:31:02.566Z",
+  "status": "archived",
+  "summary_hash": "eb0e19af49d7ca49a6e9343654dd4238444b6a68c8c469942997493f3dcc0087",
+  "task_count": 14,
+  "title": "Fix Epic membership write path",
+  "version": "1"
+}
