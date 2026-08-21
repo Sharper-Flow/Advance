@@ -252,6 +252,16 @@ export const statusTools = {
         { store, target_path },
         async (activeStore, projectContext) => {
           const plan = buildStatusViewPlan(view);
+          // The aggregate read budget is absolute from tool entry: the host
+          // kills the invocation at DEFAULT_TOOL_TIMEOUT_MS regardless of
+          // internal progress, so every phase — including the status load
+          // below — must share one clock that starts before the first read.
+          // Late phases are cut off mid-flight so the composed degraded
+          // response still fits inside the host cap.
+          const postStatusCutoffAt =
+            Date.now() + STATUS_READ_DEADLINE_BUDGET_MS;
+          const postStatusBudgetExceeded = () =>
+            Date.now() >= postStatusCutoffAt;
           // One aggregate budget owns the entire authoritative status read.
           const healthRequest =
             view === "health" ? createHealthRequestContext() : undefined;
@@ -373,13 +383,16 @@ export const statusTools = {
             });
           };
 
-          const postStatusCutoffAt =
-            Date.now() + STATUS_READ_DEADLINE_BUDGET_MS;
-          const postStatusBudgetExceeded = () =>
-            Date.now() >= postStatusCutoffAt;
           const degradeForDeadline = () => {
             return buildDegradedResponse();
           };
+          // Phases race the aggregate cutoff rather than only checking it
+          // between phases: a single long phase (resume projection, a wedged
+          // enrichment read) must not hold the invocation past the cutoff and
+          // let the host safety net win over the typed degraded response.
+          // A phase that loses the race may still settle afterwards; the
+          // degraded response is serialized synchronously from current state,
+          // so late settlement cannot alter the returned payload.
           const runBoundedStatusPhase = async <T>(
             _opType: string,
             operation: () => Promise<T>,
@@ -389,16 +402,27 @@ export const statusTools = {
             | { kind: "error"; error: unknown }
           > => {
             if (postStatusBudgetExceeded()) return { kind: "deadline" };
-            let data: T;
+            let timer: ReturnType<typeof setTimeout> | undefined;
             try {
-              data = await operation();
-            } catch (error) {
-              return postStatusBudgetExceeded()
-                ? { kind: "deadline" }
-                : { kind: "error", error };
+              const raced = await Promise.race([
+                Promise.resolve(operation()).then(
+                  (data) => ({ kind: "complete" as const, data }),
+                  (error: unknown) => ({ kind: "error" as const, error }),
+                ),
+                new Promise<{ kind: "deadline" }>((resolve) => {
+                  timer = setTimeout(
+                    () => resolve({ kind: "deadline" }),
+                    Math.max(0, postStatusCutoffAt - Date.now()),
+                  );
+                }),
+              ]);
+              if (raced.kind === "complete" && postStatusBudgetExceeded()) {
+                return { kind: "deadline" };
+              }
+              return raced;
+            } finally {
+              if (timer !== undefined) clearTimeout(timer);
             }
-            if (postStatusBudgetExceeded()) return { kind: "deadline" };
-            return { kind: "complete", data };
           };
 
           if (view === "hygiene") {
