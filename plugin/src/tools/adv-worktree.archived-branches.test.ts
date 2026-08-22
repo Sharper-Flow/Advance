@@ -1088,14 +1088,14 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
         reason: "archived branch cleanup",
         mode: "archived_branches",
         dryRun: true,
-        timeoutMs: 30_000,
+        timeoutMs: 60_000,
       },
       store,
     );
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(parsed.effectiveTimeoutMs).toBe(8_000);
+    expect(parsed.effectiveTimeoutMs).toBe(45_000);
     expect(parsed.timeoutNote).toContain("clamped to safe budget");
   });
 

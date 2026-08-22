@@ -632,6 +632,15 @@ export function createFullToolMap(
         ),
       ),
     ),
+    // Delete and cleanup verify archived/merged/clean state per candidate via
+    // plan → git census → branch integration proof → PR evidence subprocess
+    // chains. On large repositories (dozens of worktrees, hundreds of changes)
+    // that chain cannot fit the 10s default execute ceiling: the 8s-era inner
+    // budget timed out at every stage while bare git/gh calls stayed
+    // sub-second. Carry the same >10s override pattern as adv_task_checkpoint
+    // and adv_worktree_triage: 50s outer net over the 45s
+    // WORKTREE_TOOL_SAFE_TIMEOUT_MS inner budget, preserving a 5s typed
+    // timeout response reserve.
     adv_worktree_delete: registerTool(
       advWorktreeTools.adv_worktree_delete.description,
       advWorktreeTools.adv_worktree_delete.args,
@@ -647,6 +656,8 @@ export function createFullToolMap(
               { serverUrl, client },
             ),
           "adv_worktree_delete",
+          undefined,
+          { timeoutMs: 50_000 },
         ),
       ),
     ),
@@ -665,6 +676,8 @@ export function createFullToolMap(
               { serverUrl, client },
             ),
           "adv_worktree_cleanup",
+          undefined,
+          { timeoutMs: 50_000 },
         ),
       ),
     ),
