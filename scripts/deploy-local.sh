@@ -171,12 +171,6 @@ ADV_PLUGIN_PATH="$ADV_RUNTIME_PLUGIN_PATH"
 ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
-# ADV MCP server (Tier-4 read surface, addAdvMcpReadSurface). The opencode.jsonc
-# mcp block registers the vision-proxied HTTP endpoint so `tools.adv.*` reads
-# resolve in Code Mode. Port 6298 per DDC1 (avoids episode=6297, lgrep=6278).
-ADV_MCP_SERVER_NAME="adv-advance"
-ADV_MCP_SERVER_URL="http://localhost:6298/mcp"
-
 echo "==> ADV deploy-local ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
 echo "    runtime plugin: $ADV_SOURCE_PLUGIN_PATH -> $ADV_RUNTIME_PLUGIN_PATH"
 if [ "$DRY_RUN" = true ]; then
@@ -628,129 +622,6 @@ warn_overlay_frontmatter() {
 	rm -rf "$tmp_dir"
 }
 
-# Agent Tool Allowlist Drift Check
-#
-# Cross-references an agent's `tools:` allowlist against the plugin's
-# canonical ADV_TOOL_NAMES in plugin/src/tool-registry.ts. Reports tools
-# registered but not allowed (= will be invisible to the agent) and tools
-# allowed but not registered (= stale allowlist entries). Both are
-# build-time-detectable drift causes. Primary agents are not required to expose
-# leaf-subagent-only tools.
-# ---------------------------------------------------------------------------
-check_tool_drift() {
-	local agent_file="${1:-$REPO_AGENTS/adv.md}"
-	# Use ASSET_ROOT (current checkout/worktree) for registry so worktree-local
-	# tool additions are visible to drift detection — matches the reasoning at
-	# the ASSET_ROOT assignment (line ~95). Using REPO_ROOT here would point at
-	# the canonical primary worktree and miss in-flight tool changes.
-	local registry_file="$ASSET_ROOT/plugin/src/tool-registry.ts"
-
-	if [ ! -f "$agent_file" ] || [ ! -f "$registry_file" ]; then
-		echo "    ⚠  tool drift: skipped (missing $agent_file or $registry_file)"
-		return
-	fi
-
-	# Ground-truth tool names come from the EXPORTED ADV_TOOL_NAMES value, not a
-	# source regex. ADV_TOOL_NAMES is a derived list
-	# (Object.freeze(PUBLIC_TOOL_ENTRIES.map(e => e.name))), so scraping the
-	# registry source for a `[...] as const` literal is stale by construction.
-	# Load the registry through tsx and emit the canonical names; this stays
-	# correct across future registry refactors. Advisory check: if tsx/node is
-	# unavailable or the import fails, skip rather than fail-loud.
-	local names_file registry_dir
-	names_file="$(mktemp)"
-	registry_dir="$ASSET_ROOT/plugin"
-	if ! (cd "$registry_dir" && npx --no-install tsx -e \
-		'import("./src/tool-registry.ts").then((m)=>{process.stdout.write(m.ADV_TOOL_NAMES.join("\n"));}).catch((e)=>{console.error(e&&e.message?e.message:e);process.exit(1);})' \
-		>"$names_file" 2>/dev/null) || [ ! -s "$names_file" ]; then
-		echo "    ⚠  tool drift: skipped (could not load ADV_TOOL_NAMES via tsx from $registry_dir)"
-		rm -f "$names_file"
-		return
-	fi
-
-	python3 - "$agent_file" "$names_file" <<'PY' || ((config_issues++)) || true
-import re
-import sys
-from pathlib import Path
-
-agent_path, names_path = sys.argv[1], sys.argv[2]
-
-# Extract agent mode and adv_* keys from YAML frontmatter `tools:` block
-agent_text = Path(agent_path).read_text()
-if not agent_text.startswith("---\n"):
-    print("    ✗  tool drift: agent file missing YAML frontmatter")
-    sys.exit(1)
-end = agent_text.find("\n---\n", 4)
-if end == -1:
-    print("    ✗  tool drift: agent file frontmatter not terminated")
-    sys.exit(1)
-fm = agent_text[4:end]
-agent_mode = ""
-for line in fm.splitlines():
-    m = re.match(r"^mode\s*:\s*([A-Za-z0-9_-]+)\s*$", line)
-    if m:
-        agent_mode = m.group(1)
-        break
-
-allowed = set()
-in_tools = False
-for line in fm.splitlines():
-    stripped = line.lstrip()
-    if stripped.startswith("tools:"):
-        in_tools = True
-        continue
-    if in_tools:
-        # end of tools block: next top-level key (no leading spaces)
-        if line and not line.startswith(" ") and not line.startswith("\t"):
-            break
-        m = re.match(r"^\s+(adv_[a-z_]+)\s*:", line)
-        if m:
-            allowed.add(m.group(1))
-
-# Canonical registered tool names: emitted from the exported ADV_TOOL_NAMES
-# value (one per line) by the tsx loader in check_tool_drift(). Robust to
-# registry refactors that derive the list instead of declaring a literal.
-registered = {
-    line.strip()
-    for line in Path(names_path).read_text().splitlines()
-    if line.strip().startswith("adv_")
-}
-if not registered:
-    print("    ✗  tool drift: ADV_TOOL_NAMES resolved to an empty tool set")
-    sys.exit(1)
-
-# Leaf subagents submit reports through this tool; primary orchestrators consume
-# those reports via change state instead of submitting reports themselves.
-LEAF_ONLY_TOOLS = {"adv_subagent_report_submit"}
-primary_exemptions = LEAF_ONLY_TOOLS if agent_mode == "primary" else set()
-
-missing = sorted(registered - primary_exemptions - allowed)   # registered but not allowed
-extras = sorted(allowed - registered)    # allowed but not registered
-
-issues = 0
-agent_name = Path(agent_path).name
-if missing:
-    issues += 1
-    print(f"    ✗  tool drift: {len(missing)} tool(s) registered but NOT in {agent_name} allowlist")
-    print(f"       (the agent cannot call these — they will be invisible in sessions)")
-    for t in missing:
-        print(f"         - {t}")
-if extras:
-    issues += 1
-    print(f"    ✗  tool drift: {len(extras)} tool(s) allowed but NOT registered in {agent_name}")
-    print(f"       (allowlist references renamed/removed tools — will be silently dropped)")
-    for t in extras:
-        print(f"         - {t}")
-
-if issues == 0:
-    required_count = len(registered - primary_exemptions)
-    print(f"    ✓  tool drift: {agent_name} allowlist matches plugin registry ({required_count} tools)")
-
-sys.exit(1 if issues > 0 else 0)
-PY
-	rm -f "$names_file"
-}
-
 check_config() {
 	echo ""
 	echo "--- Config Validation ---"
@@ -788,18 +659,6 @@ check_config() {
 		((config_issues++)) || true
 	fi
 
-	# Validate adv-advance MCP registration (Tier-4 read surface)
-	if jq -e --arg name "$ADV_MCP_SERVER_NAME" \
-	       --arg url "$ADV_MCP_SERVER_URL" \
-	    '(.mcp // {}) | if type == "object" then has($name) and (.[$name].url // "") == $url else false end' \
-	    <(jsonc_to_json "$GLOBAL_JSON") &>/dev/null; then
-		echo "    ✓  mcp: $ADV_MCP_SERVER_NAME registered (Tier-4 read surface)"
-	else
-		echo "    ✗  mcp: $ADV_MCP_SERVER_NAME entry missing or URL mismatch in .mcp"
-		echo "       Expected: .mcp.$ADV_MCP_SERVER_NAME.url = \"$ADV_MCP_SERVER_URL\""
-		((config_issues++)) || true
-	fi
-
 	# ADV_INSTRUCTIONS.md is scoped to the ADV runtime agent. It should
 	# NOT be globally registered because global instructions load into every
 	# session, including non-ADV agents.
@@ -825,9 +684,8 @@ check_config() {
 		fi
 	done
 
-	# Cross-check agent tool allowlist against plugin registry
+	# Validate canonical ADV agent frontmatter parses cleanly
 	_check_single_asset_frontmatter "$REPO_AGENTS/adv.md"
-	check_tool_drift
 
 	# Warn about stale global copy (wastes ~7K tokens per prompt)
 	local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
@@ -1148,17 +1006,6 @@ fix_config() {
 		((patched++)) || true
 	fi
 
-	# Patch adv-advance MCP entry if missing or URL-drifted
-	if ! jq -e --arg name "$ADV_MCP_SERVER_NAME" --arg url "$ADV_MCP_SERVER_URL" \
-	    '(.mcp // {}) | if type == "object" then has($name) and (.[$name].url // "") == $url else false end' \
-	    "$tmp_json" &>/dev/null; then
-		jq --arg name "$ADV_MCP_SERVER_NAME" --arg url "$ADV_MCP_SERVER_URL" \
-			'.mcp = ((.mcp // {}) | . + {($name): {"type": "remote", "url": $url, "enabled": true}})' \
-			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-		patches_summary+="      + add mcp.$ADV_MCP_SERVER_NAME (Tier-4 read surface, $ADV_MCP_SERVER_URL)"$'\n'
-		((patched++)) || true
-	fi
-
 	# Remove canonical ADV_INSTRUCTIONS.md from global instructions if present.
 	# Runtime ADV protocol is covered by the lean adv.md agent plus specs/tests,
 	# not by registering this reference file globally.
@@ -1435,11 +1282,14 @@ agents_copied=0
 REPO_LOCAL_ONLY="adv-tron.md"
 # Shared agents managed via overlay blocks instead of full-file replacement.
 #
-# NOTE: `adv.md` is deliberately NOT in this list. The ADV orchestrator agent's
-# `tools:` allowlist must stay in lockstep with the plugin's tool names; if it
-# is overlay-only, user customization + plugin tool renames silently desync and
-# ADV tools get filtered out of the agent's callable set. `adv.md` is therefore
-# treated as repo-owned and fully replaced on each sync.
+# NOTE: `adv.md` is deliberately NOT in this list. The canonical ADV runtime
+# agent's `tools:` allowlist is generated by `generate-agent-manifests.ts` from
+# `plugin/src/tool-role-policy.ts` (AGENT_TOOL_POLICY) into a marker-bounded
+# `# >>> ADV-GENERATED adv_* tools (source: AGENT_TOOL_POLICY) >>>` block;
+# `pnpm run generate:manifests:check` (inside `pnpm run check`) is the authority
+# that keeps it in lockstep with registered tools. If `adv.md` were overlay-
+# only, that generated block would compete with user-owned prose outside the
+# markers, so `adv.md` is treated as repo-owned and fully replaced on each sync.
 SHARED_OVERLAY_ONLY="build.md general.md plan.md"
 # Legacy global agent filenames retained for upgrade cleanup. Current adv-*
 # names are handled by the adv-*.md glob below; keep only pre-rename bare names

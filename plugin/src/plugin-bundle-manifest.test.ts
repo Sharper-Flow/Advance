@@ -358,14 +358,16 @@ describe("plugin bundle generation guard", () => {
     {
       loadedModulePath: "/plugin/dist/index.js",
       processName: "OpenCode",
+      expectedRemediation: "Restart OpenCode",
     },
     {
       loadedModulePath: "/plugin/dist/mcp-server.js",
-      processName: "Vision-managed adv-advance",
+      processName: "the Vision-supervised MCP server",
+      expectedRemediation: "systemctl --user restart vision.service",
     },
   ])(
     "returns a typed refusal instead of serving a read for $processName when generations differ",
-    async ({ loadedModulePath, processName }) => {
+    async ({ loadedModulePath, expectedRemediation }) => {
       const dir = await tempDistDir();
       const loaded = generatePluginBundleGeneration();
       const deployed = generatePluginBundleGeneration();
@@ -382,7 +384,7 @@ describe("plugin bundle generation guard", () => {
         deployedGeneration: deployed,
         loadedModulePath,
       });
-      expect(refusal?.recovery).toContain(processName);
+      expect(refusal?.recovery).toContain(expectedRemediation);
       expect(refusal?.recovery).toMatch(/restart/i);
     },
   );

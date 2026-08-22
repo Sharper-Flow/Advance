@@ -35,7 +35,7 @@ describe("executeTier4Tool dispatcher injection", () => {
     expect(text).toBe("injected project context");
   });
 
-  it("refuses a stale MCP read before dispatch and names adv-advance recovery", async () => {
+  it("refuses a stale MCP read before dispatch and names the daemon-restart recovery", async () => {
     const distDir = await createTempDir("plugin-bundle-guard-");
     try {
       await writeFile(join(distDir, "index.js"), "index");
@@ -66,7 +66,9 @@ describe("executeTier4Tool dispatcher injection", () => {
         code: "PLUGIN_BUNDLE_GENERATION_MISMATCH",
         loadedGeneration,
         deployedGeneration,
-        recovery: expect.stringContaining("adv-advance"),
+        recovery: expect.stringContaining(
+          "systemctl --user restart vision.service",
+        ),
       });
       expect(execute).not.toHaveBeenCalled();
     } finally {
