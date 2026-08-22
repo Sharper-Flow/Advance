@@ -488,6 +488,20 @@ describe("adv_change_archive partial archive-delta repair", () => {
         }),
       }),
     );
+    expect(mocks.refreshArchiveBundleProjectionUnderLock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        archivePath: join(
+          REPAIR_WORKTREE,
+          ".adv",
+          "archive",
+          `2026-08-08-${CHANGE_ID}`,
+        ),
+        change: expect.objectContaining({
+          status: "archived",
+          phase9_status: expect.objectContaining({ status: "done" }),
+        }),
+      }),
+    );
     expect(
       mocks.refreshArchiveBundleProjectionUnderLock.mock.invocationCallOrder[0],
     ).toBeLessThan(mocks.removeChangeDir.mock.invocationCallOrder[0]);
