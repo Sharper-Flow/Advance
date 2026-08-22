@@ -96,6 +96,29 @@ export interface ArchiveBundleWriteResult {
   };
 }
 
+async function readArchiveBundleArchivedAt(
+  changeId: string,
+  archivePath: string,
+): Promise<string> {
+  const summaryRead = await readBoundedProjectionDocument(
+    join(archivePath, TERMINAL_SUMMARY_FILE),
+  );
+  if (summaryRead.kind !== "ok") {
+    throw new Error(
+      `Cannot preserve archive timestamp for ${changeId}: terminal summary is ${summaryRead.kind}.`,
+    );
+  }
+  const summary = validateTerminalArchiveSummary(
+    JSON.parse(summaryRead.content),
+  );
+  if (summary.change_id !== changeId) {
+    throw new Error(
+      `Archive bundle identity mismatch: expected ${changeId}, got ${summary.change_id}.`,
+    );
+  }
+  return summary.archived_at;
+}
+
 /**
  * Write the generated archive bundle artifacts for a change.
  *
@@ -218,26 +241,9 @@ export async function refreshArchiveBundleProjectionUnderLock(input: {
   archivePath: string;
   archivedAt?: string;
 }): Promise<ArchiveBundleWriteResult> {
-  let archivedAt = input.archivedAt;
-  if (!archivedAt) {
-    const summaryRead = await readBoundedProjectionDocument(
-      join(input.archivePath, TERMINAL_SUMMARY_FILE),
-    );
-    if (summaryRead.kind !== "ok") {
-      throw new Error(
-        `Cannot preserve archive timestamp for ${input.change.id}: terminal summary is ${summaryRead.kind}.`,
-      );
-    }
-    const summary = validateTerminalArchiveSummary(
-      JSON.parse(summaryRead.content),
-    );
-    if (summary.change_id !== input.change.id) {
-      throw new Error(
-        `Archive bundle identity mismatch: expected ${input.change.id}, got ${summary.change_id}.`,
-      );
-    }
-    archivedAt = summary.archived_at;
-  }
+  const archivedAt =
+    input.archivedAt ??
+    (await readArchiveBundleArchivedAt(input.change.id, input.archivePath));
 
   const result = await writeArchiveBundleFiles(
     input.change,
@@ -881,7 +887,29 @@ async function archiveChangeUnderLock(
   const targetArchivePath =
     context.reuseExistingBundlePath ??
     archiveBundlePath(paths.archive, change.id);
-  const archivedAt = new Date().toISOString();
+  let archivedAt: string;
+  if (context.reuseExistingBundlePath) {
+    try {
+      archivedAt = await readArchiveBundleArchivedAt(
+        change.id,
+        context.reuseExistingBundlePath,
+      );
+    } catch (error) {
+      return {
+        success: false,
+        changeId: change.id,
+        specsUpdated,
+        docsGenerated,
+        commitPaths,
+        archivePath: targetArchivePath,
+        errors: [error instanceof Error ? error.message : String(error)],
+        requirement: "rq-archiveTerminalDurability01.1",
+        archivedAt: "",
+      };
+    }
+  } else {
+    archivedAt = new Date().toISOString();
+  }
 
   const contractProofErrors = getArchiveContractProofErrors(change);
   if (contractProofErrors.length > 0) {
@@ -1204,10 +1232,10 @@ async function createArchive(
   change: Change,
   archiveDir: string,
   dryRun: boolean,
-  sourceChangeDir?: string,
-  errors?: string[],
-  multiRepo?: MultiRepoArchiveMetadata,
-  archivedAt: string = new Date().toISOString(),
+  sourceChangeDir: string | undefined,
+  errors: string[],
+  multiRepo: MultiRepoArchiveMetadata | undefined,
+  archivedAt: string,
   projectionManifest?: SpecProjectionManifest,
 ): Promise<{
   path: string;
@@ -1423,29 +1451,12 @@ export async function reconcileInRepoArchive(
       `Cannot reconcile in-repo archive for ${change.id}: source archive bundle not found under ${externalArchiveDir}.`,
     );
   }
-  const summaryRead = await readBoundedProjectionDocument(
-    join(sourceBundle, TERMINAL_SUMMARY_FILE),
-  );
-  if (summaryRead.kind !== "ok") {
-    throw new Error(
-      `Cannot preserve archive timestamp for ${change.id}: terminal summary is ${summaryRead.kind}.`,
-    );
-  }
-  const summary = validateTerminalArchiveSummary(
-    JSON.parse(summaryRead.content),
-  );
-  if (summary.change_id !== change.id) {
-    throw new Error(
-      `Archive bundle identity mismatch: expected ${change.id}, got ${summary.change_id}.`,
-    );
-  }
-
   return createInRepoArchive(
     change,
     inRepoArchiveDir,
     sourceChangeDir,
     multiRepo,
-    summary.archived_at,
+    await readArchiveBundleArchivedAt(change.id, sourceBundle),
   );
 }
 

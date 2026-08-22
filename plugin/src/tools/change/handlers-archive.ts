@@ -372,6 +372,9 @@ export const advChangeArchiveHandler = async (
     const existingBundlePath = !dryRun
       ? await findArchiveBundle(archivePaths.archive, changeId)
       : null;
+    const existingInRepoBundlePath = !dryRun
+      ? await findArchiveBundle(inRepoArchive, changeId)
+      : null;
     const hasAcceptedDeltas = Object.values(change.deltas).some(
       (deltas) => deltas.length > 0,
     );
@@ -451,6 +454,7 @@ export const advChangeArchiveHandler = async (
               archiveMode,
               phase9,
               existingBundlePath,
+              inRepoBundlePath: existingInRepoBundlePath ?? undefined,
               openOpsObligationsPayload,
               validationWarnings: validationResult.warnings,
             });
@@ -675,6 +679,7 @@ export const advChangeArchiveHandler = async (
           archiveMode,
           phase9,
           existingBundlePath,
+          inRepoBundlePath: existingInRepoBundlePath ?? undefined,
           openOpsObligationsPayload,
           validationWarnings: validationResult.warnings,
         });
@@ -729,7 +734,16 @@ export const advChangeArchiveHandler = async (
         changeId,
         archivePath: archiveResult.archivePath,
         errors: archiveResult.errors,
+        ...(archiveResult.requirement
+          ? { requirement: archiveResult.requirement }
+          : {}),
       });
+
+    const inRepoBundlePath = archiveResult.commitPaths.find((path) =>
+      relative(inRepoBase, path)
+        .replaceAll("\\", "/")
+        .startsWith(".adv/archive/"),
+    );
 
     let finalization: GitFinalizeOutcome | undefined;
     let releaseGateCompletion:
@@ -829,6 +843,7 @@ export const advChangeArchiveHandler = async (
         changeId,
         finalization,
         existingBundlePath: archiveResult.archivePath,
+        inRepoBundlePath,
       });
       if (!releaseResult.ok)
         return formatToolOutput({
@@ -873,6 +888,7 @@ export const advChangeArchiveHandler = async (
           archiveMode,
           phase9,
           existingBundlePath: archiveResult.archivePath,
+          inRepoBundlePath,
           openOpsObligationsPayload,
           validationWarnings: validationResult.warnings,
         });
@@ -1019,19 +1035,35 @@ export const advChangeArchiveHandler = async (
           archivePath: archiveResult.archivePath,
         });
       try {
-        const refreshResult = await withArchiveProjectionLock(
+        const bundlePaths = [
+          archiveResult.archivePath,
+          ...(inRepoBundlePath && inRepoBundlePath !== archiveResult.archivePath
+            ? [inRepoBundlePath]
+            : []),
+        ];
+        const refreshResults = await withArchiveProjectionLock(
           activeStore.paths.root,
-          () =>
-            refreshArchiveBundleProjectionUnderLock({
-              change: outcome.value,
-              archivePath: archiveResult.archivePath,
-              archivedAt: archiveResult.archivedAt,
-            }),
+          async () => {
+            const results = [];
+            for (const archivePath of bundlePaths) {
+              results.push(
+                await refreshArchiveBundleProjectionUnderLock({
+                  change: outcome.value,
+                  archivePath,
+                  archivedAt: archiveResult.archivedAt,
+                }),
+              );
+            }
+            return results;
+          },
         );
-        if (refreshResult.terminalSummaryDegradation)
+        const degradedRefresh = refreshResults.find(
+          (result) => result.terminalSummaryDegradation,
+        );
+        if (degradedRefresh?.terminalSummaryDegradation)
           return formatToolOutput({
             success: false,
-            error: `Archive bundle projection refresh blocked: ${refreshResult.terminalSummaryDegradation.reason}`,
+            error: `Archive bundle projection refresh blocked: ${degradedRefresh.terminalSummaryDegradation.reason}`,
             requirement: "rq-archiveTerminalDurability01.1",
             changeId,
             archivePath: archiveResult.archivePath,

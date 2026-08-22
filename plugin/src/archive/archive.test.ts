@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { execSync } from "child_process";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
-import { join } from "path";
+import { basename, join } from "path";
 import { afterEach, describe, expect, test } from "vitest";
 import type { Change } from "../types";
 import { ChangeSchema } from "../types";
@@ -420,6 +420,69 @@ describe("contract archive traceability", () => {
         reconcileInRepoArchive(change, archiveDir, inRepoArchiveDir),
       ).rejects.toThrow(/terminal summary/i);
     });
+  });
+
+  test("reuses the existing bundle archived_at for external and in-repo retries", async () => {
+    const root = await tempProject();
+    const change = changeWithContract({ id: "retry-preserves-archived-at" });
+    const archiveDir = join(root, "external-archive");
+    const inRepoArchiveDir = join(root, "repo", ".adv", "archive");
+    const paths = {
+      specs: join(root, "specs"),
+      docs: join(root, "docs"),
+      archive: archiveDir,
+      inRepoArchive: inRepoArchiveDir,
+    };
+
+    const firstResult = await archiveChange({
+      change,
+      specs: new Map(),
+      paths,
+    });
+    const inRepoBundlePath = join(
+      inRepoArchiveDir,
+      basename(firstResult.archivePath),
+    );
+    const originalArchivedAt = validateTerminalArchiveSummary(
+      JSON.parse(
+        await readFile(
+          join(firstResult.archivePath, TERMINAL_SUMMARY_FILE),
+          "utf8",
+        ),
+      ),
+    ).archived_at;
+    const originalInRepoArchivedAt = validateTerminalArchiveSummary(
+      JSON.parse(
+        await readFile(join(inRepoBundlePath, TERMINAL_SUMMARY_FILE), "utf8"),
+      ),
+    ).archived_at;
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    await archiveChange({
+      change,
+      specs: new Map(),
+      paths,
+      reuseExistingBundlePath: firstResult.archivePath,
+    });
+
+    const retriedArchivedAt = validateTerminalArchiveSummary(
+      JSON.parse(
+        await readFile(
+          join(firstResult.archivePath, TERMINAL_SUMMARY_FILE),
+          "utf8",
+        ),
+      ),
+    ).archived_at;
+    const retriedInRepoArchivedAt = validateTerminalArchiveSummary(
+      JSON.parse(
+        await readFile(join(inRepoBundlePath, TERMINAL_SUMMARY_FILE), "utf8"),
+      ),
+    ).archived_at;
+
+    expect(retriedArchivedAt).toBe(originalArchivedAt);
+    expect(retriedInRepoArchivedAt).toBe(originalInRepoArchivedAt);
+    expect(retriedInRepoArchivedAt).toBe(originalArchivedAt);
   });
 
   test("single-repo archive bundle remains unchanged without scope_repos", async () => {
@@ -955,6 +1018,49 @@ describe("contract archive traceability", () => {
         name.endsWith("-digest-cross-day"),
       );
       expect(matchingBundles).toEqual(["2026-01-01-digest-cross-day"]);
+    });
+
+    test("reports a structured failure when a reused bundle lacks its terminal summary", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "digest-missing-terminal-summary",
+        status: "active",
+        contract: undefined,
+      });
+      const paths = {
+        specs: join(root, "specs"),
+        docs: join(root, "docs"),
+        archive: join(root, "archive"),
+      };
+      const existingArchivePath = join(
+        paths.archive,
+        "2026-01-01-digest-missing-terminal-summary",
+      );
+      await mkdir(existingArchivePath, { recursive: true });
+      await writeFile(
+        join(existingArchivePath, "change.json"),
+        JSON.stringify({ ...change, status: "archived" }, null, 2),
+      );
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths,
+        reuseExistingBundlePath: existingArchivePath,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          changeId: change.id,
+          archivePath: existingArchivePath,
+          archivedAt: "",
+          requirement: "rq-archiveTerminalDurability01.1",
+        }),
+      );
+      expect(result.errors).toContain(
+        "Cannot preserve archive timestamp for digest-missing-terminal-summary: terminal summary is not_found.",
+      );
     });
   });
 

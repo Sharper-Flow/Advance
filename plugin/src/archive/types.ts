@@ -60,6 +60,8 @@ export interface ArchiveOperationResult {
   archivePath: string;
   /** Errors encountered */
   errors: string[];
+  /** Requirement governing a structured durability failure, when applicable. */
+  requirement?: string;
   /** Timestamp of archive operation */
   archivedAt: string;
   /** Number of wisdom entries auto-promoted to project level */
