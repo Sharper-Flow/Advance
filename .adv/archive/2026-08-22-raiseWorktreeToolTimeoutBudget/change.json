@@ -94,7 +94,7 @@
     "linked_at": "2026-08-22T01:46:22.272Z"
   },
   "same_project_dependencies": [],
-  "projection_revision": 11,
+  "projection_revision": 12,
   "projection_commits": [
     {
       "mutation_kind": "task_add",
@@ -216,6 +216,32 @@
       "prior_revision": 10,
       "new_revision": 11,
       "committed_at": "2026-08-22T15:54:02.909Z"
+    },
+    {
+      "mutation_kind": "archive_transition",
+      "authority_kind": "mutation",
+      "authority_reason": "archive shipped change",
+      "authority_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=pushed; releasedCommitSha=8c69239d146871816e959b7521f1591c3c9e8986; mergeCommitSha=10e9ed9660ff35b5c0bb42754e7abb867c2887f9; prBranch=change/raiseWorktreeToolTimeoutBudget; repo=Sharper-Flow/Advance; prNumber=430; prHeadSha=3e93af1bb984bcf1330370c19779cd1daf73f5eb; defaultBranchReachability=origin/trunk@8c69239d146871816e959b7521f1591c3c9e8986; prUrl=https://github.com/Sharper-Flow/Advance/pull/430; route=direct",
+      "operation_id": "mutation:archive_transition:raiseWorktreeToolTimeoutBudget:50fa9ea2-f04e-4472-a797-fa5011800f53",
+      "payload_hash": "39be600a89c18f4eff719ebe67269bbb01510bd215fbca7094a4b532cb000695",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-22T15:56:44.469Z"
     }
-  ]
+  ],
+  "lifecycleState": "archived",
+  "phase9_status": {
+    "status": "done",
+    "startedAt": "2026-08-22T15:56:44.461Z",
+    "completedAt": "2026-08-22T15:56:44.461Z",
+    "changeTipSha": "de48472359c5be2ae73c0a29a329f88d64ed25c4",
+    "preArchiveTipSha": "3e93af1bb984bcf1330370c19779cd1daf73f5eb",
+    "repo": "Sharper-Flow/Advance",
+    "prNumber": 430,
+    "prUrl": "https://github.com/Sharper-Flow/Advance/pull/430",
+    "route": "direct",
+    "prHeadSha": "3e93af1bb984bcf1330370c19779cd1daf73f5eb",
+    "defaultBranchSha": "8c69239d146871816e959b7521f1591c3c9e8986",
+    "mergeCommitSha": "10e9ed9660ff35b5c0bb42754e7abb867c2887f9"
+  }
 }

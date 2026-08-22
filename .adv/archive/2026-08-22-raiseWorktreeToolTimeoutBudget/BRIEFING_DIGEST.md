@@ -3,7 +3,7 @@
 **Change ID:** raiseWorktreeToolTimeoutBudget
 **Title:** Raise worktree tool timeout budget
 **Status:** archived
-**Generated:** 2026-08-22T15:56:39.967Z
+**Generated:** 2026-08-22T15:56:50.827Z
 
 ## Identity Anchors
 
