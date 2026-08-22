@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-22T15:56:39.812Z",
+  "capabilities": [],
+  "change_hash": "2f05e1696b53cdb05179f478ae5fb96253b35492988c8894ff0d3d513c3e6c6d",
+  "change_id": "raiseWorktreeToolTimeoutBudget",
+  "completed_tasks": 1,
+  "created_at": "2026-08-22T01:46:23.510Z",
+  "current_gate": "done",
+  "last_activity_at": "2026-08-22T15:54:02.900Z",
+  "lifecycle_state": "archived",
+  "status": "archived",
+  "summary_hash": "4aba340b209cb4f4851c78cdb64f545b54eb59021c457969b27d3b75127c4dce",
+  "task_count": 1,
+  "title": "Raise worktree tool timeout budget",
+  "version": "1"
+}

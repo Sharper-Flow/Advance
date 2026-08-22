@@ -1,0 +1,247 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "raiseWorktreeToolTimeoutBudget",
+  "title": "Raise worktree tool timeout budget",
+  "status": "archived",
+  "created_at": "2026-08-22T01:46:23.510Z",
+  "tasks": [
+    {
+      "id": "tk-c1f92bb49001",
+      "title": "Raise WORKTREE_TOOL_SAFE_TIMEOUT_MS 8s→45s and give adv_worktree_delete/adv_worktree_cleanup a 50s safeExecute override in tool-registry.ts (mirroring adv_worktree_triage's 60s pattern). Update docstrings (adv-worktree.ts rationale + timeoutMs arg description), the workspace-warp.ts comment, and the two budget-pinning test assertions. Validation: targeted vitest on both test files, tsc typecheck, eslint, prettier. Build + deploy-local.sh --fix afterward.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-22T01:46:51.592Z",
+      "started_at": "2026-08-22T01:47:17.326Z",
+      "completed_at": "2026-08-22T02:00:10.008Z",
+      "verification": "Commit 20bdca66. Raised WORKTREE_TOOL_SAFE_TIMEOUT_MS 8_000→45_000, added 50s safeExecute overrides for adv_worktree_delete/adv_worktree_cleanup, updated comments/schema description, updated contract-value test assertions. Validation: 74/74 vitest on the three affected files, tsc clean, eslint clean, prettier clean. Full check + build + deploy follow.",
+      "summary": "Commit 20bdca66. Raised WORKTREE_TOOL_SAFE_TIMEOUT_MS 8_000→45_000, added 50s safeExecute overrides for adv_worktree_delete/adv_worktree_cleanup, updated comments/schema description, updated contract-value test assertions. Validation: 74/74 vitest on the three affected files, tsc clean, eslint clean, prettier clean. Full check + build + deploy follow.",
+      "filesTouched": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "plugin/src/tools/adv-worktree.archived-branches.test.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/utils/workspace-warp.ts"
+      ],
+      "checkpointSha": "20bdca661d6d05bd2a09bf43b47b0ca6ec392543",
+      "completedAt": "2026-08-22T02:00:10.008Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    }
+  ],
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:05:41.352Z",
+      "completed_by": "agent",
+      "approval_evidence": "proposal.md carries the confirmed problem statement: adv_worktree_delete and adv_worktree_cleanup fail closed because their verification chain cannot complete inside the 8s WORKTREE_TOOL_SAFE_TIMEOUT_MS, a value that existed only to stay under the 10s default safeExecute ceiling. Measured on pokeedge (40 worktrees, 320+ changes) 2026-08-21: plan, git_census and integration_proof all timed out across quiet and busy conditions while bare git worktree list took 11ms and gh pr view 1.4s."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:05:59.592Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery established that the constraint was the SDK's 10s DEFAULT_TOOL_TIMEOUT_MS, and that a per-tool execute override already existed and was already in use by three sibling tools: adv_task_checkpoint (35s), adv_wip_state (60s) and adv_worktree_triage (60s). So the 8s budget was not a considered bound but an artifact of not using the available mechanism. Per-op bounding via DISCOVERY_GIT_BUDGET_CEILING_MS (2s) was confirmed independent of the total budget and left untouched."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:06:33.580Z",
+      "completed_by": "agent",
+      "approval_evidence": "design.md persisted. Core decision is subtractive in spirit: use the per-tool execute override the codebase already had rather than add a bypass. Clamp mechanism (rq-worktreeBoundedCleanup02) preserved; only its ceiling moves. No independent validator run — the change reuses an established in-repo mechanism rather than choosing a new architecture."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:52:21.615Z",
+      "completed_by": "agent",
+      "approval_evidence": "Single-task graph (tk-c1f92bb49001), already complete. User approved the prep contract retroactively, including the disclosed absence of an independent design validator."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:52:58.264Z",
+      "completed_by": "agent",
+      "approval_evidence": "1/1 tasks done. Work merged as PR #430, squash 10e9ed96 on trunk. Note: the task records checkpointSha 20bdca66, which was the pre-rebase checkpoint; that commit was rebased onto merged trunk as 3e93af1b and merged as 10e9ed96. The recorded sha is stale metadata only — the merged branch history carries the same tree, verified identical on the three touched source files before the move."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:53:25.514Z",
+      "completed_by": "user",
+      "approval_evidence": "Accepted. Delivered outcome verified live: adv_worktree_cleanup reports effectiveTimeoutMs 45000 against the deployed plugin, and the tools no longer fail closed on large repositories. Review evidence: 74/74 vitest on the three affected test files, pnpm run check clean, architecture:check 0 errors. dead-code:check failure on worktreeDetachHandler proven pre-existing by reproducing it on untouched trunk and confirming the diff never references that symbol."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:54:02.900Z",
+      "completed_by": "agent",
+      "approval_evidence": "Released. PR #430 MERGED, squash commit 10e9ed96 reachable on origin/trunk. Deployed and live. Release-tag caveat recorded: the squash title came out as \"chore(adv): checkpoint tk-c1f92bb49001 (#430)\" because GitHub used the single commit message rather than the PR title, so this commit alone carries no semver bump — but fix: commits from #428, #429 and #431 already sit in the window since v1.21.15, so the pending release is patch-level regardless. Auto-release itself is gated on trunk CI going green, which is red pre-existing and tracked by fixPreExistingTrunkCiFailures.; Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=verified; proof=pr_merged; releasedCommitSha=10e9ed9660ff35b5c0bb42754e7abb867c2887f9; route=direct; prNumber=430; mergeCommitOid=10e9ed9660ff35b5c0bb42754e7abb867c2887f9"
+    }
+  },
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge |\n| Source path | `/home/jon/dev/pokeedge` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Raise worktree tool timeout budget\n\n## Why\n`adv_worktree_delete` and `adv_worktree_cleanup` fail closed on a repository with 40 worktrees and 320+ changes: their verification chain (plan → git census → branch integration proof → PR evidence) cannot complete inside the 8s `WORKTREE_TOOL_SAFE_TIMEOUT_MS`, which exists only to stay under the 10s default `safeExecute` ceiling. Observed from the pokeedge project on 2026-08-21: three stages timed out (`plan`, `git_census`, `integration_proof`) across quiet and busy conditions while `git worktree list` (11ms) and `gh pr view` (1.4s) were each fast — the budget, not the repo, is the blocker. Nine verified-merged worktrees are stuck in the retained queue because of it.\n\n## What Changes\n- `tool-registry.ts`: give `adv_worktree_delete` and `adv_worktree_cleanup` a `{ timeoutMs: 50_000 }` execute override — the same mechanism `adv_task_checkpoint` (35s), `adv_wip_state` (60s), and `adv_worktree_triage` (60s) already use.\n- `adv-worktree.ts`: raise `WORKTREE_TOOL_SAFE_TIMEOUT_MS` 8_000 → 45_000, keeping the 5s response reserve beneath the 50s override; update the rationale docstring and the timeoutMs arg description.\n- `workspace-warp.ts`: comment truthfulness only (drop the hardcoded \"(8s)\").\n- Tests: update the two budget-pinning assertions to 45_000.\n\n## Constraints\n- The clamp mechanism itself stays (`rq-worktreeBoundedCleanup02`); only its ceiling moves, so the structural-ceiling guidance remains truthful.\n- `DISCOVERY_GIT_BUDGET_CEILING_MS` (2s per git op) is untouched — per-op bounding is independent of the total budget.\n\n## Validation Plan\n- Targeted vitest on both touched test files; typecheck; lint; format check.\n- Build + `deploy-local.sh --fix`; behavior verified after host restart by re-running `adv_worktree_cleanup` dry-run and confirming `effectiveTimeoutMs` reflects the raised budget.",
+    "design": "# Design — raise worktree tool timeout budget\n\n## Decision 1: use the existing override, do not special-case\n\nThe 8s budget was not a considered bound. It existed to fit under the SDK's 10s `DEFAULT_TOOL_TIMEOUT_MS`. A per-tool `timeoutMs` execute override already existed in `tool-registry.ts` and was already carried by three sibling tools — `adv_task_checkpoint` (35s), `adv_wip_state` (60s), `adv_worktree_triage` (60s).\n\nSo the fix is to use the mechanism the codebase already has, not to add a bypass, exemption, or fast path. `adv_worktree_delete` and `adv_worktree_cleanup` get `{ timeoutMs: 50_000 }`; `WORKTREE_TOOL_SAFE_TIMEOUT_MS` moves 8_000 → 45_000.\n\n## Decision 2: keep the clamp, move only its ceiling\n\n`rq-worktreeBoundedCleanup02` requires the tool to be bounded and to degrade into typed partial results rather than a hard timeout. That mechanism is untouched — only the number it clamps to changes. Guidance about a structural ceiling stays truthful because there is still a ceiling.\n\n`DISCOVERY_GIT_BUDGET_CEILING_MS` (2s per git op) is unchanged. Per-op bounding keeps failures granular — one hung subprocess is killed rather than starving the pass — and is independent of the total budget.\n\n## Decision 3: 5s spread between inner and outer budget\n\n45s inner against a 50s outer override. The gap is the response reserve: a clamped timeout must be able to format and return a typed timeout result before the outer `safeExecute` rejects. Collapsing the gap would convert a clean typed timeout into an opaque rejection.\n\n## Comment truthfulness\n\nSeveral comments asserted the 10s SDK ceiling as the governing bound. That is no longer true for these two tools, so the constant's rationale now anchors to the 50s registry override and records the measured evidence, the `timeoutMs` arg description drops the 10s claim, and `workspace-warp.ts` references the constant instead of a hardcoded 8s.\n\n## Test posture\n\nTest changes are contract-value updates, not loosening. Two budget-pinning assertions move to 45_000. Five timeout-path tests that encoded 30_000-as-oversize move to 60_000 — still oversize, still clamped. Their vitest timeouts rise to 50_000 because a clamped timeout now genuinely waits 45s under real timers. The two delete tests keep their no-override shape, since `delete` exposes no `timeoutMs` arg and its budget is internal.\n\nNo assertion was deleted or weakened.\n"
+  },
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "linked_at": "2026-08-22T01:46:22.272Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 12,
+  "projection_commits": [
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-c1f92bb49001",
+      "operation_id": "mutation:task_add:raiseWorktreeToolTimeoutBudget:5257073d-101f-4400-abed-d2ce20fe2332",
+      "payload_hash": "822d9e9b900da827be4febd15735436a1b34e72eb243bf3004232bfbc51390c5",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-22T01:46:51.607Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:raiseWorktreeToolTimeoutBudget:5c17ae5e-0d3f-4181-854a-f0624c216bd2",
+      "payload_hash": "c862148a59c74e7f61dd301a2052c5247dac677bb81ad979dbc5ea15345c07cf",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-22T01:47:17.596Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "20bdca661d6d05bd2a09bf43b47b0ca6ec392543:Commit 20bdca66. Raised WORKTREE_TOOL_SAFE_TIMEOUT_MS 8_000→45_000, added 50s safeExecute overrides for adv_worktree_delete/adv_worktree_cleanup, updated comments/schema description, updated contract-value test assertions. Validation: 74/74 vitest on the three affected files, tsc clean, eslint clean, prettier clean. Full check + build + deploy follow.",
+      "operation_id": "mutation:task_checkpoint_completed:raiseWorktreeToolTimeoutBudget:fb4ac49f-eafc-48e7-99be-2943149dd857",
+      "payload_hash": "8953802c369be2601f3dd88416a3d7f466e1d9b7af0ec4e7148d1f621b48d766",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-22T02:00:10.010Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "proposal.md carries the confirmed problem statement: adv_worktree_delete and adv_worktree_cleanup fail closed because their verification chain cannot complete inside the 8s WORKTREE_TOOL_SAFE_TIMEOUT_MS, a value that existed only to stay under the 10s default safeExecute ceiling. Measured on pokeedge (40 worktrees, 320+ changes) 2026-08-21: plan, git_census and integration_proof all timed out across quiet and busy conditions while bare git worktree list took 11ms and gh pr view 1.4s.",
+      "operation_id": "mutation:gate_completion:raiseWorktreeToolTimeoutBudget:547d3fd3-5615-444b-934d-278be3ce97e3",
+      "payload_hash": "b5519195831c29f76c0bfcce5aa23a89f4d8ecee68f7f485647b75a8f7e4206b",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-22T15:05:41.356Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Discovery established that the constraint was the SDK's 10s DEFAULT_TOOL_TIMEOUT_MS, and that a per-tool execute override already existed and was already in use by three sibling tools: adv_task_checkpoint (35s), adv_wip_state (60s) and adv_worktree_triage (60s). So the 8s budget was not a considered bound but an artifact of not using the available mechanism. Per-op bounding via DISCOVERY_GIT_BUDGET_CEILING_MS (2s) was confirmed independent of the total budget and left untouched.",
+      "operation_id": "mutation:gate_completion:raiseWorktreeToolTimeoutBudget:38f1adcf-c833-4cfa-b34d-41f6ed1bd088",
+      "payload_hash": "17616e19e9f4f3ce2c1685ed3ba7df5b77edfb48194cf996ec81070dbd652dd2",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-22T15:05:59.601Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:raiseWorktreeToolTimeoutBudget:a7bddc98-ed59-471c-870a-1fe65ba9ad5c",
+      "payload_hash": "2de5515f85e6d047fcee1334017febb7751f2a2a4aac8ee3867d1ced3e10e306",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-22T15:06:21.212Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "design.md persisted. Core decision is subtractive in spirit: use the per-tool execute override the codebase already had rather than add a bypass. Clamp mechanism (rq-worktreeBoundedCleanup02) preserved; only its ceiling moves. No independent validator run — the change reuses an established in-repo mechanism rather than choosing a new architecture.",
+      "operation_id": "mutation:gate_completion:raiseWorktreeToolTimeoutBudget:80db3b91-91c7-4284-a259-cdae3cfe3dbb",
+      "payload_hash": "dcf037ebd5189fae12e033556f900bf2ded6fa82300f1ab34ae0000125950c55",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-22T15:06:33.624Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Single-task graph (tk-c1f92bb49001), already complete. User approved the prep contract retroactively, including the disclosed absence of an independent design validator.",
+      "operation_id": "mutation:gate_completion:raiseWorktreeToolTimeoutBudget:9c993802-9c71-4dda-8c4a-eeb223e18c6e",
+      "payload_hash": "0818e53c93d3e0e861c485a2edd946abc0c944d837049ed71d8391f684ab5854",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-22T15:52:21.657Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "1/1 tasks done. Work merged as PR #430, squash 10e9ed96 on trunk. Note: the task records checkpointSha 20bdca66, which was the pre-rebase checkpoint; that commit was rebased onto merged trunk as 3e93af1b and merged as 10e9ed96. The recorded sha is stale metadata only — the merged branch history carries the same tree, verified identical on the three touched source files before the move.",
+      "operation_id": "mutation:gate_completion:raiseWorktreeToolTimeoutBudget:f68912d1-ad2e-4c8d-b1a7-f0c2c68657e8",
+      "payload_hash": "4943946a83cddf2f49c89e204c36bd03e9105af3bb0e337a0f2ab2a289515002",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-22T15:52:58.275Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Accepted. Delivered outcome verified live: adv_worktree_cleanup reports effectiveTimeoutMs 45000 against the deployed plugin, and the tools no longer fail closed on large repositories. Review evidence: 74/74 vitest on the three affected test files, pnpm run check clean, architecture:check 0 errors. dead-code:check failure on worktreeDetachHandler proven pre-existing by reproducing it on untouched trunk and confirming the diff never references that symbol.",
+      "operation_id": "mutation:gate_completion:raiseWorktreeToolTimeoutBudget:204a596d-8546-474a-a984-5218e7cf4610",
+      "payload_hash": "e7b0c72a3324bb3746f45ce082dc2d1d0b6e6710cca0c5e394a102c45e72891f",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-22T15:53:25.529Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Released. PR #430 MERGED, squash commit 10e9ed96 reachable on origin/trunk. Deployed and live. Release-tag caveat recorded: the squash title came out as \"chore(adv): checkpoint tk-c1f92bb49001 (#430)\" because GitHub used the single commit message rather than the PR title, so this commit alone carries no semver bump — but fix: commits from #428, #429 and #431 already sit in the window since v1.21.15, so the pending release is patch-level regardless. Auto-release itself is gated on trunk CI going green, which is red pre-existing and tracked by fixPreExistingTrunkCiFailures.",
+      "operation_id": "mutation:gate_completion:raiseWorktreeToolTimeoutBudget:c7ccfff0-f317-4ff3-af62-da37ecec757b",
+      "payload_hash": "3e870d62434bb66be9dfc8bc0e9e4eebbe400791e7e419cf9ce01a9c761f02cd",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-22T15:54:02.909Z"
+    },
+    {
+      "mutation_kind": "archive_transition",
+      "authority_kind": "mutation",
+      "authority_reason": "archive shipped change",
+      "authority_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=pushed; releasedCommitSha=8c69239d146871816e959b7521f1591c3c9e8986; mergeCommitSha=10e9ed9660ff35b5c0bb42754e7abb867c2887f9; prBranch=change/raiseWorktreeToolTimeoutBudget; repo=Sharper-Flow/Advance; prNumber=430; prHeadSha=3e93af1bb984bcf1330370c19779cd1daf73f5eb; defaultBranchReachability=origin/trunk@8c69239d146871816e959b7521f1591c3c9e8986; prUrl=https://github.com/Sharper-Flow/Advance/pull/430; route=direct",
+      "operation_id": "mutation:archive_transition:raiseWorktreeToolTimeoutBudget:50fa9ea2-f04e-4472-a797-fa5011800f53",
+      "payload_hash": "39be600a89c18f4eff719ebe67269bbb01510bd215fbca7094a4b532cb000695",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-22T15:56:44.469Z"
+    }
+  ],
+  "lifecycleState": "archived",
+  "phase9_status": {
+    "status": "done",
+    "startedAt": "2026-08-22T15:56:44.461Z",
+    "completedAt": "2026-08-22T15:56:44.461Z",
+    "changeTipSha": "de48472359c5be2ae73c0a29a329f88d64ed25c4",
+    "preArchiveTipSha": "3e93af1bb984bcf1330370c19779cd1daf73f5eb",
+    "repo": "Sharper-Flow/Advance",
+    "prNumber": 430,
+    "prUrl": "https://github.com/Sharper-Flow/Advance/pull/430",
+    "route": "direct",
+    "prHeadSha": "3e93af1bb984bcf1330370c19779cd1daf73f5eb",
+    "defaultBranchSha": "8c69239d146871816e959b7521f1591c3c9e8986",
+    "mergeCommitSha": "10e9ed9660ff35b5c0bb42754e7abb867c2887f9"
+  }
+}
