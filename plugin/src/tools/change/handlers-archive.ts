@@ -691,6 +691,7 @@ export const advChangeArchiveHandler = async (
       ) {
         reconciledInRepoPath = await reconcileInRepoArchive(
           change,
+          archivePaths.archive,
           archivePaths.inRepoArchive,
           archivePaths.changes
             ? join(archivePaths.changes, changeId)

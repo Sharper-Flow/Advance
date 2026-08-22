@@ -119,6 +119,8 @@ describe("store-disk — bounded warnings + monotonic IDs", () => {
       legacyChange,
       join(dir, ".adv/archive"),
       activeDir,
+      undefined,
+      "2026-05-08T00:00:00.000Z",
     );
     await expect(
       readFile(join(archivePath, "proposal.md"), "utf-8"),
