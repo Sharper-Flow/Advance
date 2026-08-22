@@ -1047,7 +1047,7 @@ describe("advWorktreeTools", () => {
     );
 
     const out = await advWorktreeTools.adv_worktree_cleanup.execute(
-      { reason: "clamped cleanup", timeoutMs: 30_000 },
+      { reason: "clamped cleanup", timeoutMs: 60_000 },
       store,
     );
 
@@ -1055,7 +1055,7 @@ describe("advWorktreeTools", () => {
     expect(parsed.timedOut).toBe(true);
     expect(parsed.remediation).not.toContain("larger timeoutMs");
     expect(parsed.remediation).toMatch(/skipDiscovery|adv_worktree_triage/);
-  }, 20_000);
+  }, 50_000);
 
   // AC2 — with no clamp, offering a larger timeoutMs is still reachable.
   it("may still advise a larger timeoutMs when no clamp was applied (worktrees)", async () => {
@@ -1090,7 +1090,7 @@ describe("advWorktreeTools", () => {
       () => new Promise(() => {}),
     );
 
-    for (const timeoutMs of [25, 30_000]) {
+    for (const timeoutMs of [25, 60_000]) {
       const out = await advWorktreeTools.adv_worktree_cleanup.execute(
         { reason: "no poison guess", timeoutMs },
         store,
@@ -1101,7 +1101,7 @@ describe("advWorktreeTools", () => {
       expect(parsed.remediation).not.toMatch(/poison/i);
       expect(parsed.remediation).not.toContain("adv_doctor");
     }
-  }, 20_000);
+  }, 50_000);
 
   it("reports discovery stage and pending-delete count when cleanup hangs in discovery", async () => {
     const database = {
@@ -1176,10 +1176,10 @@ describe("advWorktreeTools", () => {
     expect(discoveryGitBudgetForToolBudget(1)).toBeGreaterThan(0);
   });
 
-  it("exports WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8000", async () => {
+  it("exports WORKTREE_TOOL_SAFE_TIMEOUT_MS = 45000", async () => {
     // Will fail until the constant is exported from adv-worktree
     const mod = await import("./adv-worktree");
-    expect(mod.WORKTREE_TOOL_SAFE_TIMEOUT_MS).toBe(8000);
+    expect(mod.WORKTREE_TOOL_SAFE_TIMEOUT_MS).toBe(45_000);
   });
 
   // rq-worktreeBoundedCleanup02 AC2: oversize timeoutMs is clamped to safe budget
@@ -1195,17 +1195,17 @@ describe("advWorktreeTools", () => {
     });
 
     const out = await advWorktreeTools.adv_worktree_cleanup.execute(
-      { reason: "test clamp", timeoutMs: 30_000 },
+      { reason: "test clamp", timeoutMs: 60_000 },
       store,
     );
 
     expect(out).toContain("effectiveTimeoutMs");
-    expect(out).toContain("8000");
+    expect(out).toContain("45000");
     // Should succeed (not time out) since the mock resolves instantly
     expect(out).toContain('"success":true');
   });
 
-  // rq-worktreeBoundedCleanup02 AC4: default timeout is the safe budget (8000ms)
+  // rq-worktreeBoundedCleanup02 AC4: default timeout is the safe budget (45000ms)
   it("adv_worktree_cleanup uses safe budget default when no timeoutMs provided", async () => {
     const database = {
       projectDir: "/repo",
@@ -1281,8 +1281,8 @@ describe("advWorktreeTools", () => {
         }),
     );
 
-    // The delete tool currently hardcodes the safe budget (8s) internally
-    // with no caller override, so we must allow a longer test timeout.
+    // The delete tool hardcodes the safe budget (45s) internally with no
+    // caller override, so the timeout path genuinely waits it out.
     const out = await advWorktreeTools.adv_worktree_delete.execute(
       { branch: "change/test-timeout" },
       store,
@@ -1291,7 +1291,7 @@ describe("advWorktreeTools", () => {
     expect(out).toContain("timedOut");
     expect(out).toContain("timed out after");
     expect(out).toContain("effectiveTimeoutMs");
-  }, 12_000);
+  }, 50_000);
 
   it("adv_worktree_triage delegates to triageWorktrees", async () => {
     triageMock.triageWorktrees.mockResolvedValue({
@@ -1382,5 +1382,5 @@ describe("advWorktreeTools", () => {
     expect(parsed.error).not.toContain("adv_doctor");
     expect(parsed.remediation).not.toMatch(/poison/i);
     expect(parsed.remediation).not.toContain("adv_doctor");
-  }, 20_000);
+  }, 50_000);
 });

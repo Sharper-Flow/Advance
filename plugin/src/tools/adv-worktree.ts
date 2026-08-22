@@ -50,13 +50,18 @@ import {
 /**
  * Safe timeout budget for worktree tool wrappers (cleanup and delete).
  *
- * Must be strictly below the SDK's `DEFAULT_TOOL_TIMEOUT_MS` (10 000 ms)
- * so the shared operation deadline can cancel and settle every destructive
- * stage before the SDK's `safeExecute` wrapper rejects.
+ * Must be strictly below the 50s execute override these tools carry in
+ * `tool-registry.ts` (the same mechanism as `adv_worktree_triage`) so the
+ * shared operation deadline can cancel and settle every destructive stage
+ * before the `safeExecute` wrapper rejects. The 8s predecessor sat under the
+ * 10s default execute ceiling, which could not fit the plan → git census →
+ * branch integration proof → PR evidence chain on large repositories
+ * (measured on a 40-worktree project: every stage timed out while bare
+ * `git worktree list` took 11ms and `gh pr view` 1.4s).
  *
  * rq-worktreeBoundedCleanup02 AC1.
  */
-export const WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8_000;
+export const WORKTREE_TOOL_SAFE_TIMEOUT_MS = 45_000;
 
 /** Reserve time for formatting and SDK handoff before the 10s tool ceiling. */
 const WORKTREE_TOOL_RETURN_RESERVE_MS = 500;
@@ -74,8 +79,8 @@ const DISCOVERY_GIT_BUDGET_CEILING_MS = 2_000;
  * rq-worktreeBoundedCleanup02 requires internal operations to be bounded
  * *below* the tool budget. The local git helpers default to 30s
  * (`worktree/index.ts`) and 10s (`worktree/census.ts`) for non-cleanup
- * callers, so a single slow invocation could otherwise consume an 8s budget
- * several times over. Bounding each call keeps the failure granular: one hung
+ * callers, so a single slow invocation could otherwise consume the tool
+ * budget several times over. Bounding each call keeps the failure granular: one hung
  * subprocess is killed instead of starving the whole pass.
  *
  * Aggregate discovery cost across many worktrees remains policed by the outer
@@ -1048,7 +1053,7 @@ const advWorktreeToolDefinitions = {
         .number()
         .optional()
         .describe(
-          `Optional wall-clock timeout for the cleanup pass. Defaults to ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms (the safe tool budget below the SDK's 10s ceiling). Values exceeding the safe budget are clamped automatically. The effective timeout is reported in the response as effectiveTimeoutMs. Applies to both mode=worktrees and mode=archived_branches; in archived_branches mode the helper self-bounds and returns typed partial results (partial:true + omissions) rather than a hard timeout when the budget is exhausted.`,
+          `Optional wall-clock timeout for the cleanup pass. Defaults to ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms (the safe tool budget below these tools' 50s execute override). Values exceeding the safe budget are clamped automatically. The effective timeout is reported in the response as effectiveTimeoutMs. Applies to both mode=worktrees and mode=archived_branches; in archived_branches mode the helper self-bounds and returns typed partial results (partial:true + omissions) rather than a hard timeout when the budget is exhausted.`,
         ),
       mode: z
         .enum(["worktrees", "archived_branches"])

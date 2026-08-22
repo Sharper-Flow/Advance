@@ -40,7 +40,7 @@ const fetchWith = (deps: WarpDeps): typeof fetch => deps.fetchImpl ?? fetch;
 
 /**
  * Default timeout for workspace HTTP operations (find, delete).
- * Must be well below the tool safe budget (8s) so these operations
+ * Must be well below WORKTREE_TOOL_SAFE_TIMEOUT_MS so these operations
  * complete or abort before the tool-level timeout fires.
  *
  * rq-worktreeBoundedCleanup02 AC6.

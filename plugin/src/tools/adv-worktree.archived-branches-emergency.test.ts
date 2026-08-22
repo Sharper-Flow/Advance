@@ -63,7 +63,7 @@ describe("adv_worktree_cleanup archived_branches emergency guard", () => {
         reason: "archived branch cleanup",
         mode: "archived_branches",
         dryRun: true,
-        timeoutMs: 30_000,
+        timeoutMs: 60_000,
       },
       mockStore(),
     );
@@ -73,7 +73,7 @@ describe("adv_worktree_cleanup archived_branches emergency guard", () => {
     expect(parsed.remediation).not.toContain("larger timeoutMs");
     expect(parsed.remediation).not.toContain("skipDiscovery");
     expect(parsed.remediation).toMatch(/changeId|adv_worktree_triage/);
-  }, 20_000);
+  }, 50_000);
 
   // AC2 (archived_branches variant): unclamped may still offer a larger value.
   test("unclamped remediation may still offer a larger timeoutMs", async () => {
