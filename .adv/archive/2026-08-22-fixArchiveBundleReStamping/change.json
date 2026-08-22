@@ -1,0 +1,775 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchiveBundleReStamping",
+  "title": "Fix archive bundle re-stamping",
+  "status": "archived",
+  "created_at": "2026-08-22T05:01:20.909Z",
+  "tasks": [
+    {
+      "id": "tk-1a0daf77035e",
+      "title": "Preserve archived_at on re-archive and record terminal phase-9 status in the in-repo bundle",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-22T05:02:43.334Z",
+      "started_at": "2026-08-22T05:39:15.091Z",
+      "completed_at": "2026-08-22T05:39:59.674Z",
+      "verification": "Defect 1: archiveChangeUnderLock no longer re-derives archivedAt when reuseExistingBundlePath is set. The terminal-summary read that already existed inside refreshArchiveBundleProjectionUnderLock was extracted into a single readArchiveBundleArchivedAt helper and is now the one owner of that policy, called from three sites (bundle refresh, main archive path, reconcileInRepoArchive). No logic was cloned. Root cause of the observed corruption: handlers-archive.ts:692 reconcileInRepoArchive preserved archived_at correctly after PR #428, then :703 archiveChange re-wrote the same in-repo bundle at archive.ts:1148 with a freshly stamped value, clobbering it — which is why PR #428 alone did not stop the re-stamping.\n\nDefect 2: the in-repo bundle is now refreshed alongside the external bundle after phase-9 completion, via refreshArchiveBundleProjectionsUnderLock in archive-gate.ts, threaded through completeReleaseGateAfterFinalization and reconcileArchivedBundleRetry as inRepoBundlePath. Previously only the external bundle was refreshed at archive-gate.ts:624, so the in-repo bundle could never record terminal status.\n\nFail-closed reporting: a missing, unreadable, or identity-mismatched terminal summary on the reuse path returns a structured unsuccessful ArchiveOperationResult carrying requirement rq-archiveTerminalDurability01.1, instead of rejecting uncaught out of the tool handler. The refusal itself is unchanged — the helper still never invents a timestamp.\n\nP41 subtraction: createArchive lost its archivedAt = new Date().toISOString() default and three optional params became required, removing a second silent-default footgun on the same path.\n\nVerification: pnpm exec vitest run src/archive/ src/tools/change/ — 21 files, 174/174 passed (runId tr_mt3y7xlw_efc375ce). pnpm run check clean. dead-code:check not run: it fails pre-existing on trunk (worktreeDetachHandler plus ~30 others), reproduced on untouched trunk.",
+      "summary": "Defect 1: archiveChangeUnderLock no longer re-derives archivedAt when reuseExistingBundlePath is set. The terminal-summary read that already existed inside refreshArchiveBundleProjectionUnderLock was extracted into a single readArchiveBundleArchivedAt helper and is now the one owner of that policy, called from three sites (bundle refresh, main archive path, reconcileInRepoArchive). No logic was cloned. Root cause of the observed corruption: handlers-archive.ts:692 reconcileInRepoArchive preserved archived_at correctly after PR #428, then :703 archiveChange re-wrote the same in-repo bundle at archive.ts:1148 with a freshly stamped value, clobbering it — which is why PR #428 alone did not stop the re-stamping.\n\nDefect 2: the in-repo bundle is now refreshed alongside the external bundle after phase-9 completion, via refreshArchiveBundleProjectionsUnderLock in archive-gate.ts, threaded through completeReleaseGateAfterFinalization and reconcileArchivedBundleRetry as inRepoBundlePath. Previously only the external bundle was refreshed at archive-gate.ts:624, so the in-repo bundle could never record terminal status.\n\nFail-closed reporting: a missing, unreadable, or identity-mismatched terminal summary on the reuse path returns a structured unsuccessful ArchiveOperationResult carrying requirement rq-archiveTerminalDurability01.1, instead of rejecting uncaught out of the tool handler. The refusal itself is unchanged — the helper still never invents a timestamp.\n\nP41 subtraction: createArchive lost its archivedAt = new Date().toISOString() default and three optional params became required, removing a second silent-default footgun on the same path.\n\nVerification: pnpm exec vitest run src/archive/ src/tools/change/ — 21 files, 174/174 passed (runId tr_mt3y7xlw_efc375ce). pnpm run check clean. dead-code:check not run: it fails pre-existing on trunk (worktreeDetachHandler plus ~30 others), reproduced on untouched trunk.",
+      "filesTouched": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts",
+        "plugin/src/archive/types.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/handlers-archive.partial-repair.test.ts",
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "checkpointSha": "54bf1b692585640d90424df2017f9738c65a856e",
+      "completedAt": "2026-08-22T05:39:59.674Z",
+      "assignedTo": "agent",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveBundleReStamping",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveBundleReStamping",
+      "task_id": "tk-1a0daf77035e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1a0daf77035e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/archive/archive.ts",
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/handlers-archive.ts",
+        "plugin/src/tools/change/handlers-archive.partial-repair.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mt3xkzrb_dc8b18be",
+          "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "PASS: 3 test files, 58 tests."
+        },
+        {
+          "test_run_id": "tr_mt3xmwp1_18c81a9b",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "PASS: schemas, typecheck, manifest checks, lint, and Prettier."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "RED timestamp test failed before implementation.",
+          "why": "The re-archive changed archived_at from 2026-08-22T05:07:18.902Z to 2026-08-22T05:07:19.017Z, proving the clock path was used."
+        },
+        {
+          "what": "RED phase-9 test failed before implementation.",
+          "why": "The in-repo refresh assertion failed with only one refresh call, the external bundle call; the in-repo terminal projection was not refreshed."
+        },
+        {
+          "what": "Extracted readArchiveBundleArchivedAt and used it for reuseExistingBundlePath, refresh, and reconciliation.",
+          "why": "This preserves the existing fail-closed summary validation in one shared helper. First-time archives still use the clock."
+        },
+        {
+          "what": "Refresh both external and in-repo bundles after terminal archive projection, including archive-gate recovery afterCommit and already-done paths.",
+          "why": "The in-repo bundle is written before finalization, so it must be refreshed from the terminal projection rather than relying on ordering."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned archive timestamp and bundle refresh call sites. No third active defect was found. Unrelated generated_at, collected_at, updated_at, and verified_at clocks remain intentional. Removed the private createArchive default timestamp so its sole caller must pass the resolved archive timestamp.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Both diagnosed claims held: archiveChangeUnderLock re-stamped reused bundles, and in-repo creation preceded phase-9 completion. Reuse now reads the terminal summary; terminal refresh updates both bundle locations. No commit was made.",
+        "suggested_next_action": "Review the five-file diff and checkpoint the task."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-1a0daf77035e",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-1a0daf77035e-attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveBundleReStamping",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveBundleReStamping",
+      "task_id": "tk-1a0daf77035e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1a0daf77035e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts",
+        "plugin/src/archive/types.ts",
+        "plugin/src/tools/change/handlers-archive.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "tr_mt3y324r_66ad766e",
+          "command": "pnpm exec vitest run src/archive/ src/tools/change/",
+          "exit_code": 0,
+          "summary": "PASS: 21 test files and 174 tests passed."
+        },
+        {
+          "run_id": "tr_mt3y4iff_53560562",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "PASS: schemas, TypeScript, manifests, frontmatter, isolation, prompt budget, lockfile policy, skill references, ESLint, and Prettier checks."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "RED reproduced the raw rejection before the fix.",
+          "why": "The new test against a change.json-only reused bundle failed with Error: Cannot preserve archive timestamp for digest-missing-terminal-summary: terminal summary is not_found. at archive.ts:107, through archiveChangeUnderLock at archive.ts:891."
+        },
+        {
+          "what": "Caught terminal-summary resolution failures inside archiveChangeUnderLock and returned the existing ArchiveOperationResult error channel.",
+          "why": "This preserves readArchiveBundleArchivedAt fail-closed behavior while preventing raw exceptions. An optional typed requirement field lets the existing handler branch expose rq-archiveTerminalDurability01.1 without a second error path. Failed timestamp resolution returns an empty archivedAt sentinel rather than inventing a timestamp."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed archive-gate.ts:554-570 and :648-665 catch refresh errors around refreshArchiveBundleProjectionsUnderLock. completeReleaseGateAfterFinalization delegates at :777-783, and reconcileArchivedBundleRetry delegates at :887-900; both receive structured ok:false results, so no sibling change was needed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "The reuse path now reports missing, unreadable, malformed, or mismatched terminal summaries as unsuccessful archive results with changeId, archivePath, errors, and rq-archiveTerminalDurability01.1. The helper still throws internally and never synthesizes archivedAt. Verification ran from the plugin directory. The worktree remains uncommitted and dirty.",
+        "suggested_next_action": "Review the dirty diff and continue orchestration; do not commit from this worker."
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-1a0daf77035e": [
+      {
+        "runId": "tr_mt3x2iwt_851d7469",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+        "durationMs": 8846.45393700013,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:07:25.132Z"
+      },
+      {
+        "runId": "tr_mt3x5hn6_ba1b3331",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 5562.41160399979,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:09:41.910Z"
+      },
+      {
+        "runId": "tr_mt3x5zn9_32980bb6",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/change/handlers-archive.partial-repair.test.ts --reporter=verbose",
+        "durationMs": 4476.614331999794,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:10:04.838Z"
+      },
+      {
+        "runId": "tr_mt3x6odk_a1e34a79",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 5137.942969999742,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:10:37.332Z"
+      },
+      {
+        "runId": "tr_mt3xacjl_92de65aa",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 70059.96305599995,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-22T05:13:28.576Z"
+      },
+      {
+        "runId": "tr_mt3xaxkx_2b68608f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 4123.375979000237,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:13:55.658Z"
+      },
+      {
+        "runId": "tr_mt3xcrz5_96585fde",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 71311.04985300032,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-22T05:15:22.215Z"
+      },
+      {
+        "runId": "tr_mt3xdtg8_77983dd1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 6125.252065999899,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:16:11.006Z"
+      },
+      {
+        "runId": "tr_mt3xfjqw_70bd2fff",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 62410.4724720004,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-22T05:17:31.391Z"
+      },
+      {
+        "runId": "tr_mt3xg3f7_23fc8c5b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 5004.502392000053,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:17:56.533Z"
+      },
+      {
+        "runId": "tr_mt3xhxku_67d0d2e8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 67704.69514699979,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-22T05:19:22.910Z"
+      },
+      {
+        "runId": "tr_mt3xj9gx_2f7ea595",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 5667.548391000368,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:20:25.317Z"
+      },
+      {
+        "runId": "tr_mt3xjzpg_9a6d9f19",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 19309.759240999818,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-22T05:20:59.480Z"
+      },
+      {
+        "runId": "tr_mt3xkzrb_dc8b18be",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 6975.951958000194,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:21:45.623Z"
+      },
+      {
+        "runId": "tr_mt3xmwp1_18c81a9b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 73559.69167400012,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-22T05:23:14.681Z"
+      },
+      {
+        "runId": "tr_mt3y324r_66ad766e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/ src/tools/change/",
+        "durationMs": 7398.288275000174,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:35:47.664Z"
+      },
+      {
+        "runId": "tr_mt3y4iff_53560562",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 52874.95690899994,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-22T05:36:55.131Z"
+      },
+      {
+        "runId": "tr_mt3y7xlw_efc375ce",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/ src/tools/change/",
+        "durationMs": 6156.459449999966,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-22T05:39:35.461Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:04:16.373Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track defect change. proposal.md carries the confirmed problem statement and a Root Cause Analysis section covering both defects with file:line evidence, per the defect-origin RCA requirement. Both defects were observed producing corrupted output during the 2026-08-22 pokeedge phase-9 repair sweep, not inferred from reading."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:04:34.016Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery was performed inline before the change was created. Established: (1) archive.ts:884 computes archivedAt unconditionally despite reuseExistingBundlePath being resolved on the line above; (2) the correct terminal-summary read already existed at archive.ts:221-239 inside refreshArchiveBundleProjectionUnderLock; (3) handlers-archive.ts:692 reconcileInRepoArchive preserves the timestamp correctly but :703 archiveChange then clobbers the same in-repo bundle, which is why PR #428 alone did not stop the re-stamping; (4) phase-9 finalization begins at handlers-archive.ts:738, strictly after the in-repo bundle write at archive.ts:1145-1163, making terminal status structurally unreachable; (5) archive-gate.ts:624 already refreshed only the external bundle after phase-9 commit."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:05:22.245Z",
+      "completed_by": "agent",
+      "approval_evidence": "design.md persisted with four decisions and their rejected alternatives, plus one recorded residue (the unreachable archivedAt: \"\" sentinel on the structured-failure branch). No independent validator run: this is a fast-track defect fix whose design was constrained by an existing in-file precedent rather than an open architectural choice."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:52:32.045Z",
+      "completed_by": "agent",
+      "approval_evidence": "Single-task graph (tk-1a0daf77035e), already complete with green evidence recorded (runId tr_mt3y7xlw_efc375ce). User approved the prep contract retroactively, including the disclosed unreachable archivedAt sentinel residue and the absence of an independent design validator."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:53:08.790Z",
+      "completed_by": "agent",
+      "approval_evidence": "1/1 tasks done, checkpoint 54bf1b69. Work merged as PR #431, squash 8c69239d on trunk, and deployed to /home/jon/.local/share/Advance/plugin with the fix present in dist/index.js. Evidence: 174/174 vitest across src/archive/ and src/tools/change/ (runId tr_mt3y7xlw_efc375ce), pnpm run check clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:53:38.558Z",
+      "completed_by": "user",
+      "approval_evidence": "Accepted. Both defects closed at the mechanism level: archived_at is now resolved from the persisted terminal summary on any reuse path, and the in-repo bundle is refreshed alongside the external one after phase-9 commit. Review evidence: 174/174 vitest across src/archive/ and src/tools/change/, pnpm run check clean, red-first confirmed on all three behaviors. Independent verification caught and closed a fail-closed reporting gap where the new throw escaped uncaught out of the tool handler. One residue accepted knowingly and recorded in design.md: the unreachable archivedAt: \"\" sentinel on the structured-failure branch."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-08-22T15:54:28.284Z",
+      "completed_by": "agent",
+      "approval_evidence": "Released. PR #431 MERGED, squash commit 8c69239d reachable on origin/trunk, with the correct conventional title \"fix: preserve archive timestamps and record terminal phase-9 status in in-repo bundles\" forced via gh pr merge --subject. Deployed to /home/jon/.local/share/Advance/plugin with the fix confirmed present in dist/index.js, and the OpenCode session restarted so the new plugin is active.; Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=verified; proof=pr_merged; releasedCommitSha=8c69239d146871816e959b7521f1591c3c9e8986; route=direct; prNumber=431; mergeCommitOid=8c69239d146871816e959b7521f1591c3c9e8986"
+    }
+  },
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge |\n| Source path | `/home/jon/dev/pokeedge` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n## Root Cause Analysis\n\nTwo independent defects in `plugin/src/archive/archive.ts` make an archive bundle non-deterministic across re-runs. Both were observed producing corrupted output, not merely inferred from reading.\n\n### Defect 1 — `archivedAt` is re-derived on every run\n\n`archiveChangeUnderLock` computes the timestamp unconditionally at function entry:\n\n```ts\nconst targetArchivePath =\n  context.reuseExistingBundlePath ?? archiveBundlePath(paths.archive, change.id);\nconst archivedAt = new Date().toISOString();   // :884\n```\n\nThe line directly above already knows the run may be re-archiving an existing bundle — it reuses the *path*. The next line re-dates the *content* regardless. That value then flows into the spec projection (`:932`, `:937`), the external bundle (`:1132`), and the in-repo bundle (`:1153`), and every derived hash is recomputed against it.\n\nThe correct shape already exists 660 lines earlier in the same file. `refreshArchiveBundleProjectionUnderLock` (`:219-239`) reads the authoritative value back out of the persisted terminal summary when the caller supplies none:\n\n```ts\nlet archivedAt = input.archivedAt;\nif (!archivedAt) {\n  ...\n  archivedAt = summary.archived_at;\n}\n```\n\nPR #428 removed the `new Date()` default from `createInRepoArchive` and made `archivedAt` a required parameter, which forced all 16 call sites to pass a value explicitly. That was the right structural move, but it only relocated the problem: the main archive path still manufactures a fresh value to hand in.\n\n**Observed:** during the 2026-08-22 phase-9 repair sweep, `fixSetReconciliationPptNullKey` re-stamped `01:48:03 → 04:27:08` and was discarded with `git checkout -- .adv/`. The same mechanism had previously re-dated seven bundles from `2026-08-18T17:57:53` to `2026-08-21T23:21:05`.\n\n### Defect 2 — the in-repo bundle is written before phase-9 finalization\n\n`archiveChangeUnderLock` writes the in-repo bundle at `:1145-1163` and then returns. The phase-9 finalization commit happens afterwards, in the caller. The bundle therefore captures whatever the pre-finalization state was and can never record the terminal one.\n\nThis is an ordering defect, not a race — there is no interleaving under which the bundle sees `phase9_status: done`, because the write strictly precedes the transition.\n\n`addMergeTriggeredArchive` documents a sibling of this defect on a different field: `pokeedge::unifyPricingSourcePrecedence` archived with `gates.release.status=pending` despite canonical shipped proof.\n\n## What Changes\n\n- Resolve `archivedAt` from the persisted terminal summary when an existing bundle is present, falling back to the clock only when genuinely archiving for the first time. Reuse the `refreshArchiveBundleProjectionUnderLock` read rather than adding a second implementation.\n- Make the in-repo bundle observe the terminal state — either by writing it after finalization, or by refreshing it in the same path that records phase-9 completion.\n\n## User Outcomes\n\n- [ ] Re-running archive on an already-archived change leaves the bundle byte-identical\n- [ ] An archived bundle records the terminal phase-9 status rather than `pending_merge`\n- [ ] `.adv/archive/**` stops showing spurious git drift after routine repair runs\n\n## Constraints\n\n- `.adv/archive/**` is a tracked historical record. The fix must not rewrite existing `archived_at` values in either direction.\n- Do not revive retired `adv_archive_repair` tooling or use direct state edits.\n\n## Validation Plan\n\n- Red first: a test that archives, re-archives, and asserts the bundle is unchanged — this must fail against current `:884`.\n- Red first: a test asserting the in-repo bundle carries terminal phase-9 status.\n- Then implement, and confirm both go green without weakening existing assertions.\n",
+    "design": "# Design — fix archive bundle re-stamping\n\n## Decision 1: one owner for the terminal-summary read\n\nThe read that resolves an authoritative `archived_at` already existed, inside `refreshArchiveBundleProjectionUnderLock`. A second copy had also grown inside `reconcileInRepoArchive` (added by PR #428). The main archive path had neither and used the clock.\n\nThree call sites needing the same policy, with two existing implementations and one missing, is the shape that produces exactly this class of drift. Extracted `readArchiveBundleArchivedAt(changeId, archivePath)` as the single owner and pointed all three at it. `reconcileInRepoArchive` lost its duplicate.\n\nRejected: passing `archivedAt` down from the handler. That would put the policy in the caller and leave each future caller free to get it wrong — the same failure mode PR #428 hit when it fixed one path and left the other stamping.\n\n## Decision 2: fail closed, report structurally\n\n`readArchiveBundleArchivedAt` throws when the summary is missing, unreadable, or carries a mismatched `change_id`. It never invents a timestamp. That mirrors the precedent already set at `archive.ts:226-238`.\n\nThrowing out of a tool handler is the wrong *report* shape, though. `findArchiveBundle` can legitimately return a bundle that an interrupted archive left without a terminal summary, so the condition is reachable, and every other durability failure on this path returns structured output. `archiveChangeUnderLock` therefore catches the helper and returns an unsuccessful `ArchiveOperationResult` carrying `requirement: \"rq-archiveTerminalDurability01.1\"`, which the existing `if (!archiveResult.success)` branch already formats.\n\nThe refusal is unchanged. Only its delivery changed.\n\n## Decision 3: refresh both bundles at one seam\n\nPhase-9 completion already refreshed the external bundle in two places in `archive-gate.ts` — the already-done recovery branch and `afterCommit`. Rather than add in-repo handling at each, `refreshArchiveBundleProjectionsUnderLock` takes both paths and iterates, and `inRepoBundlePath` threads through `completeReleaseGateAfterFinalization` and `reconcileArchivedBundleRetry`.\n\nRejected: moving the in-repo bundle write to after finalization. That would reorder a write the handler depends on for `commitPaths`, widening blast radius for no gain over refreshing.\n\n## Decision 4: remove the sibling default rather than leave it armed\n\n`createArchive` carried `archivedAt: string = new Date().toISOString()`. Every caller now passes a value, so the default was unreachable — but it is the identical footgun one call away from being live again. Removed it, and made three adjacent optional params required so the signature states its real contract.\n\n## Known residue\n\nThe structured-failure branch sets `archivedAt: \"\"` because `ArchiveOperationResult` requires the field. It is unreachable — the only consumer, `handlers-archive.ts:1053`, sits behind the `!archiveResult.success` early return at `:726`. A discriminated union on success/failure would type the sentinel away; that refactor is larger than this change warrants and is not attempted here.\n"
+  },
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "linked_at": "2026-08-22T05:01:18.574Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 32,
+  "projection_commits": [
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-1a0daf77035e",
+      "operation_id": "mutation:task_add:fixArchiveBundleReStamping:adcca91e-93e2-472a-8faa-da06e11b880d",
+      "payload_hash": "4865e4b2ed1702ca840f06ccec37528ba012228c77dc231737e09a9708a2700f",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-22T05:02:43.339Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:bc7a4c0f-768e-4347-9c7d-bd3810794086",
+      "payload_hash": "277f68ba2e43e4be0e2d89bf2e4413e16bff9264c1e39d4551cbce386309fabb",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-22T05:07:25.136Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:fe2623cb-6607-407a-9ed8-7b19f7df936d",
+      "payload_hash": "5d8a54178b122e0e592ca1e2217f9bfb2d17043305853ab620924f38a5d4edb2",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-22T05:09:41.944Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/tools/change/handlers-archive.partial-repair.test.ts --reporter=verbose",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:84f4aeb4-03b1-48c5-8a61-afddddfaa87b",
+      "payload_hash": "dc451aeb5b50de90e8f7e124fee065b51e5b9f3f8eade9995dccb48a803901db",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-22T05:10:04.842Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:4fe9859a-a8f4-43e3-9723-dd853beac78b",
+      "payload_hash": "446b981a94897b31f74bf524743e8f3bf457cd69acc11f1a130c7358a9af6c46",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-22T05:10:37.392Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:d2fd6993-04b6-4cf9-a5a4-37cf6e8f2a6d",
+      "payload_hash": "285cec37dc0dc0e5bc2f4ecc781a3b5b53d34e40212f6bca7fcb4cf940064ec2",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-22T05:13:28.627Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:c3e781da-7335-4ace-8774-c77f519057eb",
+      "payload_hash": "aed7a1816ed6290f3d0174a950ba610dcc7aec032e9f8d83a549ce7e70a5485a",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-22T05:13:55.728Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:b3fa84f4-cfe3-47d2-8767-5232684ec04b",
+      "payload_hash": "858257e836536e1d694f8aeb9f644ac950dd7a33884814bbc2a2b816eded6a8b",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-22T05:15:22.220Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:e080b023-00bf-4544-966f-20537bdd47aa",
+      "payload_hash": "4a29eec9481e7294ba27d92efc42c2cfd9e988efa812c063f084ec9146eee68a",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-22T05:16:11.009Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:3f86e150-c31d-4ecb-a0b3-528c1291e816",
+      "payload_hash": "de758254cf4f3bd08d13344e819d5699e17466d9cf03d3f2db82c5823547dc8f",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-22T05:17:31.431Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:28c96c4e-516c-4de4-ae2d-d123c54368d3",
+      "payload_hash": "e5a3dd56d2319f0a6ccfc164666f97c52f5ac6d24f3603787da3a5f6e8781432",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-22T05:17:56.549Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:1534f407-a155-4840-8cbc-5e05293ee940",
+      "payload_hash": "0d909ba363994196279bf78ab458894855d273c77b7611a7f613e94e76dbbb8b",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-22T05:19:22.920Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:092df40f-6370-4985-8ba6-9a4d43c8ac8c",
+      "payload_hash": "516762dd978270a945bfb71068bfa8efd0dd05bf385cb2e74667bab69da576f0",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-22T05:20:25.321Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:597d840a-52b5-410f-9428-a0b821115cf0",
+      "payload_hash": "297bffb606d3ee2882e3644497c34ec83efdfcfc1e17c644e5f6ffab2327fe12",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-22T05:20:59.484Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/archive.test.ts src/tools/change/handlers-archive.partial-repair.test.ts src/tools/change/archive-gate.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:01f6a504-896d-4f1b-8516-5ea668c59b33",
+      "payload_hash": "160d3350c1dc2eda93e97f1ac50298d22d53e13fac00061a4199770683a8b18a",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-22T05:21:45.633Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:f8c517b9-f92c-4ba4-81a4-fec60d9e4bd0",
+      "payload_hash": "1e536cf287b1e7e1adb46b22db86637210cb61ae6481ef8fdc1ea5f6734a3956",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-22T05:23:14.689Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchiveBundleReStamping|tk-1a0daf77035e|adv-engineer|1|cycle:ic_tk-1a0daf77035e",
+      "operation_id": "mutation:subagent_report_submitted:fixArchiveBundleReStamping:e324e758-6157-4ee1-bb4c-c4fc7fd3cf16",
+      "payload_hash": "4f4ce594b91f753553c5c8194619a9409dec258d4869358d024a448e7c7ee1eb",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-22T05:24:05.598Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/ src/tools/change/",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:5c5a4b4a-95b1-4174-8f09-fa565e6c9afa",
+      "payload_hash": "aaa63ab7a1365ae14e7a3129a54ca912ecdad6cf0057d9e069a97a4354afa869",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-22T05:35:47.688Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run check",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:fe7f372e-2064-4704-8626-70de24559aea",
+      "payload_hash": "3ed6b0b7523b6856c0c952bb55d8df4a858d966b6b2478b5728bde2cc213a2fc",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-22T05:36:55.148Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchiveBundleReStamping|tk-1a0daf77035e|adv-engineer|2",
+      "operation_id": "mutation:subagent_report_submitted:fixArchiveBundleReStamping:b8354a78-2d75-4f38-9467-1cd5df82bb78",
+      "payload_hash": "15bfb8be1b151ae81bc58f3f6f8cee9991592bb9f724555a32003ffba842c6a0",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-22T05:37:21.061Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchiveBundleReStamping:772f2c45-413f-4c72-8e54-024d4ed11f20",
+      "payload_hash": "fe61bda24c0c4284835458dfcc8236110b8fc7c0b77378fbafba95b55b234c48",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-22T05:39:16.796Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm exec vitest run src/archive/ src/tools/change/",
+      "operation_id": "mutation:test_run_recorded:fixArchiveBundleReStamping:634dff5e-d4f3-4c2c-a445-e40635658e63",
+      "payload_hash": "25d73723d709652efe293211b06d10be3abeb3b6cd2de50343ccc7a0fde521f6",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-22T05:39:35.463Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "54bf1b692585640d90424df2017f9738c65a856e:Defect 1: archiveChangeUnderLock no longer re-derives archivedAt when reuseExistingBundlePath is set. The terminal-summary read that already existed inside refreshArchiveBundleProjectionUnderLock was extracted into a single readArchiveBundleArchivedAt helper and is now the one owner of that policy, called from three sites (bundle refresh, main archive path, reconcileInRepoArchive). No logic was cloned. Root cause of the observed corruption: handlers-archive.ts:692 reconcileInRepoArchive preserved archived_at correctly after PR #428, then :703 archiveChange re-wrote the same in-repo bundle at archive.ts:1148 with a freshly stamped value, clobbering it — which is why PR #428 alone did not stop the re-stamping.\n\nDefect 2: the in-repo bundle is now refreshed alongside the external bundle after phase-9 completion, via refreshArchiveBundleProjectionsUnderLock in archive-gate.ts, threaded through completeReleaseGateAfterFinalization and reconcileArchivedBundleRetry as inRepoBundlePath. Previously only the external bundle was refreshed at archive-gate.ts:624, so the in-repo bundle could never record terminal status.\n\nFail-closed reporting: a missing, unreadable, or identity-mismatched terminal summary on the reuse path returns a structured unsuccessful ArchiveOperationResult carrying requirement rq-archiveTerminalDurability01.1, instead of rejecting uncaught out of the tool handler. The refusal itself is unchanged — the helper still never invents a timestamp.\n\nP41 subtraction: createArchive lost its archivedAt = new Date().toISOString() default and three optional params became required, removing a second silent-default footgun on the same path.\n\nVerification: pnpm exec vitest run src/archive/ src/tools/change/ — 21 files, 174/174 passed (runId tr_mt3y7xlw_efc375ce). pnpm run check clean. dead-code:check not run: it fails pre-existing on trunk (worktreeDetachHandler plus ~30 others), reproduced on untouched trunk.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchiveBundleReStamping:5f82deb9-efde-4fda-86ac-8082b72e2720",
+      "payload_hash": "bff093e28b72d8e9f40ab6602bce3a068dde141aa4ee1468bce5637bf9aa36b6",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-22T05:39:59.678Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Fast-track defect change. proposal.md carries the confirmed problem statement and a Root Cause Analysis section covering both defects with file:line evidence, per the defect-origin RCA requirement. Both defects were observed producing corrupted output during the 2026-08-22 pokeedge phase-9 repair sweep, not inferred from reading.",
+      "operation_id": "mutation:gate_completion:fixArchiveBundleReStamping:d20174d5-47ff-4e0c-9f26-c9bc60ce0d60",
+      "payload_hash": "b8796986fce82863a77c5bb38f840175da5d5a7ce8844ce1b4efee1338d4e351",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-22T15:04:16.508Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Discovery was performed inline before the change was created. Established: (1) archive.ts:884 computes archivedAt unconditionally despite reuseExistingBundlePath being resolved on the line above; (2) the correct terminal-summary read already existed at archive.ts:221-239 inside refreshArchiveBundleProjectionUnderLock; (3) handlers-archive.ts:692 reconcileInRepoArchive preserves the timestamp correctly but :703 archiveChange then clobbers the same in-repo bundle, which is why PR #428 alone did not stop the re-stamping; (4) phase-9 finalization begins at handlers-archive.ts:738, strictly after the in-repo bundle write at archive.ts:1145-1163, making terminal status structurally unreachable; (5) archive-gate.ts:624 already refreshed only the external bundle after phase-9 commit.",
+      "operation_id": "mutation:gate_completion:fixArchiveBundleReStamping:d2555d2f-6bf4-4f5a-a70b-5fbae59fb5a2",
+      "payload_hash": "392f5b5969be29f03ba604442e90d416a4a29a0a1dc2d177f4a319e23cb1881c",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-22T15:04:34.050Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchiveBundleReStamping:7825c482-4e7a-4375-adf5-43af77bfb4d5",
+      "payload_hash": "e2bd7b67e65ecdd06da9760399a564746f58e23b656cd2575abd4fd8be8145bd",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-22T15:05:02.821Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "design.md persisted with four decisions and their rejected alternatives, plus one recorded residue (the unreachable archivedAt: \"\" sentinel on the structured-failure branch). No independent validator run: this is a fast-track defect fix whose design was constrained by an existing in-file precedent rather than an open architectural choice.",
+      "operation_id": "mutation:gate_completion:fixArchiveBundleReStamping:ebae9cdf-3d7c-4768-a901-e48ea0f85e3c",
+      "payload_hash": "1d9abce30701efc85b10b324121a02709ad9546b9410137e0f2c7fb32cfb58cd",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-22T15:05:22.250Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Single-task graph (tk-1a0daf77035e), already complete with green evidence recorded (runId tr_mt3y7xlw_efc375ce). User approved the prep contract retroactively, including the disclosed unreachable archivedAt sentinel residue and the absence of an independent design validator.",
+      "operation_id": "mutation:gate_completion:fixArchiveBundleReStamping:2f527bb7-dffc-463e-b4db-b732453b7fbd",
+      "payload_hash": "7c13892f3b1830805245e25355a055c903431142d4f6e5b23efb479c8ec12eda",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-22T15:52:32.049Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "1/1 tasks done, checkpoint 54bf1b69. Work merged as PR #431, squash 8c69239d on trunk, and deployed to /home/jon/.local/share/Advance/plugin with the fix present in dist/index.js. Evidence: 174/174 vitest across src/archive/ and src/tools/change/ (runId tr_mt3y7xlw_efc375ce), pnpm run check clean.",
+      "operation_id": "mutation:gate_completion:fixArchiveBundleReStamping:a178643e-5c3f-44f5-ba7d-5b9d30fab5c8",
+      "payload_hash": "b349c616bdf3ab4856a4e594a1a29bba757c27a4f22dbfb080545eba4d6bd8fa",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-22T15:53:08.822Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Accepted. Both defects closed at the mechanism level: archived_at is now resolved from the persisted terminal summary on any reuse path, and the in-repo bundle is refreshed alongside the external one after phase-9 commit. Review evidence: 174/174 vitest across src/archive/ and src/tools/change/, pnpm run check clean, red-first confirmed on all three behaviors. Independent verification caught and closed a fail-closed reporting gap where the new throw escaped uncaught out of the tool handler. One residue accepted knowingly and recorded in design.md: the unreachable archivedAt: \"\" sentinel on the structured-failure branch.",
+      "operation_id": "mutation:gate_completion:fixArchiveBundleReStamping:e854c2b5-3400-4d48-b5a5-f97fa7f25329",
+      "payload_hash": "0addfe0ded63526b10fba3630ec2dbde613947b43526f9c8b345cdf5c57bc058",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-22T15:53:38.598Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Released. PR #431 MERGED, squash commit 8c69239d reachable on origin/trunk, with the correct conventional title \"fix: preserve archive timestamps and record terminal phase-9 status in in-repo bundles\" forced via gh pr merge --subject. Deployed to /home/jon/.local/share/Advance/plugin with the fix confirmed present in dist/index.js, and the OpenCode session restarted so the new plugin is active.",
+      "operation_id": "mutation:gate_completion:fixArchiveBundleReStamping:ee059093-8374-4ca2-9c5a-80ff7e9fb3e3",
+      "payload_hash": "c5e8ac661d18f50595640601b9c61ba22c2963f83a1cdaec5359ed04621d2977",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-22T15:54:28.389Z"
+    },
+    {
+      "mutation_kind": "archive_transition",
+      "authority_kind": "mutation",
+      "authority_reason": "archive shipped change",
+      "authority_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=pushed; releasedCommitSha=8c69239d146871816e959b7521f1591c3c9e8986; mergeCommitSha=8c69239d146871816e959b7521f1591c3c9e8986; prBranch=change/fixArchiveBundleReStamping; repo=Sharper-Flow/Advance; prNumber=431; prHeadSha=54bf1b692585640d90424df2017f9738c65a856e; defaultBranchReachability=origin/trunk@8c69239d146871816e959b7521f1591c3c9e8986; prUrl=https://github.com/Sharper-Flow/Advance/pull/431; route=direct",
+      "operation_id": "mutation:archive_transition:fixArchiveBundleReStamping:64bec297-00fd-4cbd-b090-a69446680a65",
+      "payload_hash": "40e9bb55d53774a524e3145f233e6a6d5f208a08ad16b48e54e6594d00af4bf7",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-22T15:57:10.813Z"
+    }
+  ],
+  "lifecycleState": "archived",
+  "phase9_status": {
+    "status": "done",
+    "startedAt": "2026-08-22T15:57:10.810Z",
+    "completedAt": "2026-08-22T15:57:10.810Z",
+    "changeTipSha": "e206fb20faceb2033c88ff212afd983277ba0334",
+    "preArchiveTipSha": "54bf1b692585640d90424df2017f9738c65a856e",
+    "repo": "Sharper-Flow/Advance",
+    "prNumber": 431,
+    "prUrl": "https://github.com/Sharper-Flow/Advance/pull/431",
+    "route": "direct",
+    "prHeadSha": "54bf1b692585640d90424df2017f9738c65a856e",
+    "defaultBranchSha": "8c69239d146871816e959b7521f1591c3c9e8986",
+    "mergeCommitSha": "8c69239d146871816e959b7521f1591c3c9e8986"
+  }
+}
