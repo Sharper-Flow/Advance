@@ -292,10 +292,16 @@ const UNKNOWN_RECOVERY =
 /**
  * Select recovery for the process that actually owns the loaded bundle.
  * `mcp-server.js` is supervised by Vision, not by an OpenCode session.
+ *
+ * Vision exposes no per-server restart verb, and `vision daemon reload` only
+ * sends SIGHUP to the daemon — it does not respawn the stdio children that
+ * hold the bundle. Restarting the systemd user service is what actually
+ * reloads them. The server is named per project, so the hint stays generic
+ * rather than naming one.
  */
 export function getPluginBundleRecoveryHint(loadedModulePath: string): string {
   if (basename(loadedModulePath) === "mcp-server.js") {
-    return "Restart the Vision-managed adv-advance server (vision restart adv-advance) to load the current plugin bundle.";
+    return "Restart the Vision daemon (systemctl --user restart vision.service) to load the current plugin bundle.";
   }
   return RESTART_RECOVERY;
 }

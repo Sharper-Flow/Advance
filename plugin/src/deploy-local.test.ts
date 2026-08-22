@@ -331,29 +331,6 @@ describe("deploy-local.sh", () => {
       ).toEqual([]);
     });
 
-    test("tool drift validation permits report-submit on primary agents", () => {
-      const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
-
-      expect(advAgent).toContain("mode: primary");
-      // Tier 1 includes the report-submit tool for typed worker reports.
-      expect(advAgent).toContain("  adv_subagent_report_submit: true");
-      expect(advAgent).toContain("  adv_tool_invoke: true");
-
-      expect(content).toContain("LEAF_ONLY_TOOLS");
-      expect(content).toContain('"adv_subagent_report_submit"');
-      expect(content).toContain("agent_mode");
-      expect(content).toContain('agent_mode == "primary"');
-      expect(content).toContain("registered - primary_exemptions - allowed");
-    });
-
-    test("tool drift validation remains strict for ordinary primary-agent tools", () => {
-      expect(content).toContain("primary_exemptions");
-      expect(content).toContain("missing = sorted(");
-      expect(content).toContain("extras = sorted(allowed - registered)");
-      expect(content).not.toContain("missing = []");
-      expect(content).not.toContain("registered = registered - allowed");
-    });
-
     test("handles tilde-expanded paths in json_array_contains", () => {
       // The function should check both exact and tilde-expanded forms
       expect(content).toContain("tilde_value=");
@@ -815,7 +792,7 @@ describe("deploy-local.sh", () => {
       // packet phase mapping for adv-reviewer acceptance/release use.
       // Ceiling raised from 360 → 361 after the signal-driven workflow
       // refactor exposed `adv_worktree_resume` and we added it to the
-      // canonical allowlist to clear deploy-local tool-drift checks.
+      // canonical allowlist to satisfy generate:manifests:check.
       // Ceiling raised from 368 → 371 to match trunk (branch base was stale;
       // adv.md is identical to trunk, which already accepts 371).
       // Ceiling raised from 371 → 372 after addDesignQualityGates shipped
