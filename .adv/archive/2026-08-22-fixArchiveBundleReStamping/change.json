@@ -402,7 +402,7 @@
     "linked_at": "2026-08-22T05:01:18.574Z"
   },
   "same_project_dependencies": [],
-  "projection_revision": 31,
+  "projection_revision": 32,
   "projection_commits": [
     {
       "mutation_kind": "task_add",
@@ -744,6 +744,32 @@
       "prior_revision": 30,
       "new_revision": 31,
       "committed_at": "2026-08-22T15:54:28.389Z"
+    },
+    {
+      "mutation_kind": "archive_transition",
+      "authority_kind": "mutation",
+      "authority_reason": "archive shipped change",
+      "authority_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=pushed; releasedCommitSha=8c69239d146871816e959b7521f1591c3c9e8986; mergeCommitSha=8c69239d146871816e959b7521f1591c3c9e8986; prBranch=change/fixArchiveBundleReStamping; repo=Sharper-Flow/Advance; prNumber=431; prHeadSha=54bf1b692585640d90424df2017f9738c65a856e; defaultBranchReachability=origin/trunk@8c69239d146871816e959b7521f1591c3c9e8986; prUrl=https://github.com/Sharper-Flow/Advance/pull/431; route=direct",
+      "operation_id": "mutation:archive_transition:fixArchiveBundleReStamping:64bec297-00fd-4cbd-b090-a69446680a65",
+      "payload_hash": "40e9bb55d53774a524e3145f233e6a6d5f208a08ad16b48e54e6594d00af4bf7",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-22T15:57:10.813Z"
     }
-  ]
+  ],
+  "lifecycleState": "archived",
+  "phase9_status": {
+    "status": "done",
+    "startedAt": "2026-08-22T15:57:10.810Z",
+    "completedAt": "2026-08-22T15:57:10.810Z",
+    "changeTipSha": "e206fb20faceb2033c88ff212afd983277ba0334",
+    "preArchiveTipSha": "54bf1b692585640d90424df2017f9738c65a856e",
+    "repo": "Sharper-Flow/Advance",
+    "prNumber": 431,
+    "prUrl": "https://github.com/Sharper-Flow/Advance/pull/431",
+    "route": "direct",
+    "prHeadSha": "54bf1b692585640d90424df2017f9738c65a856e",
+    "defaultBranchSha": "8c69239d146871816e959b7521f1591c3c9e8986",
+    "mergeCommitSha": "8c69239d146871816e959b7521f1591c3c9e8986"
+  }
 }
