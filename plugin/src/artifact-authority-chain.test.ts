@@ -186,6 +186,8 @@ describe("artifact authority chain", () => {
       currentChange as Change,
       store.paths.archive,
       changeDir,
+      undefined,
+      "2026-05-08T00:00:00.000Z",
     );
     await expect(readArchiveArtifacts(archivePath)).resolves.toEqual(current);
   });
@@ -220,6 +222,8 @@ describe("artifact authority chain", () => {
       change,
       store.paths.archive,
       changeDir,
+      undefined,
+      "2026-05-08T00:00:00.000Z",
     );
 
     await expect(readArchiveArtifacts(archivePath)).resolves.toEqual(
@@ -258,6 +262,8 @@ describe("artifact authority chain", () => {
       change,
       store.paths.archive,
       changeDir,
+      undefined,
+      "2026-05-08T00:00:00.000Z",
     );
     await expect(readArchiveArtifacts(archivePath)).resolves.toEqual(legacy);
   });

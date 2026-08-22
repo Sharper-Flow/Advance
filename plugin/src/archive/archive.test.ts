@@ -6,6 +6,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, describe, expect, test } from "vitest";
 import type { Change } from "../types";
+import { ChangeSchema } from "../types";
+import { atomicWriteFile } from "../utils/fs";
 import {
   archiveChange,
   bundleJsonStringify,
@@ -16,6 +18,8 @@ import {
 } from "./archive";
 import {
   TERMINAL_SUMMARY_FILE,
+  buildTerminalArchiveSummary,
+  serializeTerminalArchiveSummary,
   validateTerminalArchiveSummary,
   verifyTerminalArchiveSummaryHash,
 } from "./terminal-summary";
@@ -319,18 +323,103 @@ describe("contract archive traceability", () => {
     const externalBundle = join(archiveDir, `${today}-${change.id}`);
 
     await mkdir(externalBundle, { recursive: true });
-    await writeFile(
-      join(externalBundle, "change.json"),
-      JSON.stringify({ ...change, status: "archived" }, null, 2),
+    const changeJsonRaw = bundleJsonStringify({
+      ...change,
+      status: "archived",
+    });
+    await atomicWriteFile(join(externalBundle, "change.json"), changeJsonRaw);
+    const changeHash = createHash("sha256")
+      .update(changeJsonRaw, "utf-8")
+      .digest("hex");
+    await atomicWriteFile(
+      join(externalBundle, TERMINAL_SUMMARY_FILE),
+      serializeTerminalArchiveSummary(
+        buildTerminalArchiveSummary({
+          change: ChangeSchema.parse({ ...change, status: "archived" }),
+          archivedAt: createdAt,
+          changeHash,
+        }),
+      ),
     );
 
-    await reconcileInRepoArchive(change, inRepoArchiveDir);
+    await reconcileInRepoArchive(change, archiveDir, inRepoArchiveDir);
 
     const inRepoChange = await readFile(
       join(inRepoArchiveDir, `${today}-${change.id}`, "change.json"),
       "utf8",
     );
     expect(JSON.parse(inRepoChange).status).toBe("archived");
+  });
+
+  // rq-fixReconcileArchivedAt (Defect A): reconcileInRepoArchive must
+  // resolve the authoritative archived_at from the existing source bundle's
+  // terminal summary and never silently stamp "now".
+  describe("reconcileInRepoArchive preserves authoritative archived_at", () => {
+    test("uses the external bundle's terminal-summary archived_at, not now()", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({ id: "preserve-archived-at" });
+      const archiveDir = join(root, "external-archive");
+      const inRepoArchiveDir = join(root, "repo", ".adv", "archive");
+      const today = new Date().toISOString().split("T")[0];
+      const externalBundle = join(archiveDir, `${today}-${change.id}`);
+      const originalArchivedAt = "2026-04-01T12:34:56.000Z";
+
+      await mkdir(externalBundle, { recursive: true });
+      const changeJsonRaw = bundleJsonStringify({
+        ...change,
+        status: "archived",
+      });
+      await atomicWriteFile(join(externalBundle, "change.json"), changeJsonRaw);
+      const changeHash = createHash("sha256")
+        .update(changeJsonRaw, "utf-8")
+        .digest("hex");
+      await atomicWriteFile(
+        join(externalBundle, TERMINAL_SUMMARY_FILE),
+        serializeTerminalArchiveSummary(
+          buildTerminalArchiveSummary({
+            change: ChangeSchema.parse({ ...change, status: "archived" }),
+            archivedAt: originalArchivedAt,
+            changeHash,
+          }),
+        ),
+      );
+
+      // Wait so any silent "now()" fallback would be observably later than
+      // the original archived_at.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const beforeReconcile = new Date().toISOString();
+
+      await reconcileInRepoArchive(change, archiveDir, inRepoArchiveDir);
+
+      const inRepoSummaryRaw = await readFile(
+        join(inRepoArchiveDir, `${today}-${change.id}`, TERMINAL_SUMMARY_FILE),
+        "utf-8",
+      );
+      const inRepoSummary = validateTerminalArchiveSummary(
+        JSON.parse(inRepoSummaryRaw),
+      );
+      expect(inRepoSummary.archived_at).toBe(originalArchivedAt);
+      expect(inRepoSummary.archived_at < beforeReconcile).toBe(true);
+    });
+
+    test("fails loudly when the external bundle has no readable terminal summary", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({ id: "missing-summary" });
+      const archiveDir = join(root, "external-archive");
+      const inRepoArchiveDir = join(root, "repo", ".adv", "archive");
+      const today = new Date().toISOString().split("T")[0];
+      const externalBundle = join(archiveDir, `${today}-${change.id}`);
+
+      await mkdir(externalBundle, { recursive: true });
+      await writeFile(
+        join(externalBundle, "change.json"),
+        JSON.stringify({ ...change, status: "archived" }, null, 2),
+      );
+
+      await expect(
+        reconcileInRepoArchive(change, archiveDir, inRepoArchiveDir),
+      ).rejects.toThrow(/terminal summary/i);
+    });
   });
 
   test("single-repo archive bundle remains unchanged without scope_repos", async () => {
@@ -493,6 +582,8 @@ describe("contract archive traceability", () => {
         changeWithContract({ id: "state-backed-archive", status: "active" }),
         archiveDir,
         sourceChangeDir,
+        undefined,
+        createdAt,
       );
 
       expect(existsSync(join(archivePath, "executive-summary.md"))).toBe(true);
@@ -512,6 +603,9 @@ describe("contract archive traceability", () => {
       const archivePath = await createInRepoArchive(
         changeWithContract({ id: "no-source-dir", status: "active" }),
         archiveDir,
+        undefined,
+        undefined,
+        createdAt,
       );
 
       expect(existsSync(join(archivePath, "change.json"))).toBe(true);
@@ -531,7 +625,13 @@ describe("contract archive traceability", () => {
         documents: { agreement: "# Agreement\n\nFrom the projection." },
       });
 
-      const archivePath = await createInRepoArchive(change, archiveDir);
+      const archivePath = await createInRepoArchive(
+        change,
+        archiveDir,
+        undefined,
+        undefined,
+        createdAt,
+      );
 
       expect(existsSync(join(archivePath, "agreement.md"))).toBe(true);
       await expect(
@@ -559,6 +659,8 @@ describe("contract archive traceability", () => {
         change,
         archiveDir,
         sourceChangeDir,
+        undefined,
+        createdAt,
       );
 
       const bundled = await readFile(
@@ -957,7 +1059,13 @@ describe("contract archive traceability", () => {
           },
         ],
       });
-      const archivePath = await createInRepoArchive(change, archiveDir);
+      const archivePath = await createInRepoArchive(
+        change,
+        archiveDir,
+        undefined,
+        undefined,
+        createdAt,
+      );
       await expectSingleTrailingNewline(join(archivePath, "change.json"));
       await expectSingleTrailingNewline(join(archivePath, "wisdom.json"));
     });
@@ -1013,7 +1121,13 @@ describe("contract archive traceability", () => {
         contract: undefined,
       });
 
-      const archivePath = await createInRepoArchive(change, archiveDir);
+      const archivePath = await createInRepoArchive(
+        change,
+        archiveDir,
+        undefined,
+        undefined,
+        createdAt,
+      );
       const summaryPath = join(archivePath, TERMINAL_SUMMARY_FILE);
       expect(existsSync(summaryPath)).toBe(true);
       const raw = await readFile(summaryPath, "utf-8");
@@ -1075,6 +1189,9 @@ describe("contract archive traceability", () => {
       const archivePath = await createInRepoArchive(
         change,
         join(root, "archive"),
+        undefined,
+        undefined,
+        createdAt,
       );
       const changeJson = await readFile(
         join(archivePath, "change.json"),
@@ -1104,6 +1221,9 @@ describe("contract archive traceability", () => {
       const archivePath = await createInRepoArchive(
         change,
         join(root, "archive"),
+        undefined,
+        undefined,
+        createdAt,
       );
       const changeJson = await readFile(
         join(archivePath, "change.json"),
@@ -1176,6 +1296,8 @@ describe("contract archive traceability", () => {
         }),
         archiveDir,
         sourceChangeDir,
+        undefined,
+        createdAt,
       );
 
       const changeJson = JSON.parse(

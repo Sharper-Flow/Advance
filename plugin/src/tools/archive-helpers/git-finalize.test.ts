@@ -3302,6 +3302,378 @@ describe("git-finalize helpers", () => {
     );
   });
 
+  // rq-fixPhase9PostMergeFinalization (Defect B): when the change's PR is
+  // already merged, reconciling the stale change branch against the default
+  // branch is pointless and blocks phase9 finalization forever. Detect the
+  // already-merged state BEFORE reconcile and skip reconcile in that case.
+  describe("finalizeRelease PR-mode merged-PR short-circuit", () => {
+    const MERGED_PR_HEAD_SHA = "merged-pr-head-sha";
+
+    function makeMergedPrSetup(opts: {
+      conflictsOnMerge: boolean;
+      actualPrHeadSha?: string;
+    }) {
+      const main = join(
+        tempRoot,
+        `merged-pr-${Math.random().toString(36).slice(2)}`,
+      );
+      const worktree = join(
+        tempRoot,
+        `merged-pr-wt-${Math.random().toString(36).slice(2)}`,
+      );
+      const gitCalls: { cwd: string; args: string[] }[] = [];
+      const ghCalls: { cwd: string; args: string[] }[] = [];
+
+      return {
+        main,
+        worktree,
+        gitCalls,
+        ghCalls,
+        runGit: (cwd: string, args: string[]) => {
+          gitCalls.push({ cwd, args });
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
+          if (args[0] === "merge") {
+            // If short-circuit works, this should never be called for the
+            // merged-PR case. The unmerged-conflict case still calls it.
+            if (opts.conflictsOnMerge) {
+              return {
+                status: 1,
+                stdout: "",
+                stderr: "CONFLICT (.adv/archive/file): conflict marker",
+              };
+            }
+            return { status: 0, stdout: "merge", stderr: "" };
+          }
+          if (args[0] === "merge-base") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          // verifyDirectMergedPrProof's default-branch reachability probe.
+          // The base is whatever detectDefaultBranch resolved to (trunk for
+          // a fresh test repo). Match by prefix so the mock survives both
+          // trunk and main detection paths.
+          if (
+            args[0] === "rev-parse" &&
+            args[1] === "--verify" &&
+            args.length >= 3 &&
+            args[2]!.startsWith("origin/")
+          ) {
+            return { status: 0, stdout: "current-default-sha\n", stderr: "" };
+          }
+          // Other rev-parse calls (--show-toplevel, --path-format=absolute
+          // --git-common-dir, branch refs) must fall through to real git so
+          // validateChangeWorktree and changeTipSha capture work.
+          if (
+            args[0] === "rev-parse" &&
+            (args[1] === "--path-format=absolute" ||
+              args[1] === "--show-toplevel" ||
+              args[1] === "--git-common-dir")
+          ) {
+            return defaultRunGit(cwd, args);
+          }
+          if (args[0] === "diff" && args.includes("--diff-filter=U")) {
+            return {
+              status: 0,
+              stdout: ".adv/archive/file\n",
+              stderr: "",
+            };
+          }
+          // Fall through to real git so validateChangeWorktree and other
+          // checks (branch --show-current, rev-parse --show-toplevel) work
+          // against the actual worktree.
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd: string, args: string[]) => {
+          ghCalls.push({ cwd: _cwd, args });
+          // Branch protection rules query (route classification)
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ type: "required_status_checks" }]),
+              stderr: "",
+            };
+          }
+          // Repo allow_auto_merge query (route classification)
+          if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+            return { status: 0, stdout: "true\n", stderr: "" };
+          }
+          // verifyDirectMergedPrProof: gh pr list --state merged --head ...
+          if (
+            args[0] === "pr" &&
+            args[1] === "list" &&
+            args.includes("--state") &&
+            args.includes("merged")
+          ) {
+            return {
+              status: 0,
+              stdout: JSON.stringify([
+                {
+                  number: 1347,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/1347",
+                  state: "MERGED",
+                  mergedAt: "2026-08-17T12:00:00Z",
+                  mergeCommit: { oid: "merge-commit-sha" },
+                  headRefName: "change/example",
+                  headRefOid: opts.actualPrHeadSha ?? MERGED_PR_HEAD_SHA,
+                  baseRefName: "trunk",
+                  headRepositoryOwner: { login: "Sharper-Flow" },
+                  headRepository: {
+                    name: "Advance",
+                    nameWithOwner: "Sharper-Flow/Advance",
+                  },
+                  isCrossRepository: false,
+                },
+              ]),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected gh" };
+        },
+      };
+    }
+
+    it("skips reconcile and finalizes when the change's PR is already merged", async () => {
+      const main = join(tempRoot, "merged-skip-main");
+      const worktree = join(tempRoot, "merged-skip-wt");
+      await mkdir(main);
+      await initRepo(main);
+      git(main, [
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/Sharper-Flow/Advance.git",
+      ]);
+      git(main, ["worktree", "add", "-b", "change/example", worktree]);
+      await writeFile(join(worktree, "feature.txt"), "feature\n");
+      git(worktree, ["add", "feature.txt"]);
+      git(worktree, ["commit", "-m", "feature"]);
+      // The exact SHA the change branch currently points at — used by
+      // verifyDirectMergedPrProof to match the PR headRefOid (the merged PR
+      // must be provably THE PR for this branch, not an unrelated history).
+      const actualPrHeadSha = git(worktree, ["rev-parse", "HEAD"]);
+
+      const setup = makeMergedPrSetup({
+        conflictsOnMerge: true,
+        actualPrHeadSha,
+      });
+      const result = await finalizeRelease(
+        {
+          changeId: "example",
+          workdir: worktree,
+          archiveMode: "pr",
+          autoPush: true,
+        },
+        setup,
+      );
+
+      expect(result).toMatchObject({
+        status: "shipped",
+        route: "pr_auto_merge",
+        prNumber: 1347,
+        prUrl: "https://github.com/Sharper-Flow/Advance/pull/1347",
+        mergeCommitSha: "merge-commit-sha",
+        prHeadSha: actualPrHeadSha,
+        defaultBranchSha: "current-default-sha",
+      });
+
+      // Reconcile must NOT have been called: no `git merge --no-edit origin/...`.
+      const reconcileCalls = setup.gitCalls.filter(
+        (c) =>
+          c.args[0] === "merge" &&
+          c.args.includes("--no-edit") &&
+          c.args.some((a) => a.startsWith("origin/")),
+      );
+      expect(reconcileCalls).toHaveLength(0);
+    });
+
+    it("still blocks with RECONCILE_CONFLICT when PR is unmerged and reconcile conflicts", async () => {
+      const main = join(tempRoot, "conflict-still-blocks-main");
+      const worktree = join(tempRoot, "conflict-still-blocks-wt");
+      await mkdir(main);
+      await initRepo(main);
+      git(main, [
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/Sharper-Flow/Advance.git",
+      ]);
+      git(main, ["worktree", "add", "-b", "change/example", worktree]);
+      await writeFile(join(worktree, "feature.txt"), "feature\n");
+      git(worktree, ["add", "feature.txt"]);
+      git(worktree, ["commit", "-m", "feature"]);
+
+      const setup = makeMergedPrSetup({ conflictsOnMerge: true });
+      // Override: gh pr list --state merged returns empty (no merged PR).
+      setup.runGh = (_cwd, args) => {
+        const ghCalls = (
+          setup as { ghCalls: { cwd: string; args: string[] }[] }
+        ).ghCalls;
+        ghCalls.push({ cwd: _cwd, args });
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify([{ type: "required_status_checks" }]),
+            stderr: "",
+          };
+        }
+        if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        if (args[0] === "pr" && args[1] === "list" && args.includes("merged")) {
+          return { status: 0, stdout: "[]", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected gh" };
+      };
+
+      const result = await finalizeRelease(
+        {
+          changeId: "example",
+          workdir: worktree,
+          archiveMode: "pr",
+          autoPush: true,
+        },
+        setup,
+      );
+
+      expect(result).toMatchObject({
+        status: "blocked",
+        route: "pr_auto_merge",
+        blocked: { reason: "RECONCILE_CONFLICT" },
+      });
+    });
+
+    it("proceeds to PR handoff when PR is unmerged and reconcile succeeds (existing behavior)", async () => {
+      const main = join(tempRoot, "unmerged-clean-main");
+      const worktree = join(tempRoot, "unmerged-clean-wt");
+      await mkdir(main);
+      await initRepo(main);
+      git(main, [
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/Sharper-Flow/Advance.git",
+      ]);
+      git(main, ["worktree", "add", "-b", "change/example", worktree]);
+      await writeFile(join(worktree, "feature.txt"), "feature\n");
+      git(worktree, ["add", "feature.txt"]);
+      git(worktree, ["commit", "-m", "feature"]);
+
+      const setup = makeMergedPrSetup({ conflictsOnMerge: false });
+      // Override: gh pr list --state merged returns empty (no merged PR),
+      // and add the regular PR-creation / arm-auto-merge mocks.
+      let branchViewCount = 0;
+      setup.runGh = (_cwd, args) => {
+        const ghCalls = (
+          setup as { ghCalls: { cwd: string; args: string[] }[] }
+        ).ghCalls;
+        ghCalls.push({ cwd: _cwd, args });
+        if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify([{ type: "required_status_checks" }]),
+            stderr: "",
+          };
+        }
+        if (args[0] === "api" && args[1] === "repos/Sharper-Flow/Advance") {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        if (args[0] === "pr" && args[1] === "list" && args.includes("merged")) {
+          return { status: 0, stdout: "[]", stderr: "" };
+        }
+        if (args[0] === "pr" && args[1] === "view") {
+          const selector = args[2];
+          if (selector === "change/example") {
+            branchViewCount += 1;
+            if (branchViewCount === 1) {
+              return {
+                status: 1,
+                stdout: "",
+                stderr: "no pull requests found",
+              };
+            }
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                number: 42,
+                url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                state: "OPEN",
+                autoMergeRequest: null,
+              }),
+              stderr: "",
+            };
+          }
+          if (selector === "42") {
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                state: "OPEN",
+                mergedAt: null,
+                mergeCommit: null,
+                autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+              }),
+              stderr: "",
+            };
+          }
+        }
+        if (args[0] === "pr" && args[1] === "create") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+            stderr: "",
+          };
+        }
+        if (args[0] === "pr" && args[1] === "merge") {
+          return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected gh" };
+      };
+      setup.runGit = (cwd, args) => {
+        const gitCalls = (
+          setup as { gitCalls: { cwd: string; args: string[] }[] }
+        ).gitCalls;
+        gitCalls.push({ cwd, args });
+        if (args[0] === "fetch" && args[1] === "origin") {
+          return { status: 0, stdout: "", stderr: "" };
+        }
+        if (args[0] === "reset" && args[1] === "--hard") {
+          return { status: 0, stdout: "reset", stderr: "" };
+        }
+        if (args[0] === "merge") {
+          return { status: 0, stdout: "merge", stderr: "" };
+        }
+        if (args[0] === "push" && args.includes("change/example")) {
+          return { status: 0, stdout: "pushed branch", stderr: "" };
+        }
+        // Other rev-parse calls (--path-format=absolute, --show-toplevel,
+        // --git-common-dir, branch refs) must fall through to real git so
+        // validateChangeWorktree and resolveRepoRoot work.
+        return defaultRunGit(cwd, args);
+      };
+
+      const result = await finalizeRelease(
+        {
+          changeId: "example",
+          workdir: worktree,
+          archiveMode: "pr",
+          autoPush: true,
+        },
+        setup,
+      );
+
+      expect(result).toMatchObject({
+        status: "pending_merge",
+        route: "pr_auto_merge",
+        prNumber: 42,
+        autoMergeArmed: true,
+        pushStatus: "pushed",
+      });
+    });
+  });
+
   it("finalizeRelease turns protected default push rejection into pending auto-merge PR", async () => {
     const main = join(tempRoot, "protected-main");
     const worktree = join(tempRoot, "protected-wt");

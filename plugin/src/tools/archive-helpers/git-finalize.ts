@@ -2331,6 +2331,51 @@ function completeProtectedBranchViaPullRequest(
     };
   }
 
+  // rq-fixPhase9PostMergeFinalization: when the change's PR is already merged,
+  // reconciling the stale change branch against the default branch is
+  // pointless — main already carries the merged artifacts (including the
+  // .adv/archive/** bundle files), so a stale-branch merge inevitably
+  // conflicts and RECONCILE_CONFLICT blocks forever. Detect the already-merged
+  // state BEFORE reconcile and synthesize a shipped outcome so the merged-PR
+  // completion path in archive-gate.ts can finalize phase9_status. The
+  // verification is strict: exact repo/head/base/state/OID match against the
+  // persisted changeTipSha or preArchiveTipSha. A "none" or "invalid" result
+  // (e.g. ambiguous proof, missing tip SHA) falls through to reconcile so
+  // genuine conflicts on unmerged branches still block as before.
+  const mergedPrProof = verifyDirectMergedPrProof(
+    {
+      repoRoot: input.repoRoot,
+      repo: input.route.repo,
+      defaultBranch: input.defaultBranch,
+      changeId: input.changeId,
+      branchName: branch,
+      changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
+    },
+    deps,
+  );
+  if (mergedPrProof.kind === "valid") {
+    return {
+      status: "shipped",
+      repoRoot: input.repoRoot,
+      defaultBranch: input.defaultBranch,
+      route: input.route.route,
+      releasedCommitSha: mergedPrProof.defaultBranchSha,
+      mergeCommitSha: mergedPrProof.mergeCommitOid,
+      changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
+      pushStatus: "skipped",
+      pushFailureReason: "merged_pr_detected_pre_reconcile",
+      prBranch: branch,
+      repo: input.route.repo,
+      prNumber: mergedPrProof.prNumber,
+      prUrl: mergedPrProof.prUrl,
+      prHeadSha: mergedPrProof.prHeadSha,
+      defaultBranchSha: mergedPrProof.defaultBranchSha,
+      autoMergeArmed: false,
+    };
+  }
+
   const reconcileResult = reconcileChangeBranchWithDefault(
     {
       workdir: input.workdir,

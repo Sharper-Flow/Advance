@@ -1332,13 +1332,19 @@ function generateArchiveSummary(change: Change, archivedAt: string): string {
  * Create an identical archive bundle inside the repository.
  * Writes the same files as createArchive() but to an in-repo path.
  * Failure is warning-only — the caller logs it but does not fail the archive.
+ *
+ * `archivedAt` is required: callers MUST resolve the authoritative timestamp
+ * (from a sibling/source bundle's terminal summary, or from a real archive
+ * dispatch). A silent `new Date()` fallback would silently re-stamp the
+ * bundle's archive date on every reconcile, breaking cross-bundle identity
+ * invariants (rq-fixReconcileArchivedAt).
  */
 export async function createInRepoArchive(
   change: Change,
   inRepoArchiveDir: string,
-  sourceChangeDir?: string,
-  multiRepo?: MultiRepoArchiveMetadata,
-  archivedAt: string = new Date().toISOString(),
+  sourceChangeDir: string | undefined,
+  multiRepo: MultiRepoArchiveMetadata | undefined,
+  archivedAt: string,
   projectionManifest?: SpecProjectionManifest,
 ): Promise<string> {
   const archivePath = await archiveBundlePathForWrite(
@@ -1389,11 +1395,19 @@ export async function createInRepoArchive(
 }
 
 /**
- * Reconcile in-repo archive after a previous attempt already wrote external
+ * Reconcile in-repo archive after a previous attempt already wrote an external
  * archive bundle but skipped/failed before in-repo bundle creation.
+ *
+ * The in-repo bundle's archived_at MUST match the source bundle's terminal
+ * summary — never the current wall-clock — so cross-bundle identity and
+ * downstream tooling can rely on the original archive timestamp. If the
+ * source bundle's terminal summary is missing or unreadable, this throws
+ * (rq-fixReconcileArchivedAt): silently inventing a new timestamp would
+ * make the in-repo bundle appear to be a freshly archived change.
  */
 export async function reconcileInRepoArchive(
   change: Change,
+  externalArchiveDir: string,
   inRepoArchiveDir: string,
   sourceChangeDir?: string,
   multiRepo?: MultiRepoArchiveMetadata,
@@ -1403,11 +1417,35 @@ export async function reconcileInRepoArchive(
     return existing;
   }
 
+  const sourceBundle = await findArchiveBundle(externalArchiveDir, change.id);
+  if (!sourceBundle) {
+    throw new Error(
+      `Cannot reconcile in-repo archive for ${change.id}: source archive bundle not found under ${externalArchiveDir}.`,
+    );
+  }
+  const summaryRead = await readBoundedProjectionDocument(
+    join(sourceBundle, TERMINAL_SUMMARY_FILE),
+  );
+  if (summaryRead.kind !== "ok") {
+    throw new Error(
+      `Cannot preserve archive timestamp for ${change.id}: terminal summary is ${summaryRead.kind}.`,
+    );
+  }
+  const summary = validateTerminalArchiveSummary(
+    JSON.parse(summaryRead.content),
+  );
+  if (summary.change_id !== change.id) {
+    throw new Error(
+      `Archive bundle identity mismatch: expected ${change.id}, got ${summary.change_id}.`,
+    );
+  }
+
   return createInRepoArchive(
     change,
     inRepoArchiveDir,
     sourceChangeDir,
     multiRepo,
+    summary.archived_at,
   );
 }
 
