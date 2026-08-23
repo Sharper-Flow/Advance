@@ -71,7 +71,7 @@ Provider hint deployment is handled by `~/toolbox/scripts/deploy-provider-hints.
 | `adv_reference_protocol` | Full `ADV_INSTRUCTIONS.md` reference protocol size, not embedded into runtime `adv.md` |
 | `provider_hint` | Provider hint payload from standalone plugin when available |
 | `adv_dynamic_system_block_estimate` | Estimated ADV runtime banner/status additions appended to `output.system[0]` |
-| `caveman_voice_contract_allowance` | Reporting allowance for caveman voice contract when that plugin is active |
+| `voice_contract_allowance` | Reporting allowance for the global ASD-STE100 voice contract appended by the opencode-voice-contract plugin |
 | `selected_agent_runtime_prompt` | Single ADV runtime prompt plus one runtime hint |
 | `avoided_provider_variant_duplication` | Retired generated provider file size if a stale file is still present |
 

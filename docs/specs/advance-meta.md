@@ -783,7 +783,7 @@ ADV must expose one canonical lean ADV runtime prompt while preserving provider-
 
 **ID:** `rq-providerAdvMetrics01` | **Priority:** **[MUST]**
 
-Provider ADV evaluation must report prompt-size planes for the single-agent architecture: lean ADV runtime prompt size, ADV reference protocol size, provider hint size, dynamic ADV system-block estimate, caveman voice-contract allowance, selected runtime prompt size, and removed or avoided provider-variant duplication. Metrics must be coverage-first reporting and must not require generated adv-{provider}.md files as canonical inputs or impose a hard prompt-size cap as correctness proof.
+Provider ADV evaluation must report prompt-size planes for the single-agent architecture: lean ADV runtime prompt size, ADV reference protocol size, provider hint size, dynamic ADV system-block estimate, global voice-contract allowance, selected runtime prompt size, and removed or avoided provider-variant duplication. Metrics must be coverage-first reporting and must not require generated adv-{provider}.md files as canonical inputs or impose a hard prompt-size cap as correctness proof.
 
 **Tags:** `provider-adv`, `metrics`, `prompt-size`
 
@@ -801,7 +801,7 @@ Provider ADV evaluation must report prompt-size planes for the single-agent arch
 - Metrics include adv_reference_protocol bytes and lines
 - Metrics include provider hint bytes and lines
 - Metrics include adv_dynamic_system_block_estimate bytes and lines
-- Metrics include caveman_voice_contract_allowance bytes and lines
+- Metrics include voice_contract_allowance bytes and lines
 - Metrics include selected_agent_runtime_prompt bytes and lines for the composed single ADV prompt plus one runtime provider hint
 - Metrics include removed or avoided provider-variant duplication when measurable
 - The harness does not require generated provider variant files as canonical prompt sources

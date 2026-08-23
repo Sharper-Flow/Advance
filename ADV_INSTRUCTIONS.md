@@ -8,7 +8,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 ### Instruction Compression Guard
 
-Use `docs/command-voice-standard.md` prose-load templates + caveman-full wording. Exact contract tokens stay unchanged: tool names, gate IDs, statuses, slash commands, enum values, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, JSON/code examples.
+Use `docs/command-voice-standard.md` prose-load templates + the global ASD-STE100 voice contract wording. Exact contract tokens stay unchanged: tool names, gate IDs, statuses, slash commands, enum values, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, JSON/code examples.
 
 ## Core Decision Rules
 

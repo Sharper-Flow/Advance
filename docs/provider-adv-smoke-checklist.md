@@ -47,7 +47,7 @@ Run after `scripts/deploy-local.sh --fix` and after any manual provider-agent co
 - [ ] Provider eval reports `adv_reference_protocol`
 - [ ] Provider eval reports `provider_hint`
 - [ ] Provider eval reports `adv_dynamic_system_block_estimate`
-- [ ] Provider eval reports `caveman_voice_contract_allowance`
+- [ ] Provider eval reports `voice_contract_allowance`
 - [ ] Provider eval reports `selected_agent_runtime_prompt`
 - [ ] Provider eval reports `avoided_provider_variant_duplication` when stale retired files are measurable
 - [ ] Provider eval does not require generated `adv-{provider}.md` files as canonical prompt sources
