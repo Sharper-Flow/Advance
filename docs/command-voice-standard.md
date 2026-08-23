@@ -190,7 +190,7 @@ Command doc frontmatter `description` MUST be a **single-line YAML scalar** — 
 
 Manifest descriptions and command doc text cover **what** and **when**. This section covers **how to speak** when emitting runtime user-facing prose.
 
-### Style target — caveman-full (uniform wording-density compression)
+### Style target — global ASD-STE100 voice contract (uniform wording-density compression)
 
 - Short sentences. Fragments OK.
 - Bullets and tables over prose.
@@ -234,7 +234,7 @@ Manifest descriptions and command doc text cover **what** and **when**. This sec
 
 - Lightweight: voice block referenced in `.opencode/agents/adv.md` and shared-agent overlays
 - Governed by `rq-handoffVoice01` (handoff voice spine)
-- Global `~/.config/opencode/instructions/caveman.md` remains user-config; not synced by repo
+- Global voice authority: injected per LLM call by the opencode-voice-contract plugin; full rules at `~/.config/opencode/instructions/asd-ste100.md`; not synced by this repo
 
 ## Prose-Load Reduction Rules
 
@@ -275,9 +275,9 @@ ADV instruction surfaces (`ADV_INSTRUCTIONS.md`, `docs/command-voice-standard.md
 |---|---|
 ```
 
-### Caveman-full composition
+### STE-profile composition
 
-Caveman-full is a wording-density layer on top of these templates, not a competing compression method.
+The STE profile is a wording-density layer on top of these templates, not a competing compression method.
 
 | Constraint | Rule |
 |---|---|
@@ -517,7 +517,7 @@ Mid-command banner taxonomy (CONTRACT ACTIVE, CONTRACT STATUS, CONTRACT FULFILLE
 | CONTRACT ACTIVE | Trim to purpose line | `Working on: {change-id}` + reference to `_contextSnapshot` for state |
 | CONTRACT STATUS | Drop entirely | No per-task status block. State visible via `adv_task_list` and `_contextSnapshot`. TDD phase markers (`TDD_RED`/`TDD_GREEN`) were retired — TDD evidence lives in `adv_run_test` tool records |
 | CONTRACT FULFILLED | Replace with spine | Use the canonical three-section spine + footer (apply → review handoff) |
-| QUICK CONTRACT | Keep, apply caveman-full | Retain contract-confirmation shape (INTENT / SCOPE / USER OUTCOMES). Tighten labels, drop filler. Not a handoff — mid-command confirmation block |
+| QUICK CONTRACT | Keep, apply STE profile | Retain contract-confirmation shape (INTENT / SCOPE / USER OUTCOMES). Tighten labels, drop filler. Not a handoff — mid-command confirmation block |
 | READY FOR BUILD | Replace with fast-track spine | Use the fast-track variant above |
 | ARCHIVE COMPLETE | Replace with archive terminal spine | Use the archive terminal variant above |
 
@@ -638,7 +638,7 @@ Remaining gates: design ○, planning ○, execution ○, acceptance ○, releas
 Gate handoff messages dump internal mechanics instead of user-relevant content.
 
 ## Chosen direction
-Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered + blockquote wayfinder block. Banner cleanup included. Caveman-full matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
+Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered + blockquote wayfinder block. Banner cleanup included. STE profile matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
 
 ## Delivered
 - Agreement confirmed: three-section spine + blockquote wayfinder block for all gate handoffs

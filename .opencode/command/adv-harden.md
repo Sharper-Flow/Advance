@@ -571,7 +571,7 @@ Populate release-owned rows from harden evidence:
 Rules:
 
 - Every row must include status plus brief source/evidence pointer.
-- Summary prose must keep outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence visible; caveman-full wording may tighten wording but must not remove those decision essentials.
+- Summary prose must keep outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence visible; the global ASD-STE100 voice contract may tighten wording but must not remove those decision essentials.
 - Impact wording is evidence-only. Do not invent user/business benefit — but DO trace and surface benefit prose already articulated in the proposal, agreement, or executive summary (canonical source: `_executiveSummary ## Value`). Evidenced benefit MUST appear in the Release Readiness Summary; leaving evidenced benefit untraced is a gap to flag, not a safe default. If no value articulation exists in any artifact, omit the benefit line.
 - Ops readiness and open follow-ups must cite runbook/reconciliation fields when present: `status_source`, `completion_proof`, completion signal, health verification, rollback/cleanup disposition, and any unreachable child warning/blocker.
 - Missing scanner/sub-agent output needed for a release-owned row is `warning` or `blocked` with evidence `harden evidence unavailable`; never render it as `n/a`.

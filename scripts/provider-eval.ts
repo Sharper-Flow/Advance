@@ -114,7 +114,7 @@ interface PromptSizeMetrics {
   adv_reference_protocol: PromptSizeMetric;
   provider_hint: PromptSizeMetric | null;
   adv_dynamic_system_block_estimate: PromptSizeMetric;
-  caveman_voice_contract_allowance: PromptSizeMetric;
+  voice_contract_allowance: PromptSizeMetric;
   selected_agent_runtime_prompt: PromptSizeMetric;
   avoided_provider_variant_duplication: PromptSizeMetric | null;
 }
@@ -183,8 +183,8 @@ const ADV_DYNAMIC_SYSTEM_BLOCK_ESTIMATE = [
   "[ADV:WORKTREE_SESSION] Active worktree and change context",
 ].join("\n");
 
-const CAVEMAN_VOICE_CONTRACT_ALLOWANCE =
-  "Caveman voice contract allowance: terse concrete prose appended to output.system[0] when caveman is active.";
+const VOICE_CONTRACT_ALLOWANCE =
+  "Voice contract allowance: the global ASD-STE100 voice contract appended to output.system[0] by the opencode-voice-contract plugin.";
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -358,8 +358,8 @@ export function collectPromptSizeMetrics(input: {
     adv_dynamic_system_block_estimate: sizeOfContent(
       ADV_DYNAMIC_SYSTEM_BLOCK_ESTIMATE,
     ),
-    caveman_voice_contract_allowance: sizeOfContent(
-      CAVEMAN_VOICE_CONTRACT_ALLOWANCE,
+    voice_contract_allowance: sizeOfContent(
+      VOICE_CONTRACT_ALLOWANCE,
     ),
     selected_agent_runtime_prompt: sizeOfContent(input.runtimePrompt),
     avoided_provider_variant_duplication,
@@ -719,7 +719,7 @@ async function runEvaluation(
     `ADV dynamic system block estimate: ${formatSize(promptMetrics.adv_dynamic_system_block_estimate)}`,
   );
   console.log(
-    `Caveman voice contract allowance: ${formatSize(promptMetrics.caveman_voice_contract_allowance)}`,
+    `Voice contract allowance: ${formatSize(promptMetrics.voice_contract_allowance)}`,
   );
   if (promptMetrics.avoided_provider_variant_duplication) {
     console.log(

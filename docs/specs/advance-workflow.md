@@ -1131,7 +1131,7 @@ Release-repair recovery for completed or unavailable change projections MUST be 
 
 **ID:** `rq-executiveSummaryAudience01` | **Priority:** **[MUST]**
 
-ADV executive summaries MUST be written for non-technical release-approval readers while preserving audit evidence and technical traceability. Each summary MUST include the decision essentials: outcome, delivered value or why it matters, verification, risks/follow-ups, and supporting evidence. Summary guidance MUST use evidence-only impact wording: do not fabricate user or business benefit beyond proposal, agreement, task, review, harden, archive, or follow-up evidence. Unavoidable technical terms MAY appear only as parenthetical supporting detail after the plain-English meaning. Caveman-full voice MUST NOT compress away executive-summary or release-readiness artifact substance.
+ADV executive summaries MUST be written for non-technical release-approval readers while preserving audit evidence and technical traceability. Each summary MUST include the decision essentials: outcome, delivered value or why it matters, verification, risks/follow-ups, and supporting evidence. Summary guidance MUST use evidence-only impact wording: do not fabricate user or business benefit beyond proposal, agreement, task, review, harden, archive, or follow-up evidence. Unavoidable technical terms MAY appear only as parenthetical supporting detail after the plain-English meaning. The global voice contract MUST NOT compress away executive-summary or release-readiness artifact substance.
 
 **Tags:** `workflow`, `executive-summary`, `release`, `approval`, `voice`
 
@@ -1173,17 +1173,17 @@ ADV executive summaries MUST be written for non-technical release-approval reade
 - Technical terms appear as parenthetical supporting detail
 - Dense implementation jargon does not lead the summary
 
-**Caveman-full preserves summary substance** (`rq-executiveSummaryAudience01.4`)
+**Voice-contract compression preserves summary substance** (`rq-executiveSummaryAudience01.4`)
 
 **Given:**
-- Caveman-full voice compression applies to runtime prose
+- Global voice-contract compression applies to runtime prose
 - The content is executive-summary or release-readiness artifact substance
 
 **When:** The artifact is written or displayed
 
 **Then:**
-- Caveman-full may make wording scannable
-- Caveman-full must not compress away outcome, value, verification, risks/follow-ups, or supporting evidence
+- The voice contract may make wording scannable
+- The voice contract must not compress away outcome, value, verification, risks/follow-ups, or supporting evidence
 - Required approval consequence context remains visible
 
 ---

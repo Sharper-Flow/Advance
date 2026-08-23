@@ -456,7 +456,7 @@ describe("deploy-local.sh", () => {
       expect(providerEval).toContain("adv_reference_protocol");
       expect(providerEval).toContain("provider_hint");
       expect(providerEval).toContain("adv_dynamic_system_block_estimate");
-      expect(providerEval).toContain("caveman_voice_contract_allowance");
+      expect(providerEval).toContain("voice_contract_allowance");
       expect(providerEval).toContain("selected_agent_runtime_prompt");
       expect(providerEval).toContain("avoided_provider_variant_duplication");
       expect(providerEval).toContain("Lean ADV runtime prompt");
@@ -532,7 +532,7 @@ describe("deploy-local.sh", () => {
         "adv_reference_protocol",
         "provider_hint",
         "adv_dynamic_system_block_estimate",
-        "caveman_voice_contract_allowance",
+        "voice_contract_allowance",
         "selected_agent_runtime_prompt",
       ]) {
         expect(`${assemblyDoc}\n${smokeDoc}`).toContain(required);
@@ -586,7 +586,7 @@ describe("deploy-local.sh", () => {
       expect(specText).toContain("lean ADV runtime prompt");
       expect(specText).toContain("runtime protocol coverage inventory");
       expect(specText).toContain("adv_reference_protocol");
-      expect(specText).toContain("caveman_voice_contract_allowance");
+      expect(specText).toContain("voice_contract_allowance");
       expect(specText).not.toContain(
         "Global adv.md contains the canonical ADV body and ADV_INSTRUCTIONS.md protocol content",
       );
