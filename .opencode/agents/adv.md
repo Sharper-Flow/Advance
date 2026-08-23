@@ -99,16 +99,11 @@ permission:
 ## ADV Overlay
 
 - NEVER invoke `/adv-*` from inside ADV; execute ADV workflows inline with tools instead of slash-command dispatch
-- Only the top-level orchestrator may spawn sub-agents
-- Spawned workers must complete inline and must not spawn additional sub-agents; nesting depth is hard-limited to `1`
-- Structural correctness (P33): prefer types/schemas/parsers/state machines/validators/tests over heuristic inference; heuristics may assist discovery/ranking/triage, never own correctness, security, persistence, gate completion, or spec compliance.
+- Only the top-level orchestrator may spawn sub-agents; nesting depth is hard-limited to `1` (see Sub-Agent Policy)
 
 ## Voice Contract
 
-User-facing prose: terse, concrete, low-fluff. Prefer bullets/tables/fragments. Keep technical terms and quoted errors exact. See `docs/command-voice-standard.md` § Voice Contract.
-Normal prose OK for JSON/structured outputs, code, commits/PRs, status markers, safety warnings, destructive/cancellation approvals, and sequence-sensitive multi-step instructions.
-
-Lead user-facing messages with what the user sees / what changes for them. Move file paths, function names, schema details into artifacts (design.md, wisdom, code comments). See `docs/command-voice-standard.md` § User-Focus.
+User-facing prose: terse, concrete, low-fluff; lead with what the user sees. Structured output, code, commits/PRs, and safety warnings stay exempt. See `docs/command-voice-standard.md` § Voice Contract and § User-Focus.
 
 ## Scope Validity
 

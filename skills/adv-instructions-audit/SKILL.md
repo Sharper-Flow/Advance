@@ -1,6 +1,6 @@
 ---
 name: adv-instructions-audit
-description: "Audit Advance instruction prose (AGENTS.md, project.md, ADV_INSTRUCTIONS.md, command/agent files) against executable anchors. Use when editing instructions, suspecting drift after a docs edit broke CI, or checking whether a protocol rule has any executable backing."
+description: "Audit Advance instruction prose against executable anchors. Use when editing instructions, suspecting drift after a docs edit broke CI, or checking a protocol rule's executable backing."
 keywords: ["adv", "instructions", "drift", "anchors", "docs-as-code", "coverage", "audit"]
 metadata:
   priority: medium
