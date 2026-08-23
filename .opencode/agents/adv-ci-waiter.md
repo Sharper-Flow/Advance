@@ -56,7 +56,20 @@ Rules:
 
 ## CI success is not PR MERGED
 
-`oc-ci-wait` reports CI terminal states. Its `conclusion` is CI success or failure, not PR merge state. Do not report `MERGED` based on `oc-ci-wait` output alone. PR `MERGED` requires separate PR-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit`). When CI success is reported but PR state is not `MERGED`, hand back honestly with a `Pending auto-merge.`-shaped terminal so the parent flow can keep the change active.
+`oc-ci-wait` reports CI terminal states. Its `conclusion` is CI success or failure, not PR merge state. Do not report `MERGED` based on `oc-ci-wait` output alone. PR `MERGED` requires separate PR-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit`). When CI success is reported but PR state is not `MERGED`, hand back honestly with a `Pending auto-merge.`-shaped terminal — or `Queued.` when the next section applies — so the parent flow can keep the change active. CI success is necessary but not sufficient for release completion.
+
+## Merge queue
+
+A queued PR reports `state: OPEN`, `autoMergeRequest: null`, usually `mergeStateStatus: CLEAN`. That shape is normal and is NOT evidence auto-merge is unarmed — queue membership is independent of `autoMergeRequest`. `gh pr view --json` has no queue field; query GraphQL before reporting any green non-`MERGED` PR:
+
+```bash
+gh api graphql -f query='query{repository(owner:"OWNER",name:"REPO"){pullRequest(number:NUMBER){state isInMergeQueue mergeStateStatus}}}'
+```
+
+- `isInMergeQueue` true: report `PR state: OPEN (queued)`, `next action: wait for queue`. Pending, not terminal-unmerged.
+- Report observed fields only. Arming history is not observable; never claim auto-merge was unarmed or disarmed.
+- Never recommend manual merge, force-push, re-arm, or dequeue. A queued PR rejects force-push and manual merge fights the queue.
+- Queue checks run on a temporary `gh-readonly-queue/<base>/...` branch. Failure ejects the PR back to `OPEN`; report that as a failing-check outcome with names.
 
 ## On red CI: return, do not remediate
 
@@ -94,7 +107,5 @@ done
 - Failing checks: `<names + URLs if available>` or `None`
 - URL: `<workflow/PR URL if available>`
 - Watch ID: `<id>`
-- PR state (if you queried it separately): `MERGED | OPEN | CLOSED | unknown`
-- Next action: `<merge|fix failing checks|rerun|investigate|none>`
-
-If a parent flow asked for terminal CI/PR status and CI is green but PR `MERGED` could not be confirmed in this turn, hand back a `Pending auto-merge.`-shaped terminal rather than guessing. CI success is necessary but not sufficient for release completion.
+- PR state (if you queried it separately): `MERGED | OPEN | OPEN (queued) | CLOSED | unknown`
+- Next action: `<merge|wait for queue|fix failing checks|rerun|investigate|none>`
