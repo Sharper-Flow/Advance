@@ -2,7 +2,8 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, readFile, readdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createDiskStore } from "./store-disk";
+import { createDiskStore, loadClosedChanges } from "./store-disk";
+import { getProjectPaths, listChangeDirs } from "./json";
 import { readArtifact } from "../tools/change/artifacts";
 import { createInRepoArchive } from "../archive/archive";
 import type { Change } from "../types";
@@ -23,6 +24,16 @@ async function makeTempProject(): Promise<string> {
   );
   return dir;
 }
+
+test("fresh store creates and lists an empty closed directory", async () => {
+  const dir = await makeTempProject();
+  await createDiskStore(dir);
+
+  const paths = getProjectPaths(dir);
+
+  await expect(listChangeDirs(paths.closed)).resolves.toEqual([]);
+  await expect(loadClosedChanges(paths.closed)).resolves.toEqual([]);
+});
 
 function makeEpic(): import("../types").Epic {
   const now = new Date().toISOString();

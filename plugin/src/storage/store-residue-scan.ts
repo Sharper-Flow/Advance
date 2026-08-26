@@ -492,6 +492,7 @@ async function enumerateUnknownStoreNoise(
     paths.changes,
     paths.summariesDir,
     paths.archive,
+    paths.closed,
     paths.activeEpics,
     paths.retiredEpics,
     paths.wisdom,

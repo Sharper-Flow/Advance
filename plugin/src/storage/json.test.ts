@@ -31,6 +31,7 @@ import {
   getProjectPaths,
   fileExists,
   hasArchiveBundle,
+  loadClosedChange,
   resolveChangeId,
 } from "./json";
 import { mkdir } from "fs/promises";
@@ -53,6 +54,7 @@ describe("getProjectPaths", () => {
     expect(paths.changes).toBe("/project/.adv/changes");
     expect(paths.summariesDir).toBe("/project/.adv/summaries");
     expect(paths.archive).toBe("/project/.adv/archive");
+    expect(paths.closed).toBe("/project/.adv/closed");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/project/.adv/wisdom.jsonl");
     expect("agenda" in paths).toBe(false);
@@ -91,6 +93,7 @@ describe("getProjectPaths", () => {
     expect(paths.changes).toBe("/ext/data/abc123/changes");
     expect(paths.summariesDir).toBe("/ext/data/abc123/summaries");
     expect(paths.archive).toBe("/ext/data/abc123/archive");
+    expect(paths.closed).toBe("/ext/data/abc123/closed");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
     expect("agenda" in paths).toBe(false);
@@ -669,6 +672,57 @@ describe("Change Operations", () => {
 
     const changes = await loadAllChanges(changesDir);
     expect(changes.size).toBe(2);
+  });
+
+  test("loadClosedChange reads the exact closed change path", async () => {
+    const closedDir = join(tempDir, ".adv/closed");
+    const changeId = "closed-feature";
+    const closedChange = {
+      ...SAMPLE_CHANGE,
+      id: changeId,
+      status: "closed",
+      closure: {
+        reason: "not_planned",
+        approved_by_user: true,
+        approval_evidence: "User approved closure.",
+        approved_at: "2026-08-26T00:00:00Z",
+      },
+    };
+    await mkdir(join(closedDir, changeId), { recursive: true });
+    await writeFile(
+      join(closedDir, changeId, "change.json"),
+      JSON.stringify(closedChange),
+    );
+    await mkdir(join(closedDir, `decoy-${changeId}`), { recursive: true });
+    await writeFile(
+      join(closedDir, `decoy-${changeId}`, "change.json"),
+      "not valid JSON",
+    );
+
+    const result = await loadClosedChange(closedDir, changeId);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe(changeId);
+    expect(result.data?.status).toBe("closed");
+    expect(result.data?.closure?.approval_evidence).toBe(
+      "User approved closure.",
+    );
+  });
+
+  test("loadClosedChange does not enumerate sibling directories", async () => {
+    const source = await readFile(
+      join(import.meta.dirname, "json.ts"),
+      "utf-8",
+    );
+    const helperStart = source.indexOf(
+      "export async function loadClosedChange",
+    );
+    const helperEnd = source.indexOf("\n}\n", helperStart) + 3;
+
+    expect(helperStart).toBeGreaterThanOrEqual(0);
+    expect(source.slice(helperStart, helperEnd)).not.toContain(
+      "listChangeDirs",
+    );
   });
 });
 

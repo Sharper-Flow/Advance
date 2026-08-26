@@ -113,6 +113,19 @@ export async function loadChangesInBatches<T>(
   return loaded;
 }
 
+export async function loadClosedChanges(closedPath: string): Promise<Change[]> {
+  const closedDirs = await listChangeDirs(closedPath);
+  const loaded = await Promise.all(
+    closedDirs.map((dir) => loadChange(closedPath, dir)),
+  );
+  return loaded
+    .filter((r): r is { success: true; data: Change } =>
+      Boolean(r.success && r.data),
+    )
+    .map((r) => r.data)
+    .filter((change) => change.status === "closed");
+}
+
 const logger = createLogger("store-disk");
 
 async function persistChangeProjection(
@@ -173,6 +186,7 @@ export async function createDiskStore(
   // Make sure the mutable side-tree exists; tools assume these dirs are
   // present at first write.
   await mkdir(paths.changes, { recursive: true });
+  await mkdir(paths.closed, { recursive: true });
   await mkdir(paths.activeEpics, { recursive: true });
   await mkdir(paths.retiredEpics, { recursive: true });
   if (paths.external) {

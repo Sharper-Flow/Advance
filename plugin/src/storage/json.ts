@@ -70,6 +70,7 @@ export interface ProjectPaths {
   changes: string;
   summariesDir: string;
   archive: string;
+  closed: string;
   activeEpics: string;
   retiredEpics: string;
   wisdom: string;
@@ -120,6 +121,7 @@ export function getProjectPaths(
       changes: join(ext, changesDir),
       summariesDir: join(ext, "summaries"),
       archive: join(ext, archiveDir),
+      closed: join(ext, "closed"),
       activeEpics: join(ext, "active-epics"),
       retiredEpics: join(ext, "retired-epics"),
       wisdom: join(ext, "wisdom.jsonl"),
@@ -145,6 +147,7 @@ export function getProjectPaths(
     changes: join(root, config?.changes_dir ?? ".adv/changes"),
     summariesDir: join(root, ".adv/summaries"),
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
+    closed: join(root, ".adv/closed"),
     activeEpics: join(root, ".adv/active-epics"),
     retiredEpics: join(root, ".adv/retired-epics"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
@@ -539,4 +542,17 @@ export async function hasArchiveBundle(
   }
 
   return false;
+}
+
+/**
+ * Load a closed change from its canonical, plain-ID bundle path.
+ *
+ * Closed bundle directory names are canonical, so this helper intentionally
+ * probes only `closed/<changeId>/change.json` and never scans siblings.
+ */
+export async function loadClosedChange(
+  closedPath: string,
+  changeId: string,
+): Promise<LoadResult<Change | null>> {
+  return loadChange(closedPath, changeId);
 }
