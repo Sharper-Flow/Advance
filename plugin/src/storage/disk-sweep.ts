@@ -14,6 +14,8 @@
 
 import { rm } from "fs/promises";
 import { join } from "path";
+import { loadChange } from "./change-projection-reader";
+import { retireClosedChange } from "./closed-bundle";
 
 export interface DiskSweepResult {
   /** Change IDs whose directories were removed (or were already absent). */
@@ -40,18 +42,26 @@ function isUnsafeChangeId(id: string): boolean {
 }
 
 /**
- * Remove `{changesDir}/{changeId}/` for each id in `changeIds`. Returns
+ * Retire `{changesDir}/{changeId}/` for each id in `changeIds`. Returns
  * per-id outcomes. Missing directories are silently treated as removed
  * (idempotent), which lets bulk-close retries converge cleanly.
  *
- * @param changeIds Change IDs to remove
+ * A directory holding a readable record is retired through
+ * `retireClosedChange`, which proves the record is readable under
+ * `closedPath` before removing the source. An id whose record cannot be made
+ * durable is reported in `failed` and left on disk — this sweep never trades
+ * a record for a clean directory listing.
+ *
+ * @param changeIds Change IDs to retire
  * @param changesDir Absolute path to the parent directory containing
  *                   per-change subdirectories (e.g. `paths.changes` or
  *                   `paths.archive`).
+ * @param closedPath Absolute path to the closed-bundle root (`paths.closed`).
  */
 export async function sweepClosedChangesFromDisk(
   changeIds: string[],
   changesDir: string,
+  closedPath: string,
 ): Promise<DiskSweepResult> {
   const result: DiskSweepResult = { removed: [], failed: [] };
 
@@ -64,6 +74,26 @@ export async function sweepClosedChangesFromDisk(
       continue;
     }
     const target = join(changesDir, id);
+
+    // A directory holding a readable record must go through the durability
+    // guard, which copies the record to `closed/<id>/` and proves it reads
+    // back before removing anything. A directory with no readable record
+    // holds nothing to preserve, so plain removal stays safe there.
+    const loaded = await loadChange(changesDir, id);
+    if (loaded.success && loaded.data) {
+      const retirement = await retireClosedChange({
+        change: loaded.data,
+        closedPath,
+        changesDir,
+      });
+      if (!retirement.ok) {
+        result.failed.push({ id, error: retirement.error });
+        continue;
+      }
+      result.removed.push(id);
+      continue;
+    }
+
     try {
       // `force: true` makes ENOENT a no-op (idempotent); `recursive: true`
       // removes the dir contents.

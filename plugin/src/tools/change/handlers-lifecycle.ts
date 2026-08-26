@@ -39,7 +39,7 @@ import {
   buildD3ContextFromStore,
   enforceD3ForChangeCreate,
 } from "../../validator/work-graph-enforcement";
-import { removeChangeDir } from "../../storage/json";
+import { retireClosedChange } from "../../storage/closed-bundle";
 import { formatToolOutput } from "../../utils/tool-output";
 import { buildChangeContextSnapshot } from "../../utils/context-snapshot";
 import { deriveDirectiveSafe } from "../../utils/workflow-directive";
@@ -856,16 +856,27 @@ export const advChangeCloseHandler = async (
           changeId,
         });
       }
-      // Remove source `changes/<id>/` directory after successful close.
-      // Best-effort: failure surfaces as a warning but does NOT flip success
-      // to false — the closed status is durable.
+      // The closed record exists only inside `changes/<id>/`, so that directory
+      // cannot be removed until the record has been copied to `closed/<id>/`
+      // and proven readable there. retireClosedChange owns that ordering and
+      // fails closed: if durability is not proven, nothing is removed.
+      // AC1/AC4, constraint C4.
       let cleanupWarning: string | undefined;
-      if (activeStore.paths?.changes) {
-        try {
-          await removeChangeDir(activeStore.paths.changes, changeId);
-        } catch (err) {
-          cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
+      if (activeStore.paths?.changes && activeStore.paths?.closed) {
+        const retirement = await retireClosedChange({
+          change: outcome.value,
+          closedPath: activeStore.paths.closed,
+          changesDir: activeStore.paths.changes,
+        });
+        if (!retirement.ok) {
+          return formatToolOutput({
+            error:
+              `Change ${changeId} was marked closed but could not be made ` +
+              `durable: ${retirement.error}. Its record was left in place.`,
+            changeId,
+          });
         }
+        cleanupWarning = retirement.cleanupWarning;
       }
       return formatToolOutput({
         success: true,
