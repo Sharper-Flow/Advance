@@ -1,0 +1,1420 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixChangeCloseDataLoss",
+  "title": "Fix change close data loss",
+  "status": "archived",
+  "created_at": "2026-08-26T04:15:37.630Z",
+  "tasks": [
+    {
+      "id": "tk-3499e2472669",
+      "title": "Add paths.closed and the closed-bundle read primitives",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-26T17:58:44.979Z",
+      "started_at": "2026-08-26T18:07:46.659Z",
+      "completed_at": "2026-08-26T18:30:56.920Z",
+      "verification": "RED tr_mtafhgfy_85dc6875: 5 failures with implementation removed and tests retained — closed path undefined in both getProjectPaths branches, loadClosedChange absent, DDC4 source guard unsatisfiable, loadClosedChanges not a function. GREEN tr_mtafifvc_6bd756ac: 107 tests passed across json.test.ts, store-disk.test.ts, store-residue-scan.test.ts. Implements AC1 (durable destination exists), respects C5 (destination available before any cleanup can run). DDC4 verified structurally: loadClosedChange calls loadChange(closedPath, changeId) directly and the source guard asserts its body contains no listChangeDirs. DDC2 verified: fresh store creates closed/ at init and lists empty without throwing. store-residue-scan.ts allow-list entry added so the new tree is not reported as unexplained residue.",
+      "summary": "RED tr_mtafhgfy_85dc6875: 5 failures with implementation removed and tests retained — closed path undefined in both getProjectPaths branches, loadClosedChange absent, DDC4 source guard unsatisfiable, loadClosedChanges not a function. GREEN tr_mtafifvc_6bd756ac: 107 tests passed across json.test.ts, store-disk.test.ts, store-residue-scan.test.ts. Implements AC1 (durable destination exists), respects C5 (destination available before any cleanup can run). DDC4 verified structurally: loadClosedChange calls loadChange(closedPath, changeId) directly and the source guard asserts its body contains no listChangeDirs. DDC2 verified: fresh store creates closed/ at init and lists empty without throwing. store-residue-scan.ts allow-list entry added so the new tree is not reported as unexplained residue.",
+      "filesTouched": [
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-residue-scan.ts"
+      ],
+      "checkpointSha": "1bc015a598a3ca98e1bc89a5c80c6cd5475a3c83",
+      "completedAt": "2026-08-26T18:30:56.920Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      }
+    },
+    {
+      "id": "tk-6213a395b55a",
+      "title": "Wire closed records into both read surfaces (list and get)",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3499e2472669"
+        }
+      ],
+      "created_at": "2026-08-26T17:59:30.319Z",
+      "started_at": "2026-08-26T18:32:08.877Z",
+      "completed_at": "2026-08-26T18:45:54.866Z",
+      "verification": "RED tr_mtafzjyw_abed7862: both feature tests fail with the wiring removed — changes.list returns [] for a closed bundle under includeClosed, and changes.get returns success:false. GREEN tr_mtag1s8e_cde061f6: 478 tests across 47 storage files pass, so the wiring regresses nothing. Implements AC2 (adv_change_show resolves a closed change and its closure metadata survives) and AC3 (list surfaces closed records under includeClosed). Both read surfaces covered — the design validator flagged that covering changes.list alone would leave the original reported symptom intact, since adv_change_show reads through changes.get. Active-record precedence is structural, not conditional: the `if (id)` branch returns before either fallback is reached, so an active record always wins over a bundle copy. The closed fallback mirrors the existing archive self-heal guard and now shares its single `candidates.length <= 1` block rather than duplicating the condition.",
+      "summary": "RED tr_mtafzjyw_abed7862: both feature tests fail with the wiring removed — changes.list returns [] for a closed bundle under includeClosed, and changes.get returns success:false. GREEN tr_mtag1s8e_cde061f6: 478 tests across 47 storage files pass, so the wiring regresses nothing. Implements AC2 (adv_change_show resolves a closed change and its closure metadata survives) and AC3 (list surfaces closed records under includeClosed). Both read surfaces covered — the design validator flagged that covering changes.list alone would leave the original reported symptom intact, since adv_change_show reads through changes.get. Active-record precedence is structural, not conditional: the `if (id)` branch returns before either fallback is reached, so an active record always wins over a bundle copy. The closed fallback mirrors the existing archive self-heal guard and now shares its single `candidates.length <= 1` block rather than duplicating the condition.",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "checkpointSha": "8ee398bacae8c90781ecc199e1a302e31d8d5e4d",
+      "completedAt": "2026-08-26T18:45:54.866Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      }
+    },
+    {
+      "id": "tk-a429a25ac714",
+      "title": "Route all closed-record cleanup through one guarded helper, and rewire close",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3499e2472669"
+        }
+      ],
+      "created_at": "2026-08-26T18:00:20.612Z",
+      "completed_at": "2026-08-26T19:00:11.853Z",
+      "verification": "Implements AC1 and AC4; respects C1, C4, C5. New plugin/src/storage/closed-bundle.ts owns retireClosedChange: write the bundle, prove it reads back, and only then remove the source. Durability is fail-closed (nothing is removed unless the readback proof holds); cleanup is best-effort (once proven durable, a failed removal leaves a recoverable duplicate, not a loss). RED tr_mtag7371_ba09b612 (module absent) then GREEN tr_mtag82e3_210572ec (4/4) covering: retire-then-readback, refusal when the destination is unwritable, refusal when the record is not status closed, and idempotent retry. Close rewired at handlers-lifecycle.ts: the stale comment claiming \"the closed status is durable\" is gone, and a failed retirement now returns an error instead of success:true. It writes outcome.value, the verified projection. KD11: sweepClosedChangesFromDisk was routed through the same guard. It has zero production callers but cites spec rq-bulkCloseDiskSweep01, so P41 governance-reference disposition is guard, not delete — and RED tr_mtage2sc_7048863b showed it deleting a record outright, so wiring it as written would have reproduced this defect at bulk scale. The guard applies only when a record actually loads; a directory with no readable record still takes the plain-removal path, preserving idempotent convergence. Its six legacy call sites now pass a real closedDir rather than relying on undefined being unused. Typecheck clean. GREEN tr_mtagh1no_54bc78ab (484 storage tests) and verify tr_mtagk51p_34af0071 (554 tests across storage and change tools).",
+      "summary": "Implements AC1 and AC4; respects C1, C4, C5. New plugin/src/storage/closed-bundle.ts owns retireClosedChange: write the bundle, prove it reads back, and only then remove the source. Durability is fail-closed (nothing is removed unless the readback proof holds); cleanup is best-effort (once proven durable, a failed removal leaves a recoverable duplicate, not a loss). RED tr_mtag7371_ba09b612 (module absent) then GREEN tr_mtag82e3_210572ec (4/4) covering: retire-then-readback, refusal when the destination is unwritable, refusal when the record is not status closed, and idempotent retry. Close rewired at handlers-lifecycle.ts: the stale comment claiming \"the closed status is durable\" is gone, and a failed retirement now returns an error instead of success:true. It writes outcome.value, the verified projection. KD11: sweepClosedChangesFromDisk was routed through the same guard. It has zero production callers but cites spec rq-bulkCloseDiskSweep01, so P41 governance-reference disposition is guard, not delete — and RED tr_mtage2sc_7048863b showed it deleting a record outright, so wiring it as written would have reproduced this defect at bulk scale. The guard applies only when a record actually loads; a directory with no readable record still takes the plain-removal path, preserving idempotent convergence. Its six legacy call sites now pass a real closedDir rather than relying on undefined being unused. Typecheck clean. GREEN tr_mtagh1no_54bc78ab (484 storage tests) and verify tr_mtagk51p_34af0071 (554 tests across storage and change tools).",
+      "filesTouched": [
+        "plugin/src/storage/closed-bundle.test.ts",
+        "plugin/src/storage/closed-bundle.ts",
+        "plugin/src/storage/disk-sweep.test.ts",
+        "plugin/src/storage/disk-sweep.ts",
+        "plugin/src/tools/change/handlers-lifecycle.ts"
+      ],
+      "checkpointSha": "e592487d47bf7d3dfa650b52763f0b8e197f1e72",
+      "completedAt": "2026-08-26T19:00:11.853Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      }
+    },
+    {
+      "id": "tk-76435331f6ea",
+      "title": "Add a typed outcome discriminant to the close response",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a429a25ac714"
+        }
+      ],
+      "created_at": "2026-08-26T18:00:43.433Z",
+      "completed_at": "2026-08-26T20:22:22.349Z",
+      "completedAt": "2026-08-26T20:22:22.349Z",
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "notes": "Scope trimmed: outcome discriminant is quality-of-life on an Advance-internal surface being retired."
+    },
+    {
+      "id": "tk-049d97c06f44",
+      "title": "Retire the active record on both archive noOp branches",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 4,
+      "created_at": "2026-08-26T18:01:09.303Z",
+      "completed_at": "2026-08-26T20:22:22.349Z",
+      "completedAt": "2026-08-26T20:22:22.349Z",
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "notes": "Scope trimmed: archive noOp branch is benign today and confirmed correct in live use this session."
+    },
+    {
+      "id": "tk-0d7b1ae5c482",
+      "title": "Give terminal-history a closed-path source",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3499e2472669"
+        }
+      ],
+      "created_at": "2026-08-26T18:01:36.749Z",
+      "completed_at": "2026-08-26T20:21:39.159Z",
+      "completedAt": "2026-08-26T20:21:39.159Z",
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "notes": "Scope trimmed: terminal-history closed rows are a read-surface refinement, not required to stop the data loss."
+    },
+    {
+      "id": "tk-694eaa894127",
+      "title": "Add an idempotent legacy reconcile to the doctor CLI",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 6,
+      "created_at": "2026-08-26T18:02:05.734Z",
+      "completed_at": "2026-08-26T20:22:22.349Z",
+      "completedAt": "2026-08-26T20:22:22.349Z",
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "notes": "Scope trimmed: the 5 legacy closed records predate removeChangeDir and are already safe on disk; migration adds no protection."
+    },
+    {
+      "id": "tk-b3336de90873",
+      "title": "Correct adv-cleanup skill routing for the CLI-only purge tool",
+      "type": "docs",
+      "status": "cancelled",
+      "priority": 7,
+      "created_at": "2026-08-26T18:02:37.270Z",
+      "completed_at": "2026-08-26T20:22:22.349Z",
+      "completedAt": "2026-08-26T20:22:22.349Z",
+      "contract_refs": {
+        "respects": [
+          "DONT1",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Deliverable is skill guidance text, not logic. Proof is the corrected artifact plus a grep showing no remaining agent-invocation instruction for a CLI-only tool. No behavior changes, so red/green TDD would be fabricated.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "artifact_reference",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "notes": "Scope trimmed: skill routing docs only matter for continued Advance use, which is ending."
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeCloseDataLoss",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — durable close record (fixChangeCloseDataLoss)",
+      "sources": [
+        {
+          "label": "Close handler (mutation + non-fatal cleanup)",
+          "locator": "plugin/src/tools/change/handlers-lifecycle.ts:817-885",
+          "summary": "coordinateChangeMutation sets status/lifecycleState closed + closure block (:824-849); :859-861 comment asserts durability falsely today; :865 removeChangeDir; cleanup failure is warning-only."
+        },
+        {
+          "label": "changes.get — archive-only fallback (AC2 gap)",
+          "locator": "plugin/src/storage/store-disk.ts:484-539",
+          "summary": "get resolves via paths.changes then hasArchiveBundle dominance (:497-507) and archive self-heal (:510-526). No closed-bundle probe exists; not-found at :534-538."
+        },
+        {
+          "label": "changes.list filter + archived merge site (KD5 lever)",
+          "locator": "plugin/src/storage/store-disk.ts:401-448",
+          "summary": "effectiveIncludeClosed at :413-414 only widens active-dir enumeration; archived merge at :431-438 is the pattern KD5 mirrors; closed exclusion at :446-448."
+        },
+        {
+          "label": "Store init mkdirs + loadArchivedChanges",
+          "locator": "plugin/src/storage/store-disk.ts:175-193",
+          "summary": "init creates changes/activeEpics/retiredEpics only; loadArchivedChanges filters status==='archived' at :192."
+        },
+        {
+          "label": "Paths block, removeChangeDir, hasArchiveBundle",
+          "locator": "plugin/src/storage/json.ts:62-94, 470-542",
+          "summary": "mutable paths list (:70-74) has no closed; removeChangeDir = rm recursive+force (:482-487); hasArchiveBundle non-canonical-names fallback (:515-542) and zombie-shadow docstring (:506-513)."
+        },
+        {
+          "label": "Archive ordering precedent (bundle → status → cleanup)",
+          "locator": "plugin/src/tools/change/handlers-archive.ts:706-715, 973-1025, 1124-1130",
+          "summary": "durable bundle first ('Skipping this call would discard the archive record'), archived transition with verifyProjection, then removeChangeDir with failure pushed as warning — KD3/KD4's cited precedent, verified."
+        },
+        {
+          "label": "Archive noOp branches + bundle-release guard (KD7 levers)",
+          "locator": "plugin/src/tools/change/archive-gate.ts:755-784, 854-862, 907-919",
+          "summary": "phase9=skip and post-finalization noOp returns mutate nothing; completeArchivedBundleRelease runs only when currentProjection.data===null and existingBundlePath set (:772-784) — design's KD7 claims accurate."
+        },
+        {
+          "label": "Read-after-write proof precedent (KD3 step 3)",
+          "locator": "plugin/src/tools/change/recovery.ts:26-87",
+          "summary": "verifyStatusRepairReadAfterWrite performs get+list readback proof — the pattern KD3 step 3 cites."
+        },
+        {
+          "label": "Spec law: rq-archiveRetirement01 (+.1/.2/.3)",
+          "locator": ".adv/specs/advance-workflow/spec.json:1518-1568",
+          "summary": "MUST: bundle first, then archived transition, then remove source; no active change.json resurrection; cleanup verifies archived before removal."
+        },
+        {
+          "label": "Spec law: rq-bulkCloseDiskSweep01",
+          "locator": ".adv/specs/advance-meta/spec.json:1378-1408",
+          "summary": "MUST remove changes/<id>/ in the same bulk-close call via sweepClosedChangesFromDisk; mid-flight failure preserves source dirs. Mandates the destructive sweep with no durable closed destination."
+        },
+        {
+          "label": "Spec law: rq-bulkClose01",
+          "locator": ".adv/specs/advance-delivery/spec.json:253-299",
+          "summary": "Bulk close tool semantics (fail-all, filters). Tool is NOT registered today."
+        },
+        {
+          "label": "Spec law: rq-terminalAggregateRead01",
+          "locator": ".adv/specs/advance-workflow/spec.json:1571-1574",
+          "summary": "Aggregate reads including closed changes MUST use bounded per-candidate resolution and structured degradation — constrains KD5 enumeration and AC3 surfaces."
+        },
+        {
+          "label": "Latent second destructive path: closeBatch + sweep",
+          "locator": "plugin/src/storage/store-disk.ts:621-680; plugin/src/storage/disk-sweep.ts:52-81",
+          "summary": "closeBatch persists closed status to the ACTIVE record; sweepClosedChangesFromDisk rm -rf's per id with no durable write. Sweep has no production caller; closeBatch has no tool caller."
+        },
+        {
+          "label": "Tool registry — only adv_change_close registered",
+          "locator": "plugin/src/tool-registry.ts:777",
+          "summary": "No adv_change_bulk_close entry; bulk path unreachable from agents today."
+        },
+        {
+          "label": "store-temporal is orphaned",
+          "locator": "plugin/src/storage/store-temporal/ (no importers)",
+          "summary": "grep 'from store-temporal' across plugin/src returns zero — disk store is the only live read surface, so the AC2 gap is concrete, not deployment-dependent."
+        },
+        {
+          "label": "terminal-history closed enumeration (caution surface)",
+          "locator": "plugin/src/archive/terminal-history.ts:378-414; plugin/src/storage/cross-surface-terminality.invariant.test.ts:54-106",
+          "summary": "includeClosed reads changes/ dirs only; consumers today are tests only, but the invariant test encodes the repo's list/get/history/launcher terminality-consistency expectation."
+        },
+        {
+          "label": "Doctor CLI purge precedent (KD8 lever)",
+          "locator": "plugin/src/doctor-cli.ts:162-173",
+          "summary": "--purge-archive routes to advArchivePurgeHandler with --confirm + evidence — the operator-CLI repair precedent KD8 builds on."
+        },
+        {
+          "label": "Skill purge guidance (KD9 lever)",
+          "locator": "skills/adv-cleanup/SKILL.md:37",
+          "summary": "'Never purge state leaks; recommend adv_archive_purge' — one of the four cited sites, verified."
+        },
+        {
+          "label": "listRetiredEpicProjections actual location",
+          "locator": "plugin/src/storage/epic-projection.ts:192",
+          "summary": "Design cites epics-disk.ts:234, which is saveRetiredProjectionDisk — minor citation drift; the retired-projection pattern exists as claimed."
+        },
+        {
+          "label": "Agreement (AC/SC/C/DONT definitions)",
+          "locator": ".adv/changes/fixChangeCloseDataLoss/agreement.md (read via adv_change_show include.agreement)",
+          "summary": "Approved agreement text carries AC1-AC7, C1-C5, DONT1-4 with warrants (AC2 warrants tool:adv_change_show) — the by-id lookup criterion the design fails to cover on the read path."
+        }
+      ],
+      "architecture_assessment": "Core architecture validated against source at file:line level. The defect is real and shaped as the design states: close writes terminal state to the ACTIVE record (handlers-lifecycle.ts:824-849) then deletes it (:865), with a comment (:859-861) asserting a durability that does not exist. The fix mirrors the two proven retirement patterns (archive bundle at handlers-archive.ts:706-715→973-1025→1124-1130; retired Epics at epic-projection.ts:192). KD levers verified: KD1 (paths json.ts:70-74, mkdir store-disk.ts:175-180), KD2 (json.ts:515-542 scan-fallback cost avoided), KD3 (ordering + readback precedent recovery.ts:26-87), KD5 (merge site store-disk.ts:431-438; effectiveIncludeClosed :413-414 already correct), KD6 (preview :806-816 vs commit :870-877 differ only by dryRun flag + prose — confirmed), KD7 (both noOp branches mutate nothing; completeArchivedBundleRelease guarded by currentProjection.data===null at archive-gate.ts:772-784 — claim accurate), KD8 (doctor-cli.ts:162-173 precedent), KD9 (SKILL.md:37 verified). The sharpest question — KD4 vs C4 — resolves in the design's favor: C4's prohibition is conditional ('while cleanup can destroy the only copy'). After KD3's verified bundle write + DDC1 readback, cleanup cannot destroy the only copy, so non-fatal cleanup failure is lawful and matches archive's existing tolerated zombie-shadow residue (json.ts:506-513; handlers-archive.ts:1124-1130). C4 is satisfied by deactivating its precondition, not by violating it. Spec law: no contradiction found. rq-archiveRetirement01 (+.1/.2/.3, advance-workflow spec.json:1518-1568) — the design mirrors for close the same MUST ordering the spec mandates for archive; KD7's retirement must respect .3 (verify archived before removal) and .2 (repair the existing zombie, never recreate — use the audited writer per prior art). rq-terminalAggregateRead01 (:1571-1574) — KD2's direct probe and KD5's bounded per-directory load are compliant. rq-bulkCloseDiskSweep01 (advance-meta spec.json:1378-1408) still mandates a destructive sweep with no durable closed destination on the currently unreachable bulk path — latent conflict with AC1's intent if re-exposed; update that law when closed bundles land. Gap: no requirement governs close durability today; carry a spec delta in this change. One approved criterion is unsatisfied by the design as written (AC2, by-id lookup — see validation.notes), plus latent surfaces the design does not name: store.closeBatch + sweepClosedChangesFromDisk (a second destructive close path, currently unreachable — no tool registration at tool-registry.ts:777, no production sweep caller), and terminal-history.ts includeClosed enumeration which reads changes/ only (test-only consumer today: cross-surface-terminality.invariant.test.ts).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "PRIMARY FINDING (treat as a required pre-planning amendment; recorded as a note because the persisted contract registry rejected contract id 'AC2' as unknown at design gate — agreement criteria are approved inline but not yet machine-indexed, and no registry-known id could be cited without inventing one): AC2 by-id lookup gap. The design adds a list-side merge (KD5) but no get-side fallback for closed records. After close removes changes/<id>/, store-disk changes.get returns 'Change not found' (store-disk.ts:534-538): the archive bundle has dominance (:497-507) and self-heal (:510-526) fallbacks, but nothing probes paths.closed, and store-temporal is orphaned (zero importers), so no alternate by-id path exists. adv_change_show on a closed change therefore fails, so reason and approval evidence are not returned (AC2's warrant is exactly tool:adv_change_show). No KD, DDC, or Affected Components row covers changes.get. In-scope remediation: extend KD5 with a closed fallback in changes.get mirroring the archive self-heal at :510-526 — direct probe closed/<changeId>/change.json per KD2/DDC4, parse, return the record with its closure block; add a DDC that closed lookup by id returns closure.reason and closure.approval_evidence. KD4 vs C4 resolved: C4 binds only while cleanup can destroy the only copy; KD3+DDC1 remove that precondition, so non-fatal cleanup failure afterwards is lawful and precedented (json.ts:506-513; handlers-archive.ts:1124-1130). Caveat for planning: that legality is ordering-dependent — cleanup must be structurally unreachable without a verified bundle, or a future refactor reintroduces a C4 violation while keeping the non-fatal treatment. AC4 wrinkle: KD3 mutates the active record to status closed BEFORE the bundle write; on bundle-write failure the record survives (data intact, retryable) but reads as closed while close failed — acceptable under 'leaves the change intact', worth stating in the design. Latent second destructive path: store.closeBatch + sweepClosedChangesFromDisk delete closed records with no durable destination and rq-bulkCloseDiskSweep01 mandates the sweep; currently unreachable (tool-registry.ts:777 registers only adv_change_close; sweep has no production caller) — follow-up, not a blocker, but the design should name it. terminal-history.ts:378-414 enumerates changes/ for closed rows; consumers are tests only today, but that invariant family encodes list/get/history/launcher terminality consistency and should gain a closedPath source when closed records move. Spec-delta obligation missing: no new law encodes close durability; prior terminal-durability changes landed law alongside code. Minor citation drift: KD table cites epics-disk.ts:234 for listRetiredEpicProjections; actual location is epic-projection.ts:192. Unresolved: none material — store-temporal liveness was checked (orphaned). Architecture-judgement status mirrors validation.status: caution."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Third mutable terminal tree (paths.closed) multiplies read surfaces that must stay terminal-consistent (get, list, invariant tests) — the real cost of the bundle approach versus never-delete.",
+          "Non-fatal cleanup failure after a verified bundle write legalizes zombie closed shadows in changes/ — same residue class archive already tolerates; safe only while cleanup is structurally unreachable without a verified bundle.",
+          "Plain-id closed directories forgo the directory-level recency signal archive's date prefixes carry; recency must come from record content.",
+          "Doctor-CLI reconcile writes lifecycleState into other projects' stores — operator-gated and idempotent, but cross-project by construction."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Never delete — keep closed records in changes/",
+            "disposition": "rejected",
+            "rationale": "Agree with the design's rejection. Safe and trivially simple, but it contradicts the terminal-shape layout both other transitions established AND existing MUST law mandating removal (rq-archiveRetirement01.1 for archive; rq-bulkCloseDiskSweep01 for bulk close), and grows the active directory unbounded. The simpler alternative is not the lawful one."
+          },
+          {
+            "option": "Reuse paths.archive with a closed status marker",
+            "disposition": "rejected",
+            "rationale": "Agree. loadArchivedChanges filters status==='archived' (store-disk.ts:192); closed records there are invisible without making one filter serve two populations at once."
+          },
+          {
+            "option": "Date-prefixed closed bundle directories (mirror archive naming)",
+            "disposition": "rejected",
+            "rationale": "Agree. Avoids the enumerate-and-parse fallback hasArchiveBundle needs (json.ts:515-542); the direct probe (DDC4) is simpler and bounded per rq-terminalAggregateRead01."
+          },
+          {
+            "option": "Unify all terminal stores under one retired-root (archive + closed + retiredEpics)",
+            "disposition": "deferred",
+            "rationale": "Out of scope. Cleaner long-term shape but a larger refactor than the approved scope; record as follow-up. The design correctly mirrors the per-transition destinations that already exist."
+          },
+          {
+            "option": "Spec-first sequencing: encode close-retirement law before implementation",
+            "disposition": "deferred",
+            "rationale": "The design ships the mechanism but carries no spec delta; prior terminal-durability changes (fixNoDeltaArchiveBundleLoss, fixAdvStateAuthority pattern) landed law alongside code. Keep implementation-first but add the law in the same change."
+          }
+        ],
+        "recommendation": "Amend, then proceed. One required amendment before the planning gate: add the AC2 get-path fallback (finding detailed in validation.notes) — extend changes.get with a closed/<changeId>/change.json probe returning the closure block, and add the matching DDC. Two design-text additions strongly advised: name the latent closeBatch+sweep path with an explicit disposition (fix-or-follow-up), and extend the terminality invariant family (terminal-history closedPath source) so closed records stay consistent across list/get/history. Carry a spec delta encoding close retirement law. Core KD1-KD9 architecture, KD4's reading of C4, and the rejection of never-delete are all validated against source — no redesign needed."
+      },
+      "recommendation": "Proceed to planning after one design amendment. Required: add the AC2 by-id fallback to changes.get (mirror the archive self-heal at store-disk.ts:510-526 with a direct closed/<changeId>/change.json probe per KD2/DDC4) so closed lookup by id returns reason and approval evidence. Advised: name the latent closeBatch+sweep destructive path with a disposition; extend the terminality invariant family with a closedPath source; carry a spec delta for close retirement law; make cleanup structurally unreachable without a verified bundle so KD4's C4 legality cannot be refactored away. Everything else — bundle-before-cleanup ordering, plain-id directories, list merge, outcome discriminant, archive noOp retirement, doctor-CLI reconcile, skill rerouting — is source-verified and conformant to existing spec law.",
+      "follow_ups": [
+        "Close the bulk-close durability hole — store.closeBatch (store-disk.ts:621-680) + sweepClosedChangesFromDisk (disk-sweep.ts:52-81) delete closed records with no durable destination and rq-bulkCloseDiskSweep01 mandates the sweep; currently unreachable (no tool registration, no production sweep caller). Route it through the closed bundle or record explicit retention rationale; update the law when closed bundles land.",
+        "terminal-history closedPath source + closed case in cross-surface-terminality.invariant.test.ts — terminal-history.ts:378-414 reads closed rows from changes/ only; extend with a paths.closed source when closed records move.",
+        "Spec delta: close retirement law (rq-closeRetirement equivalent) — no spec requirement governs close durability today; encode bundle→transition→removal MUST ordering for close, mirroring rq-archiveRetirement01."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeCloseDataLoss",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeCloseDataLoss",
+      "task_id": "tk-3499e2472669",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3499e2472669"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-residue-scan.ts",
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/store-disk.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mtaevykp_277e181d",
+          "command": "bin/oc-test targeted src/storage/json.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 4 focused tests failed before implementation, including missing closed paths and helper."
+        },
+        {
+          "test_run_id": "tr_mtaf5tjo_0280c6ea",
+          "command": "bin/oc-test targeted src/storage/json.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 70 JSON storage tests passed."
+        },
+        {
+          "test_run_id": "tr_mtaf6e0r_a026f824",
+          "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+          "exit_code": 0,
+          "summary": "22 store-disk tests passed, including fresh closed-directory loading."
+        },
+        {
+          "test_run_id": "tr_mtaf7vg5_79bf3041",
+          "command": "bin/oc-test targeted src/storage/",
+          "exit_code": 0,
+          "summary": "Full storage lane passed: 47 files and 474 tests."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added loadClosedChanges as an exported store-disk helper.",
+          "why": "The task requires the loader, while changes.list and changes.get belong to the next task. Exporting avoids an unused local and gives the next task a direct read primitive."
+        },
+        {
+          "what": "Added paths.closed to the residue scanner allow list.",
+          "why": "Store initialization creates this new side-tree, so the existing reconciliation scan must recognize it as configured state rather than report false store noise."
+        },
+        {
+          "what": "Implemented loadClosedChange as a direct loadChange call.",
+          "why": "loadChange constructs exactly closed/<changeId>/change.json and performs no sibling enumeration."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "Added paths.closed to the existing configured store-root allow list."
+        ],
+        "details": "The residue scanner allow-list update was required to prevent the new initialized closed directory from failing an existing storage reconciliation test. No out-of-scope read or close flow was changed.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned ProjectPaths consumers and storage tests. Added the new closed root to residue allow-list handling and verified all storage tests.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Closed paths now resolve in both project-path branches, initialize on fresh stores, load through loadClosedChanges, and support direct loadClosedChange lookup without sibling enumeration. The residue scanner recognizes the new root.",
+        "suggested_next_action": "Proceed to the task that wires closed records into changes.list and changes.get."
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-3499e2472669": [
+      {
+        "runId": "tr_mtaev9eb_6fd4b465",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted plugin/src/storage/json.test.ts",
+        "durationMs": 1525.3212540000677,
+        "recordedAt": "2026-08-26T18:12:16.299Z"
+      },
+      {
+        "runId": "tr_mtaevykp_277e181d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/json.test.ts",
+        "durationMs": 5070.575373008847,
+        "recordedAt": "2026-08-26T18:12:48.106Z"
+      },
+      {
+        "runId": "tr_mtaewu6t_30d9e6ce",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/json.test.ts",
+        "durationMs": 5204.71644499898,
+        "recordedAt": "2026-08-26T18:13:28.619Z"
+      },
+      {
+        "runId": "tr_mtaexu66_d1a02b34",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/json.test.ts",
+        "durationMs": 5579.600846007466,
+        "recordedAt": "2026-08-26T18:14:16.350Z"
+      },
+      {
+        "runId": "tr_mtaeyge1_50b6091c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+        "durationMs": 5723.692939996719,
+        "recordedAt": "2026-08-26T18:14:43.818Z"
+      },
+      {
+        "runId": "tr_mtaezy7u_ca0dd8f5",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test targeted src/storage/",
+        "durationMs": 30068.312178000808,
+        "recordedAt": "2026-08-26T18:15:54.594Z"
+      },
+      {
+        "runId": "tr_mtaf0lc4_375c4805",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/reconcile-integration.test.ts -t \"host handler applies exactly the approved plan and a replay is non-mutating\"",
+        "durationMs": 9933.024700000882,
+        "recordedAt": "2026-08-26T18:16:25.323Z"
+      },
+      {
+        "runId": "tr_mtaf27p9_082f2d1e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/reconcile-integration.test.ts -t \"host handler applies exactly the approved plan and a replay is non-mutating\"",
+        "durationMs": 7331.178268998861,
+        "recordedAt": "2026-08-26T18:17:38.816Z"
+      },
+      {
+        "runId": "tr_mtaf3h5c_00d9c57b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/",
+        "durationMs": 43965.91519600153,
+        "recordedAt": "2026-08-26T18:18:38.405Z"
+      },
+      {
+        "runId": "tr_mtaf5tjo_0280c6ea",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/json.test.ts",
+        "durationMs": 3821.2640990018845,
+        "recordedAt": "2026-08-26T18:20:27.784Z"
+      },
+      {
+        "runId": "tr_mtaf6e0r_a026f824",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+        "durationMs": 5794.192576006055,
+        "recordedAt": "2026-08-26T18:20:55.917Z"
+      },
+      {
+        "runId": "tr_mtaf7vg5_79bf3041",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/",
+        "durationMs": 48299.92051899433,
+        "recordedAt": "2026-08-26T18:22:04.080Z"
+      },
+      {
+        "runId": "tr_mtafckio_37c22b3f",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted plugin/src/storage/json.test.ts plugin/src/storage/store-disk.test.ts",
+        "durationMs": 1752.6788920015097,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:25:42.106Z"
+      },
+      {
+        "runId": "tr_mtafd16a_5919c24e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-residue-scan.test.ts",
+        "durationMs": 4477.319123998284,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:26:04.409Z"
+      },
+      {
+        "runId": "tr_mtafhgfy_85dc6875",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/json.test.ts src/storage/store-disk.test.ts",
+        "durationMs": 7664.4840209931135,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:29:31.917Z"
+      },
+      {
+        "runId": "tr_mtafifvc_6bd756ac",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-residue-scan.test.ts",
+        "durationMs": 7812.942071005702,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:30:20.270Z"
+      }
+    ],
+    "tk-6213a395b55a": [
+      {
+        "runId": "tr_mtafmyp0_585856e7",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+        "durationMs": 3565.3854489922523,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:33:47.690Z"
+      },
+      {
+        "runId": "tr_mtafnuoo_43c32cf1",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+        "durationMs": 3069.7819489985704,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:34:28.651Z"
+      },
+      {
+        "runId": "tr_mtafpfiq_fa4d1373",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+        "durationMs": 3073.3752329945564,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:35:41.982Z"
+      },
+      {
+        "runId": "tr_mtafq1eb_a4224de9",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+        "durationMs": 3564.579117000103,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:36:10.457Z"
+      },
+      {
+        "runId": "tr_mtafrd4h_c1a1b9c4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/",
+        "durationMs": 34593.272353991866,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:37:12.821Z"
+      },
+      {
+        "runId": "tr_mtafzjyw_abed7862",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/store-disk.test.ts",
+        "durationMs": 6413.144689008594,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:43:35.821Z"
+      },
+      {
+        "runId": "tr_mtag1s8e_cde061f6",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/",
+        "durationMs": 71599.07803399861,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:45:19.301Z"
+      }
+    ],
+    "tk-a429a25ac714": [
+      {
+        "runId": "tr_mtag7371_ba09b612",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/closed-bundle.test.ts",
+        "durationMs": 2246.010336995125,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:49:26.702Z"
+      },
+      {
+        "runId": "tr_mtag82e3_210572ec",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/closed-bundle.test.ts",
+        "durationMs": 3969.08138500154,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:50:12.452Z"
+      },
+      {
+        "runId": "tr_mtage2sc_7048863b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted src/storage/disk-sweep.test.ts",
+        "durationMs": 3196.585868999362,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:54:53.105Z"
+      },
+      {
+        "runId": "tr_mtagh1no_54bc78ab",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/",
+        "durationMs": 58356.69486799836,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:57:10.766Z"
+      },
+      {
+        "runId": "tr_mtagk51p_34af0071",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted src/storage/ src/tools/change/",
+        "durationMs": 49971.45189900696,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-26T18:59:36.371Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-26T04:39:05.401Z",
+      "completed_by": "user",
+      "approval_evidence": "Command-as-approval (Tier A). Proposal checkpoint presented with wayfinder \"→ /adv-discover fixChangeCloseDataLoss\"; user invoked that exact command while the checkpoint was pending. B/F/S scan produced no CRITICAL findings (one LOW on implementation vocabulary in a user outcome, one MEDIUM on the unmeasurable term \"loudly\"), both carried into discovery."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-26T15:24:13.105Z",
+      "completed_by": "user",
+      "approval_evidence": "Discovery findings persisted and agreement approved. Sole-entry claim verified by exhaustive scan: exactly one destructive call site lacks a backing copy (handlers-lifecycle.ts:865). Recoverability question answered — destroyed changes are permanently unrecoverable, recorded as SC4. S1 MEDIUM ambiguity (\"fails loudly\") resolved by AC4. No CRITICAL findings. Four user decisions recorded: closed bundle mirroring archive, no blast-radius reconstruction, skill routes to CLI, migrate five legacy records."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-26T17:56:54.782Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with mandatory independent validation. Validator verdict: caution (advisory, non-blocking) — all nine original KD levers verified at file:line, architecture deviation MINOR. Required amendment integrated as KD10 (closed probe in changes.get; AC2 would otherwise have failed with the original symptom intact). Two advisories integrated as KD11 (single guarded cleanup helper, closing the latent closeBatch/sweep path) and KD12 (terminal-history closed source). One advisory deferred as out of approved scope and routed to new change codifyCloseRetirementLaw rather than left unowned. No contract compromise, no unresolved CONFLICT, no user-value tradeoff requiring a pause."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-26T18:07:17.414Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep vision presented; user replied \"continue\" after reviewing the simplified 8-task summary. Contract coverage complete: AC1-AC7 all implemented by tasks; C1, C2, C4, C5 and DONT1, DONT3, DONT4 respected. C3 and DONT2 are honored by inaction at the release phase and carry no implementing task. Cross-cutting concerns assessed: error handling and validation covered by the fail-closed readback; performance by DDC4 direct-probe; concurrency by existing coordinateChangeMutation revision checks; security, caching, config, monitoring, i18n, privacy N/A with no surface. Note: 6 of 8 adv_task_add calls returned ToolExecutionTimeout at 10s while persisting server-side (OOS2 reproducing live); each was verified by adv_task_list before retry, so no duplicates were minted."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-26T20:27:18.396Z",
+      "completed_by": "agent:adv-apply",
+      "approval_evidence": "Ready queue empty: 3 tasks done, 5 cancelled under the user-approved scope trim (Advance is being replaced by Concord). Amended agreement retains AC1-AC4 and withdraws AC5, AC6, AC7 plus the skill correction to OOS5-OOS8.\n\nDelivered: plugin/src/storage/closed-bundle.ts owns retireClosedChange — write the closed bundle, prove it reads back, and only then remove the source. Durability is fail-closed; cleanup is best-effort only after the proof holds. Close rewired at handlers-lifecycle.ts so a failed retirement returns an error instead of success:true, and the stale comment asserting \"the closed status is durable\" is gone — it named the exact property the next line destroyed. Both read surfaces resolve closed records; covering changes.list alone would have left the reported symptom intact because adv_change_show reads changes.get. sweepClosedChangesFromDisk routed through the same guard.\n\nEvery task carries genuine red-then-green ordering. Tasks 1 and 2 had implementations written before RED was recorded; RED was reconstructed by removing only the implementation and retaining the tests, rather than banking a GREEN-only claim. Evidence: tr_mtafhgfy_85dc6875/tr_mtafifvc_6bd756ac, tr_mtafzjyw_abed7862/tr_mtag1s8e_cde061f6, tr_mtag7371_ba09b612/tr_mtag82e3_210572ec, tr_mtage2sc_7048863b/tr_mtagh1no_54bc78ab, verify tr_mtagk51p_34af0071 (554 tests across storage and change tools).\n\nQuality: typecheck, schemas, manifests, frontmatter, test-isolation, lockfile, skill-references, eslint and prettier all clean. check-prompt-budget reports a +3394 byte floor regression; it is environmental and not attributable to this change. That script measures homedir() files that form a real session prompt, and the diff touches 10 files that are all storage, tools and tests, with no prompt surface among them. The baseline was deliberately not bumped, since doing so would launder external drift into this change.\n\nCommits 1bc015a5, 8ee398ba, e592487d, 5d878bfc. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-26T20:29:53.995Z",
+      "completed_by": "user",
+      "approval_evidence": "User replied `accept` at the acceptance checkpoint after reviewing the AC1-AC4 evidence table, the withdrawn AC5-AC7 and skill correction, and three explicitly surfaced caveats.\n\nThe three caveats were presented before approval, not after: (1) AC4 is half-proven — the helper's refusal to delete is tested, but the handler's error return rests on a five-line branch verified by inspection, whose worst failure mode is a misleading success message rather than data loss, because the record is preserved before that branch runs; (2) the fix is inert until merged, rebuilt and deployed from the default branch, so closing a change today still destroys it; (3) check-prompt-budget fails locally by 3394 bytes from homedir() global-config drift against a committed baseline, and the baseline was deliberately not bumped because that would launder external drift into this change.\n\nScope was trimmed mid-execution by explicit user decision at a scope checkpoint, because Advance is being replaced by Concord. The agreement was amended to retain AC1-AC4 and withdraw AC5, AC6, AC7 and the skill correction to OOS5-OOS8 with rationale recorded rather than deleted. Five tasks were cancelled with per-task reasons.\n\nExecutive summary persisted. Evidence: RED/GREEN pairs tr_mtafhgfy_85dc6875/tr_mtafifvc_6bd756ac, tr_mtafzjyw_abed7862/tr_mtag1s8e_cde061f6, tr_mtag7371_ba09b612/tr_mtag82e3_210572ec, tr_mtage2sc_7048863b/tr_mtagh1no_54bc78ab, verify tr_mtagk51p_34af0071 with 554 tests across storage and change tools. Commits 1bc015a5, 8ee398ba, e592487d, 5d878bfc. Worktree clean."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "# Fix change close data loss\n\n## Why\n\n`adv_change_close` verifies a durable closed record, then deletes the directory that holds it. The operator loses the change and receives `success: true`. Reproduced live on 2026-08-26.\n\nThis change also absorbs `fixArchiveLifecycleLeak` (see `## Supersession`), because both defects share one root: a terminal lifecycle transition that does not leave a readable terminal record.\n\n## Root Cause Analysis\n\n**Defect origin:** `adv_change_close` reports success while destroying the change.\n\n### Evidence gathered\n\n**Tier 1 (local) — reproduction.** Called against `enableMergeQueue` in project `4d6b589871e3687c746bf043301cfb4ac98ea049`:\n\n| Probe | Before | After |\n|---|---|---|\n| `adv_change_list status:\"draft\"` total | 90 | 89 |\n| `adv_change_list status:\"closed\"` total | 5 | 5 |\n| `adv_change_show changeId:\"enableMergeQueue\"` | change returned | `{\"error\":\"Change not found\"}` |\n\nResponse: `{\"success\": true, \"changeId\": \"enableMergeQueue\", \"message\": \"Closed change enableMergeQueue as not_planned.\"}`\n\n**Tier 1 (local) — source.** `plugin/src/tools/change/handlers-lifecycle.ts`, `advChangeCloseHandler` (from line 742):\n\n- Lines 833-844 set `status: \"closed\"` and `lifecycleState: \"closed\"` and write the `closure` block.\n- Lines 845-847 `verifyProjection` reads back and confirms both fields.\n- Lines 859-869 then call `removeChangeDir(activeStore.paths.changes, changeId)`, deleting `changes/<id>/`.\n- The inline comment asserts *\"the closed status is durable\"* and treats cleanup failure as a non-fatal warning.\n\n**Tier 1 (local) — history.**\n\n| Date | Commit | Effect |\n|---|---|---|\n| 2026-08-05 | `45ab2ef9` (#373) | `removeChangeDir` introduced into the close path |\n| 2026-08-06 | `c231b2eb` (#393) | \"complete Temporal removal\" — disk becomes the sole store |\n\n**Leading hypothesis:** `removeChangeDir` was safe when Temporal held a durable projection independent of `changes/<id>/`. Temporal removal one day later made the on-disk directory the only copy of the record. The cleanup step outlived its safety precondition. Verification still passes because it runs *before* the delete, so the handler returns `success: true` honestly and the data is destroyed immediately afterward.\n\n**Ruled-out paths:**\n\n- *Close never writes a terminal record.* Rejected — the code writes and verifies `status` and `lifecycleState`, and `changes.close-storage.test.ts` asserts `lifecycleState: \"closed\"`.\n- *`lifecycleState` desync is a live defect.* Rejected — the desync visible on the five July records predates `c231b2eb` (2026-08-06), which is when close began writing the field. Those records survive only because they also predate `removeChangeDir` (2026-08-05). Legacy residue, not active behavior.\n- *Client timeout with server-side persistence.* Rejected for this defect — the reproduction returned immediately with no timeout.\n\n**Spec-law impact:** the close contract promises an auditable terminal record with approval metadata. Current behavior makes that record unreadable, so closure audit trails cannot exist. Any capability spec asserting closure auditability is unsatisfiable as built.\n\n**Bypass rationale:** RCA was produced inline because the reproduction, source trace, and history bisect were completed during the diagnostic session that created this change, before `/adv-problem` could add information.\n\n## Supersession\n\nThis change supersedes `fixArchiveLifecycleLeak`, whose evidence is preserved verbatim below. **That change must not be closed with `adv_change_close` until this defect is fixed** — closing it would destroy the evidence it carries.\n\nIts two defects, restated:\n\n- **Archive noOp path never retires the active record.** When `adv_change_archive` runs against a change already carrying `status: \"archived\"` plus an existing bundle, it short-circuits with `noOp: true` and leaves `lifecycleState: \"open\"`. Reproduced on 7 changes in the pokeedge batch of 2026-08-24: `defineProductionSupportControl`, `fixMigrationLifecycleSafety`, `addGradedWritePauseControl`, `addGradedLabelMigration`, `fixPriceRefreshCadence`, `fixMarketPriceProvenance2`, `honorWriterFenceDeploys`. Fresh archives with no pre-existing bundle retire correctly. Consequence: in-flight count read 74 against a true count near 67.\n- **`adv_archive_purge` does not exist.** The bundled `adv-cleanup` skill routes Surface-4 state leaks to it. The 35-tool catalog confirms absence, and `adv_worktree_cleanup` describes the archive-repair surface as retired. Operators have no remediation path, and direct state-file edits are forbidden.\n\nIndependently confirmed while scoping: there is no `adv_backlog_*` tool either, though `adv_status` surfaces 18 backlog items under `future_work.backlog`. Same shape — state that is visible but not addressable.\n\n## What Changes\n\nBehavior, stated without prescribing mechanism:\n\n- A close leaves a terminal record that survives and remains readable, or the close fails loudly and changes nothing.\n- Archive on the already-bundled path retires the active record rather than short-circuiting.\n- A preview outcome is not mistakable for a committed outcome at the response-contract level.\n- The documented remediation surface either exists or stops being documented.\n- Legacy residue from before 2026-08-06 is reconciled or explicitly declared out of scope.\n\n## User Outcomes\n\n- [ ] An operator who closes a change can still find that change afterward, with its reason and approval evidence intact.\n- [ ] An operator who closes many changes in a batch can tell how many actually closed.\n- [ ] An operator can distinguish a rehearsal from a real closure without reading prose in a message field.\n- [ ] A change that has been archived stops appearing in active work and portfolio counts.\n- [ ] An operator who finds a leaked or inconsistent record has a supported way to repair it.\n- [ ] Operators can determine whether changes destroyed by earlier batch closures are recoverable.\n- [ ] Discovery will firm acceptance criteria and success criteria.\n\n## Affected Code\n\n- `plugin/src/tools/change/handlers-lifecycle.ts` — `advChangeCloseHandler`, close ordering and response contract\n- `plugin/src/tools/change/` — archive noOp short-circuit path\n- `plugin/src/tool-registry.ts` — tool surface, including any remediation tool\n- `skills/adv-cleanup/` — references a tool that does not exist\n- Close and archive storage tests asserting terminal-state contracts\n\n## Related Repositories\n\nSingle repo. Symptoms observed in the pokeedge project store; the defect is entirely owned by this repo.\n\n## Constraints\n\n- Repair the owning invariant. Do not wrap the destructive path in caller-side verification, retry, or a guard that leaves the delete intact (P40).\n- The five surviving July closed records must survive any migration or reconciliation.\n- Investigate recoverability of already-destroyed changes before remediation code lands, so a fix does not overwrite surviving residue.\n- Do not close `fixArchiveLifecycleLeak` until this defect is fixed.\n\n## Impact\n\nOperator-facing data loss, already realized at unknown scale. Every batch closure run since 2026-08-06 destroyed its changes. Portfolio metrics across projects are unreliable in both directions: closed work vanished, archived work never retired.\n\n## Risks\n\n- Recovery may be impossible for already-destroyed changes; the failed operations left nothing to inspect, which is itself the defect.\n- Legacy records straddle three code eras (pre-`removeChangeDir`, pre-Temporal-removal, current). Reconciliation may need era detection.\n- The archive noOp path and close path may not share an owner, so a single fix may not cover both.\n\n## Scope\n\n### In Scope\n\n- Close path: terminal record durability and ordering relative to cleanup\n- Close path: response contract distinguishing preview from commit\n- Archive noOp path: retiring the active record\n- Existence or removal of the documented purge/remediation surface\n- Recoverability assessment for already-destroyed changes\n- Reconciliation of pre-2026-08-06 legacy residue, or explicit deferral with rationale\n\n### Out of Scope\n\n- The `status: \"draft\"` with `phase: \"release\"` strand cohort, where a shipped change never resumes archive after a pending merge. Related, separately owned, and needs its own change.\n- Intermittent ADV mutation timeouts that persist server-side while the client sees failure. Carried forward from `fixArchiveLifecycleLeak` as an observation only.\n- Absence of `adv_backlog_*` tooling.\n- Any change to approval semantics for closing.\n\n### Must Not\n\n- Must not add a verification wrapper, retry, or fallback around a close path that still deletes the record.\n- Must not delete or rewrite the five surviving July closed records.\n- Must not close `fixArchiveLifecycleLeak` using `adv_change_close` before the defect is fixed.\n- Must not treat cleanup failure as non-fatal while cleanup can destroy the only copy.\n- Must not resolve the missing purge surface by deleting the skill documentation alone, leaving operators with no remediation path.\n\n## Discovery Agenda\n\n1. Does any durable record survive `removeChangeDir`, or is the directory the sole copy? Determines whether recovery is possible at all.\n2. Are destroyed changes recoverable from filesystem backups, snapshots, or an append-only log? Time-sensitive — backups may rotate.\n3. How many changes were destroyed since 2026-08-06, and across which projects?\n4. Does the archive noOp path share an owner with the close path, or need a separate fix?\n5. What did `adv_archive_purge` do before retirement, and what replaced it?\n6. Why did `verifyProjection` succeed against a record about to be deleted — is verification reading a cache rather than the durable surface?\n7. Do the five July records need migration to the current field contract, or should they stay as-is?\n8. Is `removeChangeDir` used on any other path that also lost its Temporal precondition in #393?\n\n## Context\n\nDiscovered while diagnosing why bulk closures in the pokeedge project did not persist: 276 open changes against 5 closed records, all 5 from July 2026. The reproduction that proved the defect destroyed `enableMergeQueue`, whose content is unrecoverable.\n",
+    "problemStatement": "## Summary\n\n`adv_change_close` destroys a change instead of closing it. The change is removed from the active store, no closed record is written, and the tool returns `success: true`. Observed in the pokeedge project store (`4d6b589871e3687c746bf043301cfb4ac98ea049`), which holds 276 open changes against 5 closed records — all 5 dating from July 2026.\n\n## Root Cause Analysis\n\n### Defect 1 — close deletes without recording (data loss)\n\nReproduced live on 2026-08-26 against change `enableMergeQueue`.\n\nCall:\n\n```\nadv_change_close changeId:\"enableMergeQueue\" reason:\"not_planned\"\n                 approvedByUser:true approvalEvidence:\"<cited>\"\n```\n\nResponse:\n\n```json\n{\"success\": true, \"changeId\": \"enableMergeQueue\", \"message\": \"Closed change enableMergeQueue as not_planned.\"}\n```\n\nMeasured before/after, same session, no other mutations:\n\n| Probe | Before | After |\n|---|---|---|\n| `adv_change_list status:\"draft\"` total | 90 | 89 |\n| `adv_change_list status:\"closed\"` total | 5 | 5 |\n| `adv_change_show changeId:\"enableMergeQueue\"` | change returned | `{\"error\":\"Change not found: enableMergeQueue\"}` |\n\nThe draft count decremented. The closed count did not increment. The change is unreadable. Therefore the close path removes the change from the active store and does not persist a terminal record.\n\n`enableMergeQueue` proposal content is unrecoverable from the store as a result of this reproduction.\n\nConsequence at scale: the operator reported closing a large batch of changes across prior sessions and finding the closures \"did not commit\". Those changes were deleted, not closed. The closed list has not been written to since 2026-07-19. Any batch closure run against this code path is silent data loss.\n\n### Defect 2 — dryRun preview is indistinguishable from a committed close\n\nPreview response:\n\n```json\n{\"success\": true, \"dryRun\": true, \"changeId\": \"removeUnreachableStdioBodies\",\n \"reason\": \"not_planned\", \"message\": \"Would close change removeUnreachableStdioBodies as not_planned.\"}\n```\n\nCommitted response:\n\n```json\n{\"success\": true, \"changeId\": \"enableMergeQueue\", \"message\": \"Closed change enableMergeQueue as not_planned.\"}\n```\n\n`success: true` is the first field in both. The only discriminators are the presence of `dryRun` and the word \"Would\" inside a prose message. A caller batching closures and branching on `success` — the field the name invites you to check — reports every preview as a committed closure. This is a response-contract hazard, not operator error: the two outcomes are structurally near-identical.\n\nThe two defects compound. A batch that previewed reports success and changes nothing. A batch that committed reports the same success and destroys the changes. Neither leaves a closed record, so both look the same afterward.\n\n### Defect 3 — `lifecycleState` never advances on close\n\nThe 5 surviving closed changes carry an internally inconsistent state. Confirmed independently on `shardUnitTestLane` and `enforceFieldSemantics`:\n\n```\nstatus:         \"closed\"\nlifecycleState: \"open\"          <- never advanced\nclosure:        { approved_by_user: true, approved_at: \"...\", reason: \"...\", evidence: \"...\" }\nlastSignalAt:   <predates closure.approved_at>\n```\n\nThe `closure` block is written correctly with full approval metadata. `lifecycleState` is not advanced, and no activity signal is emitted at close time (`lastSignalAt` remains earlier than `closure.approved_at`).\n\nConsequence: any consumer reading `lifecycleState` rather than `status` counts a closed change as open. This is a candidate contributor to `portfolioState.never_terminal_share: 0.72`, though that link is inferred from the field semantics and is not yet directly proven.\n\n### Scope note — a separate accretion source, not part of this change\n\nIndependent of the close path, a large cohort of changes sits at `status: \"draft\"` with `phase: \"release\"` or `\"released\"`: `fixCnVariantProjections`, `fixPriceRefreshCadence`, `fixMigrationLifecycleSafety`, `defineProductionSupportControl`, `allowlistCardProvider`, `fixCnPricechartingSubstring`, `repairAliasSplitCardRows`, `fixMigrationChecksumBypass`, and others. These completed the lifecycle and never retired.\n\nThe live example is `verifyMergedScannerImage`, whose archive returned `phase9: \"pending_merge\"` while its PR sits in the GitHub merge queue. If archive does not resume and finalize after the merge lands, every shipped change strands itself in `draft` permanently. This is probably the larger contributor to the 276 open count, but it is a distinct defect in the archive resume path and belongs in its own change.\n\n## Evidence status\n\n| Claim | Status |\n|---|---|\n| Close deletes without writing a closed record | Proven — before/after counts plus unreadable change |\n| dryRun and committed responses are near-identical | Proven — both payloads captured verbatim |\n| `status` / `lifecycleState` desync on close | Proven — 2 changes inspected independently |\n| No signal emitted at close | Proven — `lastSignalAt` predates `closure.approved_at` |\n| Desync drives `never_terminal_share` | Inferred, not proven |\n| Prior operator batches were destroyed by this path | Consistent with all evidence, not directly proven — the failed attempts left nothing to inspect, which is itself the defect |\n\n## Required outcome\n\n1. A close writes a durable terminal record, or it fails loudly. It must never remove a change while reporting success.\n2. Close advances `lifecycleState` to a terminal value and emits an activity signal, keeping `status`, `lifecycleState`, and `lastSignalAt` mutually consistent.\n3. A preview is not mistakable for a commit at the response-contract level.\n4. Determine whether the changes destroyed by prior batch closures are recoverable from any store backup, and report the finding before remediation code lands.\n\n## Constraints\n\n- Repair the owning persistence invariant. Do not add a caller-side guard, retry, or verification wrapper around a close path that still deletes (P40).\n- The 5 existing July closed records must survive any migration.\n- Investigate backup/recovery before shipping a fix, so remediation does not overwrite whatever residue remains.",
+    "agreement": "# Agreement\n\n## Scope Amendment (2026-08-26)\n\nScope was trimmed after execution began, by explicit user decision, because Advance is being replaced by Concord (bootstrapped 2026-08-07, 291 commits, active). The data-loss fix ships. The hardening work does not.\n\nRetained and delivered: AC1, AC2, AC3, AC4 — the criteria that stop the loss.\n\nWithdrawn to Out of Scope: AC5, AC6, AC7 and the skill correction. Each is real, none is load-bearing for stopping the loss, and all of them harden a tool being retired. Tasks tk-76435331f6ea, tk-049d97c06f44, tk-694eaa894127, tk-b3336de90873 and tk-0d7b1ae5c482 were cancelled with per-task reasons recorded.\n\nThe withdrawn items are recorded below rather than deleted, so the decision stays legible.\n\n## Objectives\n\n1. Make a successful close leave a durable, readable record of the closed change.\n2. Make a failed close leave the change intact rather than destroyed.\n\nWithdrawn objectives: make preview structurally distinguishable from committed; retire the active record on the archive noOp path; reconcile the five pre-2026-08-06 closed records; correct the `adv-cleanup` skill routing.\n\n## Success Criteria\n\nSC1: An operator who closes a change can still find that change afterward, with its reason and approval evidence intact.\n\nSC4: An operator is told plainly that changes closed between 2026-08-06 and this fix are permanently unrecoverable.\n\nWithdrawn: SC2 (batch close counts, depended on AC5) and SC3 (archived changes leaving active counts, depended on AC6).\n\n## Acceptance Criteria\n\nAC1: Given a change being closed, when close completes successfully, then a durable record of that change survives the operation and remains readable.\n\nAC2: Given a closed change, when it is looked up by id, then its reason and approval evidence are returned. [warrant: tool:adv_change_show]\n\nAC3: Given a closed change whose active directory no longer exists, when closed records are listed, then that change is returned. [warrant: tool:adv_change_list#includeClosed]\n\nAC4: Given close cannot write a durable record, when close runs, then it returns an error and leaves the change intact.\n\n## Constraints\n\nC1: Must not add a verification wrapper, retry, or fallback around a close path that still deletes the record.\n\nC2: Must not delete or rewrite the closure content of the five surviving July records. Held trivially — no migration ran.\n\nC3: Must not close fixArchiveLifecycleLeak with adv_change_close until AC1 through AC4 pass.\n\nC4: Must not treat cleanup failure as non-fatal while cleanup can destroy the only copy.\n\nC5: Must write the durable record before any source cleanup runs, not after.\n\n## Avoidances\n\nDONT2: Do not attempt reconstruction or enumeration of already-destroyed changes.\n\nDONT3: Do not add provenance notes to migrated records. Version control is the record. Moot — no migration ran.\n\nWithdrawn with their task: DONT1 (do not expose adv_archive_purge as an agent tool) and DONT4 (do not resolve the skill mismatch by deleting the guidance). Both remain true as standing guidance; neither is enforced by this change. The `adv-cleanup` skill still routes agents to a CLI-only tool at lines 37, 92, 176 and 308.\n\n## Out of Scope\n\nOOS1: The `status: \"draft\"` with `phase: \"release\"` strand cohort, where a shipped change never resumes archive after a pending merge. Separately owned.\n\nOOS2: Intermittent ADV mutation timeouts that persist server-side while the client sees failure. Observation only. Observed repeatedly during execution; one batch call persisted 1 of 5 items, a later one persisted 4 of 4, so the write is not atomic and not deterministic.\n\nOOS3: Absence of `adv_backlog_*` tooling.\n\nOOS4: Any change to approval semantics for closing.\n\nOOS5 (withdrawn AC5): A typed outcome discriminant on the close response. `success: true` still precedes the `dryRun` and `noOp` discriminators, so a preview still reads as a commit at a glance. This is the property that made the original defect invisible.\n\nOOS6 (withdrawn AC6): Retiring the active record on the archive noOp branches at `archive-gate.ts:843-919`. Exercised live during this change on `verifyMergedScannerImage` and behaved correctly, so it is benign in current use.\n\nOOS7 (withdrawn AC7): Migrating the five pre-2026-08-06 closed records to carry `lifecycleState: \"closed\"`. Those records predate `removeChangeDir` on the close path and are already safe on disk; migration adds contract tidiness, not protection.\n\nOOS8 (withdrawn): Correcting the `adv-cleanup` skill routing for the CLI-only purge tool.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: the change touches plugin storage internals and tool response contracts. No front-end, browser-visible, or visual output can be affected.\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: no visual surface exists for this change.\n\n## Decisions\n\n### User Decisions\n\n**Closed-record destination — closed bundle mirroring archive.** Close writes a durable bundle before any cleanup, exactly as archive already does at `handlers-archive.ts:708-715`. Chosen over never-deleting because it reuses the path already proven safe and keeps closed work out of the active directory.\n\n**Blast radius — record the loss, do not investigate.** No durable record survives `removeChangeDir` on the close path, so enumeration would rely on indirect traces and stay incomplete regardless of effort. The count of destroyed changes is unknowable. Effort goes to the fix.\n\n**Scope trim — ship the fix, drop the hardening.** Taken 2026-08-26 with the core fix built and unmerged. The alternative workaround, \"stop calling `adv_change_close`\", was rejected: it is a rule agents must remember while the tool stays exposed, and it was violated within this very session. Merging a structural guard is cheaper than enforcing that discipline.\n\n### Agent Decisions (LBP)\n\n**Root cause is a missing destination, not a broken delete.** Three call sites reach `removeChangeDir`. Archive (`handlers-archive.ts:1125`) writes a bundle first. Purge (`:1269-1271`) is a deliberate operator-gated dual-delete. Close (`handlers-lifecycle.ts:865`) writes nothing first. The fix belongs at the missing destination, not in the cleanup primitive, which is correct for its other two callers.\n\n**Sole-entry claim verified, not assumed.** An exhaustive scan of `rm`/`unlink`/`rmdir` against `changes/` paths across `plugin/src`, excluding tests, found exactly one destructive site lacking a backing copy.\n\n**Two inherited claims corrected.** `adv_archive_purge` exists at `handlers-archive.ts:1222-1289` and is registered at `doctor-cli.ts:165`; the retired tool was `adv_archive_repair`, deleted in `529cb4b4` on 2026-07-22. The archive noOp path lives in `archive-gate.ts:843-919`, not `handlers-archive.ts`.\n\n**Recoverability closed as a finding, not carried as work.** No `.bak`, snapshot, trash, or journal exists for `changes/`. `operation_ledger` is a field inside `change.json` and dies with the directory. The two append-only audit logs do not record close events. This became SC4.\n\n**`sweepClosedChangesFromDisk` guarded rather than deleted.** It has zero production callers, which reads as dead code under P41, but it cites spec `rq-bulkCloseDiskSweep01`, making it a governance reference. A RED run showed it deleting a record outright, so wiring that spec as written would have reproduced this defect at bulk scale. The spec remains unimplemented; that is a separate finding, not work carried here.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved inline at the Phase 4.5.1 checkpoint. Scope amended 2026-08-26 by explicit user selection at the scope checkpoint.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nClose is the only terminal transition without a durable destination. Archive writes a bundle to `paths.archive` before cleanup; Epic retirement writes a projection to `paths.retiredEpics`. Close writes nothing and then deletes its own record.\n\nThe design adds the missing destination rather than changing the cleanup primitive, and mirrors the two retirement patterns already working in this repo:\n\n| Transition | Durable destination | Loader | Status |\n|---|---|---|---|\n| archive | `paths.archive` | `loadArchivedChanges()` `store-disk.ts:182-193` | exists |\n| epic retire | `paths.retiredEpics` | `listRetiredEpicProjections()` `epics-disk.ts:234` | exists |\n| **close** | **`paths.closed`** | **`loadClosedChanges()` + get-path probe** | **added here** |\n\nBoth read surfaces matter. A durable bundle that only `list` can see still fails a lookup by id, which is how the defect presents to an operator.\n\n## Key Decisions\n\n### KD1 — Add `paths.closed` as a sibling of `paths.archive`\n\n**Lever:** `json.ts:70-74` declares the mutable path block. `store-disk.ts:175-180` creates those directories at init — the call site where a new path takes effect. A path added to the type without an `mkdir` here is inert on fresh stores.\n\nReusing `paths.archive` with a status marker was rejected: `loadArchivedChanges()` filters `status === \"archived\"` at `store-disk.ts:192`, so closed records placed there would be invisible to it and would force that filter to serve two populations.\n\n### KD2 — Bundle directory named by plain change id, not date-prefixed\n\n**Lever:** `json.ts:515-542` (`hasArchiveBundle`). Archive bundle names are not canonical, which forced a fallback enumerating every archive directory and parsing each `change.json` to match on `id` (`json.ts:523-530`).\n\nClosed bundles use `closed/<changeId>/change.json` so lookup is a direct path probe. This is the one place the design deliberately does **not** mirror archive. Accepted cost: closed bundles carry no date in the directory name.\n\n### KD3 — Write and verify the bundle before any cleanup\n\n**Lever:** `handlers-lifecycle.ts:824-849` (the `coordinateChangeMutation` setting closed state) and `:865` (`removeChangeDir`). New ordering, matching archive's proven sequence at `handlers-archive.ts:708-715` → `:975-1025` → `:1125`:\n\n1. Write closed state to the active record (existing mutation, unchanged).\n2. Write the closed bundle to `paths.closed`.\n3. Read the bundle back; confirm it parses with matching `id` and `status: \"closed\"`.\n4. Only then call `removeChangeDir`.\n\nStep 3 follows the read-after-write proof already used by `verifyStatusRepairReadAfterWrite` (`recovery.ts:26-87`). Satisfies AC1 and C5.\n\n### KD4 — Bundle-write failure is fatal; cleanup failure stays non-fatal\n\n**Lever:** `handlers-lifecycle.ts:859-869`, whose comment asserts *\"the closed status is durable\"* and treats cleanup failure as a warning.\n\nC4 forbids non-fatal cleanup failure **\"while cleanup can destroy the only copy.\"** KD3 removes that precondition, so the clause no longer binds and the existing non-fatal treatment becomes lawful — matching the zombie-shadow class archive already tolerates (`json.ts:506-513`, `handlers-archive.ts:1124-1130`). What inverts is the new step: bundle-write or readback failure returns an error and does **not** delete. Satisfies AC4 and C4, and honors C1 by repairing ordering rather than wrapping the destructive path.\n\nValidator specifically examined this tension and confirmed the reading.\n\n### KD5 — `loadClosedChanges()` mirroring `loadArchivedChanges()`\n\n**Lever:** `store-disk.ts:413-414` reads `includeClosed` but only widens a filter over the active-directory enumeration; `:431-434` is where archived records merge in from a second source. The closed merge goes alongside it, filtering `status === \"closed\"`. Satisfies AC3.\n\n### KD10 — Closed probe in `changes.get` *(added after validation)*\n\n**Lever:** `store-disk.ts:484-539` (`changes.get`), which already carries archive dominance and self-heal but has no closed source. Mirror the archive fallback at `:510-526` with a direct probe of `closed/<changeId>/change.json`.\n\nWithout this, AC2 fails even with KD1–KD5 complete: `adv_change_show` on a closed change still returns \"Change not found\", reproducing the original symptom. `list` and `get` are separate read surfaces and the agreement covers both. This gap was found by the independent validator, not by the original design pass.\n\n### KD11 — One guarded cleanup helper *(added after validation)*\n\n**Lever:** `handlers-lifecycle.ts:865`, plus the latent pair `closeBatch` (`store-disk.ts:621-680`) and `sweepClosedChangesFromDisk` (`disk-sweep.ts:52-81`), which delete closed records with no durable destination. That pair is unreachable today — `tool-registry.ts:777` registers only `adv_change_close` — but it is the same defect waiting to be wired.\n\nCleanup of a closed record routes through a single helper that requires proof of a readable bundle before deleting. Making the unsafe ordering unrepresentable is structural correctness (P33); leaving the latent path intact would mean fixing this defect once and leaving a copy of it in the store layer.\n\n### KD6 — Typed outcome discriminant on the close response\n\n**Lever:** `handlers-lifecycle.ts:806-816` (preview) and `:870-877` (commit). Both lead with `success: true` and differ only by an optional `dryRun` flag and prose in `message`.\n\nAdd `outcome: \"previewed\" | \"closed\"` to both. `success` and `dryRun` are retained for existing callers. Satisfies AC5.\n\n### KD7 — Archive noOp retires the active record\n\n**Lever:** `archive-gate.ts:854-862` (the `phase9: \"skip\"` early return) and `:907-919` (post-finalization return). Neither mutates `lifecycleState`; the early branch performs no mutation at all. Both retire the active record before returning. `completeArchivedBundleRelease` (`:511-680`) needs no change — validator confirmed its guard at `:772-784` means it only runs when the record is already gone. Satisfies AC6.\n\n### KD12 — `terminal-history` gains a closed source *(added after validation)*\n\n**Lever:** `terminal-history.ts:378-414`, which enumerates `changes/` for closed rows. Test-only consumer today, but it belongs to the cross-surface terminality invariant family and would silently lose closed rows once they move to `paths.closed`.\n\n### KD8 — Legacy reconciliation ships as a doctor-CLI repair\n\n**Lever:** `doctor-cli.ts:165`, which already hosts `--purge-archive`. The five affected records live in *other projects'* stores, so a repo-local script cannot reach them. The reconcile is an idempotent, operator-invoked CLI repair setting `lifecycleState: \"closed\"` where `status === \"closed\"`, leaving `closure` untouched. Satisfies AC7 and C2.\n\n### KD9 — Skill routes operators to the CLI\n\n**Lever:** `skills/adv-cleanup/SKILL.md` lines 37, 92, 176, 308 — four sites instructing agents to recommend `adv_archive_purge`, a handler at `handlers-archive.ts:1222-1289` absent from the agent catalog. Text routes the operator to the doctor CLI. Guidance is corrected, not deleted, per DONT4, and states plainly that remediation requires an operator, per DONT1.\n\n## Implementation Strategy\n\n1. **Path and loaders** — `paths.closed` (`json.ts`), `mkdir` at init, `loadClosedChanges()` and its list merge, closed probe in `changes.get` (KD1, KD5, KD10). Verifiable against a hand-placed fixture bundle before close can produce one.\n2. **Guarded cleanup** — single helper requiring bundle proof; close rewired to it (KD3, KD4, KD11). This stops the bleeding.\n3. **Response discriminant** (KD6).\n4. **Archive noOp retirement** (KD7).\n5. **Terminal-history closed source** (KD12).\n6. **Doctor CLI reconcile** (KD8).\n7. **Skill text** (KD9).\n\nSteps 1–2 together satisfy AC1–AC4 and are the shippable core. Steps 3–7 are independent afterwards.\n\n## LBP Analysis\n\nThe long-term-correct shape is the one this repo already chose twice. Archive and Epic retirement both express terminal state as a record moved to a retired projection, not a status flag on a live record. Close is the outlier, and the outlier is what loses data.\n\nNo external library is relevant; this is an internal storage-layout defect, so the External-Solution Check is skipped.\n\nThe \"never delete\" alternative was rejected in discovery for layout consistency. Validation strengthened that rejection: a MUST-removal requirement exists in spec law, so never-delete is not merely inconsistent but unlawful.\n\n## Affected Components\n\n| Component | Change |\n|---|---|\n| `plugin/src/storage/json.ts` | `AdvPaths.closed` |\n| `plugin/src/storage/store-disk.ts` | init `mkdir`; `loadClosedChanges()`; list merge; **closed probe in `changes.get`**; `closeBatch` routed through guarded cleanup |\n| `plugin/src/storage/disk-sweep.ts` | `sweepClosedChangesFromDisk` routed through guarded cleanup |\n| `plugin/src/tools/change/handlers-lifecycle.ts` | close ordering, readback proof, fail-closed, `outcome` field |\n| `plugin/src/tools/change/archive-gate.ts` | retire active record on both noOp branches |\n| `plugin/src/storage/terminal-history.ts` | closed-path source |\n| `plugin/src/doctor-cli.ts` | legacy reconcile repair |\n| `skills/adv-cleanup/SKILL.md` | four routing sites |\n\n## Design-Derived Criteria\n\nDDC1: The closed bundle must be read back and parse with matching `id` and `status: \"closed\"` before cleanup runs. A write not proven readable is a failed write.\n\nDDC2: `paths.closed` must be created at store init. A fresh store must list closed changes without error and return an empty set.\n\nDDC3: The legacy reconcile must be idempotent — a second run over reconciled records makes no writes and reports zero changes.\n\nDDC4: Closed bundle lookup must resolve by direct path probe on `closed/<changeId>/change.json`, without enumerating and parsing sibling directories.\n\nDDC5: The `outcome` discriminant must be present on both preview and committed close responses.\n\nDDC6: `changes.get` must return a closed change by id after its active directory is gone, including `closure.reason` and `closure.approval_evidence`.\n\nDDC7: No code path may delete a closed record without first proving a readable bundle. The unsafe ordering must be unrepresentable, not merely unused.\n\n## Validation Result\n\nIndependent validator (`adv-researcher`, `researcher:design-validation`, attempt 1): **caution**, confidence high, risk medium. All nine original KD levers verified at file:line. Architecture deviation assessed MINOR — the gaps were additive read-surface coverage, not architecture.\n\nRequired amendment, now integrated as KD10: closed fallback in `changes.get`. The validator carried this in `validation.notes` rather than as a typed blocker because the contract registry had not yet machine-indexed the inline-approved `AC2` id, and it declined to invent a registry id.\n\nAdvisory items integrated as KD11 and KD12. One advisory deferred — see Risks.\n\nRecorded tradeoffs: a third terminal tree multiplies consistency surfaces; zombie closed shadows become legal after proof; plain-id directories drop date metadata; the doctor CLI writes across projects.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Fresh or existing stores lack `closed/`, so listing throws | DDC2 — `mkdir` at init beside the existing `changes`/`activeEpics`/`retiredEpics` calls |\n| A read surface is missed again, as `changes.get` was | DDC6 and DDC7 name both surfaces explicitly; `terminal-history` added as KD12 |\n| Latent `closeBatch`/sweep path destroys data once wired | KD11 makes unguarded cleanup unrepresentable rather than merely unreachable |\n| Closed bundles accumulate without bound | Accepted. Identical to archive; `adv_archive_purge` sets the operator-gated disposal precedent |\n| Reconcile writes to other projects' stores | Operator-invoked, idempotent per DDC3, touches one field, leaves `closure` intact per C2 |\n| Changes destroyed before this fix stay unrecoverable | Not mitigable. Recorded as SC4 — operators are told plainly |\n| `fixArchiveLifecycleLeak` closed with the broken tool, destroying its evidence | C3 holds it open until AC1–AC4 pass |\n| **Deferred:** no spec requirement governs close retirement, so this contract is code-only and can regress silently | Validator advised a spec delta. Out of approved scope for this change; routed to prep as a named follow-up rather than left unowned |\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`adv_change_close` destroyed the change it closed. It wrote `status: \"closed\"` into `changes/<id>/`, verified that write honestly, deleted the directory holding it, and returned `success: true`. The verification passed because the record existed at the moment it was checked. The next line removed it.\n\nClose now writes a durable bundle to `closed/<id>/`, proves it reads back, and only then removes the source. If durability cannot be proven, nothing is removed and the caller gets an error.\n\n## What made this defect survive\n\nThe failure was introduced by a correct change to a system that later changed underneath it. `removeChangeDir` entered the close path on 2026-08-05 (`45ab2ef9`, #373) while Temporal held an independent durable projection — deleting the directory was safe then, because a second copy existed. `c231b2eb` (#393, 2026-08-06) completed the Temporal removal and made disk the only store. Close's safety precondition was deleted out from under it, and nothing failed at the time.\n\nThe code then argued for its own correctness. A comment above the deletion read: cleanup failure \"does NOT flip success to false — the closed status is durable.\" It named the exact property the following line destroyed. Anyone reading the close path found a durability claim sitting directly above the code that violated it.\n\nThe tool output hid the rest. `success: true` is emitted before the `dryRun` and `noOp` discriminators, so a preview reads like a commit and a destructive success reads like an ordinary one. The defect was only found because a close was run and the change afterwards could not be found.\n\n## Delivered\n\n- `plugin/src/storage/closed-bundle.ts` — `retireClosedChange` owns the ordering: write, prove by reading back, then remove. Durability is fail-closed. Cleanup is best-effort *only after* the proof holds, so a failed removal leaves a recoverable duplicate rather than a loss.\n- Close rewired. The false durability comment is gone and a failed retirement returns an error instead of `success: true`.\n- Closed records resolve through both read surfaces. An independent design validator caught that covering `changes.list` alone would have left the reported symptom fully intact, because `adv_change_show` reads through `changes.get`. Active records still win over bundle copies, structurally: the `if (id)` branch returns before either fallback runs.\n- `sweepClosedChangesFromDisk` routed through the same guard.\n\n## Findings recorded, not fixed\n\n**A spec would have reproduced this at bulk scale.** `sweepClosedChangesFromDisk` has zero production callers but cites spec `rq-bulkCloseDiskSweep01`. A RED run showed it deleting a record outright. Wiring that spec as written would have re-created this defect across many changes at once. The spec remains unimplemented; guarding the helper was chosen over deleting it precisely because the spec makes it a governance reference rather than dead code.\n\n**Destroyed changes are permanently unrecoverable.** No `.bak`, snapshot, trash, or journal exists for `changes/`. `operation_ledger` is a field inside `change.json` and dies with the directory. Neither append-only audit log records close events. `enableMergeQueue` was destroyed while proving the defect and cannot be restored. The total count of changes lost since 2026-08-06 is unknowable, which is why enumeration was rejected as work.\n\n**The fix is inert until deployed.** The running Advance is the installed build. Closing a change still destroys it until this is merged, rebuilt, and deployed from the default branch.\n\n## Scope trim\n\nScope was cut mid-execution by explicit user decision, because Advance is being replaced by Concord. AC1-AC4 shipped. AC5 (outcome discriminant), AC6 (archive noOp retirement), AC7 (legacy record migration) and the `adv-cleanup` skill correction were withdrawn to OOS5-OOS8 with rationale, not deleted.\n\nThe workaround considered and rejected was \"stop calling `adv_change_close`\". It is a rule agents must remember while the tool stays exposed, and it was violated inside the very session that found the bug. A structural guard is cheaper than that discipline.\n\n## Residual\n\nAC4 is half-proven. The helper's refusal to delete is tested, so the data-safety half holds. The handler returning an error rather than `success: true` rests on a five-line branch verified by inspection. Its worst failure mode is a misleading success message, not data loss, because the record is preserved before that branch is reached.\n\n`check-prompt-budget` reports a +3394 byte floor regression locally. It measures `homedir()` files that form a real session prompt; no commit here touches a prompt surface. The baseline was deliberately not bumped, since that would launder external drift into this change.\n\n## Verification\n\nEvery task carries genuine red-then-green ordering. Two tasks had implementations written before RED was recorded; RED was reconstructed by removing only the implementation and retaining the tests, rather than banking a GREEN-only claim.\n\n`tr_mtafhgfy_85dc6875` → `tr_mtafifvc_6bd756ac`; `tr_mtafzjyw_abed7862` → `tr_mtag1s8e_cde061f6`; `tr_mtag7371_ba09b612` → `tr_mtag82e3_210572ec`; `tr_mtage2sc_7048863b` → `tr_mtagh1no_54bc78ab`; verify `tr_mtagk51p_34af0071` (554 tests across storage and change tools). Typecheck, schemas, manifests, frontmatter, test-isolation, lockfile, skill-references, eslint and prettier clean.\n\nCommits `1bc015a5`, `8ee398ba`, `e592487d`, `5d878bfc`.\n"
+  },
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "linked_at": "2026-08-26T04:15:35.653Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 65,
+  "projection_commits": [
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-b3336de90873",
+      "operation_id": "mutation:task_add:fixChangeCloseDataLoss:20c642ed-f20f-4566-a58e-f32239c4ee20",
+      "payload_hash": "b0b7705d0948a669608f23ef9941bc0bc54fa4e14e1a9661e369bd416a3d47cb",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-26T18:02:37.289Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Prep vision presented; user replied \"continue\" after reviewing the simplified 8-task summary. Contract coverage complete: AC1-AC7 all implemented by tasks; C1, C2, C4, C5 and DONT1, DONT3, DONT4 respected. C3 and DONT2 are honored by inaction at the release phase and carry no implementing task. Cross-cutting concerns assessed: error handling and validation covered by the fail-closed readback; performance by DDC4 direct-probe; concurrency by existing coordinateChangeMutation revision checks; security, caching, config, monitoring, i18n, privacy N/A with no surface. Note: 6 of 8 adv_task_add calls returned ToolExecutionTimeout at 10s while persisting server-side (OOS2 reproducing live); each was verified by adv_task_list before retry, so no duplicates were minted.",
+      "operation_id": "mutation:gate_completion:fixChangeCloseDataLoss:a6ee149e-cf55-4877-bc29-acc19a90cc24",
+      "payload_hash": "2f594cecb71e1e94fe8928a0a372d9fcd964cad7f732de41b130adc3157407eb",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-26T18:07:17.420Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixChangeCloseDataLoss:88f1468c-3290-44f9-b035-e6d1162230b0",
+      "payload_hash": "5dbc8f884406e5dfd707e9b377c3cfc56e069ac9a1a330782c120290123f4415",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-26T18:07:49.823Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted plugin/src/storage/json.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:a434a8c6-e8c0-4930-9b46-89d313207397",
+      "payload_hash": "2ba0b5a6d7e142a5ddad17366cde1e0803f299b77b15aaa49c6e4f7fa5e30caf",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-26T18:12:16.308Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/json.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:385f2b29-2f85-4f90-8f06-a2f450662c65",
+      "payload_hash": "08879f0046f6a7a7430a2258c71cf78cbd3157eb137ab11a9585895123933a3b",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-26T18:12:48.148Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/json.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:1fb7946c-aeeb-4b3a-a888-f5c9b0f737c4",
+      "payload_hash": "affbfdc8991cafa781aa9afcff013c6bc5f4661699166decde176bf7e7c7f8e7",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-26T18:13:28.628Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/json.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:b00b408d-4e23-4fd7-ad8f-ceb874227470",
+      "payload_hash": "b54a159a8713a0bbe2c6a074e0bfadeae0e8beba43e07fa14e9138b83076c39a",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-26T18:14:16.475Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:e30b0c52-570a-41c4-a0dd-7b97ced89566",
+      "payload_hash": "4733998412e47974013c9b13acf4c9f44e0b289b75519487f30dfba960912834",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-26T18:14:43.822Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:a9fff25e-371d-412e-ac54-76a2925e449d",
+      "payload_hash": "37831f34a1e78555fed8b4f6dbca9d9e6be4c67bf6be7eba905c968c06284ad9",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-26T18:15:54.616Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/reconcile-integration.test.ts -t \"host handler applies exactly the approved plan and a replay is non-mutating\"",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:35d77436-6923-415a-8d79-39a774b04611",
+      "payload_hash": "e87ab41a17e7083e7c2d30cbb5ff286610693b580789311b58e75e6df9314243",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-26T18:16:25.420Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/reconcile-integration.test.ts -t \"host handler applies exactly the approved plan and a replay is non-mutating\"",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:75c6493e-55b3-49cd-9c66-07183e228570",
+      "payload_hash": "11bd07c16e32620f658cac52d645bc833b0d3eb336fc5700f8116bbe14e1d33e",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-26T18:17:38.862Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:7cae0095-328e-4851-a890-6c266358f5e6",
+      "payload_hash": "e3adda280dad091063236ab8e5b1d5618565ad98cf6a9c4ea0be57a2fe0cdfbc",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-26T18:18:38.466Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/json.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:4cc93626-f2c6-42d1-9781-48f5cd33c782",
+      "payload_hash": "daa6ac140a605b88c6bcd3d7b77ec238f1872168c77329b03d90ca4ad37de543",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-26T18:20:27.839Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:4e5c9502-e14c-4bce-ae80-ef11bbc3be6f",
+      "payload_hash": "fbfc9c2096e6a96573f7638aea50dea3fc3a0deb67f88ace00b17b0d54231fa9",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-26T18:20:55.928Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:c63ae24f-ea2a-483c-a276-d08d9ec5b3a5",
+      "payload_hash": "3752a196d1e3358024447aba31612e204fd51980d4a3d68699077af7851b05cd",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-26T18:22:04.084Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixChangeCloseDataLoss|tk-3499e2472669|adv-engineer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixChangeCloseDataLoss:e185a343-02af-412f-80d7-5c61dc632e4a",
+      "payload_hash": "9cbe8c1936ddef1af3e44605cf007657e54c14eb4c758a988046a6cd6ccf5804",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-26T18:24:15.466Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted plugin/src/storage/json.test.ts plugin/src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:cd140ad4-47ff-41a1-8021-66c644d5e2d3",
+      "payload_hash": "cd99c0b2aaf55d4821e17cb88e53c5177df5523ed0d5583a474654dfeb444df4",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-26T18:25:42.113Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-residue-scan.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:e767a811-f3d3-4737-9615-1841547749d1",
+      "payload_hash": "442e668dfe9f067bdecdc859da43c5a33e2eceac2ea29e553443b50c0a11fc5b",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-26T18:26:04.478Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/json.test.ts src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:3ff1a930-ab58-4ff0-85fd-0cb6ae1e5400",
+      "payload_hash": "23cc099241e2c8869f21df6e97a2bd02433f51e7b91b18d2d75b139295589b23",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-26T18:29:31.943Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/json.test.ts src/storage/store-disk.test.ts src/storage/store-residue-scan.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:314ef6ba-35e8-4d4c-a9b2-b289cc86bd8b",
+      "payload_hash": "4a01cf6b2bb11944bf2b5dc5d4a68d5680b6e323d969130aafe03b87b2243380",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-26T18:30:20.521Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "1bc015a598a3ca98e1bc89a5c80c6cd5475a3c83:RED tr_mtafhgfy_85dc6875: 5 failures with implementation removed and tests retained — closed path undefined in both getProjectPaths branches, loadClosedChange absent, DDC4 source guard unsatisfiable, loadClosedChanges not a function. GREEN tr_mtafifvc_6bd756ac: 107 tests passed across json.test.ts, store-disk.test.ts, store-residue-scan.test.ts. Implements AC1 (durable destination exists), respects C5 (destination available before any cleanup can run). DDC4 verified structurally: loadClosedChange calls loadChange(closedPath, changeId) directly and the source guard asserts its body contains no listChangeDirs. DDC2 verified: fresh store creates closed/ at init and lists empty without throwing. store-residue-scan.ts allow-list entry added so the new tree is not reported as unexplained residue.",
+      "operation_id": "mutation:task_checkpoint_completed:fixChangeCloseDataLoss:2f1a9f33-95ff-41f1-9a14-367de9f178a0",
+      "payload_hash": "0995f6ca1b5a0f221c8645f8e9ca9f20612f6401e90d65787328bfc091234e55",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-26T18:30:56.927Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixChangeCloseDataLoss:d0a5c995-3dd5-4a46-a434-55aea47ab570",
+      "payload_hash": "2791fc7eb6a40d7d5925dca8a7e6bc1bda0d2bbe2eda3b19c635e68790dd16ac",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-26T18:32:10.663Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:a43d0464-5999-4a2e-9c0f-d667f5c592c2",
+      "payload_hash": "c70829387b9a6cb4699df4292c9b914ce864d046594fdad70c6ef0cc0e193273",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-26T18:33:47.695Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:8bdcd30c-f8a0-40ca-bd8e-996f17b4ba7d",
+      "payload_hash": "1d6238f83f187ed861561034ef545def7295d9a523fec19dbd4049efd6c12ef3",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-26T18:34:28.689Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:128167e7-c7f7-482a-829a-9980db20177a",
+      "payload_hash": "038a87e4c54c72549f20ec183149ef99838e5a9a38d48e6740a705202767c33a",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-26T18:35:41.985Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:d87d070f-8ed0-4ce2-8946-163d4f1dd085",
+      "payload_hash": "6c5b023da211eb2d2cd0069522054bed23f6e435ec655c7efbf05e39c1010152",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-26T18:36:10.494Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:e9abfb2d-455f-41d5-a4c0-776aece405bd",
+      "payload_hash": "28a6a75b2b32835b7f729361d7d4f88a411d32eb50f958e3882932a9ee636525",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-26T18:37:12.828Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixChangeCloseDataLoss:a1b36930-bec1-49a4-98ea-fa8860b73e69",
+      "payload_hash": "fdc35d371ac26faf39ca3fcf8c7561bdc5e0b7f714574c93e152a18570214f51",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-26T18:42:58.783Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/store-disk.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:5b8dc450-c7c7-4e08-a3d7-7b6a617c697d",
+      "payload_hash": "90f5e43fe9b49634b7b4298ba01919e81a1b44bf6b825fc952a09d11c3989487",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-26T18:43:35.829Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:e791708d-661e-49ba-9b2c-3de67e9fcc6e",
+      "payload_hash": "b1a18f9a9d90624f38f99a9bd502c841a3b057bc7d034191c54cea81e3ed6b0f",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-26T18:45:19.386Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "8ee398bacae8c90781ecc199e1a302e31d8d5e4d:RED tr_mtafzjyw_abed7862: both feature tests fail with the wiring removed — changes.list returns [] for a closed bundle under includeClosed, and changes.get returns success:false. GREEN tr_mtag1s8e_cde061f6: 478 tests across 47 storage files pass, so the wiring regresses nothing. Implements AC2 (adv_change_show resolves a closed change and its closure metadata survives) and AC3 (list surfaces closed records under includeClosed). Both read surfaces covered — the design validator flagged that covering changes.list alone would leave the original reported symptom intact, since adv_change_show reads through changes.get. Active-record precedence is structural, not conditional: the `if (id)` branch returns before either fallback is reached, so an active record always wins over a bundle copy. The closed fallback mirrors the existing archive self-heal guard and now shares its single `candidates.length <= 1` block rather than duplicating the condition.",
+      "operation_id": "mutation:task_checkpoint_completed:fixChangeCloseDataLoss:c956f8aa-7ec5-4999-bb95-5123b499b3fa",
+      "payload_hash": "27bb073907688f44678e69488a1161fdb3a5ee36d620a9e25a2dbcd4186bf4be",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-26T18:45:54.878Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/closed-bundle.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:4360f9dd-7167-480f-a2f8-50b4e63196d3",
+      "payload_hash": "e60584991eaf1cf7561f9150f77ca7747c0ce031875f2e7ec0f79e2fd5f3612f",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-08-26T18:49:26.779Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/closed-bundle.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:b0be8b34-753a-4f08-9124-df995bb2d469",
+      "payload_hash": "2e498547d692c6d088c8cb987db21decaa40230c9531d8fa994832a0370ab27a",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-08-26T18:50:12.462Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/disk-sweep.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:7b68eff4-12c8-4562-8fc6-6108c4f46d27",
+      "payload_hash": "b6cd74337669287c857a8ed259353d19c8a6ef3efba098ed0786fab06d0484a1",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-08-26T18:54:53.124Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:a015380d-ef20-42a3-af51-1422a4475740",
+      "payload_hash": "5f8e909ffe46b417422a755dd7844fdd7771d5b3b6a5ea622ff738f390ae87e3",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-08-26T18:57:10.775Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted src/storage/ src/tools/change/",
+      "operation_id": "mutation:test_run_recorded:fixChangeCloseDataLoss:3fd2fb6f-f20e-4347-9790-a6ce78100921",
+      "payload_hash": "1d623035f791d2cc92fc1f52a038eeee813c5f2d7fb1bf49843b50266d383310",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-08-26T18:59:36.638Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "e592487d47bf7d3dfa650b52763f0b8e197f1e72:Implements AC1 and AC4; respects C1, C4, C5. New plugin/src/storage/closed-bundle.ts owns retireClosedChange: write the bundle, prove it reads back, and only then remove the source. Durability is fail-closed (nothing is removed unless the readback proof holds); cleanup is best-effort (once proven durable, a failed removal leaves a recoverable duplicate, not a loss). RED tr_mtag7371_ba09b612 (module absent) then GREEN tr_mtag82e3_210572ec (4/4) covering: retire-then-readback, refusal when the destination is unwritable, refusal when the record is not status closed, and idempotent retry. Close rewired at handlers-lifecycle.ts: the stale comment claiming \"the closed status is durable\" is gone, and a failed retirement now returns an error instead of success:true. It writes outcome.value, the verified projection. KD11: sweepClosedChangesFromDisk was routed through the same guard. It has zero production callers but cites spec rq-bulkCloseDiskSweep01, so P41 governance-reference disposition is guard, not delete — and RED tr_mtage2sc_7048863b showed it deleting a record outright, so wiring it as written would have reproduced this defect at bulk scale. The guard applies only when a record actually loads; a directory with no readable record still takes the plain-removal path, preserving idempotent convergence. Its six legacy call sites now pass a real closedDir rather than relying on undefined being unused. Typecheck clean. GREEN tr_mtagh1no_54bc78ab (484 storage tests) and verify tr_mtagk51p_34af0071 (554 tests across storage and change tools).",
+      "operation_id": "mutation:task_checkpoint_completed:fixChangeCloseDataLoss:ea097de7-9dac-450d-b5a6-1e4a4a97fc5e",
+      "payload_hash": "a42ea0acf512113641796b3799bd0675d0b4e98712bcd748ec3e30a2fd6de0e9",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-08-26T19:00:12.000Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:a7fe95fe-c40c-4c16-8225-0cf4f3d91aff",
+      "payload_hash": "acbe3f2d570c7853384bee392dc17acf692d629da66311ecfba8be1c235e7df3",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-08-26T20:21:40.579Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:8a5fb0ba-193e-4dbc-a26a-273c0e1c6e89",
+      "payload_hash": "9c185aa38e9da7fed8fea41318204fd64bed5f570c88acaed0e189d1476fbd04",
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-08-26T20:21:47.407Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:4cf73fc4-b217-411b-a3d8-52d3af381f5c",
+      "payload_hash": "1edc932bcb1bdc011eabb62aee63b3606c9fd89fdbd4826c7755853f235fabc5",
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-08-26T20:21:53.388Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:eab677fc-f7c6-4b8b-9e0b-cd61402e5ec0",
+      "payload_hash": "c330b35b90c6b2d907c4d8579e2b5e6b21b07a58501528d78ca2788aecd9aef4",
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-08-26T20:21:59.891Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:7dcc51ad-b1ac-4eca-9703-32de7a48675e",
+      "payload_hash": "0b9611440d7f859891d21d0a1e18bd6cbbf8c81ed4c2cf19ee99508633f97ffc",
+      "prior_revision": 56,
+      "new_revision": 57,
+      "committed_at": "2026-08-26T20:22:11.418Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:3193cebf-5739-4102-b230-34cc5e017412",
+      "payload_hash": "f158b21e8e76339888867099e53e6881d0fed469590ffe95c51d1f633cb3bbdf",
+      "prior_revision": 57,
+      "new_revision": 58,
+      "committed_at": "2026-08-26T20:22:27.542Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:74a19f29-1e62-4b68-97ce-9cc92883e49f",
+      "payload_hash": "138db561984a46d14991b8ee1f698fe8cafbf9c39b334314831014cca29e44b6",
+      "prior_revision": 58,
+      "new_revision": 59,
+      "committed_at": "2026-08-26T20:22:52.868Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:781696ad-8c72-484d-a678-8db38040c8b6",
+      "payload_hash": "01f700223231fc7b76acaf30b6e9b6fc88948d0b22b8eaf9927d4e2dae5f99f6",
+      "prior_revision": 59,
+      "new_revision": 60,
+      "committed_at": "2026-08-26T20:23:02.755Z"
+    },
+    {
+      "mutation_kind": "task_cancelled",
+      "authority_kind": "mutation",
+      "authority_reason": "task_cancelled",
+      "authority_evidence": "User selected 'Ship the landed fix, drop the rest (Recommended)' at the scope checkpoint, given Advance is being replaced by Concord.",
+      "operation_id": "mutation:task_cancelled:fixChangeCloseDataLoss:8fa1f9a5-73e9-47bf-b2fd-53e62901ed0c",
+      "payload_hash": "ed3e1211484464b146c668aaf80d0cd05cfeac6addfaf5933ecd2d08a36e3a35",
+      "prior_revision": 60,
+      "new_revision": 61,
+      "committed_at": "2026-08-26T20:23:11.518Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixChangeCloseDataLoss:b14cfd87-3bc5-440f-becc-2f6440ba8673",
+      "payload_hash": "932e54e8252c142494c65d91b55c6fdaf4849a56797bff005f80bd63581acf25",
+      "prior_revision": 61,
+      "new_revision": 62,
+      "committed_at": "2026-08-26T20:23:23.879Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Ready queue empty: 3 tasks done, 5 cancelled under the user-approved scope trim (Advance is being replaced by Concord). Amended agreement retains AC1-AC4 and withdraws AC5, AC6, AC7 plus the skill correction to OOS5-OOS8.\n\nDelivered: plugin/src/storage/closed-bundle.ts owns retireClosedChange — write the closed bundle, prove it reads back, and only then remove the source. Durability is fail-closed; cleanup is best-effort only after the proof holds. Close rewired at handlers-lifecycle.ts so a failed retirement returns an error instead of success:true, and the stale comment asserting \"the closed status is durable\" is gone — it named the exact property the next line destroyed. Both read surfaces resolve closed records; covering changes.list alone would have left the reported symptom intact because adv_change_show reads changes.get. sweepClosedChangesFromDisk routed through the same guard.\n\nEvery task carries genuine red-then-green ordering. Tasks 1 and 2 had implementations written before RED was recorded; RED was reconstructed by removing only the implementation and retaining the tests, rather than banking a GREEN-only claim. Evidence: tr_mtafhgfy_85dc6875/tr_mtafifvc_6bd756ac, tr_mtafzjyw_abed7862/tr_mtag1s8e_cde061f6, tr_mtag7371_ba09b612/tr_mtag82e3_210572ec, tr_mtage2sc_7048863b/tr_mtagh1no_54bc78ab, verify tr_mtagk51p_34af0071 (554 tests across storage and change tools).\n\nQuality: typecheck, schemas, manifests, frontmatter, test-isolation, lockfile, skill-references, eslint and prettier all clean. check-prompt-budget reports a +3394 byte floor regression; it is environmental and not attributable to this change. That script measures homedir() files that form a real session prompt, and the diff touches 10 files that are all storage, tools and tests, with no prompt surface among them. The baseline was deliberately not bumped, since doing so would launder external drift into this change.\n\nCommits 1bc015a5, 8ee398ba, e592487d, 5d878bfc. Worktree clean.",
+      "operation_id": "mutation:gate_completion:fixChangeCloseDataLoss:8c7f8fd4-1448-40d6-a729-4ccac551903a",
+      "payload_hash": "b152a721a6e6e87215201d842a577e73629f33f31c5d67346fee1b4c5e3b887d",
+      "prior_revision": 62,
+      "new_revision": 63,
+      "committed_at": "2026-08-26T20:27:18.406Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixChangeCloseDataLoss:19dd7a87-51f9-4874-8dbc-93fa61a0aaad",
+      "payload_hash": "f20aa32a82ffeda55a2c9fd2ff222eab74f98d6e666db98d4276869f77eb3468",
+      "prior_revision": 63,
+      "new_revision": 64,
+      "committed_at": "2026-08-26T20:29:35.406Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User replied `accept` at the acceptance checkpoint after reviewing the AC1-AC4 evidence table, the withdrawn AC5-AC7 and skill correction, and three explicitly surfaced caveats.\n\nThe three caveats were presented before approval, not after: (1) AC4 is half-proven — the helper's refusal to delete is tested, but the handler's error return rests on a five-line branch verified by inspection, whose worst failure mode is a misleading success message rather than data loss, because the record is preserved before that branch runs; (2) the fix is inert until merged, rebuilt and deployed from the default branch, so closing a change today still destroys it; (3) check-prompt-budget fails locally by 3394 bytes from homedir() global-config drift against a committed baseline, and the baseline was deliberately not bumped because that would launder external drift into this change.\n\nScope was trimmed mid-execution by explicit user decision at a scope checkpoint, because Advance is being replaced by Concord. The agreement was amended to retain AC1-AC4 and withdraw AC5, AC6, AC7 and the skill correction to OOS5-OOS8 with rationale recorded rather than deleted. Five tasks were cancelled with per-task reasons.\n\nExecutive summary persisted. Evidence: RED/GREEN pairs tr_mtafhgfy_85dc6875/tr_mtafifvc_6bd756ac, tr_mtafzjyw_abed7862/tr_mtag1s8e_cde061f6, tr_mtag7371_ba09b612/tr_mtag82e3_210572ec, tr_mtage2sc_7048863b/tr_mtagh1no_54bc78ab, verify tr_mtagk51p_34af0071 with 554 tests across storage and change tools. Commits 1bc015a5, 8ee398ba, e592487d, 5d878bfc. Worktree clean.",
+      "operation_id": "mutation:gate_completion:fixChangeCloseDataLoss:bdef180a-8752-4a4d-a26b-4191d31fa054",
+      "payload_hash": "caf8e80c7984e534798a2a4a7eec952fe97aa13ad365e1bc0cc1d68dc26e36f9",
+      "prior_revision": 64,
+      "new_revision": 65,
+      "committed_at": "2026-08-26T20:29:54.003Z"
+    }
+  ]
+}
