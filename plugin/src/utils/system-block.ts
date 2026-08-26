@@ -22,8 +22,8 @@
  *     dividers.
  *   - Internal-call detection (per JC-3): when the existing
  *     `output.system[0]` matches one of the OpenCode internal-call
- *     patterns (title generation, summarizer), the assembler returns null
- *     so ADV content does not pollute internal flows.
+ *     patterns (title generation, compaction, agent generation), the
+ *     assembler returns null so ADV content does not pollute internal flows.
  *
  * Contract:
  *   - This module is a pure formatter. No IO, no side effects, no state
@@ -101,11 +101,10 @@ export const VOLATILE_SENTINEL = "--- ADV:VOLATILE ---";
 
 /** Patterns match the opening sentence of OpenCode's three internal prompts:
  *  `agent/prompt/title.txt`, `agent/prompt/compaction.txt`, and
- *  `agent/generate.txt`. The drift test keeps these anchors true.
- *  `compaction.txt` is the least stable anchor (6 commits in 8 months, last
- *  rewritten 2026-08-12). Conservative bias: a positive match here causes
- *  the assembler to return null, skipping ADV content. False negatives
- *  default to including ADV content, which may pollute the internal prompt. */
+ *  `agent/generate.txt`. The drift test verifies these anchors against the
+ *  installed binary. Conservative bias: a positive match here causes the
+ *  assembler to return null, skipping ADV content. False negatives default
+ *  to including ADV content, which may pollute the internal prompt. */
 export const INTERNAL_CALL_PATTERNS: readonly RegExp[] = [
   /You are a title generator\. You output ONLY a thread title/i,
   /You are a context summarization agent\./i,
@@ -115,7 +114,7 @@ export const INTERNAL_CALL_PATTERNS: readonly RegExp[] = [
 // ─── Predicates ─────────────────────────────────────────────────────────────
 
 /** True when the existing system content matches a known OpenCode
- *  internal-call pattern (title generation, summarizer, …). */
+ *  internal-call pattern (title generation, compaction, agent generation). */
 export function isInternalCall(existingSystem: string | null): boolean {
   if (!existingSystem) return false;
   return INTERNAL_CALL_PATTERNS.some((re) => re.test(existingSystem));
@@ -335,7 +334,7 @@ export function applyAdvSystemBlock(
  *
  * Returns null when:
  *   - The call is detected as an OpenCode internal call
- *     (title generation, summarizer)
+ *     (title generation, compaction, agent generation)
  *   - No section produces content
  *
  * Order:

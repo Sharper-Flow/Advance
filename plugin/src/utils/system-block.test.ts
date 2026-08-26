@@ -104,8 +104,7 @@ describe("isInternalCall", () => {
     ).toBe(false);
   });
 
-  // This skips in GitHub CI by design because no OpenCode binary exists there.
-  // This is a local calibration check. A named follow-up, scheduled upstream-drift CI job, restores CI coverage.
+  // CI environments without OpenCode skip this local binary calibration check.
   it("matches each fixture in the installed OpenCode binary", (ctx) => {
     const bin = resolveOpencodeBinary();
     if (!bin) {
