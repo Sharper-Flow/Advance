@@ -40,7 +40,11 @@ describe("sweepClosedChangesFromDisk", () => {
     await writeFile(join(dir, "change.json"), '{"id":"addFeature"}');
     await writeFile(join(dir, "proposal.md"), "# Test");
 
-    const result = await sweepClosedChangesFromDisk([id], changesDir, closedDir);
+    const result = await sweepClosedChangesFromDisk(
+      [id],
+      changesDir,
+      closedDir,
+    );
 
     expect(result.removed).toEqual([id]);
     expect(result.failed).toEqual([]);
@@ -69,7 +73,11 @@ describe("sweepClosedChangesFromDisk", () => {
     // beta intentionally absent
     await writeFile(join(changesDir, idA, "change.json"), "{}");
 
-    const result = await sweepClosedChangesFromDisk([idA, idB], changesDir, closedDir);
+    const result = await sweepClosedChangesFromDisk(
+      [idA, idB],
+      changesDir,
+      closedDir,
+    );
 
     expect(result.removed).toEqual([idA, idB]);
     expect(result.failed).toEqual([]);
@@ -93,7 +101,11 @@ describe("sweepClosedChangesFromDisk", () => {
     // Make the parent read-only so rm fails on the entry.
     await chmod(changesDir, 0o555);
 
-    const result = await sweepClosedChangesFromDisk([id], changesDir, closedDir);
+    const result = await sweepClosedChangesFromDisk(
+      [id],
+      changesDir,
+      closedDir,
+    );
 
     expect(result.removed).toEqual([]);
     expect(result.failed).toHaveLength(1);
