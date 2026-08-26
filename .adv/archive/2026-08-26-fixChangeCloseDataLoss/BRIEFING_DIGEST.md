@@ -3,7 +3,7 @@
 **Change ID:** fixChangeCloseDataLoss
 **Title:** Fix change close data loss
 **Status:** archived
-**Generated:** 2026-08-26T20:32:02.469Z
+**Generated:** 2026-08-26T20:32:41.053Z
 
 ## Identity Anchors
 
@@ -23,7 +23,7 @@
 | planning | done |
 | execution | done |
 | acceptance | done |
-| release | pending |
+| release | done |
 
 ## Epic Context
 

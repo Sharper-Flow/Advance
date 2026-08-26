@@ -848,7 +848,10 @@
       "approval_evidence": "User replied `accept` at the acceptance checkpoint after reviewing the AC1-AC4 evidence table, the withdrawn AC5-AC7 and skill correction, and three explicitly surfaced caveats.\n\nThe three caveats were presented before approval, not after: (1) AC4 is half-proven — the helper's refusal to delete is tested, but the handler's error return rests on a five-line branch verified by inspection, whose worst failure mode is a misleading success message rather than data loss, because the record is preserved before that branch runs; (2) the fix is inert until merged, rebuilt and deployed from the default branch, so closing a change today still destroys it; (3) check-prompt-budget fails locally by 3394 bytes from homedir() global-config drift against a committed baseline, and the baseline was deliberately not bumped because that would launder external drift into this change.\n\nScope was trimmed mid-execution by explicit user decision at a scope checkpoint, because Advance is being replaced by Concord. The agreement was amended to retain AC1-AC4 and withdraw AC5, AC6, AC7 and the skill correction to OOS5-OOS8 with rationale recorded rather than deleted. Five tasks were cancelled with per-task reasons.\n\nExecutive summary persisted. Evidence: RED/GREEN pairs tr_mtafhgfy_85dc6875/tr_mtafifvc_6bd756ac, tr_mtafzjyw_abed7862/tr_mtag1s8e_cde061f6, tr_mtag7371_ba09b612/tr_mtag82e3_210572ec, tr_mtage2sc_7048863b/tr_mtagh1no_54bc78ab, verify tr_mtagk51p_34af0071 with 554 tests across storage and change tools. Commits 1bc015a5, 8ee398ba, e592487d, 5d878bfc. Worktree clean."
     },
     "release": {
-      "status": "pending"
+      "status": "done",
+      "completed_at": "2026-08-26T20:32:18.984Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=pushed; releasedCommitSha=41e5e49b0f6cd6502e8a056a455db4e416cee412; mergeCommitSha=41e5e49b0f6cd6502e8a056a455db4e416cee412; route=direct"
     }
   },
   "documents": {
@@ -864,30 +867,8 @@
     "linked_at": "2026-08-26T04:15:35.653Z"
   },
   "same_project_dependencies": [],
-  "projection_revision": 65,
+  "projection_revision": 67,
   "projection_commits": [
-    {
-      "mutation_kind": "task_add",
-      "authority_kind": "mutation",
-      "authority_reason": "add task",
-      "authority_evidence": "tk-b3336de90873",
-      "operation_id": "mutation:task_add:fixChangeCloseDataLoss:20c642ed-f20f-4566-a58e-f32239c4ee20",
-      "payload_hash": "b0b7705d0948a669608f23ef9941bc0bc54fa4e14e1a9661e369bd416a3d47cb",
-      "prior_revision": 15,
-      "new_revision": 16,
-      "committed_at": "2026-08-26T18:02:37.289Z"
-    },
-    {
-      "mutation_kind": "gate_completion",
-      "authority_kind": "mutation",
-      "authority_reason": "complete gate",
-      "authority_evidence": "Prep vision presented; user replied \"continue\" after reviewing the simplified 8-task summary. Contract coverage complete: AC1-AC7 all implemented by tasks; C1, C2, C4, C5 and DONT1, DONT3, DONT4 respected. C3 and DONT2 are honored by inaction at the release phase and carry no implementing task. Cross-cutting concerns assessed: error handling and validation covered by the fail-closed readback; performance by DDC4 direct-probe; concurrency by existing coordinateChangeMutation revision checks; security, caching, config, monitoring, i18n, privacy N/A with no surface. Note: 6 of 8 adv_task_add calls returned ToolExecutionTimeout at 10s while persisting server-side (OOS2 reproducing live); each was verified by adv_task_list before retry, so no duplicates were minted.",
-      "operation_id": "mutation:gate_completion:fixChangeCloseDataLoss:a6ee149e-cf55-4877-bc29-acc19a90cc24",
-      "payload_hash": "2f594cecb71e1e94fe8928a0a372d9fcd964cad7f732de41b130adc3157407eb",
-      "prior_revision": 16,
-      "new_revision": 17,
-      "committed_at": "2026-08-26T18:07:17.420Z"
-    },
     {
       "mutation_kind": "task_mutation",
       "authority_kind": "mutation",
@@ -1415,6 +1396,38 @@
       "prior_revision": 64,
       "new_revision": 65,
       "committed_at": "2026-08-26T20:29:54.003Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete release gate after verified finalization",
+      "authority_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=pushed; releasedCommitSha=41e5e49b0f6cd6502e8a056a455db4e416cee412; mergeCommitSha=41e5e49b0f6cd6502e8a056a455db4e416cee412; route=direct",
+      "operation_id": "mutation:gate_completion:fixChangeCloseDataLoss:6ebe0c9e-c59e-4356-9e74-cac1a5bf2649",
+      "payload_hash": "c8100964f5602ed2b2db5654f66d5f5a037da61000d22f6709caccf4c08490e8",
+      "prior_revision": 65,
+      "new_revision": 66,
+      "committed_at": "2026-08-26T20:32:19.184Z"
+    },
+    {
+      "mutation_kind": "archive_transition",
+      "authority_kind": "mutation",
+      "authority_reason": "archive shipped change",
+      "authority_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/home/jon/dev/advance; pushStatus=pushed; releasedCommitSha=41e5e49b0f6cd6502e8a056a455db4e416cee412; mergeCommitSha=41e5e49b0f6cd6502e8a056a455db4e416cee412; route=direct",
+      "operation_id": "mutation:archive_transition:fixChangeCloseDataLoss:46c8deb2-e42d-4019-aa03-82396fe8fbc9",
+      "payload_hash": "93d6e51eb15e60abff5df1e8a88091188abfb0c899be0683fa87d435e0a088fb",
+      "prior_revision": 66,
+      "new_revision": 67,
+      "committed_at": "2026-08-26T20:32:31.585Z"
     }
-  ]
+  ],
+  "lifecycleState": "archived",
+  "phase9_status": {
+    "status": "done",
+    "startedAt": "2026-08-26T20:32:31.575Z",
+    "completedAt": "2026-08-26T20:32:31.575Z",
+    "changeTipSha": "41e5e49b0f6cd6502e8a056a455db4e416cee412",
+    "preArchiveTipSha": "5d878bfc5aaa30dfab28fe43fe1e4f6d64053ea2",
+    "route": "direct",
+    "mergeCommitSha": "41e5e49b0f6cd6502e8a056a455db4e416cee412"
+  }
 }
