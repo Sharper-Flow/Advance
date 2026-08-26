@@ -58,6 +58,7 @@ import {
   hasArchiveBundle,
   listChangeDirs,
   listSpecDirs,
+  loadClosedChange,
   loadChange,
   loadProjectConfig,
   loadSpec,
@@ -451,6 +452,15 @@ export async function createDiskStore(
           }
         }
 
+        if (effectiveIncludeClosed) {
+          const existingIds = new Set(changes.map((c) => c.id));
+          for (const closed of await loadClosedChanges(paths.closed)) {
+            if (!existingIds.has(closed.id)) {
+              changes.push(closed);
+            }
+          }
+        }
+
         if (filter?.status) {
           changes = changes.filter((c) => c.status === filter.status);
         }
@@ -536,6 +546,13 @@ export async function createDiskStore(
                 data: { ...archived, status: "archived" as const },
               };
             }
+          }
+          // Closure keeps the same fallback shape: a closed change retains its
+          // record under `closed/` after the active directory is removed, so
+          // the bundle is the only remaining source for this id.
+          const closed = await loadClosedChange(paths.closed, changeId);
+          if (closed.success && closed.data?.status === "closed") {
+            return closed;
           }
         }
         if (candidates.length > 1) {

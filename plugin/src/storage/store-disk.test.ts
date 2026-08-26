@@ -385,6 +385,105 @@ describe("store-disk — bundle-dominant terminal self-heal (rq-terminalProjecti
   });
 });
 
+describe("store-disk — closed change read surfaces", () => {
+  async function writeClosedBundle(
+    dir: string,
+    changeId: string,
+    overrides: Partial<Change> = {},
+  ): Promise<void> {
+    const closedDir = join(dir, ".adv/closed", changeId);
+    await mkdir(closedDir, { recursive: true });
+    const change: Change = {
+      id: changeId,
+      title: `Closed ${changeId}`,
+      status: "closed",
+      lifecycleState: "closed",
+      created_at: "2026-07-13T00:00:00.000Z",
+      tasks: [],
+      gates: {},
+      deltas: {},
+      wisdom: [],
+      subagent_reports: [],
+      closure: {
+        reason: "not_planned",
+        approved_by_user: true,
+        approval_evidence: "User approved closure.",
+        approved_at: "2026-08-26T00:00:00.000Z",
+      },
+      ...overrides,
+    } as Change;
+    await writeFile(join(closedDir, "change.json"), JSON.stringify(change));
+  }
+
+  test("changes.list includes a closed bundle when includeClosed is true", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    await writeClosedBundle(dir, "closedOnly");
+
+    const result = await store.changes.list({ includeClosed: true });
+
+    expect(result.changes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "closedOnly", status: "closed" }),
+      ]),
+    );
+  });
+
+  test("changes.get returns closure metadata from a closed bundle", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    await writeClosedBundle(dir, "closedOnly");
+
+    const result = await store.changes.get("closedOnly");
+
+    expect(result.success).toBe(true);
+    expect(result.data?.closure).toEqual({
+      reason: "not_planned",
+      approved_by_user: true,
+      approval_evidence: "User approved closure.",
+      approved_at: "2026-08-26T00:00:00.000Z",
+    });
+  });
+
+  test("active records take precedence over closed bundles in list and get", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const active = await store.changes.create("Active record", {});
+    await writeClosedBundle(dir, active.changeId, {
+      title: "Closed copy",
+      closure: {
+        reason: "cancelled",
+        approved_by_user: true,
+        approval_evidence: "Closed copy approval.",
+        approved_at: "2026-08-26T00:00:00.000Z",
+      },
+    });
+
+    const listed = await store.changes.list({ includeClosed: true });
+    const listedMatch = listed.changes.filter((c) => c.id === active.changeId);
+    const loaded = await store.changes.get(active.changeId);
+
+    expect(listedMatch).toHaveLength(1);
+    expect(listedMatch[0]?.title).toBe("Active record");
+    expect(listedMatch[0]?.status).toBe("draft");
+    expect(loaded.success).toBe(true);
+    expect(loaded.data?.title).toBe("Active record");
+    expect(loaded.data?.closure).toBeUndefined();
+  });
+
+  test("default changes.list excludes closed bundles", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    await writeClosedBundle(dir, "closedOnly");
+
+    const result = await store.changes.list();
+
+    expect(result.changes).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "closedOnly" })]),
+    );
+  });
+});
+
 describe("store-disk — init does not run artifact-metadata migration", () => {
   // rq-storeReconcileUnboundedProof01.3: store initialization must not scan
   // projections or write the artifact-metadata completion marker. Convergence
