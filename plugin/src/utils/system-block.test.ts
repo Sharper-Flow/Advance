@@ -9,10 +9,14 @@
  * and JC-3 (strict regex internal-call detection).
  */
 
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
-  INTERNAL_CALL_PATTERNS,
   VOLATILE_SENTINEL,
   applyAdvSystemBlock,
   assembleSystemBlock,
@@ -44,37 +48,35 @@ const cleanInput = (
   ...overrides,
 });
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+const INTERNAL_CALL_FIXTURES = {
+  title:
+    "You are a title generator. You output ONLY a thread title. Nothing else.",
+  compaction: "You are a context summarization agent.",
+  agent:
+    "You are an elite AI agent architect specializing in crafting high-performance agent configurations.",
+} as const;
+
+function resolveOpencodeBinary(): string | null {
+  const configured = process.env.OPENCODE_BIN;
+  if (configured) return existsSync(configured) ? configured : null;
+
+  try {
+    const resolved = execFileSync("sh", ["-c", "command -v opencode"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (resolved && existsSync(resolved)) return resolved;
+  } catch {
+    // Fall through to the known local installation path.
+  }
+
+  const fallback = join(homedir(), ".opencode", "bin", "opencode");
+  return existsSync(fallback) ? fallback : null;
+}
 
 describe("VOLATILE_SENTINEL", () => {
   it("is the documented divider string per AC8 and design F3", () => {
     expect(VOLATILE_SENTINEL).toBe("--- ADV:VOLATILE ---");
-  });
-});
-
-describe("INTERNAL_CALL_PATTERNS", () => {
-  it("includes title-generation pattern (per JC-3)", () => {
-    expect(
-      INTERNAL_CALL_PATTERNS.some((re) =>
-        re.test("Generate a short title for this conversation"),
-      ),
-    ).toBe(true);
-  });
-
-  it("includes summarizer pattern (per JC-3)", () => {
-    expect(
-      INTERNAL_CALL_PATTERNS.some((re) =>
-        re.test("You are a helpful assistant that summarizes content"),
-      ),
-    ).toBe(true);
-  });
-
-  it("does NOT match a normal user prompt", () => {
-    expect(
-      INTERNAL_CALL_PATTERNS.some((re) =>
-        re.test("You are an ADV agent. Use the tools..."),
-      ),
-    ).toBe(false);
   });
 });
 
@@ -89,22 +91,38 @@ describe("isInternalCall", () => {
     expect(isInternalCall("")).toBe(false);
   });
 
-  it("returns true when existing system contains a title-gen pattern", () => {
-    expect(
-      isInternalCall("You are a model. Generate a short title for the input."),
-    ).toBe(true);
-  });
-
-  it("returns true when existing system contains the summarizer pattern", () => {
-    expect(
-      isInternalCall("You are a helpful assistant that summarizes content."),
-    ).toBe(true);
-  });
+  it.each(Object.values(INTERNAL_CALL_FIXTURES))(
+    "returns true for a real OpenCode internal prompt fixture",
+    (fixture) => {
+      expect(isInternalCall(fixture)).toBe(true);
+    },
+  );
 
   it("returns false for an ordinary system prompt", () => {
     expect(
       isInternalCall("You are working on ADV change makeFooBar. Use tools."),
     ).toBe(false);
+  });
+
+  // This skips in GitHub CI by design because no OpenCode binary exists there.
+  // This is a local calibration check. A named follow-up, scheduled upstream-drift CI job, restores CI coverage.
+  it("matches each fixture in the installed OpenCode binary", (ctx) => {
+    const bin = resolveOpencodeBinary();
+    if (!bin) {
+      ctx.skip();
+      return;
+    }
+
+    for (const fixture of Object.values(INTERNAL_CALL_FIXTURES)) {
+      try {
+        execFileSync("grep", ["-aqF", fixture, bin]);
+      } catch (error) {
+        throw new Error(
+          `OpenCode binary is missing internal prompt fixture: ${fixture}`,
+          { cause: error },
+        );
+      }
+    }
   });
 });
 
@@ -164,7 +182,7 @@ describe("assembleSystemBlock", () => {
     it("returns null when existing system matches title-gen pattern", () => {
       const block = assembleSystemBlock(
         cleanInput({
-          existingSystem: "Generate a short title for this conversation",
+          existingSystem: INTERNAL_CALL_FIXTURES.title,
           state: cleanState({ activeChange: { id: "c1" } }),
         }),
       );
@@ -174,7 +192,17 @@ describe("assembleSystemBlock", () => {
     it("returns null when existing system matches summarizer pattern", () => {
       const block = assembleSystemBlock(
         cleanInput({
-          existingSystem: "You are a helpful assistant that summarizes ...",
+          existingSystem: INTERNAL_CALL_FIXTURES.compaction,
+          state: cleanState({ activeChange: { id: "c1" } }),
+        }),
+      );
+      expect(block).toBeNull();
+    });
+
+    it("returns null when existing system matches agent-generation pattern", () => {
+      const block = assembleSystemBlock(
+        cleanInput({
+          existingSystem: INTERNAL_CALL_FIXTURES.agent,
           state: cleanState({ activeChange: { id: "c1" } }),
         }),
       );
@@ -533,16 +561,14 @@ describe("applyAdvSystemBlock", () => {
   });
 
   it("returns emitted: false and leaves system untouched on internal call", () => {
-    const output = { system: ["Generate a short title for this conversation"] };
+    const output = { system: [INTERNAL_CALL_FIXTURES.title] };
     const result = applyAdvSystemBlock(output, {
       state: cleanState({ activeChange: { id: "c1" } }),
       initError: null,
       storeAvailable: true,
     });
     expect(result.emitted).toBe(false);
-    expect(output.system).toEqual([
-      "Generate a short title for this conversation",
-    ]);
+    expect(output.system).toEqual([INTERNAL_CALL_FIXTURES.title]);
   });
 
   it("returns emitted: false when no section produces content", () => {
