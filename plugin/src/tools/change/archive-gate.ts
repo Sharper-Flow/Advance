@@ -20,6 +20,8 @@ import {
   classifyFinalizationRoute,
   resolveReleaseReachability,
   coercePrWorkflowRoute,
+  makeBoundedRunGit,
+  verifyDirectMergedPrProof,
   type GitFinalizeOutcome,
   type GitFinalizeDeps,
 } from "../archive-helpers/git-finalize";
@@ -30,7 +32,11 @@ import {
 } from "../../storage/change-projection-transaction";
 import { canonicalSha256 } from "../../archive/projection";
 import { withArchiveProjectionLock } from "../../archive/projection-lock";
-import { refreshArchiveBundleProjectionUnderLock } from "../../archive/archive";
+import {
+  findArchiveBundle,
+  refreshArchiveBundleProjectionUnderLock,
+} from "../../archive/archive";
+import { readProjectionManifest } from "../../archive/projection-proof";
 
 const logger = createLogger("change");
 
@@ -197,6 +203,310 @@ export function buildReleaseCompletionEvidence(
     finalization.route ? `route=${finalization.route}` : null,
   ].filter(Boolean);
   return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
+}
+
+export async function verifyExistingBundleIdentity(
+  existingBundlePath: string,
+  change: Change,
+): Promise<
+  | { ok: true; manifest: Awaited<ReturnType<typeof readProjectionManifest>> }
+  | { ok: false; reason: string }
+> {
+  const manifest = await readProjectionManifest(existingBundlePath);
+  if (!manifest) {
+    return {
+      ok: false,
+      reason: "Archive bundle has no valid projection manifest",
+    };
+  }
+  if (manifest.change_id !== change.id) {
+    return {
+      ok: false,
+      reason: `Bundle change_id ${manifest.change_id} does not match ${change.id}`,
+    };
+  }
+  const expectedDeltaSha = canonicalSha256(change.deltas);
+  if (manifest.delta_set_sha256 !== expectedDeltaSha) {
+    return {
+      ok: false,
+      reason: "Bundle delta_set_sha256 does not match accepted deltas",
+    };
+  }
+  const expectedCapabilities = Object.entries(change.deltas)
+    .filter(([, deltas]) => deltas.length > 0)
+    .map(([capability, deltas]) => ({
+      capability,
+      deltaIds: deltas
+        .map((delta) => delta.id)
+        .sort((left, right) => left.localeCompare(right)),
+    }))
+    .sort((left, right) => left.capability.localeCompare(right.capability));
+  const manifestCapabilities = [...manifest.capabilities]
+    .map((capability) => ({
+      capability: capability.capability,
+      deltaIds: capability.dispositions
+        .map((disposition) => disposition.deltaId)
+        .sort((left, right) => left.localeCompare(right)),
+    }))
+    .sort((left, right) => left.capability.localeCompare(right.capability));
+  if (
+    manifestCapabilities.length !== expectedCapabilities.length ||
+    manifestCapabilities.some(
+      (capability, index) =>
+        capability.capability !== expectedCapabilities[index]?.capability ||
+        capability.deltaIds.length !==
+          expectedCapabilities[index]?.deltaIds.length ||
+        capability.deltaIds.some(
+          (deltaId, deltaIndex) =>
+            deltaId !== expectedCapabilities[index]?.deltaIds[deltaIndex],
+        ),
+    )
+  ) {
+    return {
+      ok: false,
+      reason: "Bundle does not account for the exact accepted delta IDs",
+    };
+  }
+  return { ok: true, manifest };
+}
+
+type ShippedFinalization = GitFinalizeOutcome & { status: "shipped" };
+
+type MergedArchiveReplay =
+  | { kind: "none"; reason?: string }
+  | {
+      kind: "verified_merged_replay";
+      existingBundlePath: string;
+      trackedBundlePath: string;
+      finalization: ShippedFinalization;
+    };
+
+function splitGitLines(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function readCommittedBundlePath(input: {
+  repoRoot: string;
+  releasedCommitSha: string;
+  changeId: string;
+  expectedBundleName: string;
+  runGit: NonNullable<GitFinalizeDeps["runGit"]>;
+}): string | undefined {
+  const listed = input.runGit(input.repoRoot, [
+    "ls-tree",
+    "-r",
+    "--name-only",
+    input.releasedCommitSha,
+    "--",
+    ".adv/archive",
+  ]);
+  if (listed.status !== 0) return undefined;
+  const suffix = `-${input.changeId}/change.json`;
+  const candidates = splitGitLines(listed.stdout).filter((path) => {
+    if (!path.startsWith(".adv/archive/") || !path.endsWith(suffix))
+      return false;
+    const bundleName = path.slice(
+      ".adv/archive/".length,
+      -"/change.json".length,
+    );
+    return !bundleName.includes("/") && bundleName === input.expectedBundleName;
+  });
+  return candidates.length === 1
+    ? candidates[0]!.slice(0, -"/change.json".length)
+    : undefined;
+}
+
+function hasCommittedPath(
+  repoRoot: string,
+  releasedCommitSha: string,
+  path: string,
+  runGit: NonNullable<GitFinalizeDeps["runGit"]>,
+): boolean {
+  const result = runGit(repoRoot, [
+    "ls-tree",
+    "-r",
+    "--name-only",
+    releasedCommitSha,
+    "--",
+    path,
+  ]);
+  return result.status === 0 && splitGitLines(result.stdout).includes(path);
+}
+
+function readCommittedJson(
+  repoRoot: string,
+  releasedCommitSha: string,
+  path: string,
+  runGit: NonNullable<GitFinalizeDeps["runGit"]>,
+): Record<string, unknown> | undefined {
+  const result = runGit(repoRoot, ["show", `${releasedCommitSha}:${path}`]);
+  if (result.status !== 0) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(result.stdout);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function detectMergedArchiveReplay(input: {
+  store: Store;
+  changeId: string;
+  archiveMode: "direct" | "pr";
+  change: Change;
+  deps?: Pick<GitFinalizeDeps, "runGit" | "runGh">;
+}): Promise<MergedArchiveReplay> {
+  const phase9 = input.change.phase9_status;
+  if (
+    !phase9 ||
+    !["pending_merge", "failed", "done"].includes(phase9.status) ||
+    !phase9.repo ||
+    !phase9.prNumber ||
+    (!phase9.changeTipSha && !phase9.preArchiveTipSha)
+  )
+    return { kind: "none" };
+
+  let finalization: GitFinalizeOutcome;
+  try {
+    finalization = verifyReleaseEvidenceFromMain({
+      store: input.store,
+      changeId: input.changeId,
+      archiveMode: input.archiveMode,
+      change: input.change,
+      deps: input.deps,
+    });
+  } catch {
+    return { kind: "none" };
+  }
+  if (
+    finalization.status !== "shipped" ||
+    !finalization.repo ||
+    !finalization.defaultBranch ||
+    !finalization.releasedCommitSha
+  )
+    return { kind: "none" };
+  const classifiedRoute = classifyFinalizationRoute(
+    finalization.repoRoot,
+    finalization.defaultBranch,
+    input.deps,
+  );
+  if (classifiedRoute.repo !== finalization.repo) return { kind: "none" };
+
+  const exactProof = verifyDirectMergedPrProof(
+    {
+      repoRoot: finalization.repoRoot,
+      repo: finalization.repo,
+      defaultBranch: finalization.defaultBranch,
+      changeId: input.changeId,
+      branchName: `change/${input.changeId}`,
+      changeTipSha: phase9.changeTipSha,
+      preArchiveTipSha: phase9.preArchiveTipSha,
+    },
+    input.deps,
+  );
+  if (
+    exactProof.kind !== "valid" ||
+    exactProof.prNumber !== phase9.prNumber ||
+    (phase9.prHeadSha !== undefined &&
+      phase9.prHeadSha !== exactProof.prHeadSha) ||
+    finalization.releasedCommitSha !== exactProof.mergeCommitOid
+  )
+    return { kind: "none" };
+
+  const replayFinalization = {
+    ...finalization,
+    releasedCommitSha: exactProof.mergeCommitOid,
+    mergeCommitSha: exactProof.mergeCommitOid,
+    prBranch: `change/${input.changeId}`,
+    prNumber: exactProof.prNumber,
+    prUrl: exactProof.prUrl,
+    prHeadSha: exactProof.prHeadSha,
+    defaultBranchSha: exactProof.defaultBranchSha,
+  } as ShippedFinalization;
+  const releasedCommitSha = exactProof.mergeCommitOid;
+  const existingBundlePath = await findArchiveBundle(
+    input.store.paths.archive,
+    input.changeId,
+  );
+  if (!existingBundlePath) return { kind: "none" };
+
+  const bundle = await loadChange(
+    dirname(existingBundlePath),
+    basename(existingBundlePath),
+  );
+  if (
+    !bundle.success ||
+    !bundle.data ||
+    bundle.data.id !== input.changeId ||
+    bundle.data.status !== "archived"
+  )
+    return { kind: "none" };
+
+  const runGit = input.deps?.runGit ?? makeBoundedRunGit(30_000);
+  const trackedBundlePath = readCommittedBundlePath({
+    repoRoot: replayFinalization.repoRoot,
+    releasedCommitSha,
+    changeId: input.changeId,
+    expectedBundleName: basename(existingBundlePath),
+    runGit,
+  });
+  if (!trackedBundlePath) return { kind: "none" };
+
+  const trackedChange = readCommittedJson(
+    replayFinalization.repoRoot,
+    releasedCommitSha,
+    `${trackedBundlePath}/change.json`,
+    runGit,
+  );
+  if (
+    trackedChange?.id !== input.changeId ||
+    trackedChange.status !== "archived"
+  )
+    return { kind: "none" };
+
+  const hasDeltas = Object.values(input.change.deltas).some(
+    (deltas) => deltas.length > 0,
+  );
+  if (hasDeltas) {
+    const identity = await verifyExistingBundleIdentity(
+      existingBundlePath,
+      input.change,
+    );
+    if (!identity.ok) return { kind: "none", reason: identity.reason };
+    const trackedManifestPath = `${trackedBundlePath}/spec-projection.json`;
+    if (
+      !hasCommittedPath(
+        replayFinalization.repoRoot,
+        releasedCommitSha,
+        trackedManifestPath,
+        runGit,
+      )
+    )
+      return { kind: "none" };
+    const trackedManifest = readCommittedJson(
+      replayFinalization.repoRoot,
+      releasedCommitSha,
+      trackedManifestPath,
+      runGit,
+    );
+    if (
+      !trackedManifest ||
+      canonicalSha256(trackedManifest) !== canonicalSha256(identity.manifest)
+    )
+      return { kind: "none" };
+  }
+
+  return {
+    kind: "verified_merged_replay",
+    existingBundlePath,
+    trackedBundlePath,
+    finalization: replayFinalization,
+  };
 }
 
 export function preservePhase9Evidence(
@@ -555,7 +865,6 @@ async function completeArchivedBundleRelease(input: {
         const writeResult = await refreshArchiveBundleProjectionsUnderLock({
           change: loaded.data,
           archivePath: input.existingBundlePath,
-          inRepoArchivePath: input.inRepoBundlePath,
         });
         if (writeResult.terminalSummaryDegradation) {
           return {
@@ -649,7 +958,6 @@ async function completeArchivedBundleRelease(input: {
           const writeResult = await refreshArchiveBundleProjectionsUnderLock({
             change: readback,
             archivePath: input.existingBundlePath,
-            inRepoArchivePath: input.inRepoBundlePath,
           });
           return writeResult.terminalSummaryDegradation
             ? {
@@ -683,6 +991,15 @@ async function completeArchivedBundleRelease(input: {
       recoveryMutation: true,
     };
   });
+}
+
+export async function completeMergedArchiveReplay(input: {
+  store: Store;
+  changeId: string;
+  finalization: ShippedFinalization;
+  existingBundlePath: string;
+}): Promise<ArchiveReleaseGateResult> {
+  return completeArchivedBundleRelease(input);
 }
 
 export async function verifyReleaseGateDurableForArchive(input: {

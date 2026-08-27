@@ -8,6 +8,7 @@ import type { Store } from "../../storage/store";
 import type { Change, Gates } from "../../types";
 import {
   buildReleaseCompletionEvidence,
+  detectMergedArchiveReplay,
   getArchiveGatePreflightError,
   resolveArchiveGateState,
   verifyReleaseGateDurableForArchive,
@@ -66,6 +67,119 @@ async function writeDiskChange(
 }
 
 describe("archive-gate disk projection", () => {
+  it("proves a merged replay and its committed tracked bundle before writers", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-archive-replay-"));
+    try {
+      const archiveDir = join(root, "archive");
+      const bundlePath = join(archiveDir, "2026-08-08-example");
+      const change = {
+        ...makeChange("archived"),
+        phase9_status: {
+          status: "pending_merge" as const,
+          startedAt: "2026-08-08T00:00:00Z",
+          repo: "owner/repo",
+          prNumber: 42,
+          changeTipSha: "a".repeat(40),
+          preArchiveTipSha: "b".repeat(40),
+        },
+      };
+      await mkdir(bundlePath, { recursive: true });
+      await writeFile(join(bundlePath, "change.json"), JSON.stringify(change));
+
+      const runGit = vi.fn((_: string, args: string[]) => {
+        if (args[0] === "remote")
+          return {
+            status: 0,
+            stdout: "https://github.com/owner/repo.git",
+            stderr: "",
+          };
+        if (args[0] === "symbolic-ref")
+          return { status: 0, stdout: "origin/trunk", stderr: "" };
+        if (args[0] === "fetch" || args[0] === "ls-remote")
+          return { status: 0, stdout: "default-sha", stderr: "" };
+        if (args[0] === "rev-parse")
+          return { status: 0, stdout: "default-sha", stderr: "" };
+        if (args[0] === "merge-base")
+          return { status: 0, stdout: "", stderr: "" };
+        if (args[0] === "ls-tree")
+          return {
+            status: 0,
+            stdout: ".adv/archive/2026-08-08-example/change.json\n",
+            stderr: "",
+          };
+        if (args[0] === "show")
+          return { status: 0, stdout: JSON.stringify(change), stderr: "" };
+        return { status: 0, stdout: "", stderr: "" };
+      });
+      const runGh = vi.fn((_: string, args: string[]) => {
+        if (args[0] === "api") return { status: 0, stdout: "[]", stderr: "" };
+        if (args[0] === "pr" && args[1] === "view")
+          return {
+            status: 0,
+            stdout: JSON.stringify({
+              state: "MERGED",
+              mergedAt: "2026-08-08T00:01:00Z",
+              mergeCommit: { oid: "merge-sha" },
+              autoMergeRequest: null,
+            }),
+            stderr: "",
+          };
+        return {
+          status: 0,
+          stdout: JSON.stringify([
+            {
+              number: 42,
+              url: "https://github.com/owner/repo/pull/42",
+              state: "MERGED",
+              mergedAt: "2026-08-08T00:01:00Z",
+              mergeCommit: { oid: "merge-sha" },
+              headRefName: "change/example",
+              headRefOid: "a".repeat(40),
+              baseRefName: "trunk",
+              headRepositoryOwner: { login: "owner" },
+              headRepository: { name: "repo", nameWithOwner: "owner/repo" },
+              isCrossRepository: false,
+            },
+          ]),
+          stderr: "",
+        };
+      });
+
+      const result = await detectMergedArchiveReplay({
+        store: Object.assign(makeStore(root, change.gates), {
+          paths: {
+            root,
+            changes: root,
+            archive: archiveDir,
+          },
+        }),
+        changeId: "example",
+        archiveMode: "pr",
+        change,
+        deps: { runGit, runGh },
+      });
+
+      expect(result).toMatchObject({
+        kind: "verified_merged_replay",
+        existingBundlePath: bundlePath,
+        finalization: {
+          status: "shipped",
+          repo: "owner/repo",
+          prHeadSha: "a".repeat(40),
+          defaultBranch: "trunk",
+          defaultBranchSha: "default-sha",
+          releasedCommitSha: "merge-sha",
+        },
+      });
+      expect(runGit).not.toHaveBeenCalledWith(
+        expect.any(String),
+        expect.arrayContaining(["commit"]),
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("records exact PR and current default reachability in durable evidence", () => {
     const evidence = buildReleaseCompletionEvidence({
       status: "shipped",

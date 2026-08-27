@@ -29,6 +29,8 @@ const mocks = vi.hoisted(() => ({
   getArchiveGatePreflightError: vi.fn(),
   verifyReleaseEvidenceFromMain: vi.fn(),
   reconcileArchivedBundleRetry: vi.fn(),
+  detectMergedArchiveReplay: vi.fn(),
+  completeMergedArchiveReplay: vi.fn(),
   completeReleaseGateAfterFinalization: vi.fn(),
   verifyReleaseGateDurableForArchive: vi.fn(),
   projectEpicTerminalSummaryAfterArchive: vi.fn(),
@@ -104,6 +106,8 @@ vi.mock("./archive-gate", async (importOriginal) => {
     getArchiveGatePreflightError: mocks.getArchiveGatePreflightError,
     verifyReleaseEvidenceFromMain: mocks.verifyReleaseEvidenceFromMain,
     reconcileArchivedBundleRetry: mocks.reconcileArchivedBundleRetry,
+    detectMergedArchiveReplay: mocks.detectMergedArchiveReplay,
+    completeMergedArchiveReplay: mocks.completeMergedArchiveReplay,
     completeReleaseGateAfterFinalization:
       mocks.completeReleaseGateAfterFinalization,
     verifyReleaseGateDurableForArchive:
@@ -344,6 +348,12 @@ describe("adv_change_archive partial archive-delta repair", () => {
     mocks.reconcileArchivedBundleRetry.mockResolvedValue(
       JSON.stringify({ success: true, noOp: true }),
     );
+    mocks.detectMergedArchiveReplay.mockResolvedValue({ kind: "none" });
+    mocks.completeMergedArchiveReplay.mockResolvedValue({
+      ok: true,
+      gate: { status: "done" },
+      alreadyDone: false,
+    });
     mocks.validateArchiveDeltaRepairWorktree.mockReturnValue({
       valid: true,
       repoRoot: "/repo",
@@ -443,6 +453,65 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   }
+
+  it("completes a proven merged replay before selecting archive writers", async () => {
+    const change = makeChange({
+      phase9_status: {
+        status: "pending_merge",
+        startedAt: "2026-08-08T00:00:00Z",
+        repo: "owner/repo",
+        prNumber: 42,
+        prHeadSha: "pr-head-sha",
+        defaultBranchSha: "default-sha",
+      },
+    });
+    mocks.detectMergedArchiveReplay.mockResolvedValue({
+      kind: "verified_merged_replay",
+      existingBundlePath: BUNDLE_PATH,
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "pr_manual",
+        repo: "owner/repo",
+        prNumber: 42,
+        prBranch: `change/${CHANGE_ID}`,
+        prHeadSha: "pr-head-sha",
+        mergeCommitSha: "merge-sha",
+        defaultBranchSha: "default-sha",
+        releasedCommitSha: "merge-sha",
+        pushStatus: "skipped",
+      },
+    });
+    const store = makeStore(change);
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      { changeId: CHANGE_ID, phase9: "run" },
+      store,
+    );
+
+    expect(parseResult(result)).toMatchObject({
+      success: true,
+      mergedReplay: true,
+      archivePath: BUNDLE_PATH,
+    });
+    expect(mocks.completeMergedArchiveReplay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changeId: CHANGE_ID,
+        existingBundlePath: BUNDLE_PATH,
+      }),
+    );
+    expect(mocks.findArchiveBundle).not.toHaveBeenCalled();
+    expect(mocks.reconcileInRepoArchive).not.toHaveBeenCalled();
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+    expect(mocks.coordinateChangeMutation).not.toHaveBeenCalled();
+    expect(
+      mocks.refreshArchiveBundleProjectionUnderLock,
+    ).not.toHaveBeenCalled();
+    expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
 
   it("proceeds for a partial archive with exact bundle, failed phase9, all gates done, approval, and a valid repair worktree", async () => {
     const change = makeChange();
@@ -874,6 +943,12 @@ describe("adv_change_archive zero-delta bundle creation", () => {
       route: "direct",
       releasedCommitSha: "released-sha",
       pushStatus: "pushed",
+    });
+    mocks.detectMergedArchiveReplay.mockResolvedValue({ kind: "none" });
+    mocks.completeMergedArchiveReplay.mockResolvedValue({
+      ok: true,
+      gate: { status: "done" },
+      alreadyDone: false,
     });
     mocks.coordinateChangeMutation.mockImplementation(async ({ intent }) => ({
       kind: "verified",

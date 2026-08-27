@@ -21,6 +21,9 @@ import {
   buildFailedPhase9Classification,
   recordPhase9Status,
   projectEpicTerminalSummaryAfterArchive,
+  detectMergedArchiveReplay,
+  completeMergedArchiveReplay,
+  verifyExistingBundleIdentity,
   verifyReleaseEvidenceFromMain,
   type ArchiveReleaseGateResult,
   verifyReleaseGateDurableForArchive,
@@ -102,71 +105,6 @@ function isClosedLifecycle(change: Change): boolean {
 function hasPriorPhase9ArchiveEvidence(change: Change): boolean {
   const status = change.phase9_status?.status;
   return status === "failed" || status === "pending_merge";
-}
-
-async function verifyExistingBundleIdentity(
-  existingBundlePath: string,
-  change: Change,
-): Promise<
-  | { ok: true; manifest: Awaited<ReturnType<typeof readProjectionManifest>> }
-  | { ok: false; reason: string }
-> {
-  const manifest = await readProjectionManifest(existingBundlePath);
-  if (!manifest) {
-    return {
-      ok: false,
-      reason: "Archive bundle has no valid projection manifest",
-    };
-  }
-  if (manifest.change_id !== change.id) {
-    return {
-      ok: false,
-      reason: `Bundle change_id ${manifest.change_id} does not match ${change.id}`,
-    };
-  }
-  const expectedDeltaSha = canonicalSha256(change.deltas);
-  if (manifest.delta_set_sha256 !== expectedDeltaSha) {
-    return {
-      ok: false,
-      reason: "Bundle delta_set_sha256 does not match accepted deltas",
-    };
-  }
-  const expectedCapabilities = Object.entries(change.deltas)
-    .filter(([, deltas]) => deltas.length > 0)
-    .map(([capability, deltas]) => ({
-      capability,
-      deltaIds: deltas
-        .map((delta) => delta.id)
-        .sort((left, right) => left.localeCompare(right)),
-    }))
-    .sort((left, right) => left.capability.localeCompare(right.capability));
-  const manifestCapabilities = [...manifest.capabilities]
-    .map((capability) => ({
-      capability: capability.capability,
-      deltaIds: capability.dispositions
-        .map((disposition) => disposition.deltaId)
-        .sort((left, right) => left.localeCompare(right)),
-    }))
-    .sort((left, right) => left.capability.localeCompare(right.capability));
-  if (
-    manifestCapabilities.length !== expectedCapabilities.length ||
-    manifestCapabilities.some(
-      (capability, index) =>
-        capability.capability !== expectedCapabilities[index]?.capability ||
-        capability.deltaIds.length !==
-          expectedCapabilities[index]?.deltaIds.length ||
-        capability.deltaIds.some(
-          (deltaId, deltaIndex) =>
-            deltaId !== expectedCapabilities[index]?.deltaIds[deltaIndex],
-        ),
-    )
-  ) {
-    return {
-      ok: false,
-      reason: "Bundle does not account for the exact accepted delta IDs",
-    };
-  }
-  return { ok: true, manifest };
 }
 
 export const advChangeArchiveHandler = async (
@@ -352,6 +290,55 @@ export const advChangeArchiveHandler = async (
         contractProofErrors: proofErrors,
         changeId,
       });
+
+    const mergedReplay = await detectMergedArchiveReplay({
+      store: activeStore,
+      changeId,
+      archiveMode,
+      change,
+    });
+    if (mergedReplay.kind === "verified_merged_replay") {
+      if (dryRun)
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          changeId,
+          mergedReplay: true,
+          noOp: true,
+          archivePath: mergedReplay.existingBundlePath,
+          finalization: mergedReplay.finalization,
+          message:
+            "Merged archive replay is proven; canonical completion is ready and tracked files remain unchanged.",
+        });
+      const completion = await completeMergedArchiveReplay({
+        store: activeStore,
+        changeId,
+        finalization: mergedReplay.finalization,
+        existingBundlePath: mergedReplay.existingBundlePath,
+      });
+      if (!completion.ok)
+        return formatToolOutput({
+          success: false,
+          error: `Merged archive replay completion blocked: ${completion.error}`,
+          requirement: "rq-archiveTerminalDurability01.7",
+          changeId,
+          archivePath: mergedReplay.existingBundlePath,
+          finalization: mergedReplay.finalization,
+        });
+      return formatToolOutput({
+        success: true,
+        changeId,
+        mergedReplay: true,
+        noOp: completion.alreadyDone,
+        archivePath: mergedReplay.existingBundlePath,
+        finalization: mergedReplay.finalization,
+        releaseGate: completion.gate,
+        releaseGateAlreadyDone: completion.alreadyDone,
+        message:
+          "Merged archive replay completed canonical terminal state without repeating tracked writers or finalization.",
+        ...openOpsObligationsPayload,
+      });
+    }
 
     const inRepoBase = worktreePath ?? activeStore.paths.root;
     const inRepoArchive = join(inRepoBase, ".adv", "archive");
