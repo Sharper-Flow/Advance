@@ -1,6 +1,6 @@
 # Advance Workflow
 
-> **Version:** 1.47.2
+> **Version:** 1.47.3
 > **Updated:** 2026-08-27
 
 ## Purpose
@@ -876,19 +876,22 @@ Archive MUST prove the terminal transition through the authoritative disk projec
 
 #### Scenarios
 
-**Terminal projection and surviving bundle converge before removal** (`rq-archiveTerminalDurability01.1`)
+**Every shipped route refreshes only the canonical bundle after release proof** (`rq-archiveTerminalDurability01.1`)
 
 **Given:**
-- A normal archive has written its bundle before release completion, or an existing-bundle retry has no active projection
-- The surviving bundle does not yet contain the final release and Phase 9 projection
+- A direct, no_remote, PR manual, PR auto-merge, merge-queue, merged-replay, existing-bundle retry, or archive-delta repair route has structural release proof
+- The route must record terminal release, Phase 9, or archived-lifecycle facts
 
-**When:** adv_change_archive reaches terminal projection or existing-bundle reconciliation
+**When:** The route performs terminal refresh after release proof
 
 **Then:**
-- Normal archive writes synchronize the committed terminal projection into the surviving bundle before active projection removal
-- Existing-bundle reconciliation commits release and Phase 9 together against the bundle without recreating active state
+- The terminal refresh accepts only the canonical external bundle path
+- The tracked in-repository bundle remains byte-identical after its release commit
+- No post-finalization helper accepts or reconstructs a tracked terminal-refresh target
+- Canonical release-gate and archived-lifecycle refreshes remain separate, ordered writes
+- Pre-release archive preparation continues to write the tracked bundle before the release commit
 - Projection-derived files are regenerated through the canonical archive writer while preserving archived_at and existing spec, narrative, wisdom, and multi-repository sidecars
-- A failed or unverified bundle refresh blocks retirement side effects
+- A failed or unverified canonical refresh blocks retirement side effects
 
 **Post-save proof fails closed when the change projection cannot be verified** (`rq-archiveTerminalDurability01.2`)
 
@@ -966,17 +969,19 @@ Archive MUST prove the terminal transition through the authoritative disk projec
 - Replay records release, Phase 9, and archived lifecycle facts only in the canonical external bundle
 - Replay preserves the tracked bundle and all spec files byte-for-byte
 
-**Shared shipped completion cleans up once and makes replay a no-op** (`rq-archiveTerminalDurability01.8`)
+**Shared shipped completion refreshes only canonical state and makes replay write-free** (`rq-archiveTerminalDurability01.8`)
 
 **Given:**
-- Normal finalization ships or merged replay completes canonical terminal refresh
+- Normal finalization ships or merged replay completes structural release proof and canonical terminal refresh
 
 **When:** The shared shipped-completion seam runs
 
 **Then:**
+- Shared shipped completion refreshes only the canonical external bundle after finalization
+- Shared shipped completion never writes or reconstructs a tracked terminal-refresh target
 - Worktree cleanup runs once through advWorktreeDelete
 - A safe refusal returns a typed retained-cleanup disposition without undoing archived status
-- Exact replay is a no-op that does not repeat finalization, issue closure, cleanup, or tracked writers
+- Exact replay is write-free and does not repeat finalization, issue closure, cleanup, or terminal refresh
 
 ---
 

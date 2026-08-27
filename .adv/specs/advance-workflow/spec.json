@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.47.2",
-  "updated_at": "2026-08-27T06:00:14.000Z",
+  "version": "1.47.3",
+  "updated_at": "2026-08-27T23:54:47.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -978,17 +978,20 @@
       "scenarios": [
         {
           "id": "rq-archiveTerminalDurability01.1",
-          "title": "Terminal projection and surviving bundle converge before removal",
+          "title": "Every shipped route refreshes only the canonical bundle after release proof",
           "given": [
-            "A normal archive has written its bundle before release completion, or an existing-bundle retry has no active projection",
-            "The surviving bundle does not yet contain the final release and Phase 9 projection"
+            "A direct, no_remote, PR manual, PR auto-merge, merge-queue, merged-replay, existing-bundle retry, or archive-delta repair route has structural release proof",
+            "The route must record terminal release, Phase 9, or archived-lifecycle facts"
           ],
-          "when": "adv_change_archive reaches terminal projection or existing-bundle reconciliation",
+          "when": "The route performs terminal refresh after release proof",
           "then": [
-            "Normal archive writes synchronize the committed terminal projection into the surviving bundle before active projection removal",
-            "Existing-bundle reconciliation commits release and Phase 9 together against the bundle without recreating active state",
+            "The terminal refresh accepts only the canonical external bundle path",
+            "The tracked in-repository bundle remains byte-identical after its release commit",
+            "No post-finalization helper accepts or reconstructs a tracked terminal-refresh target",
+            "Canonical release-gate and archived-lifecycle refreshes remain separate, ordered writes",
+            "Pre-release archive preparation continues to write the tracked bundle before the release commit",
             "Projection-derived files are regenerated through the canonical archive writer while preserving archived_at and existing spec, narrative, wisdom, and multi-repository sidecars",
-            "A failed or unverified bundle refresh blocks retirement side effects"
+            "A failed or unverified canonical refresh blocks retirement side effects"
           ]
         },
         {
@@ -1075,15 +1078,17 @@
         },
         {
           "id": "rq-archiveTerminalDurability01.8",
-          "title": "Shared shipped completion cleans up once and makes replay a no-op",
+          "title": "Shared shipped completion refreshes only canonical state and makes replay write-free",
           "given": [
-            "Normal finalization ships or merged replay completes canonical terminal refresh"
+            "Normal finalization ships or merged replay completes structural release proof and canonical terminal refresh"
           ],
           "when": "The shared shipped-completion seam runs",
           "then": [
+            "Shared shipped completion refreshes only the canonical external bundle after finalization",
+            "Shared shipped completion never writes or reconstructs a tracked terminal-refresh target",
             "Worktree cleanup runs once through advWorktreeDelete",
             "A safe refusal returns a typed retained-cleanup disposition without undoing archived status",
-            "Exact replay is a no-op that does not repeat finalization, issue closure, cleanup, or tracked writers"
+            "Exact replay is write-free and does not repeat finalization, issue closure, cleanup, or terminal refresh"
           ]
         }
       ]
