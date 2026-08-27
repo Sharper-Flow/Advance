@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, cleanup eligibility tracking, and bounded cleanup.",
-  "version": "1.11.0",
-  "updated_at": "2026-08-08T16:42:08.507Z",
+  "version": "1.11.1",
+  "updated_at": "2026-08-27T06:00:14.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -283,7 +283,7 @@
     {
       "id": "rq-terminalCleanupReaper01",
       "title": "Terminal Worktree Cleanup Reaper",
-      "body": "ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. All deletion attempts must delegate to advWorktreeDelete.",
+      "body": "ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. A shipped archive MUST automatically invoke the shared terminal cleanup reaper for the exact change worktree. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. Cleanup refusal MUST remain non-destructive and MUST NOT activate PR branch deletion. All deletion attempts must delegate to advWorktreeDelete.",
       "priority": "must",
       "tags": [
         "worktree",
@@ -315,13 +315,26 @@
             "Only already-known pending deletes are drained",
             "Full terminal discovery is not executed during startup"
           ]
+        },
+        {
+          "id": "rq-terminalCleanupReaper01.3",
+          "title": "Shipped archive invokes safe exact-worktree cleanup",
+          "given": [
+            "Archive finalization has verified shipped proof for the exact change and worktree"
+          ],
+          "when": "Archive completion runs",
+          "then": [
+            "The shared reaper delegates cleanup to advWorktreeDelete",
+            "A safe refusal records a typed retained disposition while the change remains archived",
+            "No automatic local or remote PR branch deletion runs"
+          ]
         }
       ]
     },
     {
       "id": "rq-terminalCleanupSafety01",
       "title": "Terminal Cleanup Safety Gate",
-      "body": "Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority. The local CWD scan (isWorktreeInUse) is the sole safety authority for the \"no live process CWD\" portion of this requirement. The remote OpenCode workspace-list API is advisory: when reachable, it cleans up stale workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.",
+      "body": "Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. Archive-owned historical recovery is permitted only when exact PR identity, terminal status, path allowlists, canonical hashes, and mode-specific ancestry all verify. Generic force MUST NOT activate historical recovery. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority. The local CWD scan (isWorktreeInUse) is the sole safety authority for the \"no live process CWD\" portion of this requirement. The remote OpenCode workspace-list API is advisory: when reachable, it cleans up stale workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.",
       "priority": "must",
       "tags": [
         "worktree",
@@ -363,6 +376,32 @@
           "then": [
             "Deletion proceeds without retaining the worktree",
             "A warning is logged with the remote failure reason"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupSafety01.4",
+          "title": "Archive-owned historical recovery binds mode-specific ancestry",
+          "given": [
+            "A clean archived worktree has local commits after the merged PR head",
+            "Every changed path after the PR head is archive-owned and matches canonical bundle bytes"
+          ],
+          "when": "Archive-owned recovery planning runs",
+          "then": [
+            "PR-mode proof requires the PR head to be an ancestor of local HEAD",
+            "Normal cleanup continues to require local HEAD to be integrated into the PR head",
+            "The signed plan binds the exact recovery proof and the executor revalidates it under the cleanup lease"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupSafety01.5",
+          "title": "Unsafe archive cleanup retains bounded blocker evidence",
+          "given": [
+            "Dirty, ambiguous, expired, drifted, locked, in-use, hash-mismatched, path-mismatched, or unproven state"
+          ],
+          "when": "Automatic archive cleanup runs",
+          "then": [
+            "Deletion refuses without filesystem removal or branch deletion",
+            "The returned disposition identifies the retained blocker with bounded evidence"
           ]
         }
       ]
@@ -954,7 +993,7 @@
     {
       "id": "rq-worktreeDeletionProtocol01",
       "title": "Bounded Git-Authoritative Worktree Deletion Protocol",
-      "body": "Worktree deletion MUST use Git worktree census as existence and identity authority, produce a typed expiring plan before destructive apply, revalidate every safety fact under a liveness-aware repository lock, and enforce one cancellable end-to-end deadline. Registry state is advisory metadata and MUST NOT be required to discover a Git-owned worktree. Timeout responses MUST be terminal: no child process, Git removal, hook, or registry mutation may continue after response.",
+      "body": "Worktree deletion MUST use Git worktree census as existence and identity authority, produce a typed expiring plan before destructive apply, revalidate every safety fact under a liveness-aware repository lock, and enforce one cancellable end-to-end deadline. Archive-owned historical recovery MUST be an explicit signed-plan mode. The plan token MUST bind merge identity, PR head, local head, ancestry direction, changed paths, canonical hashes, and terminal proof. Apply MUST revalidate every bound fact. Registry state is advisory metadata and MUST NOT be required to discover a Git-owned worktree. Timeout responses MUST be terminal: no child process, Git removal, hook, or registry mutation may continue after response.",
       "priority": "must",
       "tags": [
         "worktree",
@@ -1014,6 +1053,19 @@
             "All use the same planner and executor",
             "Only lifecycle-specific terminal proof differs",
             "Repeated apply returns already absent"
+          ]
+        },
+        {
+          "id": "rq-worktreeDeletionProtocol01.5",
+          "title": "Historical recovery revalidates the signed plan under lease",
+          "given": [
+            "A valid archive-owned historical recovery plan"
+          ],
+          "when": "Apply runs under the repository cleanup lease",
+          "then": [
+            "Apply revalidates every bound merge, ancestry, path, hash, cleanliness, CWD, lock, deadline, and terminal fact",
+            "Any mismatch returns a typed refusal or drift result before git worktree remove",
+            "force:true without the signed recovery plan cannot select this mode"
           ]
         }
       ]

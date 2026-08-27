@@ -1,7 +1,7 @@
 # Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation
 
-> **Version:** 1.10.0
-> **Updated:** 2026-08-08
+> **Version:** 1.11.1
+> **Updated:** 2026-08-27
 
 ## Purpose
 
@@ -265,7 +265,7 @@ Registry entries must track cleanupEligible and cleanupBlockedBy fields. Entries
 
 **ID:** `rq-terminalCleanupReaper01` | **Priority:** **[MUST]**
 
-ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. All deletion attempts must delegate to advWorktreeDelete.
+ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. A shipped archive MUST automatically invoke the shared terminal cleanup reaper for the exact change worktree. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. Cleanup refusal MUST remain non-destructive and MUST NOT activate PR branch deletion. All deletion attempts must delegate to advWorktreeDelete.
 
 **Tags:** `worktree`, `cleanup`, `terminal`, `reaper`
 
@@ -293,13 +293,25 @@ ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. 
 - Only already-known pending deletes are drained
 - Full terminal discovery is not executed during startup
 
+**Shipped archive invokes safe exact-worktree cleanup** (`rq-terminalCleanupReaper01.3`)
+
+**Given:**
+- Archive finalization has verified shipped proof for the exact change and worktree
+
+**When:** Archive completion runs
+
+**Then:**
+- The shared reaper delegates cleanup to advWorktreeDelete
+- A safe refusal records a typed retained disposition while the change remains archived
+- No automatic local or remote PR branch deletion runs
+
 ---
 
 ### Terminal Cleanup Safety Gate
 
 **ID:** `rq-terminalCleanupSafety01` | **Priority:** **[MUST]**
 
-Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority. The local CWD scan (isWorktreeInUse) is the sole safety authority for the "no live process CWD" portion of this requirement. The remote OpenCode workspace-list API is advisory: when reachable, it cleans up stale workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.
+Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. Archive-owned historical recovery is permitted only when exact PR identity, terminal status, path allowlists, canonical hashes, and mode-specific ancestry all verify. Generic force MUST NOT activate historical recovery. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority. The local CWD scan (isWorktreeInUse) is the sole safety authority for the "no live process CWD" portion of this requirement. The remote OpenCode workspace-list API is advisory: when reachable, it cleans up stale workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.
 
 **Tags:** `worktree`, `cleanup`, `safety`
 
@@ -337,6 +349,30 @@ Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktr
 **Then:**
 - Deletion proceeds without retaining the worktree
 - A warning is logged with the remote failure reason
+
+**Archive-owned historical recovery binds mode-specific ancestry** (`rq-terminalCleanupSafety01.4`)
+
+**Given:**
+- A clean archived worktree has local commits after the merged PR head
+- Every changed path after the PR head is archive-owned and matches canonical bundle bytes
+
+**When:** Archive-owned recovery planning runs
+
+**Then:**
+- PR-mode proof requires the PR head to be an ancestor of local HEAD
+- Normal cleanup continues to require local HEAD to be integrated into the PR head
+- The signed plan binds the exact recovery proof and the executor revalidates it under the cleanup lease
+
+**Unsafe archive cleanup retains bounded blocker evidence** (`rq-terminalCleanupSafety01.5`)
+
+**Given:**
+- Dirty, ambiguous, expired, drifted, locked, in-use, hash-mismatched, path-mismatched, or unproven state
+
+**When:** Automatic archive cleanup runs
+
+**Then:**
+- Deletion refuses without filesystem removal or branch deletion
+- The returned disposition identifies the retained blocker with bounded evidence
 
 ---
 
@@ -882,7 +918,7 @@ Git subprocesses on the cleanup discovery path must each be bounded strictly bel
 
 **ID:** `rq-worktreeDeletionProtocol01` | **Priority:** **[MUST]**
 
-Worktree deletion MUST use Git worktree census as existence and identity authority, produce a typed expiring plan before destructive apply, revalidate every safety fact under a liveness-aware repository lock, and enforce one cancellable end-to-end deadline. Registry state is advisory metadata and MUST NOT be required to discover a Git-owned worktree. Timeout responses MUST be terminal: no child process, Git removal, hook, or registry mutation may continue after response.
+Worktree deletion MUST use Git worktree census as existence and identity authority, produce a typed expiring plan before destructive apply, revalidate every safety fact under a liveness-aware repository lock, and enforce one cancellable end-to-end deadline. Archive-owned historical recovery MUST be an explicit signed-plan mode. The plan token MUST bind merge identity, PR head, local head, ancestry direction, changed paths, canonical hashes, and terminal proof. Apply MUST revalidate every bound fact. Registry state is advisory metadata and MUST NOT be required to discover a Git-owned worktree. Timeout responses MUST be terminal: no child process, Git removal, hook, or registry mutation may continue after response.
 
 **Tags:** `worktree`, `cleanup`, `safety`, `deadline`, `cancellation`
 
@@ -935,5 +971,76 @@ Worktree deletion MUST use Git worktree census as existence and identity authori
 - All use the same planner and executor
 - Only lifecycle-specific terminal proof differs
 - Repeated apply returns already absent
+
+**Historical recovery revalidates the signed plan under lease** (`rq-worktreeDeletionProtocol01.5`)
+
+**Given:**
+- A valid archive-owned historical recovery plan
+
+**When:** Apply runs under the repository cleanup lease
+
+**Then:**
+- Apply revalidates every bound merge, ancestry, path, hash, cleanliness, CWD, lock, deadline, and terminal fact
+- Any mismatch returns a typed refusal or drift result before git worktree remove
+- force:true without the signed recovery plan cannot select this mode
+
+---
+
+### Archive-Directory-First Archived Classification
+
+**ID:** `rq-archivedBranchCleanupInversion01` | **Priority:** **[MUST]**
+
+The archived_branches cleanup scan MUST classify local change/* branches as archived by names-only directory membership in the target-routed archive directory (a single readdir of store.paths.archive) BEFORE any per-id change-status lookup. Archive-directory membership is authoritative archived evidence and MUST override stale active projections. per-id store.changes.get lookups are permitted ONLY for residual (non-member) ids and MUST keep the fail-closed omission mapping; store.changes.list remains forbidden. If the archive directory read fails, the scan MUST degrade to the per-id path with a recorded warning rather than crash. The classification MUST complete within the rq-worktreeBoundedCleanup02 safe budget for portfolios of at least 100 local change branches.
+
+**Tags:** `worktree`, `cleanup`, `archive`, `performance`
+
+#### Scenarios
+
+**Archive membership overrides stale draft projection** (`rq-archivedBranchCleanupInversion01.1`)
+
+**Given:**
+- a local change/* branch whose changeId has a directory in the archive store
+- the active projection still reports status draft
+
+**When:** an archived_branches full scan runs
+
+**Then:**
+- the branch is classified archived (a deletion candidate)
+- no not_archived omission is emitted for it
+- store.changes.get is not called for it
+
+**Residual ids keep fail-closed mapping** (`rq-archivedBranchCleanupInversion01.2`)
+
+**Given:**
+- a local change/* branch whose changeId is absent from the archive directory
+
+**When:** the per-id residual lookup returns null or a load failure
+
+**Then:**
+- the branch is omitted with lookup_failed (never a candidate)
+- store.changes.list is not called
+
+**Scale within safe budget** (`rq-archivedBranchCleanupInversion01.3`)
+
+**Given:**
+- at least 100 local change branches of which at least 90 are archive members
+
+**When:** a full archived_branches scan runs under the default 8s safe budget
+
+**Then:**
+- the scan completes without partial, or reports partial only with honest deadline_exceeded labels
+- no archived member is mislabeled not_archived
+
+**Archive read failure degrades safely** (`rq-archivedBranchCleanupInversion01.4`)
+
+**Given:**
+- the archive directory readdir raises an error
+
+**When:** the scan builds archived candidates
+
+**Then:**
+- the scan falls back to the per-id lookup path
+- a warning records the fallback
+- the scan does not crash
 
 ---

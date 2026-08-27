@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.47.1
-> **Updated:** 2026-08-18
+> **Version:** 1.47.2
+> **Updated:** 2026-08-27
 
 ## Purpose
 
@@ -451,7 +451,7 @@ When a user explicitly grants merge authority for the current ADV change and req
 
 **ID:** `rq-releaseFinalization01` | **Priority:** **[MUST]**
 
-Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update the shared default-branch ref. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. A local bare origin is a valid remote route and is treated as `direct`. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. Release reachability MUST distinguish an unresolvable change ref from unmerged commits: when the change ref cannot be resolved to a commit, the archive MUST block with a reason distinct from the unmerged-commit reason, and git ref-resolution failure output MUST NOT be recorded as unmerged-commit evidence. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
+Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update the shared default-branch ref. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. A local bare origin is a valid remote route and is treated as `direct`. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. The operator-only `bin/adv doctor` command must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. Release reachability MUST distinguish an unresolvable change ref from unmerged commits: when the change ref cannot be resolved to a commit, the archive MUST block with a reason distinct from the unmerged-commit reason, and git ref-resolution failure output MUST NOT be recorded as unmerged-commit evidence. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
 
 **Tags:** `workflow`, `archive`, `worktree`, `git`
 
@@ -603,7 +603,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - The branch is not reachable from post-fetch `origin/{default-branch}`
 - The branch appears archived or otherwise stranded
 
-**When:** `adv_doctor` scans or re-drives the branch
+**When:** The operator-only `bin/adv doctor` command scans or re-drives the branch
 
 **Then:**
 - Scan reports the archived-but-unmerged branch with release-proof diagnostics
@@ -870,7 +870,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 
 **ID:** `rq-archiveTerminalDurability01` | **Priority:** **[MUST]**
 
-Archive MUST prove the terminal transition through the authoritative disk projection before reporting success. The archive bundle, release-gate completion, and projection lifecycle state MUST agree; commitChangeProjection’s in-lock readback and revision/operation-identity proof MUST be used for recovery. Missing or contradictory proof MUST fail closed with a typed blocker, and reconciliation MUST surface typed skip reasons without writing status directly.
+Archive MUST prove the terminal transition through the authoritative disk projection before reporting success. A verified merged replay MUST select merged proof before any tracked archive or spec writer runs. Post-merge terminal updates MUST write only the canonical external bundle, and the tracked in-repository projection MUST remain frozen after release integration. The archive bundle, release-gate completion, and projection lifecycle state MUST agree; commitChangeProjection’s in-lock readback and revision/operation-identity proof MUST be used for recovery. Missing or contradictory proof MUST fail closed with a typed blocker, and reconciliation MUST surface typed skip reasons without writing status directly.
 
 **Tags:** `change projection`, `archive`, `terminal-state`, `durability`, `recovery`, `read-model`
 
@@ -954,13 +954,37 @@ Archive MUST prove the terminal transition through the authoritative disk projec
 - Skip reasons are observable through the existing doctor and startup diagnostic surfaces
 - Reconciliation converges through the existing terminal authority and never writes status directly
 
+**Merged replay selects canonical terminal authority before tracked writers** (`rq-archiveTerminalDurability01.7`)
+
+**Given:**
+- A pending archive PR is structurally proven merged, the tracked in-repository bundle is reachable from the released commit, and the canonical bundle lacks final release facts
+
+**When:** The same archive command replays
+
+**Then:**
+- Replay detects merged proof before archiveChange or reconcileInRepoArchive can write
+- Replay records release, Phase 9, and archived lifecycle facts only in the canonical external bundle
+- Replay preserves the tracked bundle and all spec files byte-for-byte
+
+**Shared shipped completion cleans up once and makes replay a no-op** (`rq-archiveTerminalDurability01.8`)
+
+**Given:**
+- Normal finalization ships or merged replay completes canonical terminal refresh
+
+**When:** The shared shipped-completion seam runs
+
+**Then:**
+- Worktree cleanup runs once through advWorktreeDelete
+- A safe refusal returns a typed retained-cleanup disposition without undoing archived status
+- Exact replay is a no-op that does not repeat finalization, issue closure, cleanup, or tracked writers
+
 ---
 
 ### Archive Recovery Requires Structural Proof and Readback Consistency
 
 **ID:** `rq-archiveRecoveryConsistency01` | **Priority:** **[MUST]**
 
-Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. Status-repair success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery is consolidated through `adv_doctor`, which diagnoses the release-stuck projection and applies the safe repair path; batch terminal-projection repair over all release-stuck candidates and single-change targeted status flip are internalized behind `adv_doctor` and gated on structural branch-merge evidence or precise change projection evidence.
+Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. Status-repair success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery is consolidated through the operator-only `bin/adv doctor` command, which diagnoses the release-stuck projection and applies the safe repair path; batch terminal-projection repair over all release-stuck candidates and single-change targeted status flip are internalized behind `bin/adv doctor` and gated on structural branch-merge evidence or precise change projection evidence.
 
 **Tags:** `change projection`, `archive`, `repair`, `status`, `target-path`
 
@@ -1131,7 +1155,7 @@ Release-repair recovery for completed or unavailable change projections MUST be 
 
 **ID:** `rq-executiveSummaryAudience01` | **Priority:** **[MUST]**
 
-ADV executive summaries MUST be written for non-technical release-approval readers while preserving audit evidence and technical traceability. Each summary MUST include the decision essentials: outcome, delivered value or why it matters, verification, risks/follow-ups, and supporting evidence. Summary guidance MUST use evidence-only impact wording: do not fabricate user or business benefit beyond proposal, agreement, task, review, harden, archive, or follow-up evidence. Unavoidable technical terms MAY appear only as parenthetical supporting detail after the plain-English meaning. The global voice contract MUST NOT compress away executive-summary or release-readiness artifact substance.
+ADV executive summaries MUST be written for non-technical release-approval readers while preserving audit evidence and technical traceability. Each summary MUST include the decision essentials: outcome, delivered value or why it matters, verification, risks/follow-ups, and supporting evidence. Summary guidance MUST use evidence-only impact wording: do not fabricate user or business benefit beyond proposal, agreement, task, review, harden, archive, or follow-up evidence. Unavoidable technical terms MAY appear only as parenthetical supporting detail after the plain-English meaning. Caveman-full voice MUST NOT compress away executive-summary or release-readiness artifact substance.
 
 **Tags:** `workflow`, `executive-summary`, `release`, `approval`, `voice`
 
@@ -1173,17 +1197,17 @@ ADV executive summaries MUST be written for non-technical release-approval reade
 - Technical terms appear as parenthetical supporting detail
 - Dense implementation jargon does not lead the summary
 
-**Voice-contract compression preserves summary substance** (`rq-executiveSummaryAudience01.4`)
+**Caveman-full preserves summary substance** (`rq-executiveSummaryAudience01.4`)
 
 **Given:**
-- Global voice-contract compression applies to runtime prose
+- Caveman-full voice compression applies to runtime prose
 - The content is executive-summary or release-readiness artifact substance
 
 **When:** The artifact is written or displayed
 
 **Then:**
-- The voice contract may make wording scannable
-- The voice contract must not compress away outcome, value, verification, risks/follow-ups, or supporting evidence
+- Caveman-full may make wording scannable
+- Caveman-full must not compress away outcome, value, verification, risks/follow-ups, or supporting evidence
 - Required approval consequence context remains visible
 
 ---
@@ -1886,8 +1910,8 @@ Acceptance and success criteria that presume a capability surface exists (a tool
 **Mint succeeds and records a warrant that resolves** (`rq-acWarrant01.2`)
 
 **Given:**
-- An approved agreement declares a criterion with [warrant: tool:adv_doctor#target_path]
-- adv_doctor exposes a target_path argument
+- An approved agreement declares a criterion with [warrant: cli:bin/adv-doctor#target_path]
+- `bin/adv doctor` exposes an equivalent target-project routing flag
 
 **When:** adv_contract_mint mints the contract
 

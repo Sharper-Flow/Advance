@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.47.1",
-  "updated_at": "2026-08-18T23:45:38.114Z",
+  "version": "1.47.2",
+  "updated_at": "2026-08-27T06:00:14.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -965,7 +965,7 @@
     {
       "id": "rq-archiveTerminalDurability01",
       "title": "Archive Terminal Transition Is Requested, Proven, and Repairable",
-      "body": "Archive MUST prove the terminal transition through the authoritative disk projection before reporting success. The archive bundle, release-gate completion, and projection lifecycle state MUST agree; commitChangeProjection’s in-lock readback and revision/operation-identity proof MUST be used for recovery. Missing or contradictory proof MUST fail closed with a typed blocker, and reconciliation MUST surface typed skip reasons without writing status directly.",
+      "body": "Archive MUST prove the terminal transition through the authoritative disk projection before reporting success. A verified merged replay MUST select merged proof before any tracked archive or spec writer runs. Post-merge terminal updates MUST write only the canonical external bundle, and the tracked in-repository projection MUST remain frozen after release integration. The archive bundle, release-gate completion, and projection lifecycle state MUST agree; commitChangeProjection’s in-lock readback and revision/operation-identity proof MUST be used for recovery. Missing or contradictory proof MUST fail closed with a typed blocker, and reconciliation MUST surface typed skip reasons without writing status directly.",
       "priority": "must",
       "tags": [
         "change projection",
@@ -1058,6 +1058,32 @@
             "A candidate with no archive evidence is skipped with a typed reason",
             "Skip reasons are observable through the existing doctor and startup diagnostic surfaces",
             "Reconciliation converges through the existing terminal authority and never writes status directly"
+          ]
+        },
+        {
+          "id": "rq-archiveTerminalDurability01.7",
+          "title": "Merged replay selects canonical terminal authority before tracked writers",
+          "given": [
+            "A pending archive PR is structurally proven merged, the tracked in-repository bundle is reachable from the released commit, and the canonical bundle lacks final release facts"
+          ],
+          "when": "The same archive command replays",
+          "then": [
+            "Replay detects merged proof before archiveChange or reconcileInRepoArchive can write",
+            "Replay records release, Phase 9, and archived lifecycle facts only in the canonical external bundle",
+            "Replay preserves the tracked bundle and all spec files byte-for-byte"
+          ]
+        },
+        {
+          "id": "rq-archiveTerminalDurability01.8",
+          "title": "Shared shipped completion cleans up once and makes replay a no-op",
+          "given": [
+            "Normal finalization ships or merged replay completes canonical terminal refresh"
+          ],
+          "when": "The shared shipped-completion seam runs",
+          "then": [
+            "Worktree cleanup runs once through advWorktreeDelete",
+            "A safe refusal returns a typed retained-cleanup disposition without undoing archived status",
+            "Exact replay is a no-op that does not repeat finalization, issue closure, cleanup, or tracked writers"
           ]
         }
       ]
