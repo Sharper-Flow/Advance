@@ -175,6 +175,31 @@ describe("shared public worktree deletion contract", () => {
     });
   });
 
+  it("does not report an existing worktree as absent when its branch fact is missing", async () => {
+    const planner = {
+      plan: vi.fn().mockResolvedValue({
+        kind: "refused",
+        reason: "branch_not_found",
+        message: "Git census contains no local branch for change/example.",
+        facts,
+        target: { repository: "/repo", cwd: "/repo" },
+        stageTimings: [],
+      }),
+    };
+
+    const result = await advWorktreeDelete(
+      facts.branch!,
+      { dryRun: true },
+      deps({ deletionPlanner: planner }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "branch_not_found",
+    });
+  });
+
   it("does not let generic force select archive-owned recovery", async () => {
     const deletionPlan = plan();
     const planner = {

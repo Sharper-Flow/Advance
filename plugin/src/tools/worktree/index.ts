@@ -1726,10 +1726,7 @@ function plannerResultToDeleteResult(
       hint: "Resolve the reported repository blocker, then request a new plan.",
     };
   }
-  if (
-    result.reason === "worktree_not_found" ||
-    result.reason === "branch_not_found"
-  )
+  if (result.reason === "worktree_not_found")
     return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
   if (result.reason === "worktree_in_use")
     return {

@@ -530,6 +530,63 @@ describe("adv_change_archive partial archive-delta repair", () => {
     });
   });
 
+  it("previews deferred cleanup without mutating a proven merged replay", async () => {
+    const change = makeChange({
+      phase9_status: {
+        status: "pending_merge",
+        startedAt: "2026-08-08T00:00:00Z",
+        repo: "owner/repo",
+        prNumber: 42,
+        prHeadSha: "pr-head-sha",
+        defaultBranchSha: "default-sha",
+      },
+    });
+    mocks.detectMergedArchiveReplay.mockResolvedValue({
+      kind: "verified_merged_replay",
+      existingBundlePath: BUNDLE_PATH,
+      trackedBundlePath: `.adv/archive/2026-08-08-${CHANGE_ID}`,
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "pr_manual",
+        repo: "owner/repo",
+        prNumber: 42,
+        prBranch: `change/${CHANGE_ID}`,
+        prHeadSha: "pr-head-sha",
+        mergeCommitSha: "merge-sha",
+        defaultBranchSha: "default-sha",
+        releasedCommitSha: "merge-sha",
+        pushStatus: "skipped",
+      },
+    });
+
+    const result = await archiveChangeTools.adv_change_archive.execute(
+      {
+        changeId: CHANGE_ID,
+        dryRun: true,
+        phase9: "run",
+        worktreePath: REPAIR_WORKTREE,
+      },
+      makeStore(change),
+    );
+
+    expect(parseResult(result)).toMatchObject({
+      success: true,
+      dryRun: true,
+      mergedReplay: true,
+      noOp: false,
+      canonicalCompletionPending: true,
+      cleanup: {
+        status: "retained",
+        branch: `change/${CHANGE_ID}`,
+        path: REPAIR_WORKTREE,
+        evidence: { classification: "dry_run_cleanup_deferred" },
+      },
+    });
+    expectNoRepairWrites();
+  });
+
   it("retains a safely refused worktree cleanup while completing archive retirement", async () => {
     const change = makeChange();
     mocks.advWorktreeDelete.mockResolvedValue({
@@ -709,7 +766,7 @@ describe("adv_change_archive partial archive-delta repair", () => {
     );
   });
 
-  it("does not repeat retirement side effects for an exact terminal replay", async () => {
+  it("does not infer cleanup success or repeat retirement side effects for an exact terminal replay", async () => {
     const change = makeChange({
       status: "archived",
       lifecycleState: "archived",
@@ -739,7 +796,13 @@ describe("adv_change_archive partial archive-delta repair", () => {
 
     expect(result).toMatchObject({
       ok: true,
-      cleanup: { status: "already_absent" },
+      cleanup: {
+        status: "retained",
+        path: REPAIR_WORKTREE,
+        evidence: {
+          classification: "terminal_replay_cleanup_not_rechecked",
+        },
+      },
     });
     expect(mocks.coordinateChangeMutation).not.toHaveBeenCalled();
     expect(mocks.projectEpicTerminalSummaryAfterArchive).not.toHaveBeenCalled();

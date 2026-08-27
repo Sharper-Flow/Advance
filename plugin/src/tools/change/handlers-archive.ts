@@ -496,20 +496,23 @@ export async function completeShippedChange(
     input.change.phase9_status?.status === "done" &&
     input.change.gates?.release?.status === "done";
   const branch = input.sourceBranch ?? `change/${input.changeId}`;
-  if (terminalAlreadyCommitted && input.terminalRefreshCompleted)
+  if (terminalAlreadyCommitted && input.terminalRefreshCompleted) {
     return {
       ok: true,
       change: input.change,
       cleanup: {
-        status: "already_absent",
+        status: "retained",
         branch,
+        ...(input.worktreePath ? { path: input.worktreePath } : {}),
         evidence: {
-          classification: "terminal_replay",
-          blocker: "Terminal completion already ran for this change.",
+          classification: "terminal_replay_cleanup_not_rechecked",
+          blocker:
+            "Terminal completion already ran, so replay did not repeat cleanup or infer absence.",
         },
       },
       errors: [],
     };
+  }
   let terminalChange = input.change;
   if (!terminalAlreadyCommitted) {
     const outcome = await coordinateChangeMutation<Change>({
@@ -870,11 +873,22 @@ export const advChangeArchiveHandler = async (
           dryRun: true,
           changeId,
           mergedReplay: true,
-          noOp: true,
+          noOp: false,
+          canonicalCompletionPending: true,
           archivePath: mergedReplay.existingBundlePath,
           finalization: mergedReplay.finalization,
+          cleanup: {
+            status: "retained",
+            branch: `change/${changeId}`,
+            ...(worktreePath ? { path: worktreePath } : {}),
+            evidence: {
+              classification: "dry_run_cleanup_deferred",
+              blocker:
+                "Cleanup planning follows the canonical terminal transition, which dry-run does not mutate.",
+            },
+          },
           message:
-            "Merged archive replay is proven; canonical completion is ready and tracked files remain unchanged.",
+            "Merged archive replay is proven; canonical completion and cleanup remain pending while tracked files stay unchanged.",
         });
       const completion = await completeMergedArchiveReplay({
         store: activeStore,
