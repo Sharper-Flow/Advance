@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-27T21:56:40.979Z",
+  "capabilities": [],
+  "change_hash": "d5d822b374a295a1b0e4a314b0963eb698f9a1cb01b229de4e6064f74387b064",
+  "change_id": "fixPostMergeArchiveCleanup",
+  "completed_tasks": 5,
+  "created_at": "2026-08-27T04:45:40.550Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-27T19:11:01.146Z",
+  "status": "archived",
+  "summary_hash": "54817f6bc8c14cc563ed1068b941a3b2c6ad2ac16679167fc4e9726a119da326",
+  "task_count": 6,
+  "title": "Fix post-merge archive cleanup",
+  "version": "1"
+}

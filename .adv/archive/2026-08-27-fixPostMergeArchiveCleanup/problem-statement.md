@@ -1,0 +1,1 @@
+PR auto-merge archive replay writes archive-owned repository state after the merged PR head. Safe cleanup then returns `UNCOMMITTED_WORK` or `INTEGRATION_REQUIRED`, but archive completion still reports success and leaves the managed worktree and branch behind.
