@@ -696,6 +696,34 @@ describe("adv_change_archive partial archive-delta repair", () => {
     },
   );
 
+  it("keeps a PR-backed direct-route branch for operator cleanup", async () => {
+    const change = makeChange();
+
+    const result = await completeShippedChange({
+      store: makeStore(change),
+      change,
+      changeId: CHANGE_ID,
+      archiveMode: "direct",
+      archivePath: BUNDLE_PATH,
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "direct",
+        pushStatus: "skipped",
+        prNumber: 42,
+        prHeadSha: "pr-head-sha",
+        mergeCommitSha: "merge-sha",
+        releasedCommitSha: "merge-sha",
+      },
+      worktreePath: REPAIR_WORKTREE,
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(result).not.toHaveProperty("branchCleanup");
+    expect(mocks.deleteChangeBranch).not.toHaveBeenCalled();
+  });
+
   it("constructs production archive recovery with separate local and PR repository identities", async () => {
     const root = mkdtempSync(join(tmpdir(), "adv-archive-recovery-"));
     const worktree = join(root, "linked");

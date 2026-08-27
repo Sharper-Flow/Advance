@@ -663,6 +663,7 @@ export async function completeShippedChange(
     input.finalization.route !== "pr_auto_merge" &&
     input.finalization.route !== "pr_manual" &&
     input.finalization.route !== "merge_queue" &&
+    !input.finalization.prNumber &&
     input.archiveMode === "direct" &&
     (cleanup.status === "deleted" || cleanup.status === "already_absent") &&
     !input.sourceBranch
