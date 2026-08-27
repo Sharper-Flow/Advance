@@ -2,6 +2,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { join } from "node:path";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
 import type { Change, Delta, Gates, Store } from "../../types";
 import type { SpecProjectionManifest } from "../../archive/projection";
 import { canonicalSha256 } from "../../archive/projection";
@@ -506,7 +509,6 @@ describe("adv_change_archive partial archive-delta repair", () => {
         existingBundlePath: BUNDLE_PATH,
       }),
     );
-    expect(mocks.findArchiveBundle).not.toHaveBeenCalled();
     expect(mocks.reconcileInRepoArchive).not.toHaveBeenCalled();
     expect(mocks.archiveChange).not.toHaveBeenCalled();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
@@ -563,6 +565,148 @@ describe("adv_change_archive partial archive-delta repair", () => {
     });
     expect(mocks.coordinateChangeMutation).toHaveBeenCalledTimes(1);
     expect(mocks.removeChangeDir).toHaveBeenCalledTimes(1);
+  });
+
+  it("constructs production archive recovery with separate local and PR repository identities", async () => {
+    const root = mkdtempSync(join(tmpdir(), "adv-archive-recovery-"));
+    const worktree = join(root, "linked");
+    const canonicalBundlePath = join(root, "canonical", CHANGE_ID);
+    try {
+      execFileSync("git", ["init", "-q", "-b", "main"], { cwd: root });
+      execFileSync("git", ["config", "user.name", "ADV test"], { cwd: root });
+      execFileSync("git", ["config", "user.email", "adv@example.test"], {
+        cwd: root,
+      });
+      writeFileSync(join(root, "README.md"), "fixture\n");
+      execFileSync("git", ["add", "README.md"], { cwd: root });
+      execFileSync("git", ["commit", "-qm", "fixture"], { cwd: root });
+      const prHeadOid = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+      }).trim();
+      execFileSync(
+        "git",
+        ["worktree", "add", "-q", "-b", `change/${CHANGE_ID}`, worktree],
+        { cwd: root },
+      );
+      const inRepoBundlePath = join(worktree, ".adv", "archive", CHANGE_ID);
+      mkdirSync(inRepoBundlePath, { recursive: true });
+      mkdirSync(canonicalBundlePath, { recursive: true });
+      writeFileSync(join(inRepoBundlePath, "change.json"), '{"id":"test"}\n');
+      writeFileSync(
+        join(canonicalBundlePath, "change.json"),
+        '{"id":"test"}\n',
+      );
+      execFileSync("git", ["add", ".adv/archive"], { cwd: worktree });
+      execFileSync("git", ["commit", "-qm", "archive projection"], {
+        cwd: worktree,
+      });
+
+      const terminalChange = makeChange({
+        status: "archived",
+        lifecycleState: "archived",
+        phase9_status: {
+          status: "done",
+          startedAt: "2026-08-08T00:00:00Z",
+          completedAt: "2026-08-08T00:01:00Z",
+        },
+      });
+      mocks.coordinateChangeMutation.mockResolvedValue({
+        kind: "verified",
+        value: terminalChange,
+      });
+      mocks.loadChange.mockResolvedValue({
+        success: true,
+        data: terminalChange,
+      });
+      const store = makeStore(terminalChange);
+      store.paths.root = root;
+      store.paths.changes = join(root, ".adv", "changes");
+      store.paths.archive = join(root, "canonical");
+
+      await completeShippedChange({
+        store,
+        change: terminalChange,
+        changeId: CHANGE_ID,
+        archiveMode: "pr",
+        archivePath: canonicalBundlePath,
+        inRepoBundlePath,
+        finalization: {
+          status: "shipped",
+          repoRoot: root,
+          defaultBranch: "main",
+          route: "pr_manual",
+          mergeCommitSha: prHeadOid,
+          releasedCommitSha: prHeadOid,
+          prHeadSha: prHeadOid,
+          defaultBranchSha: prHeadOid,
+          pushStatus: "skipped",
+          repo: "owner/repo",
+          prNumber: 42,
+        },
+        worktreePath: worktree,
+      });
+
+      expect(mocks.advWorktreeDelete).toHaveBeenCalledWith(
+        `change/${CHANGE_ID}`,
+        expect.objectContaining({ dryRun: true, force: false }),
+        expect.objectContaining({
+          projectRoot: root,
+          archiveRecovery: expect.objectContaining({
+            repository: root,
+            prRepository: "owner/repo",
+            prNumber: 42,
+            prHeadOid,
+            terminal: {
+              changeId: CHANGE_ID,
+              status: "archived",
+              evidence: "durable terminal status: archived",
+            },
+            changedPaths: [
+              {
+                status: "A",
+                path: `.adv/archive/${CHANGE_ID}/change.json`,
+              },
+            ],
+          }),
+        }),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not accept caller-supplied archive recovery authority", async () => {
+    const change = makeChange();
+    mocks.advWorktreeDelete.mockResolvedValue({
+      ok: false,
+      error: "WORKTREE_IN_USE",
+      branch: `change/${CHANGE_ID}`,
+      path: REPAIR_WORKTREE,
+      hint: "A process uses the worktree.",
+    });
+
+    await completeShippedChange({
+      store: makeStore(change),
+      change,
+      changeId: CHANGE_ID,
+      archiveMode: "pr",
+      archivePath: BUNDLE_PATH,
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "pr_manual",
+        pushStatus: "skipped",
+      },
+      worktreePath: REPAIR_WORKTREE,
+    });
+
+    expect(mocks.advWorktreeDelete).toHaveBeenCalledWith(
+      `change/${CHANGE_ID}`,
+      expect.objectContaining({ dryRun: true }),
+      expect.not.objectContaining({ archiveRecovery: expect.anything() }),
+    );
   });
 
   it("does not repeat retirement side effects for an exact terminal replay", async () => {

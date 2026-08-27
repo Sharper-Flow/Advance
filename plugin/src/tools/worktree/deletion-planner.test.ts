@@ -308,4 +308,105 @@ describe("WorktreeDeletionPlanner", () => {
 
     expect(result.kind).toBe("deadline");
   });
+
+  it("selects archive-owned recovery only from an explicit proof", async () => {
+    const head = "0123456789abcdef0123456789abcdef01234567";
+    const prHead = "fedcba9876543210fedcba9876543210fedcba98";
+    const terminal = {
+      changeId: "example",
+      status: "archived" as const,
+      evidence: "durable terminal status: archived",
+    };
+    const archiveRecovery = {
+      changeId: "example",
+      repository: "/repo",
+      branch: "change/example",
+      worktree: "/tmp/change-example",
+      localHead: head,
+      prNumber: 42,
+      prRepository: "owner/repo",
+      prHeadOid: prHead,
+      mergeCommitOid: "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      defaultBranch: "trunk",
+      defaultBranchSha: "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      ancestry: "pr_head_ancestor_of_local_head" as const,
+      bundleId: "example",
+      canonicalBundlePath: "/repo/.adv/archive/example",
+      changedPaths: [
+        { path: ".adv/archive/example/docs/specs/a.md", status: "M" as const },
+      ],
+      canonicalFiles: [
+        {
+          path: ".adv/archive/example/docs/specs/a.md",
+          sha256:
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        },
+      ],
+      canonicalIdentity: "bundle:example:manifest-1",
+      allowedRoot: ".adv/archive/example",
+      clean: true,
+      locked: false,
+      cwd: "/repo",
+      cwdInsideWorktree: false,
+      inUse: false,
+      terminal,
+    };
+    const result = await new WorktreeDeletionPlanner({
+      census: async () => ({
+        branches: [{ branch: "change/example", headSha: head, merged: false }],
+        worktrees: [
+          {
+            path: "/repo",
+            headSha: head,
+            dirty: false,
+            detached: false,
+            bare: false,
+            locked: false,
+            prunable: false,
+          },
+          {
+            path: "/tmp/change-example",
+            branch: "change/example",
+            headSha: head,
+            dirty: false,
+            detached: false,
+            bare: false,
+            locked: false,
+            prunable: false,
+          },
+        ],
+      }),
+      targetResolver: async () => ({
+        repository: "/repo",
+        cwd: "/repo",
+        mainWorktree: false,
+      }),
+      integrationProof: async () => ({
+        kind: "pr_merged" as const,
+        branch: "change/example",
+        defaultBranch: "trunk",
+        head,
+        evidence: "merged PR #42",
+        prNumber: 42,
+        prHeadOid: prHead,
+        mergeCommitOid: archiveRecovery.mergeCommitOid,
+        headRepository: "owner/repo",
+        baseRepository: "owner/repo",
+      }),
+      terminalProof: async () => terminal,
+      isWorktreeInUse: () => false,
+    }).plan({
+      repository: "/repo",
+      branch: "change/example",
+      changeId: "example",
+      cwd: "/repo",
+      archiveRecovery,
+    });
+
+    expect(result.kind).toBe("planned");
+    if (result.kind === "planned") {
+      expect(result.plan.removalMode).toBe("archive_owned_projection");
+      expect(result.plan.archiveRecovery).toEqual(archiveRecovery);
+    }
+  });
 });

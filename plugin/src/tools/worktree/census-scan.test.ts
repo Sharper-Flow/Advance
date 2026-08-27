@@ -66,4 +66,32 @@ describe("scanGitWorkspaceFacts", () => {
       }),
     ]);
   });
+
+  it("treats an unavailable worktree status as unsafe", async () => {
+    execFileGitAsync.mockImplementation(async (args: string[]) => {
+      if (args[0] === "for-each-ref") {
+        return {
+          stdout: "change/example 0123456789abcdef0123456789abcdef01234567\n",
+        };
+      }
+      if (args[0] === "branch") return { stdout: "change/example\n" };
+      if (args[0] === "worktree") {
+        return {
+          stdout: [
+            "worktree /repo/example\0",
+            "HEAD 0123456789abcdef0123456789abcdef01234567\0",
+            "branch refs/heads/change/example\0",
+            "\0",
+          ].join(""),
+        };
+      }
+      throw new Error("git status unavailable");
+    });
+
+    const facts = await scanGitWorkspaceFacts("/repo", "trunk");
+
+    expect(facts.worktrees).toEqual([
+      expect.objectContaining({ branch: "change/example", dirty: true }),
+    ]);
+  });
 });

@@ -15,6 +15,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { execFileSync, execSync } from "child_process";
+import { createHash } from "crypto";
 
 // Mock debug-log to capture audit trail.
 vi.mock("../../utils/debug-log", async (importOriginal) => {
@@ -53,6 +54,7 @@ import {
 } from "./state";
 import { synthesizeTestProjectId } from "../../utils/project-id";
 import { decodeWorktreeDeletionToken } from "./deletion-contracts";
+import { stableStringify } from "../../utils/digest";
 
 const isLinux = process.platform === "linux";
 
@@ -1454,6 +1456,95 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         fixture.firstHead,
       );
       await refusal({}, "local_commits_after_pr_head");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("plans exact archive recovery when the local head only adds archive-owned paths", async () => {
+    const branch = "change/example";
+    const fixture = makeSquashPrFixture(branch, 407);
+    try {
+      const archiveRelativePath = ".adv/archive/example/change.json";
+      const content = '{"id":"example"}\n';
+      const worktreeArchiveFile = join(fixture.worktree, archiveRelativePath);
+      mkdirSync(join(fixture.worktree, ".adv", "archive", "example"), {
+        recursive: true,
+      });
+      writeFileSync(worktreeArchiveFile, content);
+      git(fixture.worktree, "add", archiveRelativePath);
+      git(fixture.worktree, "commit", "-m", "archive example");
+      const localHead = git(fixture.worktree, "rev-parse", "HEAD");
+
+      const canonicalBundlePath = join(dataRoot, "example");
+      mkdirSync(canonicalBundlePath, { recursive: true });
+      writeFileSync(join(canonicalBundlePath, "change.json"), content);
+      const sha256 = createHash("sha256").update(content).digest("hex");
+      const canonicalFiles = [{ path: archiveRelativePath, sha256 }];
+      const terminal = {
+        changeId: "example",
+        status: "archived" as const,
+        evidence: "durable terminal status: archived",
+      };
+      const archiveRecovery = {
+        changeId: "example",
+        repository: fixture.root,
+        branch,
+        worktree: fixture.worktree,
+        localHead,
+        prNumber: 407,
+        prRepository: "owner/repo",
+        prHeadOid: fixture.head,
+        mergeCommitOid: fixture.mergeCommit,
+        defaultBranch: "main",
+        defaultBranchSha: fixture.mergeCommit,
+        ancestry: "pr_head_ancestor_of_local_head" as const,
+        bundleId: "example",
+        canonicalBundlePath,
+        changedPaths: [{ path: archiveRelativePath, status: "A" as const }],
+        canonicalFiles,
+        canonicalIdentity: createHash("sha256")
+          .update(stableStringify({ bundleId: "example", canonicalFiles }))
+          .digest("hex"),
+        allowedRoot: ".adv/archive/example",
+        clean: true,
+        locked: false,
+        cwd: process.cwd(),
+        cwdInsideWorktree: false,
+        inUse: false,
+        terminal,
+      };
+      const deps = createMockDeps(fixture.root, fixture.worktree);
+      deps.integrationCheck = undefined;
+      deps.mergedBranches = async () => [];
+      deps.archiveRecovery = archiveRecovery;
+      deps.prMergeEvidence = vi.fn(async () => ({
+        ok: false as const,
+        classification: "refusal" as const,
+        reason: "local_has_commits_after_pr_head" as const,
+        hint: "The local branch contains the archive projection commit.",
+      }));
+      attachChangeStatus(deps, "archived");
+
+      const planned = await rawAdvWorktreeDelete(
+        branch,
+        { dryRun: true },
+        deps,
+      );
+
+      expect(planned).toMatchObject({ ok: true, status: "planned" });
+      if (planned.ok) {
+        expect(planned.plan.integration).toMatchObject({
+          kind: "pr_merged",
+          head: localHead,
+          prNumber: 407,
+          prHeadOid: fixture.head,
+          mergeCommitOid: fixture.mergeCommit,
+          headRepository: "owner/repo",
+          baseRepository: "owner/repo",
+        });
+      }
+      expect(deps.prMergeEvidence).not.toHaveBeenCalled();
     } finally {
       fixture.cleanup();
     }

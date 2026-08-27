@@ -15,6 +15,74 @@ export interface DiskWorktree {
   prunable?: boolean;
 }
 
+export interface GitStatusPorcelainEntry {
+  index: string;
+  worktree: string;
+  path: string;
+  originalPath?: string;
+}
+
+export interface GitNameStatusEntry {
+  status: string;
+  path: string;
+  originalPath?: string;
+}
+
+/** Parse `git diff --name-status -z` as NUL-separated status and path fields. */
+export function parseGitNameStatusZ(stdout: string): GitNameStatusEntry[] {
+  const fields = stdout.split("\0");
+  const entries: GitNameStatusEntry[] = [];
+  for (let index = 0; index < fields.length; index += 1) {
+    const statusField = fields[index];
+    if (statusField === "") continue;
+    if (!/^[A-Z?](?:\d{1,3})?$/.test(statusField))
+      throw new Error("malformed git name-status record");
+    const firstPath = fields[index + 1];
+    if (!firstPath) throw new Error("git name-status record has no path");
+    const status = statusField[0]!;
+    if (status === "R" || status === "C") {
+      const path = fields[index + 2];
+      if (!path) throw new Error("git name-status rename has no destination");
+      entries.push({ status, path, originalPath: firstPath });
+      index += 2;
+      continue;
+    }
+    entries.push({ status, path: firstPath });
+    index += 1;
+  }
+  return entries;
+}
+
+/** Parse `git status --porcelain=v1 -z` without treating path bytes as lines. */
+export function parseGitStatusPorcelainV1Z(
+  stdout: string,
+): GitStatusPorcelainEntry[] {
+  const fields = stdout.split("\0");
+  const entries: GitStatusPorcelainEntry[] = [];
+  for (let index = 0; index < fields.length; index += 1) {
+    const field = fields[index];
+    if (field === "") continue;
+    if (field.length < 4 || field[2] !== " ")
+      throw new Error("malformed git status porcelain record");
+    const status = field.slice(0, 2);
+    const path = field.slice(3);
+    if (path.length === 0) throw new Error("git status record has no path");
+    const entry: GitStatusPorcelainEntry = {
+      index: status[0]!,
+      worktree: status[1]!,
+      path,
+    };
+    if (status.includes("R") || status.includes("C")) {
+      const originalPath = fields[index + 1];
+      if (!originalPath) throw new Error("rename status record has no source");
+      entry.originalPath = originalPath;
+      index += 1;
+    }
+    entries.push(entry);
+  }
+  return entries;
+}
+
 /**
  * Parse canonical `git worktree list --porcelain -z` output.
  *

@@ -174,4 +174,28 @@ describe("shared public worktree deletion contract", () => {
       stage: "target_resolution",
     });
   });
+
+  it("does not let generic force select archive-owned recovery", async () => {
+    const deletionPlan = plan();
+    const planner = {
+      plan: vi.fn().mockResolvedValue({
+        kind: "planned",
+        plan: deletionPlan,
+        target: { repository: "/repo", cwd: "/repo" },
+        warnings: [],
+        stageTimings: [],
+      }),
+    };
+
+    await advWorktreeDelete(
+      facts.branch!,
+      { dryRun: true, force: true },
+      deps({ deletionPlanner: planner }),
+    );
+
+    expect(planner.plan).toHaveBeenCalledWith(
+      expect.objectContaining({ force: true }),
+    );
+    expect(planner.plan.mock.calls[0]?.[0].archiveRecovery).toBeUndefined();
+  });
 });

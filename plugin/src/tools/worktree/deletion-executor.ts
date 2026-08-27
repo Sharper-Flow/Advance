@@ -1,5 +1,6 @@
-import { access } from "node:fs/promises";
-import { resolve } from "node:path";
+import { access, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { join, resolve } from "node:path";
 
 import {
   decodeWorktreeDeletionToken,
@@ -9,6 +10,7 @@ import {
   type WorktreeDeletionPlan,
   type WorktreeDeletionResult,
   type WorktreeDeletionTerminalProof,
+  WorktreeDeletionArchiveRecoverySchema,
 } from "./deletion-contracts";
 import {
   scanGitWorkspaceFacts,
@@ -45,6 +47,10 @@ import {
   proveLocalBranchIntegration,
 } from "../../utils/branch-integration";
 import type { WorktreeDeletionIntegrationFailure } from "./deletion-planner";
+import {
+  parseGitNameStatusZ,
+  parseGitStatusPorcelainV1Z,
+} from "./porcelain-parser";
 
 /** Dependency seams keep the destructive boundary testable without bypassing Git. */
 export interface WorktreeDeletionExecutorDeps {
@@ -373,11 +379,25 @@ function safeToRemove(
     facts.bare === false &&
     facts.locked === false &&
     facts.prunable === false &&
-    (allowDirty || facts.dirty === false) &&
+    (facts.dirty === false || allowDirty) &&
     facts.cwdInsideWorktree === false &&
     facts.inUse === false &&
     facts.gitCorrupt !== true
   );
+}
+
+function sha256Bytes(content: Buffer): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function archivePathInside(
+  worktree: string,
+  allowedRoot: string,
+  filePath: string,
+): boolean {
+  const root = resolve(worktree, allowedRoot);
+  const absolute = resolve(worktree, filePath);
+  return absolute === root || absolute.startsWith(`${root}/`);
 }
 
 async function settleLease(
@@ -517,6 +537,50 @@ export class WorktreeDeletionExecutor {
       }
     };
 
+    const runGit = async (
+      args: string[],
+      stage: string = operation.currentStage ?? "revalidation",
+    ): Promise<
+      | { ok: true; stdout: string }
+      | { ok: false; timedOut: boolean; detail: string }
+    > => {
+      const remaining = operation.remainingMs() - operation.responseReserveMs;
+      if (remaining <= 0 || operation.signal.aborted) {
+        await operation.abort("deadline");
+        throw new WorktreeDeletionStageDeadline(stage);
+      }
+      const result = await runBounded(stage, () =>
+        runProcess({
+          command: resolveGitBinary(),
+          args,
+          cwd: plan.repository,
+          signal: operation.signal,
+          timeoutMs: Math.max(1, remaining),
+          operation,
+        }),
+      );
+      if (
+        isTimeout(result) ||
+        operation.remainingMs() <= operation.responseReserveMs
+      ) {
+        await operation.abort("deadline");
+        throw new WorktreeDeletionStageDeadline(stage);
+      }
+      if (!result.closed || result.exitCode !== 0)
+        return {
+          ok: false,
+          timedOut: false,
+          detail:
+            result.stderr.trim() ||
+            result.stdout.trim() ||
+            `git ${args[0]} failed`,
+        };
+      return {
+        ok: true,
+        stdout: args.includes("status") ? result.stdout : result.stdout.trim(),
+      };
+    };
+
     const revalidatePrMerged = async (
       integration: WorktreeDeletionIntegrationProof,
       actual: WorktreeDeletionFacts,
@@ -557,46 +621,6 @@ export class WorktreeDeletionExecutor {
           stage,
         );
 
-      const runGit = async (
-        args: string[],
-      ): Promise<
-        | { ok: true; stdout: string }
-        | { ok: false; timedOut: boolean; detail: string }
-      > => {
-        const remaining = operation.remainingMs() - operation.responseReserveMs;
-        if (remaining <= 0 || operation.signal.aborted) {
-          await operation.abort("deadline");
-          throw new WorktreeDeletionStageDeadline(stage);
-        }
-        const result = await runBounded(stage, () =>
-          runProcess({
-            command: resolveGitBinary(),
-            args,
-            cwd: plan.repository,
-            signal: operation.signal,
-            timeoutMs: Math.max(1, remaining),
-            operation,
-          }),
-        );
-        if (
-          isTimeout(result) ||
-          operation.remainingMs() <= operation.responseReserveMs
-        ) {
-          await operation.abort("deadline");
-          throw new WorktreeDeletionStageDeadline(stage);
-        }
-        if (!result.closed || result.exitCode !== 0)
-          return {
-            ok: false,
-            timedOut: false,
-            detail:
-              result.stderr.trim() ||
-              result.stdout.trim() ||
-              `git ${args[0]} failed`,
-          };
-        return { ok: true, stdout: result.stdout.trim() };
-      };
-
       const gitFailure = (_result: {
         ok: false;
         timedOut: boolean;
@@ -616,13 +640,16 @@ export class WorktreeDeletionExecutor {
       const localBelongsToPrHead = await runGit([
         "merge-base",
         "--is-ancestor",
-        localHead.stdout,
-        prHeadOid,
+        ...(plan.removalMode === "archive_owned_projection"
+          ? [prHeadOid, localHead.stdout]
+          : [localHead.stdout, prHeadOid]),
       ]);
       if (!localBelongsToPrHead.ok)
         return failure(
           "drifted",
-          "pr_revalidation_local_head_not_in_pr",
+          plan.removalMode === "archive_owned_projection"
+            ? "pr_revalidation_pr_head_not_ancestor_of_local_head"
+            : "pr_revalidation_local_head_not_in_pr",
           stage,
         );
 
@@ -682,6 +709,15 @@ export class WorktreeDeletionExecutor {
         `refs/remotes/origin/${defaultBranch}^{commit}`,
       ]);
       if (!fetchedDefaultOid.ok) return gitFailure(fetchedDefaultOid);
+      if (
+        plan.removalMode === "archive_owned_projection" &&
+        plan.archiveRecovery?.defaultBranchSha !== fetchedDefaultOid.stdout
+      )
+        return failure(
+          "drifted",
+          "archive_recovery_default_head_drifted",
+          stage,
+        );
       const mergeIsReachable = await runGit([
         "merge-base",
         "--is-ancestor",
@@ -698,6 +734,161 @@ export class WorktreeDeletionExecutor {
       const expired = expiryDecision(stage);
       if (expired) return expired;
 
+      return null;
+    };
+
+    const revalidateArchiveOwned = async (
+      actual: WorktreeDeletionFacts,
+      stage: string,
+    ): Promise<WorktreeDeletionExecutorResult | null> => {
+      const recovery = plan.archiveRecovery;
+      if (
+        plan.removalMode !== "archive_owned_projection" ||
+        !recovery ||
+        !WorktreeDeletionArchiveRecoverySchema.safeParse(recovery).success
+      )
+        return failure("refused", "archive_recovery_proof_missing", stage);
+      if (
+        plan.force === true ||
+        plan.integration?.kind !== "pr_merged" ||
+        !plan.terminal ||
+        stableStringify(plan.terminal) !== stableStringify(recovery.terminal)
+      )
+        return failure(
+          "refused",
+          "archive_recovery_terminal_proof_missing",
+          stage,
+        );
+      if (
+        recovery.repository !== plan.repository ||
+        recovery.worktree !== actual.worktree ||
+        recovery.branch !== actual.branch ||
+        recovery.localHead !== actual.head ||
+        recovery.localHead !== plan.facts.head ||
+        recovery.cwd !== actual.cwd ||
+        recovery.cwdInsideWorktree !== actual.cwdInsideWorktree ||
+        recovery.locked !== actual.locked ||
+        recovery.inUse !== actual.inUse ||
+        recovery.clean !== !actual.dirty ||
+        recovery.prNumber !== plan.integration?.prNumber ||
+        recovery.prHeadOid !== plan.integration?.prHeadOid ||
+        recovery.mergeCommitOid !== plan.integration?.mergeCommitOid ||
+        recovery.prRepository !== plan.integration?.headRepository ||
+        recovery.prRepository !== plan.integration?.baseRepository ||
+        recovery.branch !== `change/${recovery.changeId}`
+      )
+        return failure("drifted", "archive_recovery_fact_changed", stage);
+
+      const allowed = new Map(
+        recovery.canonicalFiles.map((file) => [file.path, file.sha256]),
+      );
+      if (
+        recovery.allowedRoot !== `.adv/archive/${recovery.bundleId}` ||
+        recovery.canonicalBundlePath.split(/[\\/]/).pop() !== recovery.bundleId
+      )
+        return failure("drifted", "archive_recovery_bundle_identity", stage);
+      if (
+        sha256Bytes(
+          Buffer.from(
+            stableStringify({
+              bundleId: recovery.bundleId,
+              canonicalFiles: recovery.canonicalFiles,
+            }),
+          ),
+        ) !== recovery.canonicalIdentity
+      )
+        return failure("drifted", "archive_recovery_canonical_identity", stage);
+      for (const file of recovery.canonicalFiles) {
+        if (!file.path.startsWith(`${recovery.allowedRoot}/`))
+          return failure(
+            "drifted",
+            "archive_recovery_path_outside_root",
+            stage,
+          );
+        let canonicalContent: Buffer;
+        try {
+          canonicalContent = await readFile(
+            join(
+              recovery.canonicalBundlePath,
+              file.path.slice(recovery.allowedRoot.length + 1),
+            ),
+          );
+        } catch {
+          return failure(
+            "drifted",
+            "archive_recovery_canonical_unreadable",
+            stage,
+          );
+        }
+        if (sha256Bytes(canonicalContent) !== file.sha256)
+          return failure(
+            "drifted",
+            "archive_recovery_canonical_hash_mismatch",
+            stage,
+          );
+      }
+      const expected = new Map(
+        recovery.changedPaths.map((file) => [file.path, file.status]),
+      );
+      const statusResult = await runGit([
+        "-C",
+        recovery.worktree,
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all",
+      ]);
+      if (!statusResult.ok)
+        return failure("repair_required", "archive_recovery_git_failed", stage);
+      let statusEntries;
+      try {
+        statusEntries = parseGitStatusPorcelainV1Z(statusResult.stdout);
+      } catch {
+        return failure("drifted", "archive_recovery_status_malformed", stage);
+      }
+      if (statusEntries.length !== 0)
+        return failure("drifted", "archive_recovery_worktree_dirty", stage);
+
+      const diffResult = await runGit([
+        "diff",
+        "--name-status",
+        "-z",
+        `${recovery.prHeadOid}..${recovery.localHead}`,
+      ]);
+      if (!diffResult.ok)
+        return failure("repair_required", "archive_recovery_git_failed", stage);
+      let diffEntries;
+      try {
+        diffEntries = parseGitNameStatusZ(diffResult.stdout);
+      } catch {
+        return failure("drifted", "archive_recovery_diff_malformed", stage);
+      }
+      if (
+        diffEntries.length !== expected.size ||
+        diffEntries.some(
+          (entry) =>
+            !["A", "M"].includes(entry.status) ||
+            entry.status !== expected.get(entry.path) ||
+            !expected.has(entry.path) ||
+            !allowed.has(entry.path) ||
+            !archivePathInside(
+              recovery.worktree,
+              recovery.allowedRoot,
+              entry.path,
+            ),
+        )
+      )
+        return failure("drifted", "archive_recovery_commit_paths", stage);
+      for (const entry of diffEntries) {
+        let content: Buffer;
+        try {
+          content = await readFile(join(recovery.worktree, entry.path));
+        } catch {
+          return failure("drifted", "archive_recovery_file_unreadable", stage);
+        }
+        if (sha256Bytes(content) !== allowed.get(entry.path))
+          return failure("drifted", "archive_recovery_hash_mismatch", stage);
+      }
       return null;
     };
 
@@ -723,7 +914,8 @@ export class WorktreeDeletionExecutor {
       );
       if (!sameFacts(plan.facts, actual))
         return failure("drifted", "bound_safety_fact_changed", stage);
-      if (!safeToRemove(actual, plan.force === true))
+      const archiveMode = plan.removalMode === "archive_owned_projection";
+      if (!safeToRemove(actual, !archiveMode && plan.force === true))
         return failure("refused", "unsafe_worktree_state", stage);
 
       const branchFact = current.branches.find(
@@ -771,6 +963,10 @@ export class WorktreeDeletionExecutor {
         );
         if (!sameProof(integration, currentProof))
           return failure("drifted", "integration_proof_changed", stage);
+      }
+      if (archiveMode) {
+        const archiveDecision = await revalidateArchiveOwned(actual, stage);
+        if (archiveDecision) return archiveDecision;
       }
       if (plan.terminal && !this.deps.terminalProof)
         return failure(
@@ -988,7 +1184,10 @@ export class WorktreeDeletionExecutor {
           args: [
             "worktree",
             "remove",
-            ...(plan.force === true ? ["--force"] : []),
+            ...(plan.removalMode !== "archive_owned_projection" &&
+            plan.force === true
+              ? ["--force"]
+              : []),
             "--",
             plan.facts.worktree,
           ],

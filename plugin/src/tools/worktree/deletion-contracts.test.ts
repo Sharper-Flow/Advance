@@ -139,4 +139,101 @@ describe("worktree deletion contracts", () => {
       }),
     ).toEqual({ ok: false, reason: "facts_changed" });
   });
+
+  it("binds archive-owned recovery identity, paths, hashes, and mode", () => {
+    const integration = {
+      kind: "pr_merged" as const,
+      branch: "change/example",
+      defaultBranch: "trunk",
+      head: facts.head,
+      evidence: "merged PR #42",
+      prNumber: 42,
+      prHeadOid: "fedcba9876543210fedcba9876543210fedcba98",
+      mergeCommitOid: "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      headRepository: "owner/repo",
+      baseRepository: "owner/repo",
+    };
+    const archiveRecovery = {
+      changeId: "example",
+      repository: facts.repository,
+      branch: "change/example",
+      worktree: facts.worktree,
+      localHead: facts.head,
+      prNumber: 42,
+      prRepository: "owner/repo",
+      prHeadOid: integration.prHeadOid,
+      mergeCommitOid: integration.mergeCommitOid,
+      defaultBranch: "trunk",
+      defaultBranchSha: "abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      ancestry: "pr_head_ancestor_of_local_head" as const,
+      bundleId: "example",
+      canonicalBundlePath: "/repo/.adv/archive/example",
+      changedPaths: [
+        { path: ".adv/archive/example/docs/specs/a.md", status: "M" as const },
+      ],
+      canonicalFiles: [
+        {
+          path: ".adv/archive/example/docs/specs/a.md",
+          sha256:
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        },
+      ],
+      canonicalIdentity: "bundle:example:manifest-1",
+      allowedRoot: ".adv/archive/example",
+      clean: true,
+      locked: false,
+      cwd: "/repo",
+      cwdInsideWorktree: false,
+      inUse: false,
+      terminal: {
+        changeId: "example",
+        status: "archived" as const,
+        evidence: "durable terminal status: archived",
+      },
+    };
+    const expiresAt = 1_800_000_000_000;
+    const token = encodeWorktreeDeletionToken({
+      facts,
+      expiresAt,
+      integration,
+      terminal: archiveRecovery.terminal,
+      removalMode: "archive_owned_projection",
+      archiveRecovery,
+    });
+    const plan = {
+      version: "wdp1" as const,
+      repository: facts.repository,
+      facts,
+      expiresAt,
+      token,
+      integration,
+      terminal: archiveRecovery.terminal,
+      removalMode: "archive_owned_projection" as const,
+      archiveRecovery,
+    };
+
+    expect(WorktreeDeletionPlanSchema.parse(plan)).toEqual(plan);
+    expect(() =>
+      WorktreeDeletionPlanSchema.parse({
+        ...plan,
+        removalMode: "normal",
+      }),
+    ).toThrow(/token must bind/);
+    const forcedToken = encodeWorktreeDeletionToken({
+      facts,
+      force: true,
+      expiresAt,
+      integration,
+      terminal: archiveRecovery.terminal,
+      removalMode: "archive_owned_projection",
+      archiveRecovery,
+    });
+    expect(() =>
+      WorktreeDeletionPlanSchema.parse({
+        ...plan,
+        force: true,
+        token: forcedToken,
+      }),
+    ).toThrow(/never permits forced removal/);
+  });
 });

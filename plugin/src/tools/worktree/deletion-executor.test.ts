@@ -1,9 +1,11 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
+import { stableStringify } from "../../utils/digest";
 
 import {
   encodeWorktreeDeletionToken,
@@ -194,6 +196,273 @@ describe("WorktreeDeletionExecutor", () => {
         status: "already_absent",
       });
       expect(deps.runProcess).toHaveBeenCalledTimes(1);
+    } finally {
+      fx.cleanup();
+    }
+  });
+
+  it("revalidates archive-owned paths and uses the inverse PR ancestry", async () => {
+    const fx = fixture();
+    try {
+      const content = Buffer.from("canonical\n");
+      const filePath = join(
+        fx.worktree,
+        ".adv",
+        "archive",
+        "example",
+        "docs",
+        "specs",
+        "a.md",
+      );
+      mkdirSync(dirname(filePath), { recursive: true });
+      writeFileSync(filePath, content);
+      const canonicalFilePath = join(
+        fx.repository,
+        ".adv",
+        "archive",
+        "example",
+        "docs",
+        "specs",
+        "a.md",
+      );
+      mkdirSync(dirname(canonicalFilePath), { recursive: true });
+      writeFileSync(canonicalFilePath, content);
+      const fileHash = createHash("sha256").update(content).digest("hex");
+      const prHead = "fedcba9876543210fedcba9876543210fedcba98";
+      const merge = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+      const terminal = {
+        changeId: "example",
+        status: "archived" as const,
+        evidence: "terminal proof",
+      };
+      const integration: WorktreeDeletionIntegrationProof = {
+        kind: "pr_merged",
+        branch: "change/example",
+        defaultBranch: "trunk",
+        head: sha,
+        evidence: "merged PR #42",
+        prNumber: 42,
+        prHeadOid: prHead,
+        mergeCommitOid: merge,
+        headRepository: "owner/repo",
+        baseRepository: "owner/repo",
+      };
+      const facts: WorktreeDeletionFacts = {
+        repository: fx.repository,
+        worktree: fx.worktree,
+        branch: "change/example",
+        head: sha,
+        detached: false,
+        bare: false,
+        locked: false,
+        prunable: false,
+        dirty: false,
+        mainWorktree: false,
+        cwd: fx.cwd,
+        cwdInsideWorktree: false,
+        inUse: false,
+        gitCorrupt: false,
+      };
+      const archiveRecovery = {
+        changeId: "example",
+        repository: fx.repository,
+        branch: "change/example",
+        worktree: fx.worktree,
+        localHead: sha,
+        prNumber: 42,
+        prRepository: "owner/repo",
+        prHeadOid: prHead,
+        mergeCommitOid: merge,
+        defaultBranch: "trunk",
+        defaultBranchSha: merge,
+        ancestry: "pr_head_ancestor_of_local_head" as const,
+        bundleId: "example",
+        canonicalBundlePath: join(fx.repository, ".adv", "archive", "example"),
+        changedPaths: [
+          {
+            path: ".adv/archive/example/docs/specs/a.md",
+            status: "M" as const,
+          },
+        ],
+        canonicalFiles: [
+          { path: ".adv/archive/example/docs/specs/a.md", sha256: fileHash },
+        ],
+        canonicalIdentity: createHash("sha256")
+          .update(
+            stableStringify({
+              bundleId: "example",
+              canonicalFiles: [
+                {
+                  path: ".adv/archive/example/docs/specs/a.md",
+                  sha256: fileHash,
+                },
+              ],
+            }),
+          )
+          .digest("hex"),
+        allowedRoot: ".adv/archive/example",
+        clean: true,
+        locked: false,
+        cwd: fx.cwd,
+        cwdInsideWorktree: false,
+        inUse: false,
+        terminal,
+      };
+      const expiresAt = Date.now() + 60_000;
+      const plan: WorktreeDeletionPlan = {
+        version: "wdp1",
+        repository: fx.repository,
+        facts,
+        expiresAt,
+        integration,
+        terminal,
+        removalMode: "archive_owned_projection",
+        archiveRecovery,
+        token: encodeWorktreeDeletionToken({
+          facts,
+          expiresAt,
+          integration,
+          terminal,
+          removalMode: "archive_owned_projection",
+          archiveRecovery,
+        }),
+      };
+      const deps = depsFor(fx, plan, {
+        census: vi.fn(async () => {
+          if (!exists(fx.worktree)) return { branches: [], worktrees: [] };
+          return {
+            branches: [
+              { branch: "change/example", headSha: sha, merged: false },
+            ],
+            worktrees: [
+              {
+                path: fx.repository,
+                headSha: sha,
+                dirty: false,
+                detached: false,
+                bare: false,
+                locked: false,
+                prunable: false,
+              },
+              {
+                path: fx.worktree,
+                branch: "change/example",
+                headSha: sha,
+                dirty: false,
+                detached: false,
+                bare: false,
+                locked: false,
+                prunable: false,
+              },
+            ],
+          };
+        }),
+        terminalProof: async () => terminal,
+        runProcess: vi.fn(async (input) => {
+          const args = input.args ?? [];
+          if (args.includes("status"))
+            return {
+              stdout: "",
+              stderr: "",
+              exitCode: 0,
+              signal: null,
+              timedOut: false,
+              aborted: false,
+              closed: true,
+            };
+          if (args.includes("diff"))
+            return {
+              stdout: "M\0.adv/archive/example/docs/specs/a.md\0",
+              stderr: "",
+              exitCode: 0,
+              signal: null,
+              timedOut: false,
+              aborted: false,
+              closed: true,
+            };
+          if (args[0] === "rev-parse")
+            return {
+              stdout: args.some((arg) => arg.includes("FETCH_HEAD"))
+                ? prHead
+                : args.some((arg) => arg.includes("refs/remotes/origin"))
+                  ? merge
+                  : sha,
+              stderr: "",
+              exitCode: 0,
+              signal: null,
+              timedOut: false,
+              aborted: false,
+              closed: true,
+            };
+          if (args[0] === "config")
+            return {
+              stdout: "https://github.com/owner/repo.git",
+              stderr: "",
+              exitCode: 0,
+              signal: null,
+              timedOut: false,
+              aborted: false,
+              closed: true,
+            };
+          if (args[0] === "symbolic-ref")
+            return {
+              stdout: "origin/trunk",
+              stderr: "",
+              exitCode: 0,
+              signal: null,
+              timedOut: false,
+              aborted: false,
+              closed: true,
+            };
+          if (args[0] === "merge-base")
+            return {
+              stdout: "",
+              stderr: "",
+              exitCode: 0,
+              signal: null,
+              timedOut: false,
+              aborted: false,
+              closed: true,
+            };
+          if (args[0] === "fetch")
+            return {
+              stdout: "",
+              stderr: "",
+              exitCode: 0,
+              signal: null,
+              timedOut: false,
+              aborted: false,
+              closed: true,
+            };
+          if (args.includes("remove"))
+            rmSync(fx.worktree, { recursive: true, force: true });
+          return {
+            stdout: "",
+            stderr: "",
+            exitCode: 0,
+            signal: null,
+            timedOut: false,
+            aborted: false,
+            closed: true,
+          };
+        }),
+      });
+
+      const result = await executeWorktreeDeletion({ plan }, deps);
+
+      expect(result).toMatchObject({ ok: true, status: "deleted" });
+      const calls = (deps.runProcess as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls.some(([input]) => input.args?.includes("--force"))).toBe(
+        false,
+      );
+      expect(
+        calls.some(
+          ([input]) =>
+            input.args?.[0] === "merge-base" &&
+            input.args?.[2] === prHead &&
+            input.args?.[3] === sha,
+        ),
+      ).toBe(true);
     } finally {
       fx.cleanup();
     }

@@ -1,7 +1,10 @@
 import type { SessionRecord, WorktreeRecord } from "../../types";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { inferChangeIdFromBranch } from "./branch-parser";
-import { parseWorktreeListPorcelain } from "./porcelain-parser";
+import {
+  parseGitStatusPorcelainV1Z,
+  parseWorktreeListPorcelain,
+} from "./porcelain-parser";
 
 export interface GitBranchFact {
   branch: string;
@@ -95,14 +98,22 @@ export async function scanGitWorkspaceFacts(
   for (const wt of parseWorktreeListPorcelain(worktreeText)) {
     const status = await git(
       wt.path,
-      ["status", "--porcelain"],
+      ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
       gitTimeoutMs,
-    ).catch(() => "");
+    ).catch(() => undefined);
+    const dirty = (() => {
+      if (status === undefined) return true;
+      try {
+        return parseGitStatusPorcelainV1Z(status).length > 0;
+      } catch {
+        return true;
+      }
+    })();
     worktrees.push({
       branch: wt.branch,
       path: wt.path,
       headSha: wt.headSha ?? "",
-      dirty: status.length > 0,
+      dirty,
       detached: wt.detached ?? false,
       bare: wt.bare ?? false,
       locked: wt.locked ?? false,

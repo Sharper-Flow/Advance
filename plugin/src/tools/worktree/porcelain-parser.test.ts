@@ -6,7 +6,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseWorktreeListPorcelain } from "./porcelain-parser";
+import {
+  parseGitNameStatusZ,
+  parseGitStatusPorcelainV1Z,
+  parseWorktreeListPorcelain,
+} from "./porcelain-parser";
 
 describe("parseWorktreeListPorcelain", () => {
   it("parses a single worktree with a branch", () => {
@@ -100,6 +104,31 @@ describe("parseWorktreeListPorcelain", () => {
         bare: false,
         locked: false,
         prunable: true,
+      },
+    ]);
+  });
+
+  it("parses production git diff name-status fields as separate NUL records", () => {
+    const stdout =
+      "A\0.adv/archive/example/change.json\0" +
+      "M\0.adv/archive/example/docs/specs/a.md\0";
+
+    expect(parseGitNameStatusZ(stdout)).toEqual([
+      { status: "A", path: ".adv/archive/example/change.json" },
+      { status: "M", path: ".adv/archive/example/docs/specs/a.md" },
+    ]);
+  });
+
+  it("parses status porcelain as NUL-safe records, including rename pairs", () => {
+    const stdout = " M docs/specs/a.md\0R  docs/specs/b.md\0docs/specs/a.md\0";
+
+    expect(parseGitStatusPorcelainV1Z(stdout)).toEqual([
+      { index: " ", worktree: "M", path: "docs/specs/a.md" },
+      {
+        index: "R",
+        worktree: " ",
+        path: "docs/specs/b.md",
+        originalPath: "docs/specs/a.md",
       },
     ]);
   });

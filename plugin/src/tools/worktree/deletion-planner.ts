@@ -5,6 +5,8 @@ import {
   encodeWorktreeDeletionToken,
   WorktreeDeletionPlanSchema,
   type WorktreeDeletionFacts,
+  WorktreeDeletionArchiveRecoverySchema,
+  type WorktreeDeletionArchiveRecovery,
   type WorktreeDeletionIntegrationProof,
   type WorktreeDeletionPlan,
   type WorktreeDeletionTerminalProof,
@@ -27,6 +29,7 @@ import {
   type LocalBranchIntegrationProof,
 } from "../../utils/branch-integration";
 import { getExternalRootForProject } from "../../utils/project-id";
+import { stableStringify } from "../../utils/digest";
 
 /** A plan is intentionally short-lived and self-contained. */
 export const WORKTREE_DELETION_PLAN_TTL_MS = 5 * 60_000;
@@ -54,7 +57,8 @@ export type WorktreeDeletionRefusalReason =
   | "pr_merge_commit_unreachable"
   | "integration_proof_unavailable"
   | "invalid_ref"
-  | "terminal_proof_required";
+  | "terminal_proof_required"
+  | "archive_recovery_invalid";
 
 export type WorktreeDeletionRepairReason =
   | "target_resolution_failed"
@@ -105,6 +109,8 @@ export interface WorktreeDeletionPlannerInput {
   registry?: readonly WorktreeDeletionRegistryEntry[];
   /** Explicit approval to include a dirty worktree in the deletion plan. */
   force?: boolean;
+  /** Archive-owned proof supplied only by the archive completion owner. */
+  archiveRecovery?: WorktreeDeletionArchiveRecovery;
   /** Test/operator override for the five-minute token clock. */
   now?: number;
   budgetMs?: number;
@@ -248,6 +254,59 @@ function validCensus(census: GitWorkspaceFacts): boolean {
       typeof worktree.locked === "boolean" &&
       typeof worktree.prunable === "boolean"
     );
+  });
+}
+
+function validArchiveRecovery(
+  recovery: WorktreeDeletionArchiveRecovery,
+  facts: WorktreeDeletionFacts,
+  branch: string,
+  changeId: string | undefined,
+  integration: WorktreeDeletionIntegrationProof,
+  terminal: WorktreeDeletionTerminalProof | undefined,
+): boolean {
+  if (!WorktreeDeletionArchiveRecoverySchema.safeParse(recovery).success)
+    return false;
+  if (
+    recovery.repository !== facts.repository ||
+    recovery.worktree !== facts.worktree ||
+    recovery.branch !== branch ||
+    recovery.localHead !== facts.head ||
+    recovery.changeId !== changeId ||
+    branch !== `change/${recovery.changeId}` ||
+    recovery.prNumber !== integration.prNumber ||
+    recovery.prHeadOid !== integration.prHeadOid ||
+    recovery.mergeCommitOid !== integration.mergeCommitOid ||
+    recovery.prRepository !== integration.headRepository ||
+    recovery.prRepository !== integration.baseRepository ||
+    recovery.defaultBranch !== integration.defaultBranch ||
+    stableStringify(recovery.terminal) !== stableStringify(terminal) ||
+    recovery.clean !== !facts.dirty ||
+    recovery.locked !== facts.locked ||
+    recovery.cwd !== facts.cwd ||
+    recovery.cwdInsideWorktree !== facts.cwdInsideWorktree ||
+    recovery.inUse !== facts.inUse
+  )
+    return false;
+  if (
+    recovery.allowedRoot !== `.adv/archive/${recovery.bundleId}` ||
+    recovery.canonicalBundlePath.split(/[\\/]/).pop() !== recovery.bundleId
+  )
+    return false;
+  const canonicalPaths = new Set(
+    recovery.canonicalFiles.map((file) => file.path),
+  );
+  if (canonicalPaths.size !== recovery.canonicalFiles.length) return false;
+  const changedPaths = new Set<string>();
+  for (const entry of recovery.changedPaths) {
+    if (changedPaths.has(entry.path) || !canonicalPaths.has(entry.path))
+      return false;
+    changedPaths.add(entry.path);
+  }
+  return recovery.canonicalFiles.every((file) => {
+    const absolute = resolve(recovery.worktree, file.path);
+    const root = resolve(recovery.worktree, recovery.allowedRoot);
+    return absolute === root || absolute.startsWith(`${root}/`);
   });
 }
 
@@ -667,6 +726,28 @@ export class WorktreeDeletionPlanner {
             operation,
             { facts, target, warnings },
           );
+
+        if (input.archiveRecovery) {
+          if (
+            input.force === true ||
+            facts.dirty ||
+            integration.kind !== "pr_merged" ||
+            !validArchiveRecovery(
+              input.archiveRecovery,
+              facts,
+              branch,
+              changeId,
+              integration,
+              terminal,
+            )
+          )
+            return refusal(
+              "archive_recovery_invalid",
+              "Archive-owned recovery proof does not match the exact worktree, PR, or terminal facts.",
+              operation,
+              { facts, target, warnings },
+            );
+        }
       }
 
       if (operation.remainingMs() <= 0)
@@ -683,6 +764,12 @@ export class WorktreeDeletionPlanner {
         force: input.force === true,
         integration,
         ...(terminal ? { terminal } : {}),
+        removalMode: input.archiveRecovery
+          ? "archive_owned_projection"
+          : "normal",
+        ...(input.archiveRecovery
+          ? { archiveRecovery: input.archiveRecovery }
+          : {}),
       });
       const plan = WorktreeDeletionPlanSchema.parse({
         version: "wdp1",
@@ -693,6 +780,12 @@ export class WorktreeDeletionPlanner {
         token,
         integration,
         ...(terminal ? { terminal } : {}),
+        removalMode: input.archiveRecovery
+          ? "archive_owned_projection"
+          : "normal",
+        ...(input.archiveRecovery
+          ? { archiveRecovery: input.archiveRecovery }
+          : {}),
       });
       return {
         kind: "planned",

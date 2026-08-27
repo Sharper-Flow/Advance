@@ -58,7 +58,9 @@ import { inferChangeIdFromBranch } from "./branch-parser";
 import { scanGitWorkspaceFacts } from "./census";
 import {
   decodeWorktreeDeletionToken,
+  WorktreeDeletionArchiveRecoverySchema,
   WorktreeDeletionPlanSchema,
+  type WorktreeDeletionArchiveRecovery,
   type WorktreeDeletionPlan,
 } from "./deletion-contracts";
 import {
@@ -1050,6 +1052,8 @@ export interface AdvWorktreeDeleteDeps {
   ) => Promise<PrMergedBranchIntegrationResult>;
   /** Lightweight path resolver used by the shared planner's terminal proof. */
   statePathResolver?: (changeId: string) => Promise<string | undefined>;
+  /** Archive completion may inject the sole archive-owned recovery authority. */
+  archiveRecovery?: WorktreeDeletionArchiveRecovery;
   /** Test seam for the shared planner/executor adapters. */
   deletionPlanner?: ReturnType<typeof createWorktreeDeletionPlanner>;
   deletionExecutor?: typeof executeWorktreeDeletion;
@@ -1809,6 +1813,25 @@ async function advWorktreeDeleteShared(
     repository: string,
     operation: WorktreeOperationContext,
   ) => {
+    const parsedRecovery = WorktreeDeletionArchiveRecoverySchema.safeParse(
+      deps.archiveRecovery,
+    );
+    if (parsedRecovery.success) {
+      const recovery = parsedRecovery.data;
+      return {
+        kind: "pr_merged" as const,
+        branch: branchName,
+        defaultBranch,
+        head,
+        evidence: `archive-owned merged PR #${recovery.prNumber}`,
+        prNumber: recovery.prNumber,
+        prHeadOid: recovery.prHeadOid,
+        mergeCommitOid: recovery.mergeCommitOid,
+        headRepository: recovery.prRepository,
+        baseRepository: recovery.prRepository,
+      };
+    }
+
     // An explicitly supplied legacy integration gate remains authoritative;
     // the normal proof order below is local ancestry/patch, then GitHub.
     if (deps.integrationCheck) {
@@ -1935,6 +1958,9 @@ async function advWorktreeDeleteShared(
       force: opts.force === true,
       budgetMs: deps.operationTimeoutMs,
       operation,
+      ...(deps.archiveRecovery
+        ? { archiveRecovery: deps.archiveRecovery }
+        : {}),
     });
     return plannerResultToDeleteResult(branch, planned);
   }
@@ -1990,6 +2016,10 @@ async function advWorktreeDeleteShared(
     ...(payload.force !== undefined ? { force: payload.force } : {}),
     ...(payload.integration ? { integration: payload.integration } : {}),
     ...(payload.terminal ? { terminal: payload.terminal } : {}),
+    ...(payload.removalMode ? { removalMode: payload.removalMode } : {}),
+    ...(payload.archiveRecovery
+      ? { archiveRecovery: payload.archiveRecovery }
+      : {}),
   });
   if (changeId && !deps.registry?.some((entry) => entry.branch === branch)) {
     appendDebugLog(

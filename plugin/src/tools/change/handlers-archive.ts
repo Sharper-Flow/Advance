@@ -1,7 +1,8 @@
 /** Disk-backed archive and origin-repair handlers. */
 import { z } from "zod";
-import { rm } from "fs/promises";
-import { basename, join, relative } from "path";
+import { createHash } from "node:crypto";
+import { readdir, readFile, rm } from "fs/promises";
+import { basename, join, relative, resolve, sep } from "path";
 import { GATE_ORDER, type Change, type ProjectConfig } from "../../types";
 import type { Store } from "../../storage/store";
 import { loadAllSpecs, removeChangeDir } from "../../storage/json";
@@ -74,6 +75,12 @@ import {
 } from "../archive-helpers/git-finalize";
 import { logger } from "./helpers";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
+import { execFileGitAsync } from "../../utils/git-binary";
+import type {
+  WorktreeDeletionArchiveRecovery,
+  WorktreeDeletionArchivePath,
+} from "../worktree/deletion-contracts";
+import { parseGitNameStatusZ } from "../worktree/porcelain-parser";
 
 function outputSpecs(archiveResult: {
   specsUpdated: Array<{
@@ -170,11 +177,185 @@ function hasLinkedIssue(change: Change): boolean {
   );
 }
 
+async function listCanonicalFiles(
+  root: string,
+  prefix = "",
+): Promise<Array<{ path: string; sha256: string }>> {
+  const files: Array<{ path: string; sha256: string }> = [];
+  for (const entry of await readdir(join(root, prefix), {
+    withFileTypes: true,
+  })) {
+    const relativePath = join(prefix, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await listCanonicalFiles(root, relativePath)));
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const content = await readFile(join(root, relativePath));
+    files.push({
+      path: relativePath.split(sep).join("/"),
+      sha256: createHash("sha256").update(content).digest("hex"),
+    });
+  }
+  return files.sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function parseCommittedArchivePaths(
+  stdout: string,
+): WorktreeDeletionArchivePath[] {
+  return parseGitNameStatusZ(stdout).map(({ status, path }) => ({
+    status: status as WorktreeDeletionArchivePath["status"],
+    path,
+  }));
+}
+
+async function buildArchiveOwnedRecovery(input: {
+  store: Store;
+  changeId: string;
+  worktreePath: string;
+  branch: string;
+  archivePath: string;
+  inRepoBundlePath?: string;
+  finalization: GitFinalizeOutcome;
+  terminalChange: Change;
+}): Promise<WorktreeDeletionArchiveRecovery | undefined> {
+  const {
+    worktreePath,
+    branch,
+    archivePath,
+    inRepoBundlePath,
+    finalization,
+    terminalChange,
+  } = input;
+  const trackedPath = inRepoBundlePath ?? archivePath;
+  const trackedRoot = relative(worktreePath, trackedPath);
+  const normalizedRoot = trackedRoot.split(sep).join("/").replace(/\/$/, "");
+  const bundleId = basename(normalizedRoot);
+  const terminalStatus =
+    terminalChange.status === "archived" &&
+    terminalChange.lifecycleState === "archived" &&
+    terminalChange.phase9_status?.status === "done"
+      ? "archived"
+      : terminalChange.status === "closed" &&
+          terminalChange.lifecycleState === "closed"
+        ? "closed"
+        : undefined;
+  if (
+    !normalizedRoot.startsWith(".adv/archive/") ||
+    !bundleId ||
+    basename(archivePath) !== bundleId ||
+    terminalChange.id !== input.changeId ||
+    !terminalStatus
+  )
+    return undefined;
+
+  const prNumber = finalization.prNumber;
+  const prHeadOid = finalization.prHeadSha;
+  const mergeCommitOid =
+    finalization.mergeCommitSha ?? finalization.releasedCommitSha;
+  const defaultBranchSha = finalization.defaultBranchSha;
+  const repository = resolve(input.store.paths.root);
+  const prRepository = finalization.repo;
+  if (
+    !prNumber ||
+    !prHeadOid ||
+    !mergeCommitOid ||
+    !defaultBranchSha ||
+    !prRepository ||
+    resolve(finalization.repoRoot) !== repository ||
+    !finalization.defaultBranch
+  )
+    return undefined;
+
+  try {
+    const [{ stdout: localHead }, canonicalFiles, { stdout: diff }] =
+      await Promise.all([
+        execFileGitAsync(
+          ["rev-parse", "--verify", `refs/heads/${branch}^{commit}`],
+          {
+            cwd: worktreePath,
+          },
+        ),
+        listCanonicalFiles(archivePath),
+        execFileGitAsync(
+          ["diff", "--name-status", "-z", `${prHeadOid}..refs/heads/${branch}`],
+          {
+            cwd: worktreePath,
+          },
+        ),
+      ]);
+    const changedPaths = parseCommittedArchivePaths(diff);
+    const allowedRoot = `.adv/archive/${bundleId}`;
+    if (
+      !changedPaths.length ||
+      changedPaths.some(
+        (entry) =>
+          !["A", "M"].includes(entry.status) ||
+          !entry.path.startsWith(`${allowedRoot}/`),
+      )
+    )
+      return undefined;
+    const trackedCanonicalFiles = canonicalFiles.map((file) => ({
+      path: `${allowedRoot}/${file.path}`,
+      sha256: file.sha256,
+    }));
+    const canonicalPathSet = new Set(
+      trackedCanonicalFiles.map((file) => file.path),
+    );
+    if (changedPaths.some((entry) => !canonicalPathSet.has(entry.path)))
+      return undefined;
+    await execFileGitAsync(
+      ["merge-base", "--is-ancestor", prHeadOid, localHead.trim()],
+      { cwd: worktreePath },
+    );
+    const canonicalIdentity = canonicalSha256({
+      bundleId,
+      canonicalFiles: trackedCanonicalFiles,
+    });
+    return {
+      changeId: input.changeId,
+      repository,
+      branch,
+      worktree: worktreePath,
+      localHead: localHead.trim(),
+      prNumber,
+      prRepository,
+      prHeadOid,
+      mergeCommitOid,
+      defaultBranch: finalization.defaultBranch,
+      defaultBranchSha,
+      ancestry: "pr_head_ancestor_of_local_head",
+      bundleId,
+      canonicalBundlePath: archivePath,
+      changedPaths,
+      canonicalFiles: trackedCanonicalFiles,
+      canonicalIdentity,
+      allowedRoot,
+      clean: true,
+      locked: false,
+      cwd: process.cwd(),
+      cwdInsideWorktree: false,
+      inUse: false,
+      terminal: {
+        changeId: input.changeId,
+        status: terminalStatus,
+        evidence: `durable terminal status: ${terminalStatus}`,
+      },
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 async function cleanupShippedChangeWorktree(input: {
   store: Store;
   changeId: string;
   worktreePath?: string;
   branch: string;
+  archivePath: string;
+  inRepoBundlePath?: string;
+  finalization: GitFinalizeOutcome;
+  terminalChange: Change;
 }): Promise<ArchiveCleanupDisposition> {
   const { branch, worktreePath } = input;
   if (!worktreePath)
@@ -187,12 +368,18 @@ async function cleanupShippedChangeWorktree(input: {
       },
     };
   try {
+    const archiveRecovery = await buildArchiveOwnedRecovery({
+      ...input,
+      branch,
+      worktreePath,
+    });
     const deletionDeps = {
       projectRoot: input.store.paths.root,
       database: await initWorktreeStateDb(input.store.paths.root),
       log: logger,
       store: input.store,
       worktreePath,
+      ...(archiveRecovery ? { archiveRecovery } : {}),
     };
     const deletionPlan = await advWorktreeDelete(
       branch,
@@ -449,6 +636,10 @@ export async function completeShippedChange(
     changeId: input.changeId,
     worktreePath: input.worktreePath,
     branch,
+    archivePath: input.archivePath,
+    inRepoBundlePath: input.inRepoBundlePath,
+    finalization: input.finalization,
+    terminalChange,
   });
   if (cleanup.status === "retained")
     errors.push(
@@ -706,6 +897,12 @@ export const advChangeArchiveHandler = async (
         changeId,
         archiveMode,
         archivePath: mergedReplay.existingBundlePath,
+        inRepoBundlePath: worktreePath
+          ? ((await findArchiveBundle(
+              join(worktreePath, ".adv", "archive"),
+              changeId,
+            )) ?? undefined)
+          : undefined,
         finalization: mergedReplay.finalization,
         releaseGateCompletion: completion,
         worktreePath,
