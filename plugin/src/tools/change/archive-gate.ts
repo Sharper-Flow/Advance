@@ -824,6 +824,7 @@ async function completeArchivedBundleRelease(input: {
   finalization: GitFinalizeOutcome;
   existingBundlePath: string;
   inRepoBundlePath?: string;
+  skipTerminalRefresh?: boolean;
 }): Promise<ArchiveReleaseGateResult> {
   if (input.finalization.status !== "shipped") {
     return {
@@ -861,10 +862,17 @@ async function completeArchivedBundleRelease(input: {
       loaded.data.phase9_status?.status === "done" &&
       loaded.data.lifecycleState === "archived"
     ) {
+      if (input.skipTerminalRefresh)
+        return {
+          ok: true,
+          gate: currentGate,
+          alreadyDone: true,
+        };
       try {
         const writeResult = await refreshArchiveBundleProjectionsUnderLock({
           change: loaded.data,
           archivePath: input.existingBundlePath,
+          inRepoArchivePath: input.inRepoBundlePath,
         });
         if (writeResult.terminalSummaryDegradation) {
           return {
@@ -958,6 +966,7 @@ async function completeArchivedBundleRelease(input: {
           const writeResult = await refreshArchiveBundleProjectionsUnderLock({
             change: readback,
             archivePath: input.existingBundlePath,
+            inRepoArchivePath: input.inRepoBundlePath,
           });
           return writeResult.terminalSummaryDegradation
             ? {
@@ -998,8 +1007,15 @@ export async function completeMergedArchiveReplay(input: {
   changeId: string;
   finalization: ShippedFinalization;
   existingBundlePath: string;
+  inRepoBundlePath?: string;
 }): Promise<ArchiveReleaseGateResult> {
-  return completeArchivedBundleRelease(input);
+  return completeArchivedBundleRelease({
+    store: input.store,
+    changeId: input.changeId,
+    finalization: input.finalization,
+    existingBundlePath: input.existingBundlePath,
+    skipTerminalRefresh: true,
+  });
 }
 
 export async function verifyReleaseGateDurableForArchive(input: {

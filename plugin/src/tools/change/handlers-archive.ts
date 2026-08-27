@@ -29,7 +29,11 @@ import {
   verifyReleaseGateDurableForArchive,
   completeReleaseGateAfterFinalization,
 } from "./archive-gate";
-import { loadSpecsMap, closeLinkedIssue } from "./recovery";
+import {
+  loadSpecsMap,
+  closeLinkedIssue,
+  type CloseLinkedIssueResult,
+} from "./recovery";
 import {
   getPluginBundleDistDir,
   getPluginBundleReleasePreflightError,
@@ -105,6 +109,375 @@ function isClosedLifecycle(change: Change): boolean {
 function hasPriorPhase9ArchiveEvidence(change: Change): boolean {
   const status = change.phase9_status?.status;
   return status === "failed" || status === "pending_merge";
+}
+
+export type ArchiveCleanupDisposition =
+  | {
+      status: "deleted";
+      branch: string;
+      path: string;
+    }
+  | {
+      status: "already_absent";
+      branch: string;
+      evidence: { classification: string; blocker: string };
+    }
+  | {
+      status: "retained";
+      branch: string;
+      path?: string;
+      evidence: { classification: string; blocker: string };
+    };
+
+type CompleteShippedChangeInput = {
+  store: Store;
+  change: Change;
+  changeId: string;
+  archiveMode: "direct" | "pr";
+  archivePath: string;
+  inRepoBundlePath?: string;
+  archivedAt?: string;
+  finalization: GitFinalizeOutcome;
+  releaseGateCompletion?: Extract<ArchiveReleaseGateResult, { ok: true }>;
+  worktreePath?: string;
+  sourceBranch?: string;
+  existingBundlePath?: string;
+  noCloseIssue?: boolean;
+  terminalRefreshCompleted?: boolean;
+};
+
+type CompleteShippedChangeResult =
+  | {
+      ok: true;
+      change: Change;
+      cleanup: ArchiveCleanupDisposition;
+      errors: string[];
+      issueClosure?: CloseLinkedIssueResult;
+    }
+  | { ok: false; error: string };
+
+function boundedCleanupEvidence(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.slice(0, 500);
+}
+
+function hasLinkedIssue(change: Change): boolean {
+  const issueNumber = change.origin?.issue_number;
+  return (
+    typeof issueNumber === "number" &&
+    issueNumber > 0 &&
+    (change.origin?.kind === "roadmap" || change.origin?.kind === "triage")
+  );
+}
+
+async function cleanupShippedChangeWorktree(input: {
+  store: Store;
+  changeId: string;
+  worktreePath?: string;
+  branch: string;
+}): Promise<ArchiveCleanupDisposition> {
+  const { branch, worktreePath } = input;
+  if (!worktreePath)
+    return {
+      status: "retained",
+      branch,
+      evidence: {
+        classification: "identity_unproven",
+        blocker: "An exact worktree path was not provided.",
+      },
+    };
+  try {
+    const deletionDeps = {
+      projectRoot: input.store.paths.root,
+      database: await initWorktreeStateDb(input.store.paths.root),
+      log: logger,
+      store: input.store,
+      worktreePath,
+    };
+    const deletionPlan = await advWorktreeDelete(
+      branch,
+      { force: false, dryRun: true },
+      deletionDeps,
+    );
+    if (!deletionPlan.ok) {
+      if (deletionPlan.error === "WORKTREE_NOT_FOUND")
+        return {
+          status: "already_absent",
+          branch,
+          evidence: {
+            classification: deletionPlan.error,
+            blocker: "Git found no worktree for the exact branch.",
+          },
+        };
+      return {
+        status: "retained",
+        branch,
+        evidence: {
+          classification: deletionPlan.error,
+          blocker: boundedCleanupEvidence(
+            "reason" in deletionPlan
+              ? deletionPlan.reason
+              : "Deletion plan refused.",
+          ),
+        },
+      };
+    }
+    if (deletionPlan.path !== worktreePath || !deletionPlan.planToken)
+      return {
+        status: "retained",
+        branch,
+        path: deletionPlan.path,
+        evidence: {
+          classification: "worktree_identity_mismatch",
+          blocker: `Git planned ${deletionPlan.path}, not the proven ${worktreePath}.`,
+        },
+      };
+    const deletion = await advWorktreeDelete(
+      branch,
+      {
+        force: false,
+        planToken: deletionPlan.planToken,
+        approvalEvidence: `archive sign-off and release finalization approved change ${input.changeId}`,
+      },
+      deletionDeps,
+    );
+    if (
+      deletion.ok &&
+      deletion.status === "deleted" &&
+      deletion.path === worktreePath
+    )
+      return { status: "deleted", branch, path: deletion.path };
+    if (deletion.ok)
+      return {
+        status: "retained",
+        branch,
+        path: deletion.path,
+        evidence: {
+          classification: "worktree_identity_mismatch",
+          blocker: `Deletion returned ${deletion.path} with status ${deletion.status ?? "unknown"}.`,
+        },
+      };
+    if (
+      deletion.error === "ALREADY_ABSENT" ||
+      deletion.error === "WORKTREE_NOT_FOUND"
+    )
+      return {
+        status: "already_absent",
+        branch,
+        evidence: {
+          classification: deletion.error,
+          blocker: "The exact worktree was absent when deletion ran.",
+        },
+      };
+    return {
+      status: "retained",
+      branch,
+      path: "path" in deletion ? deletion.path : worktreePath,
+      evidence: {
+        classification: deletion.error,
+        blocker: boundedCleanupEvidence(
+          "reason" in deletion ? deletion.reason : "Deletion was refused.",
+        ),
+      },
+    };
+  } catch (error) {
+    return {
+      status: "retained",
+      branch,
+      path: worktreePath,
+      evidence: {
+        classification: "cleanup_exception",
+        blocker: boundedCleanupEvidence(error),
+      },
+    };
+  }
+}
+
+export async function completeShippedChange(
+  input: CompleteShippedChangeInput,
+): Promise<CompleteShippedChangeResult> {
+  if (input.finalization.status !== "shipped")
+    return {
+      ok: false,
+      error: `Shipped completion requires shipped finalization, got ${input.finalization.status}.`,
+    };
+
+  const archivedAt = input.archivedAt ?? new Date().toISOString();
+  const terminalAlreadyCommitted =
+    input.change.status === "archived" &&
+    input.change.lifecycleState === "archived" &&
+    input.change.phase9_status?.status === "done" &&
+    input.change.gates?.release?.status === "done";
+  const branch = input.sourceBranch ?? `change/${input.changeId}`;
+  if (terminalAlreadyCommitted && input.terminalRefreshCompleted)
+    return {
+      ok: true,
+      change: input.change,
+      cleanup: {
+        status: "already_absent",
+        branch,
+        evidence: {
+          classification: "terminal_replay",
+          blocker: "Terminal completion already ran for this change.",
+        },
+      },
+      errors: [],
+    };
+  let terminalChange = input.change;
+  if (!terminalAlreadyCommitted) {
+    const outcome = await coordinateChangeMutation<Change>({
+      authority: {
+        reason: "archive shipped change",
+        evidence: buildReleaseCompletionEvidence(input.finalization),
+      },
+      changesDir: input.store.paths.changes,
+      intent: {
+        changeId: input.changeId,
+        mutationKind: "archive_transition",
+        mutateLatestProjection: (latest) => ({
+          ...latest,
+          status: "archived",
+          lifecycleState: "archived",
+          ...(input.change.archive_projection_proof
+            ? {
+                archive_projection_proof: input.change.archive_projection_proof,
+              }
+            : {}),
+          gates: {
+            ...(latest.gates ?? {}),
+            ...(input.releaseGateCompletion
+              ? { release: input.releaseGateCompletion.gate }
+              : {}),
+          },
+          phase9_status: preservePhase9Evidence(latest.phase9_status, {
+            status: "done",
+            startedAt: latest.phase9_status?.startedAt ?? archivedAt,
+            completedAt: archivedAt,
+            changeTipSha: input.finalization.changeTipSha,
+            preArchiveTipSha: input.finalization.preArchiveTipSha,
+            repo: input.finalization.repo,
+            prNumber: input.finalization.prNumber,
+            prUrl: input.finalization.prUrl,
+            route: input.finalization.route,
+            prHeadSha: input.finalization.prHeadSha,
+            defaultBranchSha: input.finalization.defaultBranchSha,
+            ...(input.finalization.mergeCommitSha
+              ? { mergeCommitSha: input.finalization.mergeCommitSha }
+              : {}),
+          }),
+        }),
+        verifyProjection: (readback) =>
+          readback.status === "archived" &&
+          readback.lifecycleState === "archived" &&
+          readback.phase9_status?.status === "done",
+      },
+    });
+    if (outcome.kind !== "verified")
+      return {
+        ok: false,
+        error:
+          outcome.kind === "unverified"
+            ? outcome.reason
+            : "Archive status transition was not verified.",
+      };
+    terminalChange = outcome.value;
+  }
+
+  const errors: string[] = [];
+  if (!input.terminalRefreshCompleted) {
+    try {
+      const refreshResults = await withArchiveProjectionLock(
+        input.store.paths.root,
+        async () => {
+          const results = [];
+          for (const archivePath of [
+            input.archivePath,
+            ...(input.inRepoBundlePath &&
+            input.inRepoBundlePath !== input.archivePath
+              ? [input.inRepoBundlePath]
+              : []),
+          ]) {
+            results.push(
+              await refreshArchiveBundleProjectionUnderLock({
+                change: terminalChange,
+                archivePath,
+                archivedAt,
+              }),
+            );
+          }
+          return results;
+        },
+      );
+      const degradedRefresh = refreshResults.find(
+        (result) => result.terminalSummaryDegradation,
+      );
+      if (degradedRefresh?.terminalSummaryDegradation)
+        return {
+          ok: false,
+          error: degradedRefresh.terminalSummaryDegradation.reason,
+        };
+    } catch (error) {
+      return { ok: false, error: boundedCleanupEvidence(error) };
+    }
+  }
+
+  const epicProjection = await projectEpicTerminalSummaryAfterArchive({
+    store: input.store,
+    change: terminalChange,
+    completedAt: archivedAt,
+  });
+  if (epicProjection.status === "warning")
+    errors.push(`Epic terminal projection warning: ${epicProjection.error}`);
+
+  let issueClosure: CloseLinkedIssueResult | undefined;
+  if (hasLinkedIssue(terminalChange)) {
+    issueClosure = await closeLinkedIssue({
+      change: terminalChange,
+      store: input.store,
+      noCloseIssue: input.noCloseIssue,
+      existingBundlePath: input.existingBundlePath,
+      worktreePath: input.worktreePath,
+    });
+    if (issueClosure.issue_closure_error)
+      errors.push(
+        `Issue closure warning: ${issueClosure.issue_closure_error.stderr.slice(0, 500)}`,
+      );
+  }
+
+  const cleanup = await cleanupShippedChangeWorktree({
+    store: input.store,
+    changeId: input.changeId,
+    worktreePath: input.worktreePath,
+    branch,
+  });
+  if (cleanup.status === "retained")
+    errors.push(
+      `Targeted worktree cleanup retained: ${cleanup.evidence.blocker}`,
+    );
+
+  try {
+    await removeChangeDir(input.store.paths.changes, input.changeId);
+  } catch (error) {
+    errors.push(`Source cleanup warning: ${boundedCleanupEvidence(error)}`);
+  }
+
+  if (
+    input.finalization.repoRoot &&
+    input.finalization.route !== "pr_auto_merge" &&
+    input.finalization.route !== "pr_manual" &&
+    input.finalization.route !== "merge_queue" &&
+    input.archiveMode === "direct" &&
+    (cleanup.status === "deleted" || cleanup.status === "already_absent") &&
+    !input.sourceBranch
+  ) {
+    try {
+      deleteChangeBranch(input.finalization.repoRoot, input.changeId);
+    } catch (error) {
+      errors.push(`Branch cleanup warning: ${boundedCleanupEvidence(error)}`);
+    }
+  }
+
+  return { ok: true, change: terminalChange, cleanup, errors, issueClosure };
 }
 
 export const advChangeArchiveHandler = async (
@@ -226,6 +599,7 @@ export const advChangeArchiveHandler = async (
     const { archiveMode, autoPush } = detectArchiveMode(
       activeStore.config ?? {},
     );
+    let skipFinalization: GitFinalizeOutcome | undefined;
     if (!dryRun && phase9 === "skip") {
       const release = verifyReleaseEvidenceFromMain({
         store: activeStore,
@@ -243,6 +617,7 @@ export const advChangeArchiveHandler = async (
           details: release.blocked?.details,
           finalization: release,
         });
+      skipFinalization = release;
     }
 
     let validationResult: Awaited<ReturnType<typeof validateChange>>;
@@ -325,6 +700,29 @@ export const advChangeArchiveHandler = async (
           archivePath: mergedReplay.existingBundlePath,
           finalization: mergedReplay.finalization,
         });
+      const shippedCompletion = await completeShippedChange({
+        store: activeStore,
+        change,
+        changeId,
+        archiveMode,
+        archivePath: mergedReplay.existingBundlePath,
+        finalization: mergedReplay.finalization,
+        releaseGateCompletion: completion,
+        worktreePath,
+        existingBundlePath: mergedReplay.existingBundlePath,
+        noCloseIssue,
+        terminalRefreshCompleted:
+          completion.recoveryMutation === true || completion.alreadyDone,
+      });
+      if (!shippedCompletion.ok)
+        return formatToolOutput({
+          success: false,
+          error: `Merged archive replay completion blocked: ${shippedCompletion.error}`,
+          requirement: "rq-archiveTerminalDurability01.7",
+          changeId,
+          archivePath: mergedReplay.existingBundlePath,
+          finalization: mergedReplay.finalization,
+        });
       return formatToolOutput({
         success: true,
         changeId,
@@ -334,6 +732,11 @@ export const advChangeArchiveHandler = async (
         finalization: mergedReplay.finalization,
         releaseGate: completion.gate,
         releaseGateAlreadyDone: completion.alreadyDone,
+        cleanup: shippedCompletion.cleanup,
+        errors: shippedCompletion.errors,
+        ...(shippedCompletion.issueClosure?.issue_closed.length
+          ? { issue_closed: shippedCompletion.issueClosure.issue_closed }
+          : {}),
         message:
           "Merged archive replay completed canonical terminal state without repeating tracked writers or finalization.",
         ...openOpsObligationsPayload,
@@ -881,6 +1284,8 @@ export const advChangeArchiveHandler = async (
         });
     }
 
+    if (!dryRun && phase9 === "skip") finalization = skipFinalization;
+
     if (
       !dryRun &&
       archiveResult.projectionManifest &&
@@ -957,190 +1362,46 @@ export const advChangeArchiveHandler = async (
       };
     }
 
-    if (!dryRun) {
-      const archivedAt = new Date().toISOString();
-      const outcome = await coordinateChangeMutation<Change>({
-        authority: {
-          reason: "archive shipped change",
-          evidence: finalization
-            ? buildReleaseCompletionEvidence(finalization)
-            : "archive gate and durable bundle proof",
-        },
-        changesDir: activeStore.paths.changes,
-        intent: {
-          changeId,
-          mutationKind: "archive_transition",
-          mutateLatestProjection: (latest) => ({
-            ...latest,
-            status: "archived",
-            lifecycleState: "archived",
-            ...(change.archive_projection_proof
-              ? { archive_projection_proof: change.archive_projection_proof }
-              : {}),
-            ...(releaseGateCompletion
-              ? {
-                  gates: {
-                    ...(latest.gates ?? {}),
-                    release: releaseGateCompletion.gate,
-                  },
-                  phase9_status: preservePhase9Evidence(latest.phase9_status, {
-                    status: "done",
-                    startedAt: latest.phase9_status?.startedAt ?? archivedAt,
-                    completedAt: archivedAt,
-                    changeTipSha: finalization?.changeTipSha,
-                    preArchiveTipSha: finalization?.preArchiveTipSha,
-                    repo: finalization?.repo,
-                    prNumber: finalization?.prNumber,
-                    prUrl: finalization?.prUrl,
-                    route: finalization?.route,
-                    prHeadSha: finalization?.prHeadSha,
-                    defaultBranchSha: finalization?.defaultBranchSha,
-                    ...(finalization?.mergeCommitSha
-                      ? { mergeCommitSha: finalization.mergeCommitSha }
-                      : {}),
-                  }),
-                }
-              : {}),
-          }),
-          verifyProjection: (readback) =>
-            readback.status === "archived" &&
-            readback.lifecycleState === "archived" &&
-            (releaseGateCompletion === undefined ||
-              (readback.gates?.release?.status === "done" &&
-                readback.phase9_status?.status === "done")),
-        },
+    let shippedCompletion: CompleteShippedChangeResult | undefined;
+    if (!dryRun && finalization?.status === "shipped") {
+      shippedCompletion = await completeShippedChange({
+        store: activeStore,
+        change,
+        changeId,
+        archiveMode,
+        archivePath: archiveResult.archivePath,
+        inRepoBundlePath,
+        archivedAt: archiveResult.archivedAt,
+        finalization,
+        releaseGateCompletion,
+        worktreePath,
+        sourceBranch: archiveDeltaRepair?.repairBranch,
+        existingBundlePath: existingBundlePath ?? undefined,
+        noCloseIssue,
       });
-      if (outcome.kind !== "verified")
+      if (!shippedCompletion.ok)
         return formatToolOutput({
           success: false,
-          error:
-            outcome.kind === "unverified"
-              ? outcome.reason
-              : "Archive status transition was not verified.",
-          code: "ARCHIVE_MUTATION_OPERATOR_REQUIRED",
-          changeId,
-          archivePath: archiveResult.archivePath,
-        });
-      try {
-        const bundlePaths = [
-          archiveResult.archivePath,
-          ...(inRepoBundlePath && inRepoBundlePath !== archiveResult.archivePath
-            ? [inRepoBundlePath]
-            : []),
-        ];
-        const refreshResults = await withArchiveProjectionLock(
-          activeStore.paths.root,
-          async () => {
-            const results = [];
-            for (const archivePath of bundlePaths) {
-              results.push(
-                await refreshArchiveBundleProjectionUnderLock({
-                  change: outcome.value,
-                  archivePath,
-                  archivedAt: archiveResult.archivedAt,
-                }),
-              );
-            }
-            return results;
-          },
-        );
-        const degradedRefresh = refreshResults.find(
-          (result) => result.terminalSummaryDegradation,
-        );
-        if (degradedRefresh?.terminalSummaryDegradation)
-          return formatToolOutput({
-            success: false,
-            error: `Archive bundle projection refresh blocked: ${degradedRefresh.terminalSummaryDegradation.reason}`,
-            requirement: "rq-archiveTerminalDurability01.1",
-            changeId,
-            archivePath: archiveResult.archivePath,
-          });
-      } catch (error) {
-        return formatToolOutput({
-          success: false,
-          error: `Archive bundle projection refresh blocked: ${error instanceof Error ? error.message : String(error)}`,
+          error: `Archive shipped completion blocked: ${shippedCompletion.error}`,
           requirement: "rq-archiveTerminalDurability01.1",
           changeId,
           archivePath: archiveResult.archivePath,
         });
-      }
-      const epicProjection = await projectEpicTerminalSummaryAfterArchive({
-        store: activeStore,
-        change: outcome.value,
-        completedAt: archivedAt,
-      });
-      if (epicProjection.status === "warning")
-        archiveResult.errors.push(
-          `Epic terminal projection warning: ${epicProjection.error}`,
-        );
-      let targetedWorktreeDeleteResult:
-        | Awaited<ReturnType<typeof advWorktreeDelete>>
-        | undefined;
-      if (worktreePath) {
-        try {
-          const deletionDeps = {
-            projectRoot: activeStore.paths.root,
-            database: await initWorktreeStateDb(activeStore.paths.root),
-            log: logger,
-            store: activeStore,
-            worktreePath,
-          };
-          const deletionPlan = await advWorktreeDelete(
-            archiveDeltaRepair?.repairBranch ?? `change/${change.id}`,
-            { force: false, dryRun: true },
-            deletionDeps,
-          );
-          targetedWorktreeDeleteResult =
-            deletionPlan.ok && deletionPlan.planToken
-              ? await advWorktreeDelete(
-                  archiveDeltaRepair?.repairBranch ?? `change/${change.id}`,
-                  {
-                    force: false,
-                    planToken: deletionPlan.planToken,
-                    approvalEvidence: `archive sign-off and release finalization approved change ${change.id}`,
-                  },
-                  deletionDeps,
-                )
-              : deletionPlan;
-        } catch (error) {
-          archiveResult.errors.push(
-            `Targeted worktree cleanup warning: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }
-      try {
-        await removeChangeDir(activeStore.paths.changes, change.id);
-      } catch (error) {
-        archiveResult.errors.push(
-          `Source cleanup warning: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-      if (
-        finalization?.status === "shipped" &&
-        finalization.repoRoot &&
-        finalization.route !== "pr_auto_merge" &&
-        archiveMode === "direct" &&
-        (targetedWorktreeDeleteResult?.ok ||
-          targetedWorktreeDeleteResult?.error === "WORKTREE_NOT_FOUND")
-      ) {
-        try {
-          if (!archiveDeltaRepair)
-            deleteChangeBranch(finalization.repoRoot, change.id);
-        } catch (error) {
-          archiveResult.errors.push(
-            `Branch cleanup warning: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }
+      archiveResult.errors.push(...shippedCompletion.errors);
     }
-    const issueClosure = await closeLinkedIssue({
-      change,
-      store: activeStore,
-      noCloseIssue,
-      dryRun,
-      existingBundlePath: existingBundlePath ?? undefined,
-      worktreePath,
-    });
+    const completed = shippedCompletion?.ok ? shippedCompletion : undefined;
+    const issueClosure =
+      completed?.issueClosure ??
+      (dryRun && hasLinkedIssue(change)
+        ? await closeLinkedIssue({
+            change,
+            store: activeStore,
+            noCloseIssue,
+            dryRun,
+            existingBundlePath: existingBundlePath ?? undefined,
+            worktreePath,
+          })
+        : { issue_closed: [] });
     return formatToolOutput({
       success: true,
       changeId,
@@ -1184,6 +1445,7 @@ export const advChangeArchiveHandler = async (
             releaseGateAlreadyDone: releaseGateCompletion.alreadyDone,
           }
         : {}),
+      ...(completed ? { cleanup: completed.cleanup } : {}),
       ...openOpsObligationsPayload,
     });
   };

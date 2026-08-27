@@ -170,14 +170,14 @@ vi.mock("../worktree", () => ({
 }));
 
 vi.mock("../worktree/state", () => ({
-  initWorktreeStateDb: mocks.initWorktreeStateDb,
+  initStateDb: mocks.initWorktreeStateDb,
 }));
 
 vi.mock("../change-mutation-coordinator", () => ({
   coordinateChangeMutation: mocks.coordinateChangeMutation,
 }));
 
-import { archiveChangeTools } from "./handlers-archive";
+import { archiveChangeTools, completeShippedChange } from "./handlers-archive";
 
 const CHANGE_ID = "fixWorktreeDeletionReliability";
 const BUNDLE_PATH = `/archive/2026-08-08-${CHANGE_ID}`;
@@ -397,9 +397,9 @@ describe("adv_change_archive partial archive-delta repair", () => {
     mocks.advWorktreeDelete.mockImplementation(
       async (_branch: string, opts: { dryRun?: boolean }) => {
         if (opts?.dryRun) {
-          return { ok: true, planToken: "plan-token" };
+          return { ok: true, planToken: "plan-token", path: REPAIR_WORKTREE };
         }
-        return { ok: true, error: "WORKTREE_NOT_FOUND" };
+        return { ok: false, error: "WORKTREE_NOT_FOUND", branch: _branch };
       },
     );
 
@@ -468,6 +468,7 @@ describe("adv_change_archive partial archive-delta repair", () => {
     mocks.detectMergedArchiveReplay.mockResolvedValue({
       kind: "verified_merged_replay",
       existingBundlePath: BUNDLE_PATH,
+      trackedBundlePath: `.adv/archive/2026-08-08-${CHANGE_ID}`,
       finalization: {
         status: "shipped",
         repoRoot: "/repo",
@@ -486,7 +487,11 @@ describe("adv_change_archive partial archive-delta repair", () => {
     const store = makeStore(change);
 
     const result = await archiveChangeTools.adv_change_archive.execute(
-      { changeId: CHANGE_ID, phase9: "run" },
+      {
+        changeId: CHANGE_ID,
+        phase9: "run",
+        worktreePath: REPAIR_WORKTREE,
+      },
       store,
     );
 
@@ -505,10 +510,96 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expect(mocks.reconcileInRepoArchive).not.toHaveBeenCalled();
     expect(mocks.archiveChange).not.toHaveBeenCalled();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+    expect(mocks.coordinateChangeMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intent: expect.objectContaining({
+          mutationKind: "archive_transition",
+        }),
+      }),
+    );
+    expect(mocks.refreshArchiveBundleProjectionUnderLock).toHaveBeenCalledWith(
+      expect.objectContaining({ archivePath: BUNDLE_PATH }),
+    );
+    expect(mocks.advWorktreeDelete).toHaveBeenCalledTimes(2);
+    expect(mocks.removeChangeDir).toHaveBeenCalledTimes(1);
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+    expect(parseResult(result).cleanup).toMatchObject({
+      status: "already_absent",
+    });
+  });
+
+  it("retains a safely refused worktree cleanup while completing archive retirement", async () => {
+    const change = makeChange();
+    mocks.advWorktreeDelete.mockResolvedValue({
+      ok: false,
+      error: "WORKTREE_IN_USE",
+      branch: `change/${CHANGE_ID}`,
+      path: REPAIR_WORKTREE,
+      hint: "A process uses the worktree.",
+    });
+
+    const result = await completeShippedChange({
+      store: makeStore(change),
+      change,
+      changeId: CHANGE_ID,
+      archiveMode: "pr",
+      archivePath: BUNDLE_PATH,
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "pr_manual",
+        pushStatus: "skipped",
+      },
+      worktreePath: REPAIR_WORKTREE,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      cleanup: {
+        status: "retained",
+        evidence: { classification: "WORKTREE_IN_USE" },
+      },
+    });
+    expect(mocks.coordinateChangeMutation).toHaveBeenCalledTimes(1);
+    expect(mocks.removeChangeDir).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not repeat retirement side effects for an exact terminal replay", async () => {
+    const change = makeChange({
+      status: "archived",
+      lifecycleState: "archived",
+      phase9_status: {
+        status: "done",
+        startedAt: "2026-08-08T00:00:00Z",
+        completedAt: "2026-08-08T00:01:00Z",
+      },
+    });
+
+    const result = await completeShippedChange({
+      store: makeStore(change),
+      change,
+      changeId: CHANGE_ID,
+      archiveMode: "pr",
+      archivePath: BUNDLE_PATH,
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "pr_manual",
+        pushStatus: "skipped",
+      },
+      worktreePath: REPAIR_WORKTREE,
+      terminalRefreshCompleted: true,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      cleanup: { status: "already_absent" },
+    });
     expect(mocks.coordinateChangeMutation).not.toHaveBeenCalled();
-    expect(
-      mocks.refreshArchiveBundleProjectionUnderLock,
-    ).not.toHaveBeenCalled();
+    expect(mocks.projectEpicTerminalSummaryAfterArchive).not.toHaveBeenCalled();
+    expect(mocks.advWorktreeDelete).not.toHaveBeenCalled();
     expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });

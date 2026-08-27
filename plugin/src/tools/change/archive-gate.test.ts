@@ -3,17 +3,31 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Store } from "../../storage/store";
 import type { Change, Gates } from "../../types";
 import {
   buildReleaseCompletionEvidence,
+  completeMergedArchiveReplay,
   detectMergedArchiveReplay,
   getArchiveGatePreflightError,
   resolveArchiveGateState,
   verifyReleaseGateDurableForArchive,
 } from "./archive-gate";
 import { PROJECTION_DOCUMENT_BYTE_LIMIT } from "../../storage/change-projection-reader";
+
+const archiveMocks = vi.hoisted(() => ({
+  refreshArchiveBundleProjectionUnderLock: vi.fn(),
+}));
+
+vi.mock("../../archive/archive", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../archive/archive")>();
+  return {
+    ...actual,
+    refreshArchiveBundleProjectionUnderLock:
+      archiveMocks.refreshArchiveBundleProjectionUnderLock,
+  };
+});
 
 const gateDone = {
   status: "done" as const,
@@ -67,6 +81,98 @@ async function writeDiskChange(
 }
 
 describe("archive-gate disk projection", () => {
+  it("does not rewrite an already terminal merged replay bundle", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-archive-replay-terminal-"));
+    try {
+      const archiveDir = join(root, "archive");
+      const bundlePath = join(archiveDir, "2026-08-08-example");
+      const change = {
+        ...makeChange("archived"),
+        lifecycleState: "archived" as const,
+        phase9_status: {
+          status: "done" as const,
+          startedAt: "2026-08-08T00:00:00Z",
+          completedAt: "2026-08-08T00:01:00Z",
+        },
+      };
+      await mkdir(bundlePath, { recursive: true });
+      await writeFile(join(bundlePath, "change.json"), JSON.stringify(change));
+
+      archiveMocks.refreshArchiveBundleProjectionUnderLock.mockClear();
+      archiveMocks.refreshArchiveBundleProjectionUnderLock.mockResolvedValue(
+        {},
+      );
+      const result = await completeMergedArchiveReplay({
+        store: makeStore(root, change.gates),
+        changeId: change.id,
+        finalization: {
+          status: "shipped",
+          repoRoot: "/repo",
+          defaultBranch: "trunk",
+          pushStatus: "skipped",
+          route: "pr_manual",
+        },
+        existingBundlePath: bundlePath,
+      });
+
+      expect(result).toMatchObject({ ok: true, alreadyDone: true });
+      expect(
+        archiveMocks.refreshArchiveBundleProjectionUnderLock,
+      ).not.toHaveBeenCalled();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refreshes only the canonical external bundle during nonterminal merged replay", async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), "adv-archive-replay-nonterminal-"),
+    );
+    try {
+      const archiveDir = join(root, "archive");
+      const bundlePath = join(archiveDir, "2026-08-08-example");
+      const trackedBundlePath = join(root, "tracked-bundle");
+      const change = {
+        ...makeChange("archived"),
+        lifecycleState: "archived" as const,
+        phase9_status: {
+          status: "pending_merge" as const,
+          startedAt: "2026-08-08T00:00:00Z",
+        },
+      };
+      await mkdir(bundlePath, { recursive: true });
+      await writeFile(join(bundlePath, "change.json"), JSON.stringify(change));
+
+      archiveMocks.refreshArchiveBundleProjectionUnderLock.mockClear();
+      const result = await completeMergedArchiveReplay({
+        store: makeStore(root, change.gates),
+        changeId: change.id,
+        finalization: {
+          status: "shipped",
+          repoRoot: "/repo",
+          defaultBranch: "trunk",
+          pushStatus: "skipped",
+          route: "pr_manual",
+        },
+        existingBundlePath: bundlePath,
+        inRepoBundlePath: trackedBundlePath,
+      });
+
+      expect(result).toMatchObject({ ok: true, alreadyDone: false });
+      expect(
+        archiveMocks.refreshArchiveBundleProjectionUnderLock,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        archiveMocks.refreshArchiveBundleProjectionUnderLock.mock.calls.every(
+          ([input]) =>
+            !("inRepoArchivePath" in input) && input.archivePath === bundlePath,
+        ),
+      ).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("proves a merged replay and its committed tracked bundle before writers", async () => {
     const root = await mkdtemp(join(tmpdir(), "adv-archive-replay-"));
     try {
