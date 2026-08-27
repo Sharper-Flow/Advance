@@ -351,7 +351,7 @@ describe("WorktreeDeletionPlanner", () => {
       inUse: false,
       terminal,
     };
-    const result = await new WorktreeDeletionPlanner({
+    const planner = new WorktreeDeletionPlanner({
       census: async () => ({
         branches: [{ branch: "change/example", headSha: head, merged: false }],
         worktrees: [
@@ -395,7 +395,8 @@ describe("WorktreeDeletionPlanner", () => {
       }),
       terminalProof: async () => terminal,
       isWorktreeInUse: () => false,
-    }).plan({
+    });
+    const result = await planner.plan({
       repository: "/repo",
       branch: "change/example",
       changeId: "example",
@@ -408,5 +409,20 @@ describe("WorktreeDeletionPlanner", () => {
       expect(result.plan.removalMode).toBe("archive_owned_projection");
       expect(result.plan.archiveRecovery).toEqual(archiveRecovery);
     }
+
+    const invalid = await planner.plan({
+      repository: "/repo",
+      branch: "change/example",
+      changeId: "example",
+      cwd: "/repo",
+      archiveRecovery: {
+        ...archiveRecovery,
+        worktree: "/tmp/different-worktree",
+      },
+    });
+    expect(invalid).toMatchObject({
+      kind: "refused",
+      reason: "archive_recovery_invalid",
+    });
   });
 });

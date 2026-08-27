@@ -72,13 +72,15 @@ import {
   validateArchiveDeltaRepairWorktree,
   type GitFinalizeOutcome,
   type ArchiveDeltaRepairValidation,
+  type DeleteChangeBranchResult,
 } from "../archive-helpers/git-finalize";
 import { logger } from "./helpers";
 import { coordinateChangeMutation } from "../change-mutation-coordinator";
 import { execFileGitAsync } from "../../utils/git-binary";
-import type {
-  WorktreeDeletionArchiveRecovery,
-  WorktreeDeletionArchivePath,
+import {
+  WorktreeDeletionArchivePathSchema,
+  type WorktreeDeletionArchivePath,
+  type WorktreeDeletionArchiveRecovery,
 } from "../worktree/deletion-contracts";
 import { parseGitNameStatusZ } from "../worktree/porcelain-parser";
 
@@ -160,6 +162,7 @@ type CompleteShippedChangeResult =
       cleanup: ArchiveCleanupDisposition;
       errors: string[];
       issueClosure?: CloseLinkedIssueResult;
+      branchCleanup?: DeleteChangeBranchResult;
     }
   | { ok: false; error: string };
 
@@ -203,10 +206,9 @@ async function listCanonicalFiles(
 function parseCommittedArchivePaths(
   stdout: string,
 ): WorktreeDeletionArchivePath[] {
-  return parseGitNameStatusZ(stdout).map(({ status, path }) => ({
-    status: status as WorktreeDeletionArchivePath["status"],
-    path,
-  }));
+  return parseGitNameStatusZ(stdout).map(({ status, path }) =>
+    WorktreeDeletionArchivePathSchema.parse({ status, path }),
+  );
 }
 
 async function buildArchiveOwnedRecovery(input: {
@@ -655,6 +657,7 @@ export async function completeShippedChange(
     errors.push(`Source cleanup warning: ${boundedCleanupEvidence(error)}`);
   }
 
+  let branchCleanup: DeleteChangeBranchResult | undefined;
   if (
     input.finalization.repoRoot &&
     input.finalization.route !== "pr_auto_merge" &&
@@ -665,13 +668,25 @@ export async function completeShippedChange(
     !input.sourceBranch
   ) {
     try {
-      deleteChangeBranch(input.finalization.repoRoot, input.changeId);
+      branchCleanup = deleteChangeBranch(
+        input.finalization.repoRoot,
+        input.changeId,
+      );
+      if (branchCleanup.error)
+        errors.push(`Branch cleanup warning: ${branchCleanup.error}`);
     } catch (error) {
       errors.push(`Branch cleanup warning: ${boundedCleanupEvidence(error)}`);
     }
   }
 
-  return { ok: true, change: terminalChange, cleanup, errors, issueClosure };
+  return {
+    ok: true,
+    change: terminalChange,
+    cleanup,
+    errors,
+    issueClosure,
+    ...(branchCleanup ? { branchCleanup } : {}),
+  };
 }
 
 export const advChangeArchiveHandler = async (
@@ -945,6 +960,9 @@ export const advChangeArchiveHandler = async (
         releaseGateAlreadyDone: completion.alreadyDone,
         cleanup: shippedCompletion.cleanup,
         errors: shippedCompletion.errors,
+        ...(shippedCompletion.branchCleanup
+          ? { branchCleanup: shippedCompletion.branchCleanup }
+          : {}),
         ...(shippedCompletion.issueClosure?.issue_closed.length
           ? { issue_closed: shippedCompletion.issueClosure.issue_closed }
           : {}),
@@ -1657,6 +1675,9 @@ export const advChangeArchiveHandler = async (
           }
         : {}),
       ...(completed ? { cleanup: completed.cleanup } : {}),
+      ...(completed?.branchCleanup
+        ? { branchCleanup: completed.branchCleanup }
+        : {}),
       ...openOpsObligationsPayload,
     });
   };

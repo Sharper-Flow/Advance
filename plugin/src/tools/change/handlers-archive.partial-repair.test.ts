@@ -487,6 +487,19 @@ describe("adv_change_archive partial archive-delta repair", () => {
         pushStatus: "skipped",
       },
     });
+    const trackedBundlePath = join(
+      REPAIR_WORKTREE,
+      ".adv",
+      "archive",
+      `2026-08-08-${CHANGE_ID}`,
+    );
+    mocks.findArchiveBundle.mockResolvedValueOnce(trackedBundlePath);
+    mocks.completeMergedArchiveReplay.mockResolvedValue({
+      ok: true,
+      gate: { status: "done" },
+      alreadyDone: false,
+      recoveryMutation: true,
+    });
     const store = makeStore(change);
 
     const result = await archiveChangeTools.adv_change_archive.execute(
@@ -519,9 +532,9 @@ describe("adv_change_archive partial archive-delta repair", () => {
         }),
       }),
     );
-    expect(mocks.refreshArchiveBundleProjectionUnderLock).toHaveBeenCalledWith(
-      expect.objectContaining({ archivePath: BUNDLE_PATH }),
-    );
+    expect(
+      mocks.refreshArchiveBundleProjectionUnderLock,
+    ).not.toHaveBeenCalled();
     expect(mocks.advWorktreeDelete).toHaveBeenCalledTimes(2);
     expect(mocks.removeChangeDir).toHaveBeenCalledTimes(1);
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
@@ -623,6 +636,65 @@ describe("adv_change_archive partial archive-delta repair", () => {
     expect(mocks.coordinateChangeMutation).toHaveBeenCalledTimes(1);
     expect(mocks.removeChangeDir).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    {
+      name: "successful local and remote deletion",
+      deletion: { localDeleted: true, remoteDeleted: true },
+      warning: undefined,
+    },
+    {
+      name: "local deletion failure",
+      deletion: {
+        localDeleted: false,
+        remoteDeleted: false,
+        error: "Local branch deletion failed: still checked out",
+      },
+      warning:
+        "Branch cleanup warning: Local branch deletion failed: still checked out",
+    },
+    {
+      name: "remote deletion failure",
+      deletion: {
+        localDeleted: true,
+        remoteDeleted: false,
+        error: "Remote branch deletion failed: denied",
+      },
+      warning: "Branch cleanup warning: Remote branch deletion failed: denied",
+    },
+  ])(
+    "reports $name from direct archive branch cleanup",
+    async ({ deletion, warning }) => {
+      const change = makeChange();
+      mocks.deleteChangeBranch.mockReturnValue(deletion);
+
+      const result = await completeShippedChange({
+        store: makeStore(change),
+        change,
+        changeId: CHANGE_ID,
+        archiveMode: "direct",
+        archivePath: BUNDLE_PATH,
+        finalization: {
+          status: "shipped",
+          repoRoot: "/repo",
+          defaultBranch: "trunk",
+          route: "direct",
+          pushStatus: "pushed",
+        },
+        worktreePath: REPAIR_WORKTREE,
+      });
+
+      expect(result).toMatchObject({ ok: true, branchCleanup: deletion });
+      if (!result.ok) throw new Error(result.error);
+      if (warning) expect(result.errors).toContain(warning);
+      else
+        expect(result.errors).not.toEqual(
+          expect.arrayContaining([
+            expect.stringContaining("Branch cleanup warning"),
+          ]),
+        );
+    },
+  );
 
   it("constructs production archive recovery with separate local and PR repository identities", async () => {
     const root = mkdtempSync(join(tmpdir(), "adv-archive-recovery-"));

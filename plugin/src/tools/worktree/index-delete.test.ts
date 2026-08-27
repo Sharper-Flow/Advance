@@ -1543,6 +1543,20 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
           headRepository: "owner/repo",
           baseRepository: "owner/repo",
         });
+
+        const applied = await rawAdvWorktreeDelete(
+          branch,
+          {
+            planToken: planned.planToken,
+            approvalEvidence: "approved archive-owned projection cleanup",
+          },
+          deps,
+        );
+        expect(applied).toMatchObject({
+          ok: true,
+          status: "deleted",
+          branch,
+        });
       }
       expect(deps.prMergeEvidence).not.toHaveBeenCalled();
     } finally {

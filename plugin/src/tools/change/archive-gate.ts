@@ -273,7 +273,7 @@ export async function verifyExistingBundleIdentity(
 type ShippedFinalization = GitFinalizeOutcome & { status: "shipped" };
 
 type MergedArchiveReplay =
-  | { kind: "none"; reason?: string }
+  | { kind: "none" }
   | {
       kind: "verified_merged_replay";
       existingBundlePath: string;
@@ -477,7 +477,7 @@ export async function detectMergedArchiveReplay(input: {
       existingBundlePath,
       input.change,
     );
-    if (!identity.ok) return { kind: "none", reason: identity.reason };
+    if (!identity.ok) return { kind: "none" };
     const trackedManifestPath = `${trackedBundlePath}/spec-projection.json`;
     if (
       !hasCommittedPath(

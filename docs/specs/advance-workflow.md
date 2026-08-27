@@ -1061,8 +1061,8 @@ Release-repair recovery for completed or unavailable change projections MUST be 
 **Completed or unreadable change projection recovery records typed audited state** (`rq-releaseRepairRecovery01.1`)
 
 **Given:**
-- A release-repair tool must record missing typed state for a change change projection
-- Normal change projection mutationing fails because the change projection is completed or unreadable
+- A release-repair tool must record missing typed state for a change projection
+- Normal change projection mutation fails because the change projection is completed or unreadable
 - The caller provides precise completed-change projection or unavailable-projection evidence and a non-empty recovery reason
 
 **When:** The recovery-capable release-repair tool runs in explicit recovery mode
@@ -5287,7 +5287,7 @@ adv_change_archive and adv_task_checkpoint MUST support target_path routing to t
 **When:** The checkpoint resolves its execution context
 
 **Then:**
-- Target task state, mutationing, and store access use the target project selected by target_path
+- Target task state, mutation, and store access use the target project selected by target_path
 - Git operations run in the explicit workdir
 - target_path never overrides the explicit workdir as the git cwd
 
@@ -5313,7 +5313,7 @@ adv_change_archive and adv_task_checkpoint MUST support target_path routing to t
 **Then:**
 - The call fails closed as an unrelated-repository reject
 - The failure names the workdir and the target repository
-- No staging, committing, task-state resolution, or mutationing occurs
+- No staging, committing, task-state resolution, or mutation occurs
 
 ---
 

@@ -90,6 +90,10 @@ describe("scanGitWorkspaceFacts", () => {
 
     const facts = await scanGitWorkspaceFacts("/repo", "trunk");
 
+    expect(execFileGitAsync).toHaveBeenCalledWith(
+      ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
+      { cwd: "/repo/example", timeout: 10_000 },
+    );
     expect(facts.worktrees).toEqual([
       expect.objectContaining({ branch: "change/example", dirty: true }),
     ]);
