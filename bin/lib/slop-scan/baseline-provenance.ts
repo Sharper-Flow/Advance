@@ -224,7 +224,8 @@ function validateBaseline(value: BaselineArtifact): string[] {
   if (fingerprints) {
     if (
       fingerprints.some(
-        (item, index) => index > 0 && fingerprints[index - 1] >= item,
+        (item, index) =>
+          index > 0 && codePointCompare(fingerprints[index - 1], item) >= 0,
       )
     ) {
       issues.push("baseline fingerprints must be sorted and unique");
@@ -648,14 +649,14 @@ function fingerprintSection(raw: string): string {
 }
 
 async function defaultReadGitHead(cwd: string): Promise<string> {
-  const process = Bun.spawn(["git", "rev-parse", "HEAD"], {
+  const subprocess = Bun.spawn(["git", "rev-parse", "HEAD"], {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
   });
   const [stdout, exitCode] = await Promise.all([
-    new Response(process.stdout).text(),
-    process.exited,
+    new Response(subprocess.stdout).text(),
+    subprocess.exited,
   ]);
   if (exitCode !== 0)
     throw new Error(`git rev-parse HEAD exited with ${exitCode}`);
@@ -754,14 +755,16 @@ async function defaultAtomicWrite(
     const issues = [
       `directory synchronization failed after replacement: ${errorMessage(error)}`,
     ];
+    let priorRestored = false;
     try {
       await rename(rollbackPath, path);
+      priorRestored = true;
     } catch (rollbackError) {
       issues.push(
         `rollback replacement failed: ${errorMessage(rollbackError)}`,
       );
     }
-    if (issues.length === 1) {
+    if (priorRestored) {
       try {
         await sync(path);
       } catch (rollbackSyncError) {

@@ -9,15 +9,6 @@ import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { join, basename } from "node:path";
 import { execFileSync } from "node:child_process";
 
-vi.mock("../worktree/state", () => ({
-  initStateDb: vi.fn(async () => ({
-    projectDir: "/test",
-    projectId: "0e000d0000000000000000000000000000000000",
-  })),
-  listSessions: vi.fn(async () => []),
-  getSessionRecord: vi.fn(async () => null),
-}));
-
 vi.mock("../../utils/peer-sessions", async () => {
   const actual = await vi.importActual<
     typeof import("../../utils/peer-sessions")

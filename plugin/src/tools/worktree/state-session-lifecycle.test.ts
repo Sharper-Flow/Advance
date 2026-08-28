@@ -1,4 +1,4 @@
-/** Session compatibility and filesystem-owned worktree state tests. */
+/** Filesystem-owned worktree state tests. */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { execSync } from "node:child_process";
@@ -9,7 +9,6 @@ import { join } from "node:path";
 import {
   clearPendingDelete,
   getPendingDeletes,
-  getSessionRecord,
   getWorktreePath,
   incrementPendingDeleteAttempts,
   setPendingDelete,
@@ -43,12 +42,6 @@ function createGitProject(): string {
   execSync("git commit -m initial", { cwd: projectRoot, stdio: "ignore" });
   return projectRoot;
 }
-
-describe("session compatibility helpers", () => {
-  it("returns an empty compatibility record after session registry removal", async () => {
-    await expect(getSessionRecord(access, "sess_AAAA1111")).resolves.toBeNull();
-  });
-});
 
 describe("pending delete lifecycle", () => {
   it("persists, increments, and clears pending deletes under isolated state", async () => {

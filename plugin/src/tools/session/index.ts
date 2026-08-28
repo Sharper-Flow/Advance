@@ -1,5 +1,5 @@
 /**
- * Session Tools (T19, T20 — KD-4 privacy-defensive).
+ * Session Tools (T19 — KD-4 privacy-defensive).
  *
  * Provides a folded peer-session read through a privacy-defensive schema.
  *

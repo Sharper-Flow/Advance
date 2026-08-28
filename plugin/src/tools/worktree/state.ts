@@ -15,7 +15,6 @@ import {
 } from "../../utils/project-id";
 import type {
   PendingWorktreeDelete,
-  SessionRecord,
   WorktreeRecord,
   MaterializedWorktreeRecord,
 } from "../../types";
@@ -527,13 +526,6 @@ export async function getWorktreeRegistrySnapshot(
   } finally {
     ownBudget?.dispose();
   }
-}
-
-export async function getSessionRecord(
-  _access: WorktreeStateAccess,
-  _sessionId: string,
-): Promise<SessionRecord | null> {
-  return null;
 }
 
 /** Read a worktree record from the local Git census. */
