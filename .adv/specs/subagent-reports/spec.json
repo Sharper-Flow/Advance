@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.9.0",
-  "updated_at": "2026-08-04T21:50:00.000Z",
+  "version": "1.9.1",
+  "updated_at": "2026-08-28T00:50:58.000Z",
   "requirements": [
     {
       "id": "rq-subagentReports01",
@@ -144,7 +144,7 @@
     {
       "id": "rq-subagentReports03",
       "title": "Queryable reports and consumers",
-      "body": "adv_change_show include.subagentReports MUST return persisted sidecar report data with explicit source metadata. Legacy reports that still live on task.subagent_reports[] MUST remain readable through the same opt-in readback. Tool-layer consumers MUST retain follow_ups[] as source-attributed report metadata and surface verification cross-check warnings without rolling back an already persisted report. Follow-ups are promoted only through the typed adv_report_followup_promote / adv_followup_promote paths, not by consumer-side queue writes.",
+      "body": "adv_change_show include.subagentReports MUST return persisted sidecar report data with explicit source metadata. Legacy reports that still live on task.subagent_reports[] MUST remain readable through the same opt-in readback. Tool-layer consumers MUST retain follow_ups[] as bounded, source-attributed report metadata and surface verification cross-check warnings without rolling back an already persisted report. Follow-ups are promoted only through the typed adv_followup_promote path into an ops/enabler child change, not by consumer-side queue writes.",
       "priority": "must",
       "tags": [
         "read-surface",
@@ -373,7 +373,7 @@
     {
       "id": "rq-subagentReports08",
       "title": "Bounded follow-up retention",
-      "body": "Persisted report follow_ups[] MUST be retained as bounded, source-attributed report metadata. Harden MUST inspect report follow-ups and fix those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable follow-ups MUST get rationale instead of silent ignore. Promotion to durable owners happens only through adv_report_followup_promote / adv_followup_promote.",
+      "body": "Persisted report follow_ups[] MUST be retained as bounded, source-attributed report metadata. Harden MUST inspect report follow-ups and fix those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable follow-ups MUST get rationale instead of silent ignore. Promotion to a durable ops/enabler child change happens only through the typed adv_followup_promote path.",
       "priority": "must",
       "tags": [
         "follow-ups",

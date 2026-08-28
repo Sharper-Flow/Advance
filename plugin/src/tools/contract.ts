@@ -498,17 +498,9 @@ const contractToolDefinitions = {
 };
 
 const {
-  adv_contract_mint: contractMintDefinition,
-  adv_contract_review_matrix_set: contractReviewMatrixSetDefinition,
+  adv_contract_mint: _contractMintDefinition,
+  adv_contract_review_matrix_set: _contractReviewMatrixSetDefinition,
   ...contractPublicTools
 } = contractToolDefinitions;
 
-/** Internal acceptance-pipeline handler; not registered as an agent tool. */
-export const contractMintHandler = contractMintDefinition.execute;
-
-/** Internal acceptance-pipeline handler; not registered as an agent tool. */
-export const contractReviewMatrixSetHandler =
-  contractReviewMatrixSetDefinition.execute;
-
-export const contractTools = contractToolDefinitions;
 export { contractPublicTools };

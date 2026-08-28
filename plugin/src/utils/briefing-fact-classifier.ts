@@ -157,9 +157,9 @@ function classifyTaskScopedReport(
     }
   }
 
-  // required_follow_ups are typed obligations routed via adv_report_followup_promote
-  // (task or fast-follow child) or adv_followup_promote (ops child). They are
-  // never written into an unowned queue (retireAgendaWorkflow AC2).
+  // required_follow_ups are typed obligations routed through
+  // adv_followup_promote into an ops/enabler child change. They are never
+  // written into an unowned queue (retireAgendaWorkflow AC2).
   if (
     "required_follow_ups" in report &&
     Array.isArray(report.required_follow_ups)

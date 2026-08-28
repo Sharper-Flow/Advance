@@ -80,13 +80,4 @@ const launcherProjectionToolDefinitions = {
   },
 };
 
-const {
-  adv_launcher_projection_rebuild: launcherProjectionDefinition,
-  ...launcherProjectionPublicTools
-} = launcherProjectionToolDefinitions;
-
-/** Internal MCP handler retained without a public ToolDefinition registration. */
-export const launcherProjectionRebuildHandler =
-  launcherProjectionDefinition.execute;
 export const launcherProjectionTools = launcherProjectionToolDefinitions;
-export { launcherProjectionPublicTools };

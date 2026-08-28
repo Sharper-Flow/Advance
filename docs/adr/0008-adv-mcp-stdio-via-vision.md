@@ -56,7 +56,6 @@ Five tools were removed from the original 18-tool proposal:
 - `adv_project_metadata` (`action: read|write|list`, mutates)
 - `adv_conformance` (`action: status|init|lock|unlock|override|run`, mutates)
 - `adv_session_list` (host PID ACL tied to OpenCode's own process)
-- `adv_session_show` (same)
 
 ## Rationale
 

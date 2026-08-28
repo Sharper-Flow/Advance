@@ -1,7 +1,7 @@
 # Sub-Agent Reports
 
-> **Version:** 1.9.0
-> **Updated:** 2026-08-04
+> **Version:** 1.9.1
+> **Updated:** 2026-08-28
 
 ## Purpose
 
@@ -136,7 +136,7 @@ Accepted reports MUST persist via subagentReportSubmittedMutation into a change-
 
 **ID:** `rq-subagentReports03` | **Priority:** **[MUST]**
 
-adv_change_show include.subagentReports MUST return persisted sidecar report data with explicit source metadata. Legacy reports that still live on task.subagent_reports[] MUST remain readable through the same opt-in readback. Tool-layer consumers MUST retain follow_ups[] as source-attributed report metadata and surface verification cross-check warnings without rolling back an already persisted report. Follow-ups are promoted only through the typed adv_report_followup_promote / adv_followup_promote paths, not by consumer-side queue writes.
+adv_change_show include.subagentReports MUST return persisted sidecar report data with explicit source metadata. Legacy reports that still live on task.subagent_reports[] MUST remain readable through the same opt-in readback. Tool-layer consumers MUST retain follow_ups[] as bounded, source-attributed report metadata and surface verification cross-check warnings without rolling back an already persisted report. Follow-ups are promoted only through the typed adv_followup_promote path into an ops/enabler child change, not by consumer-side queue writes.
 
 **Tags:** `read-surface`, `verification`, `consumers`
 
@@ -343,7 +343,7 @@ adv-researcher and adv-tron reports MUST persist compact optimized handoff field
 
 **ID:** `rq-subagentReports08` | **Priority:** **[MUST]**
 
-Persisted report follow_ups[] MUST be retained as bounded, source-attributed report metadata. Harden MUST inspect report follow-ups and fix those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable follow-ups MUST get rationale instead of silent ignore. Promotion to durable owners happens only through adv_report_followup_promote / adv_followup_promote.
+Persisted report follow_ups[] MUST be retained as bounded, source-attributed report metadata. Harden MUST inspect report follow-ups and fix those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable follow-ups MUST get rationale instead of silent ignore. Promotion to a durable ops/enabler child change happens only through the typed adv_followup_promote path.
 
 **Tags:** `follow-ups`, `harden`, `campsite`
 
@@ -1187,84 +1187,5 @@ New engineer/designer verification evidence MUST bind to durable same-task test-
 - It normalizes to an explicit legacy variant
 - Exact-command compatibility may be used
 - No timestamp or fuzzy command inference is used
-
----
-
-### Per-lane typed report size bounds
-
-**ID:** `rq-subagentReports26` | **Priority:** **[MUST]**
-
-Each typed report variant MUST declare a maximum size bound on its free-text fields, per lane. A report whose any free-text field exceeds its lane bound MUST be rejected at the `adv_subagent_report_submit` preflight (`parseReport` → `ScopedSubagentReportSchema.safeParse`) with a message naming the offending field path, never silently accepted. Bounds are declared per lane (not global), confirmed by measurement of real persisted reports so that no currently-conforming report is rejected (SC2 backward compatibility). Enforced via a `superRefine` walker rather than per-field `.max()` because heavy fields are shared across lanes through sub-schemas (`SubagentDecisionSchema`, `SubagentSourceReferenceSchema`, `ReviewerFindingSchema`), which makes per-field `.max()` unable to express different bounds per lane. Initial bounds: adv-researcher 12,000 chars/field (most verbose lane; observed max 8,257); adv-engineer, adv-reviewer, adv-designer 4,000 chars/field (observed maxima 2,627 / 2,238 / — ).
-
-**Tags:** `reports`, `validation`, `size-bounds`, `preflight`
-
-#### Scenarios
-
-**Over-budget field rejected at preflight** (`rq-subagentReports26.1`)
-
-**Given:**
-- A typed report whose free-text field exceeds the lane bound
-
-**When:** `adv_subagent_report_submit` runs `parseReport`
-
-**Then:**
-- The report is rejected (explicit failure) with a message naming the offending field path
-- No silent acceptance or truncation occurs
-
-**Currently-conforming reports still accepted** (`rq-subagentReports26.2`)
-
-**Given:**
-- A persisted typed report at or below the observed real-world maximum for its lane
-
-**When:** It is re-validated against the lane bound
-
-**Then:**
-- The report is accepted (SC2 backward compatibility holds)
-
----
-
-### Consumer containment and fallback durable sink
-
-**ID:** `rq-subagentReports27` | **Priority:** **[MUST]**
-
-The prompt-message consumer transform (`compactPromptMessages` / `compactToolPart` via `experimental.chat.messages.transform`) MUST NOT silently destroy sub-agent or skill returns via head-and-tail excerpting. Four protections apply. (1) **Recency skip:** the most recent N non-blank messages (default 6, ~3 turns) are protected from any content truncation, matching the host prune turn-protection discipline. (2) **Tool-type protection:** task and skill tool returns are never head/tail-sliced. (3) **Fallback durable sink:** an oversized task or skill return MUST be written in full to `/tmp/opencode/fallback-report-{sha256[:16]}.md` (idempotent by content hash) before the consumer replaces it in the prompt, and the orchestrator receives an explicit marker naming the full-content path and the number of chars elided — never a head-and-tail excerpt. (4) **Honest full-drop:** oversized unprotected tool output (e.g. shell dumps) is replaced with an honest full-drop marker naming what was removed, never a head-and-tail excerpt. The session-health detection banner invariant (SC1) MUST still fire: the persisted-sink and full-drop paths both increment the sanitized-output count. Conforming (at-or-below-threshold) task/skill returns pass through untouched (AC6 tool-type protection); the durable sink applies only to the oversized fallback case.
-
-**Tags:** `reports`, `consumer`, `durability`, `compaction`, `fallback`
-
-#### Scenarios
-
-**Oversized sub-agent return persisted, not excerpted** (`rq-subagentReports27.1`)
-
-**Given:**
-- A task tool return exceeding the consumer threshold, outside the recency window
-
-**When:** The consumer transform runs
-
-**Then:**
-- The full content is written to `/tmp/opencode/` before replacement
-- The prompt receives a marker naming the path and the chars elided
-- No head-and-tail excerpt is produced
-
-**Recent oversized content is recency-protected** (`rq-subagentReports27.2`)
-
-**Given:**
-- An oversized tool output within the most recent N messages
-
-**When:** The consumer transform runs
-
-**Then:**
-- The content passes through untouched (no truncation, no marker)
-
-**Unprotected oversized content gets an honest full-drop** (`rq-subagentReports27.3`)
-
-**Given:**
-- An oversized non-task/non-skill tool output outside the recency window
-
-**When:** The consumer transform runs
-
-**Then:**
-- The content is replaced with an honest full-drop marker naming what was removed
-- No head-and-tail excerpt is produced
-- The session-health banner still fires (SC1 count preserved)
 
 ---

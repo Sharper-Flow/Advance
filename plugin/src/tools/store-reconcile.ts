@@ -21,7 +21,7 @@ import { TargetProjectError, withTargetPathStore } from "./target-project";
 
 const PLAN_HASH = /^[a-f0-9]{64}$/;
 
-export const StoreReconcileModeSchema = z.enum(["plan", "dry_run", "apply"]);
+const StoreReconcileModeSchema = z.enum(["plan", "dry_run", "apply"]);
 
 const storeReconcileToolDefinitions = {
   adv_store_reconcile: {
@@ -242,14 +242,11 @@ const storeReconcileToolDefinitions = {
   },
 } as const;
 
-const {
-  adv_store_reconcile: storeReconcileDefinition,
-  ...storeReconcilePublicTools
-} = storeReconcileToolDefinitions;
+const { adv_store_reconcile: storeReconcileDefinition } =
+  storeReconcileToolDefinitions;
 
 /** Internal CLI handler retained for bin/adv reconcile. */
 export const storeReconcileHandler = storeReconcileDefinition.execute;
 export const storeReconcileTools = storeReconcileToolDefinitions;
-export { storeReconcilePublicTools };
 
 export type StoreReconcilePlan = ReconcilePlan;

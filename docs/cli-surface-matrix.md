@@ -80,7 +80,6 @@
 | `adv_store_cleanup` | `keep-mcp-only` | Maintenance-only legacy agenda cleanup; scan/dry_run read-only, execute approval-gated |
 | `adv_store_reconcile` | `mcp+cli-additive` | Operator-only MCP and `bin/adv reconcile` surfaces share the same plan/dry-run/apply handler and approval contract |
 | `adv_session_list` | `mcp+cli-additive` | Human inventory; additive CLI output |
-| `adv_session_show` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_worktree_triage` | `mcp+cli-additive` | Human inventory/report; additive CLI output |
 | `adv_tool_catalog` | `keep-mcp-only` | Bounded metadata read; agent/profile-author surface |
 | `adv_tool_describe` | `keep-mcp-only` | Single-tool schema/metadata read; agent/profile-author surface |
@@ -108,7 +107,6 @@
 | `adv_change_update` | `no-cli-dangerous` | Change mutation |
 | `adv_change_close` | `no-cli-dangerous` | Change mutation |
 | `adv_followup_promote` | `no-cli-dangerous` | Promotes a linked ops follow-up change; mutation |
-| `adv_report_followup_promote` | `no-cli-dangerous` | Promotes a report follow-up into a task or fast-follow child; mutation |
 | `adv_ops_evidence_add` | `no-cli-dangerous` | Appends ops evidence and updates follow-up status; mutation |
 | `adv_ops_followup_resolution_upsert` | `no-cli-dangerous` | Persists verified child-state proof onto a parent ops follow-up link; release/archive authority mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |

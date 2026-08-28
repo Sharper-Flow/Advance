@@ -48,9 +48,9 @@ export const SUBAGENT_REPORT_MAX_RETRIES = 3;
  * rejection (AC1 "naming the offending fields").
  */
 export const RESEARCHER_FIELD_MAX = 12_000;
-export const ENGINEER_FIELD_MAX = 4_000;
-export const REVIEWER_FIELD_MAX = 4_000;
-export const DESIGNER_FIELD_MAX = 4_000;
+const ENGINEER_FIELD_MAX = 4_000;
+const REVIEWER_FIELD_MAX = 4_000;
+const DESIGNER_FIELD_MAX = 4_000;
 
 /**
  * Build a superRefine that rejects any report whose free-text fields exceed
@@ -1495,11 +1495,7 @@ export function formatApplyContextBindingHint(): string {
 /**
  * Which report follow-up array a typed reference points to.
  */
-export const ReportFollowUpKindSchema = z.enum([
-  "follow_ups",
-  "required_follow_ups",
-]);
-export type ReportFollowUpKind = z.infer<typeof ReportFollowUpKindSchema>;
+const ReportFollowUpKindSchema = z.enum(["follow_ups", "required_follow_ups"]);
 
 /**
  * Structural reference to a specific follow-up inside a persisted sub-agent
@@ -1517,24 +1513,6 @@ export const ReportFollowUpRefSchema = z
     index: z.number().int().min(0),
   })
   .strict();
-export type ReportFollowUpRef = z.infer<typeof ReportFollowUpRefSchema>;
-
-/**
- * Deterministic typed ID for a report follow-up.
- * Derived from immutable report identity (report_key) + kind + index.
- * Format: `rfu:<report_key>:<kind>:<index>`
- *
- * Stable because the underlying inputs (report identity, kind, index) are
- * immutable once the report is persisted. Legacy reports without typed IDs
- * normalize to the same ID at read/promotion boundaries.
- */
-export function reportFollowUpId(input: {
-  report_key: string;
-  kind: ReportFollowUpKind;
-  index: number;
-}): string {
-  return `rfu:${input.report_key}:${input.kind}:${input.index}`;
-}
 
 /**
  * Compute the stable report key for a persisted report.
@@ -1551,93 +1529,6 @@ export function reportKeyFromReport(report: ScopedSubagentReport): string {
     agent: report.agent,
     attempt: report.attempt,
   });
-}
-
-/**
- * Enumerate follow-ups from a report with their typed refs and IDs.
- * For legacy reports without typed IDs, IDs are derived deterministically
- * from report_key + kind + index.
- */
-export function enumerateReportFollowUps(report: ScopedSubagentReport): Array<{
-  ref: ReportFollowUpRef;
-  id: string;
-  text: string;
-  required: boolean;
-}> {
-  const reportKey = reportKeyFromReport(report);
-  const results: Array<{
-    ref: ReportFollowUpRef;
-    id: string;
-    text: string;
-    required: boolean;
-  }> = [];
-
-  const followUps =
-    "follow_ups" in report && Array.isArray(report.follow_ups)
-      ? report.follow_ups
-      : [];
-  for (let i = 0; i < followUps.length; i++) {
-    const ref: ReportFollowUpRef = {
-      report_key: reportKey,
-      kind: "follow_ups",
-      index: i,
-    };
-    results.push({
-      ref,
-      id: reportFollowUpId(ref),
-      text: followUps[i],
-      required: false,
-    });
-  }
-
-  const requiredFollowUps =
-    "required_follow_ups" in report && Array.isArray(report.required_follow_ups)
-      ? report.required_follow_ups
-      : [];
-  for (let i = 0; i < requiredFollowUps.length; i++) {
-    const ref: ReportFollowUpRef = {
-      report_key: reportKey,
-      kind: "required_follow_ups",
-      index: i,
-    };
-    results.push({
-      ref,
-      id: reportFollowUpId(ref),
-      text: requiredFollowUps[i].text,
-      required: true,
-    });
-  }
-
-  return results;
-}
-
-/**
- * Resolve a follow-up by its typed ref from a report.
- * Returns undefined when the ref does not match this report or the index is
- * out of bounds.
- */
-export function resolveReportFollowUpByRef(
-  report: ScopedSubagentReport,
-  ref: ReportFollowUpRef,
-): { text: string; required: boolean } | undefined {
-  const reportKey = reportKeyFromReport(report);
-  if (ref.report_key !== reportKey) return undefined;
-
-  if (ref.kind === "follow_ups") {
-    const followUps =
-      "follow_ups" in report && Array.isArray(report.follow_ups)
-        ? report.follow_ups
-        : [];
-    const text = followUps[ref.index];
-    return text !== undefined ? { text, required: false } : undefined;
-  }
-
-  const requiredFollowUps =
-    "required_follow_ups" in report && Array.isArray(report.required_follow_ups)
-      ? report.required_follow_ups
-      : [];
-  const rf = requiredFollowUps[ref.index];
-  return rf ? { text: rf.text, required: true } : undefined;
 }
 
 /** @deprecated Use `TaskScopedSubagentReport` or `ScopedSubagentReport` explicitly. */

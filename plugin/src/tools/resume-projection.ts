@@ -214,15 +214,7 @@ const resumeProjectionToolDefinitions = {
   },
 };
 
-const {
-  adv_resume_projection: resumeProjectionDefinition,
-  ...resumeProjectionPublicTools
-} = resumeProjectionToolDefinitions;
-
-/** Internal projection handler retained for MCP and lifecycle callers. */
-export const resumeProjectionHandler = resumeProjectionDefinition.execute;
 export const resumeProjectionTools = resumeProjectionToolDefinitions;
-export { resumeProjectionPublicTools };
 
 function degradeToSummary(summary: {
   id: string;

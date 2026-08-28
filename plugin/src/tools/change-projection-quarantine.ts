@@ -169,7 +169,6 @@ const changeProjectionQuarantineToolDefinitions = {
 
 const {
   adv_change_projection_quarantine: changeProjectionQuarantineDefinition,
-  ...changeProjectionQuarantinePublicTools
 } = changeProjectionQuarantineToolDefinitions;
 
 /** Internal repair handler retained for future CLI doctor use. */
@@ -177,7 +176,6 @@ export const changeProjectionQuarantineHandler =
   changeProjectionQuarantineDefinition.execute;
 export const changeProjectionQuarantineTools =
   changeProjectionQuarantineToolDefinitions;
-export { changeProjectionQuarantinePublicTools };
 
 // =============================================================================
 // Internal execution

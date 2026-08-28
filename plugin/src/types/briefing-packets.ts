@@ -87,7 +87,7 @@ export const BriefingFactOutcomeSchema = z.enum([
   "transient_prompt_context",
   // retireAgendaWorkflow: replaces the retired "agenda" label. Facts carrying
   // this outcome are source-attributed report follow-up metadata; promotion
-  // happens only via adv_report_followup_promote / adv_followup_promote and
+  // happens only via adv_followup_promote and
   // never by writing into an unowned queue.
   "report_follow_up",
   "wisdom_candidate",

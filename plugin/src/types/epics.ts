@@ -370,17 +370,12 @@ export type Epic = z.infer<typeof EpicSchema>;
 // Change Epic Membership Projection
 // =============================================================================
 
-export const EpicMembershipVerificationSchema = z.enum([
-  "verified",
-  "entry_missing",
-  "owner_foreign",
-  "owner_missing",
-  "unknown",
-]);
-
-export type EpicMembershipVerification = z.infer<
-  typeof EpicMembershipVerificationSchema
->;
+export type EpicMembershipVerification =
+  | "verified"
+  | "entry_missing"
+  | "owner_foreign"
+  | "owner_missing"
+  | "unknown";
 
 /**
  * Optional projection on a child change for fast Epic context loading and

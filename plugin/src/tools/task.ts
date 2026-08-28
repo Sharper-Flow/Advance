@@ -1991,12 +1991,8 @@ const taskToolDefinitions = {
 };
 
 const {
-  adv_task_reclassify_tdd: advTaskReclassifyTddDefinition,
+  adv_task_reclassify_tdd: _advTaskReclassifyTddDefinition,
   ...taskTools
 } = taskToolDefinitions;
-
-/** Retained for internal callers while the public ToolDefinition is folded into adv_task_update. */
-export const advTaskReclassifyTddHandler =
-  advTaskReclassifyTddDefinition.execute;
 
 export { taskTools };

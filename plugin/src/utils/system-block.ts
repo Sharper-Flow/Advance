@@ -105,7 +105,7 @@ export const VOLATILE_SENTINEL = "--- ADV:VOLATILE ---";
  *  installed binary. Conservative bias: a positive match here causes the
  *  assembler to return null, skipping ADV content. False negatives default
  *  to including ADV content, which may pollute the internal prompt. */
-export const INTERNAL_CALL_PATTERNS: readonly RegExp[] = [
+const INTERNAL_CALL_PATTERNS: readonly RegExp[] = [
   /You are a title generator\. You output ONLY a thread title/i,
   /You are a context summarization agent\./i,
   /You are an elite AI agent architect/i,

@@ -981,9 +981,6 @@ export const advChangeArchiveHandler = async (
     const existingBundlePath = !dryRun
       ? await findArchiveBundle(archivePaths.archive, changeId)
       : null;
-    const existingInRepoBundlePath = !dryRun
-      ? await findArchiveBundle(inRepoArchive, changeId)
-      : null;
     const hasAcceptedDeltas = Object.values(change.deltas).some(
       (deltas) => deltas.length > 0,
     );

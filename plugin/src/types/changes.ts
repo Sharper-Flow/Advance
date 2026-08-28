@@ -218,12 +218,9 @@ export const BulkCloseFilterSelectorSchema = z.object({
   }),
 });
 
-export const BulkCloseSelectorSchema = z.discriminatedUnion("kind", [
-  BulkCloseExplicitSelectorSchema,
-  BulkCloseFilterSelectorSchema,
-]);
-
-export type BulkCloseSelector = z.infer<typeof BulkCloseSelectorSchema>;
+export type BulkCloseSelector =
+  | z.infer<typeof BulkCloseExplicitSelectorSchema>
+  | z.infer<typeof BulkCloseFilterSelectorSchema>;
 
 export const BulkCloseResultSchema = z.object({
   success: z.boolean(),
@@ -550,7 +547,6 @@ export const OpsEvidenceEntrySchema = z.object({
   next_step: z.string().optional(),
   completion_signal: z.string().optional(),
 });
-export type OpsEvidenceEntry = z.infer<typeof OpsEvidenceEntrySchema>;
 
 /**
  * Status vocabulary for a typed ops runbook instance. This is nested under the
@@ -701,7 +697,7 @@ export type OpsFollowupProfile = z.infer<typeof OpsFollowupProfileSchema>;
  * the child/source-of-truth profile. This is not a standalone source of truth;
  * it is a bounded release/archive readiness proof.
  */
-export const OpsFollowupResolutionReasonSchema = z.enum([
+const OpsFollowupResolutionReasonSchema = z.enum([
   "verified",
   "child_missing",
   "profile_missing",

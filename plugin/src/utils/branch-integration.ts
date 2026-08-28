@@ -30,7 +30,7 @@ import {
  * (-50): deletion planning may run long after the merge, when the squash
  * commit has receded deeper into trunk history than archive-time detection.
  */
-export const TRUNK_TREE_WALK_LIMIT = 500;
+const TRUNK_TREE_WALK_LIMIT = 500;
 
 // =============================================================================
 // TYPES

@@ -141,7 +141,7 @@ function createLogger(): {
   };
 }
 
-export interface AdvWorktreeCreateRuntime {
+interface AdvWorktreeCreateRuntime {
   serverUrl?: URL;
   sessionID?: string;
   /**
@@ -700,7 +700,7 @@ async function executeWorktreeDetach(
  * fallback path. Discriminated union so agents can branch on `kind` without
  * parsing the human-readable `warning` string (rq-warpModeContract03).
  */
-export type DowngradeReason =
+type DowngradeReason =
   | { kind: "missing_server" }
   | { kind: "missing_session" }
   | { kind: "missing_client" }
@@ -1190,10 +1190,8 @@ const advWorktreeToolDefinitions = {
 };
 
 const {
-  adv_worktree_detach: worktreeDetachDefinition,
+  adv_worktree_detach: _worktreeDetachDefinition,
   ...advWorktreePublicTools
 } = advWorktreeToolDefinitions;
 
-/** Internal maintenance handler retained without public ToolDefinition registration. */
-export const worktreeDetachHandler = worktreeDetachDefinition.execute;
 export const advWorktreeTools = advWorktreePublicTools;

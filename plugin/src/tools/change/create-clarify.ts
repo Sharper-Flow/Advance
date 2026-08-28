@@ -109,20 +109,6 @@ export interface ChangeCreateProviders {
   claimRaceCheckMs?: number;
 }
 export const DEFAULT_CLAIM_RACE_CHECK_MS = 5000;
-export async function defaultClaimChecker(
-  projectId: string,
-  issueNumber: number,
-): Promise<
-  Array<{
-    changeId: string;
-    status: string;
-  }>
-> {
-  throw new Error(
-    `Disk claim checks require the owning Store (project ${projectId}, issue #${issueNumber}).`,
-  );
-}
-
 export async function listIssueClaims(
   store: Store,
   issueNumber: number,
@@ -164,7 +150,7 @@ export function extractContextMismatch(error: unknown): {
  * Pure function: merge current clarify findings with persisted snapshots.
  * Resolves stale findings and appends new ones.
  */
-export function resolveClarifyFindings(
+function resolveClarifyFindings(
   existing: ClarifyFindingSnapshot[],
   current: Array<{
     code: string;
@@ -452,65 +438,10 @@ export function validateCreateOriginLinkage(input: {
   }
   return undefined;
 }
-export type ChangeIssueUpdate = {
-  added: string[];
-  removed: string[];
-  alreadyLinked: string[];
-  notLinked: string[];
-};
-export function invalidGitHubIssueUrls(urls: string[]): string[] {
-  return urls.filter((value) => {
-    try {
-      const parsed = new URL(value);
-      return !(
-        parsed.protocol === "https:" &&
-        parsed.hostname === "github.com" &&
-        /^\/[^/]+\/[^/]+\/issues\/\d+$/.test(parsed.pathname)
-      );
-    } catch {
-      return true;
-    }
-  });
-}
-export function applyIssueUpdates(
-  existing: string[] | undefined,
-  add: string[] = [],
-  remove: string[] = [],
-): {
-  github_issues: string[];
-  result: ChangeIssueUpdate;
-} {
-  const githubIssues = [...(existing ?? [])];
-  const result: ChangeIssueUpdate = {
-    added: [],
-    removed: [],
-    alreadyLinked: [],
-    notLinked: [],
-  };
-  for (const issueUrl of add) {
-    if (githubIssues.includes(issueUrl)) {
-      result.alreadyLinked.push(issueUrl);
-      continue;
-    }
-    githubIssues.push(issueUrl);
-    result.added.push(issueUrl);
-  }
-  for (const issueUrl of remove) {
-    const before = githubIssues.length;
-    const next = githubIssues.filter((url) => url !== issueUrl);
-    if (next.length === before) {
-      result.notLinked.push(issueUrl);
-      continue;
-    }
-    githubIssues.splice(0, githubIssues.length, ...next);
-    result.removed.push(issueUrl);
-  }
-  return { github_issues: githubIssues, result };
-}
 /**
  * Build a markdown section documenting cross-project origin for a proposal.
  */
-export function buildOriginSection(origin: CrossProjectOrigin): string {
+function buildOriginSection(origin: CrossProjectOrigin): string {
   let section = `## Cross-Project Origin\n\n`;
   section += `This change was created as a follow-up from **${origin.source_project}**.\n\n`;
   section += `| Field | Value |\n|-------|-------|\n`;
@@ -522,7 +453,7 @@ export function buildOriginSection(origin: CrossProjectOrigin): string {
   section += `\n> **Note:** The originating project should be consulted for context on why this change is needed.\n`;
   return section;
 }
-export async function persistClarifyFindings(
+async function persistClarifyFindings(
   store: Store,
   changeId: string,
   findings: ClarifyFindingSnapshot[],
@@ -1163,7 +1094,7 @@ export async function loadValidationContext(
  * with the default branch. Returns string[] of changed paths, or null on
  * failure (detached HEAD, shallow clone, no default branch).
  */
-export async function computeChangedSpecFiles(
+async function computeChangedSpecFiles(
   rootDir: string,
 ): Promise<string[] | null> {
   try {

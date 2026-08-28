@@ -28,8 +28,8 @@
  *   `git status --porcelain` cleanliness; if the hook introduced
  *   uncommitted changes, the delete is aborted with `HOOK_INTRODUCED_CHANGES`.
  * - Hooks MUST NEVER be invoked from read-only paths: `adv_status`,
- *   `adv_worktree_triage`, `adv_change_show` sessions include, `adv_session_show`,
- *   `adv_doctor` (read-only diagnose phase). The hook entry points are exported only
+ *   `adv_worktree_triage`, `adv_change_show` sessions include, and `adv_doctor`
+ *   (read-only diagnose phase). The hook entry points are exported only
  *   from this module and called only from the explicit create/delete
  *   flows in T9 / T10.
  * - Hooks MUST NEVER be invoked during execution-gate operations

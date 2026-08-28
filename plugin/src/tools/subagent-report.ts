@@ -755,7 +755,7 @@ function withConsumerWarnings(
 
 // retireAgendaWorkflow: report follow_ups remain source-attributed report
 // metadata. No queue is written by the consumer; promotion happens only via
-// adv_report_followup_promote / adv_followup_promote (AC2/AC3).
+// adv_followup_promote (AC2/AC3).
 function consumeFollowUps(input: {
   report: ScopedSubagentReport;
   dryRun?: boolean;
@@ -787,8 +787,7 @@ function consumeFollowUps(input: {
 // rq-opsFollowPromotion01: required follow-ups carry obligation_class,
 // severity, and source_contract_id into typed ops follow-up promotion.
 // retireAgendaWorkflow AC2: no agenda write; typed owner comes from
-// adv_report_followup_promote (task / fast-follow child) or
-// adv_followup_promote (ops child).
+// adv_followup_promote.
 function consumeRequiredFollowUps(input: {
   report: ScopedSubagentReport;
   dryRun?: boolean;
