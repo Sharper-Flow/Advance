@@ -3,8 +3,8 @@
   "name": "slop-scan",
   "title": "Slop Scan",
   "purpose": "Capability: /adv-slop-scan command — detect AI-generated code quality issues including defensive overkill, deep nesting, and other slop patterns",
-  "version": "1.3.0",
-  "updated_at": "2026-07-05T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-08-28T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-ss001",
@@ -255,9 +255,7 @@
         {
           "id": "rq-ss006.3",
           "title": "Phase 1 confidence defaults are deterministic",
-          "given": [
-            "Phase 1 emits findings from AST or regex detection"
-          ],
+          "given": ["Phase 1 emits findings from AST or regex detection"],
           "when": "Findings are normalized before reporting",
           "then": [
             "AST-backed structural findings default to confidence: 'high'",
@@ -390,7 +388,9 @@
         {
           "id": "rq-ss010.1",
           "title": "Deletion candidates use MAINT-003 subtypes",
-          "given": ["/adv-slop-scan evaluates dead-code, bloat, or reachability signals"],
+          "given": [
+            "/adv-slop-scan evaluates dead-code, bloat, or reachability signals"
+          ],
           "when": "A candidate maps to unused dependency, unused export, unused file, unreachable branch, uncallable private symbol, or impossible feature-flag path",
           "then": [
             "The finding is labeled as a MAINT-003 deletion_candidate subtype",
@@ -401,7 +401,9 @@
         {
           "id": "rq-ss010.2",
           "title": "False-positive surfaces are protected",
-          "given": ["A candidate touches public exports, generated files, tests, fixtures, command modules, plugin registration surfaces, prompt context, examples, or task summaries"],
+          "given": [
+            "A candidate touches public exports, generated files, tests, fixtures, command modules, plugin registration surfaces, prompt context, examples, or task summaries"
+          ],
           "when": "Deletion-candidate actionability is assigned",
           "then": [
             "The candidate is low-confidence or non-blocking unless target source evidence proves the deletion is safe",
@@ -420,7 +422,9 @@
         {
           "id": "rq-ss011.1",
           "title": "Heuristic-only deletion guesses are user-review only",
-          "given": ["A deletion candidate is supported only by text search, regex-only signals, heuristic inference, or agent judgment"],
+          "given": [
+            "A deletion candidate is supported only by text search, regex-only signals, heuristic inference, or agent judgment"
+          ],
           "when": "Report grouping is assigned",
           "then": [
             "The candidate appears only in a low-confidence / user-review section",
@@ -431,7 +435,9 @@
         {
           "id": "rq-ss011.2",
           "title": "Structural evidence required before actionable removal proof",
-          "given": ["A deletion candidate has source evidence from tools, entrypoint/config checks, exact symbol/file/dependency references, or typed reachability roots"],
+          "given": [
+            "A deletion candidate has source evidence from tools, entrypoint/config checks, exact symbol/file/dependency references, or typed reachability roots"
+          ],
           "when": "Actionability is assigned",
           "then": [
             "The candidate may be actionable only when structural evidence is present",
@@ -451,7 +457,9 @@
         {
           "id": "rq-ss012.1",
           "title": "Text output summarizes coverage gaps",
-          "given": ["A detector is skipped, failed, timed out, unavailable, degraded, or externally covered for the detected language set"],
+          "given": [
+            "A detector is skipped, failed, timed out, unavailable, degraded, or externally covered for the detected language set"
+          ],
           "when": "Text output is generated",
           "then": [
             "The report includes a scanner coverage summary",
@@ -470,6 +478,99 @@
             "Each detector includes a state of run, skipped, degraded, failed, timed_out, unavailable, or externally_covered",
             "The JSON object includes coverage.falsePositiveProtections",
             "When required coverage fails, the JSON object includes failure.code: SLOP_SCAN_DEGRADED and failure.failedDetectors[]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ss013",
+      "title": "Guarded Dead-Code Baseline Provenance Refresh",
+      "body": "The slop-scan subsystem MUST expose one canonical dead-code baseline provenance refresh route that reconstructs the recorded prior Knip configuration, proves exact normalized-finding and MAINT-003 fingerprint equality against the current configuration at one source tree, and then changes only allowlisted provenance fields. The route MUST preserve reviewed fingerprint strings and order, remain separate from the read-only dead-code ratchet and fingerprint deletion authority, and leave the baseline unchanged when configuration reconstruction, detector evidence, set equality, input stability, or atomic replacement cannot be proved.",
+      "priority": "must",
+      "tags": ["dead-code", "baseline", "provenance", "knip", "fail-closed"],
+      "scenarios": [
+        {
+          "id": "rq-ss013.1",
+          "title": "Recorded prior configuration is reconstructed before comparison",
+          "given": [
+            "A reviewed dead-code baseline records a canonical Knip configuration hash and entry roots",
+            "The active Knip configuration has different entry roots"
+          ],
+          "when": "The canonical provenance refresh route evaluates the change",
+          "then": [
+            "The route reconstructs the prior configuration by replacing only the active entry roots with the recorded roots",
+            "The reconstructed canonical hash MUST equal the recorded hash before detector execution",
+            "Any other Knip configuration drift leaves the baseline unchanged"
+          ]
+        },
+        {
+          "id": "rq-ss013.2",
+          "title": "Prior and current coverage use exact shared evidence",
+          "given": [
+            "The recorded prior configuration was reconstructed successfully",
+            "Prior and current configuration snapshots are anchored to one source tree and one Knip installation"
+          ],
+          "when": "Both Knip scans complete",
+          "then": [
+            "Both reports are accepted only when detector execution completed with success or findings",
+            "Both reports use the canonical Knip normalizer",
+            "The complete normalized finding sets and raw counts MUST match exactly",
+            "The sorted MAINT-003 fingerprints produced by the reviewed identity MUST match exactly"
+          ]
+        },
+        {
+          "id": "rq-ss013.3",
+          "title": "Successful refresh changes provenance only",
+          "given": [
+            "Configuration reconstruction and both exact comparisons pass",
+            "The baseline and active configuration remain unchanged during the proof"
+          ],
+          "when": "The refresh route builds the updated artifact",
+          "then": [
+            "Only the current configuration hash, current roots, source commit, coverage-review evidence, and canonical provenance-owner field may change",
+            "Project patterns, fingerprint count, kind counts, review classification, deletion owner, and deletion authority remain unchanged",
+            "All reviewed fingerprint strings remain byte-identical and in the same order"
+          ]
+        },
+        {
+          "id": "rq-ss013.4",
+          "title": "Invalid or unequal evidence performs no baseline write",
+          "given": [
+            "Configuration reconstruction fails, detector evidence degrades, normalized reports are invalid, compared sets differ, or inputs change during the proof"
+          ],
+          "when": "The refresh route reaches its decision boundary",
+          "then": [
+            "The route returns a typed refusal or blocked result",
+            "The baseline target receives zero writes",
+            "Temporary comparison files are removed"
+          ]
+        },
+        {
+          "id": "rq-ss013.5",
+          "title": "Atomic replacement preserves the prior target on failure",
+          "given": [
+            "All comparison and mutation-boundary checks pass",
+            "The route attempts the allowlisted provenance replacement"
+          ],
+          "when": "A temporary write, synchronization, or rename fails",
+          "then": [
+            "The route returns a blocked result",
+            "No partial baseline content is accepted",
+            "Temporary output is removed when possible"
+          ]
+        },
+        {
+          "id": "rq-ss013.6",
+          "title": "Refresh and deletion authorities stay separate",
+          "given": [
+            "The repository exposes the read-only dead-code ratchet and the canonical provenance refresh route"
+          ],
+          "when": "Command wiring and baseline review authority are validated",
+          "then": [
+            "The dead-code ratchet exposes no baseline write option",
+            "The provenance route is the only registered provenance writer",
+            "The provenance route has no authority to add, remove, change, or reorder reviewed fingerprints",
+            "Fingerprint deletion remains a separate review-owned action"
           ]
         }
       ]
