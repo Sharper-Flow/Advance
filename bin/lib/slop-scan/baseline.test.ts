@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
 
+import {
+  knipConfigSha256,
+  PROVENANCE_REFRESH_COMMAND,
+} from "./baseline-provenance";
 import { deadCodeFingerprint, isDeadCodeFinding } from "./ratchet";
 import type { SlopScanFinding } from "./schema";
 
@@ -28,6 +31,7 @@ interface DeadCodeBaselineArtifact {
       classification: "review-only";
       deletion_owner: "clearDeadCodeBaseline";
       deletion_authority: false;
+      provenance_refresh_owner?: string;
     };
     coverage_review: {
       before: {
@@ -52,28 +56,10 @@ function readBaseline(): DeadCodeBaselineArtifact {
   ) as DeadCodeBaselineArtifact;
 }
 
-function canonicalJson(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalJson);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, item]) => [key, canonicalJson(item)]),
-    );
-  }
-  return value;
-}
-
 function knipConfig(): Record<string, unknown> {
   return JSON.parse(
     readFileSync(join(PLUGIN_ROOT, "knip.json"), "utf8"),
   ) as Record<string, unknown>;
-}
-
-function knipConfigSha256(): string {
-  return createHash("sha256")
-    .update(JSON.stringify(canonicalJson(knipConfig())))
-    .digest("hex");
 }
 
 function fingerprintKindCounts(fingerprints: string[]): Record<string, number> {
@@ -127,7 +113,9 @@ describe("reviewed dead-code baseline", () => {
     const baseline = readBaseline();
     const config = knipConfig();
 
-    expect(baseline.provenance.knip_config_sha256).toBe(knipConfigSha256());
+    expect(baseline.provenance.knip_config_sha256).toBe(
+      knipConfigSha256(config),
+    );
     expect(baseline.provenance.entry_roots).toEqual(config.entry);
     expect(baseline.provenance.project_patterns).toEqual(config.project);
     expect(baseline.provenance.git_head).toMatch(/^[0-9a-f]{40}$/);
@@ -137,29 +125,30 @@ describe("reviewed dead-code baseline", () => {
     expect(baseline.provenance.kind_counts).toEqual(
       fingerprintKindCounts(baseline.fingerprints),
     );
-    expect(baseline.provenance.review_basis).toEqual({
+    expect(baseline.provenance.review_basis).toMatchObject({
       classification: "review-only",
       deletion_owner: "clearDeadCodeBaseline",
       deletion_authority: false,
     });
-    expect(baseline.provenance.coverage_review).toEqual({
-      before: {
-        entry_roots: [
-          "src/cli/projection-boundary.ts",
-          "src/index.ts",
-          "src/mcp-server/index.ts",
-          "src/reconcile-cli.ts",
-        ],
-        normalized_finding_count: 1157,
-        dead_code_fingerprint_count: 1150,
-      },
-      after: {
-        entry_roots: config.entry,
-        normalized_finding_count: 1157,
-        dead_code_fingerprint_count: 1150,
-      },
-      unchanged_reason:
-        "Added package-script roots are executable evidence but remain outside project src/**/*.ts; MCP/reconcile roots expose only candidates already present in the pre-coverage set. Independent before/after normalized-set comparison was exact.",
-    });
+    const review = baseline.provenance.coverage_review;
+    expect(review.before.entry_roots).not.toEqual(review.after.entry_roots);
+    expect(
+      review.before.entry_roots.every((root) =>
+        review.after.entry_roots.includes(root),
+      ),
+    ).toBe(true);
+    expect(review.after.entry_roots).toEqual(config.entry);
+    expect(review.before.normalized_finding_count).toBeGreaterThan(0);
+    expect(review.after.normalized_finding_count).toBe(
+      review.before.normalized_finding_count,
+    );
+    expect(review.before.dead_code_fingerprint_count).toBeGreaterThan(0);
+    expect(review.after.dead_code_fingerprint_count).toBe(
+      review.before.dead_code_fingerprint_count,
+    );
+    expect(review.unchanged_reason).toContain("exact");
+    expect(baseline.provenance.review_basis.provenance_refresh_owner).toBe(
+      PROVENANCE_REFRESH_COMMAND,
+    );
   });
 });

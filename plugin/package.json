@@ -31,6 +31,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "dead-code:check": "bun ../bin/dead-code-check.ts",
+    "dead-code:provenance:refresh": "bun ../bin/dead-code-provenance-refresh.ts",
     "check:sdk-parity": "tsx scripts/check-sdk-parity.ts",
     "architecture:check": "depcruise --config .dependency-cruiser.cjs -- src",
     "schemas:generate": "tsx scripts/generate-json-schemas.ts",
