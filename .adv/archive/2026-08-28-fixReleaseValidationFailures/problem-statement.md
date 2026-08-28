@@ -1,0 +1,1 @@
+The `fixPostMergeArchiveCleanup` release shipped to `trunk`, but release verification found one new dead-code finding, a retained dirty direct-route worktree, and two CI failures already present on the base commit. The release is durable, but repository validation is not green and the direct archive route still creates tracked terminal-projection changes before cleanup.

@@ -1,0 +1,15 @@
+{
+  "archived_at": "2026-08-28T19:44:30.699Z",
+  "capabilities": [],
+  "change_hash": "a1a452e23b581b25202b8c70b53c460b148b946eb1d9cfcc2f6428492e2d6522",
+  "change_id": "fixReleaseValidationFailures",
+  "completed_tasks": 5,
+  "created_at": "2026-08-27T22:26:54.814Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-28T14:32:56.797Z",
+  "status": "archived",
+  "summary_hash": "8f8ca21a94b81c69b07c9909850f192c4527e75112107197170aac131269ab96",
+  "task_count": 5,
+  "title": "Fix release validation failures",
+  "version": "1"
+}
