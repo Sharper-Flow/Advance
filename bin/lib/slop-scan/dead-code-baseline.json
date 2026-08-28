@@ -7,24 +7,30 @@
     "classification": "review-only"
   },
   "provenance": {
-    "knip_config_sha256": "54380bbb80f3ccb5c017ddf9e42c9373540c0c5c5f23bc59422a4e5ce3f1fb6c",
+    "knip_config_sha256": "b3b5ea0c6bbd5bc3aaedd2d1555c5c571aa3879a068cd923fd33ce73929bf310",
     "entry_roots": [
       "scripts/bench-adv-latency.ts",
       "scripts/build-plugin.ts",
       "scripts/check-frontmatter.ts",
       "scripts/check-lockfile-policy.ts",
+      "scripts/check-prompt-budget.ts",
       "scripts/check-sdk-parity.ts",
+      "scripts/check-skill-references.ts",
       "scripts/check-test-isolation.ts",
       "scripts/generate-agent-manifests.ts",
       "scripts/generate-json-schemas.ts",
       "scripts/write-build-identity.ts",
       "src/cli/projection-boundary.ts",
+      "src/doctor-cli.ts",
       "src/index.ts",
       "src/mcp-server/index.ts",
-      "src/reconcile-cli.ts"
+      "src/reconcile-cli.ts",
+      "src/summary-candidates-cli.ts"
     ],
-    "project_patterns": ["src/**/*.ts"],
-    "git_head": "b6b30eea9ffa251c9e379d605526735a96d6bd17",
+    "project_patterns": [
+      "src/**/*.ts"
+    ],
+    "git_head": "3006a81320e6c4b234a6c20f6dcf32c2e291413e",
     "fingerprint_count": 1129,
     "kind_counts": {
       "duplicate_export": 1,
@@ -34,20 +40,11 @@
     "review_basis": {
       "classification": "review-only",
       "deletion_owner": "clearDeadCodeBaseline",
-      "deletion_authority": false
+      "deletion_authority": false,
+      "provenance_refresh_owner": "dead-code:provenance:refresh"
     },
     "coverage_review": {
       "before": {
-        "entry_roots": [
-          "src/cli/projection-boundary.ts",
-          "src/index.ts",
-          "src/mcp-server/index.ts",
-          "src/reconcile-cli.ts"
-        ],
-        "normalized_finding_count": 1157,
-        "dead_code_fingerprint_count": 1150
-      },
-      "after": {
         "entry_roots": [
           "scripts/bench-adv-latency.ts",
           "scripts/build-plugin.ts",
@@ -63,10 +60,33 @@
           "src/mcp-server/index.ts",
           "src/reconcile-cli.ts"
         ],
-        "normalized_finding_count": 1157,
-        "dead_code_fingerprint_count": 1150
+        "normalized_finding_count": 1184,
+        "dead_code_fingerprint_count": 1177
       },
-      "unchanged_reason": "Added package-script roots are executable evidence but remain outside project src/**/*.ts; MCP/reconcile roots expose only candidates already present in the pre-coverage set. Independent before/after normalized-set comparison was exact."
+      "after": {
+        "entry_roots": [
+          "scripts/bench-adv-latency.ts",
+          "scripts/build-plugin.ts",
+          "scripts/check-frontmatter.ts",
+          "scripts/check-lockfile-policy.ts",
+          "scripts/check-prompt-budget.ts",
+          "scripts/check-sdk-parity.ts",
+          "scripts/check-skill-references.ts",
+          "scripts/check-test-isolation.ts",
+          "scripts/generate-agent-manifests.ts",
+          "scripts/generate-json-schemas.ts",
+          "scripts/write-build-identity.ts",
+          "src/cli/projection-boundary.ts",
+          "src/doctor-cli.ts",
+          "src/index.ts",
+          "src/mcp-server/index.ts",
+          "src/reconcile-cli.ts",
+          "src/summary-candidates-cli.ts"
+        ],
+        "normalized_finding_count": 1184,
+        "dead_code_fingerprint_count": 1177
+      },
+      "unchanged_reason": "Independent before/after normalized-set comparison was exact. Both scans produced 1184 normalized findings and 1177 dead-code fingerprints, with zero added and removed values."
     }
   },
   "fingerprints": [
