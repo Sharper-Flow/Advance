@@ -35,3 +35,5 @@ overrides:
   # not use — only StdioServerTransport). Floor to the patched release for
   # GHSA-frvp-7c67-39w9 (CVSS 5.9). v2 peer (hono ^4) + engine (node >=20) hold.
   '@hono/node-server': '>=2.0.5'
+  # Security floor: keep nanoid 3.x at the patched release for GHSA-2v37-7h3g-55p8.
+  'nanoid@<4': ^3.3.18
