@@ -6,6 +6,10 @@ const REPO_ROOT = join(import.meta.dir, "../../..");
 const PACKAGE_PATH = join(REPO_ROOT, "plugin/package.json");
 const WORKFLOW_PATH = join(REPO_ROOT, ".github/workflows/ci.yml");
 const COMMAND_PATH = join(REPO_ROOT, "bin/dead-code-check.ts");
+const REFRESH_COMMAND_PATH = join(
+  REPO_ROOT,
+  "bin/dead-code-provenance-refresh.ts",
+);
 
 describe("dead-code ratchet wiring", () => {
   test("exposes the read-only package command", () => {
@@ -36,5 +40,24 @@ describe("dead-code ratchet wiring", () => {
     expect(command).not.toMatch(
       /--baseline|--update-baseline|--write-baseline/,
     );
+  });
+
+  test("registers one fixed-scope provenance writer beside the read-only checker", () => {
+    const packageJson = JSON.parse(readFileSync(PACKAGE_PATH, "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const refreshCommand = readFileSync(REFRESH_COMMAND_PATH, "utf8");
+    const refreshScripts = Object.keys(packageJson.scripts ?? {}).filter(
+      (key) => key.startsWith("dead-code:provenance:"),
+    );
+
+    expect(refreshScripts).toEqual(["dead-code:provenance:refresh"]);
+    expect(packageJson.scripts?.["dead-code:provenance:refresh"]).toBe(
+      "bun ../bin/dead-code-provenance-refresh.ts",
+    );
+    expect(command).not.toContain("refreshDeadCodeBaselineProvenance");
+    expect(refreshCommand).toContain("refreshDeadCodeBaselineProvenance");
+    expect(refreshCommand).not.toContain("clearDeadCodeBaseline");
   });
 });
