@@ -131,7 +131,6 @@ describe("archive-gate disk projection", () => {
     try {
       const archiveDir = join(root, "archive");
       const bundlePath = join(archiveDir, "2026-08-08-example");
-      const trackedBundlePath = join(root, "tracked-bundle");
       const change = {
         ...makeChange("archived"),
         lifecycleState: "archived" as const,
@@ -155,7 +154,6 @@ describe("archive-gate disk projection", () => {
           route: "pr_manual",
         },
         existingBundlePath: bundlePath,
-        inRepoBundlePath: trackedBundlePath,
       });
 
       expect(result).toMatchObject({ ok: true, alreadyDone: false });

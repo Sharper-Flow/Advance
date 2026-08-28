@@ -47,22 +47,12 @@ function formatArchiveBundleRefreshError(error: unknown): string {
 async function refreshArchiveBundleProjectionsUnderLock(input: {
   change: Change;
   archivePath: string;
-  inRepoArchivePath?: string;
 }): Promise<{ terminalSummaryDegradation?: { reason: string } }> {
-  const archivePaths = [
-    input.archivePath,
-    ...(input.inRepoArchivePath && input.inRepoArchivePath !== input.archivePath
-      ? [input.inRepoArchivePath]
-      : []),
-  ];
-  for (const archivePath of archivePaths) {
-    const writeResult = await refreshArchiveBundleProjectionUnderLock({
-      change: input.change,
-      archivePath,
-    });
-    if (writeResult.terminalSummaryDegradation) return writeResult;
-  }
-  return {};
+  const writeResult = await refreshArchiveBundleProjectionUnderLock({
+    change: input.change,
+    archivePath: input.archivePath,
+  });
+  return writeResult.terminalSummaryDegradation ? writeResult : {};
 }
 
 function getProjectionCommitError(
@@ -823,7 +813,6 @@ async function completeArchivedBundleRelease(input: {
   changeId: string;
   finalization: GitFinalizeOutcome;
   existingBundlePath: string;
-  inRepoBundlePath?: string;
   skipTerminalRefresh?: boolean;
 }): Promise<ArchiveReleaseGateResult> {
   if (input.finalization.status !== "shipped") {
@@ -872,7 +861,6 @@ async function completeArchivedBundleRelease(input: {
         const writeResult = await refreshArchiveBundleProjectionsUnderLock({
           change: loaded.data,
           archivePath: input.existingBundlePath,
-          inRepoArchivePath: input.inRepoBundlePath,
         });
         if (writeResult.terminalSummaryDegradation) {
           return {
@@ -966,7 +954,6 @@ async function completeArchivedBundleRelease(input: {
           const writeResult = await refreshArchiveBundleProjectionsUnderLock({
             change: readback,
             archivePath: input.existingBundlePath,
-            inRepoArchivePath: input.inRepoBundlePath,
           });
           return writeResult.terminalSummaryDegradation
             ? {
@@ -1007,7 +994,6 @@ export async function completeMergedArchiveReplay(input: {
   changeId: string;
   finalization: ShippedFinalization;
   existingBundlePath: string;
-  inRepoBundlePath?: string;
 }): Promise<ArchiveReleaseGateResult> {
   return completeArchivedBundleRelease({
     store: input.store,
@@ -1091,7 +1077,6 @@ export async function completeReleaseGateAfterFinalization(input: {
   changeId: string;
   finalization: GitFinalizeOutcome;
   existingBundlePath?: string;
-  inRepoBundlePath?: string;
 }): Promise<ArchiveReleaseGateResult> {
   if (input.finalization.status !== "shipped")
     return {
@@ -1112,7 +1097,6 @@ export async function completeReleaseGateAfterFinalization(input: {
       changeId: input.changeId,
       finalization: input.finalization,
       existingBundlePath: input.existingBundlePath,
-      inRepoBundlePath: input.inRepoBundlePath,
     });
   }
   if (!currentProjection.success) {
@@ -1180,7 +1164,6 @@ export async function reconcileArchivedBundleRetry(input: {
   archiveMode: "direct" | "pr";
   phase9?: "run" | "skip";
   existingBundlePath: string;
-  inRepoBundlePath?: string;
   openOpsObligationsPayload: Record<string, unknown>;
   validationWarnings: Array<{ code: string; message: string; path?: string }>;
 }): Promise<string> {
@@ -1223,7 +1206,6 @@ export async function reconcileArchivedBundleRetry(input: {
     changeId: input.changeId,
     finalization,
     existingBundlePath: input.existingBundlePath,
-    inRepoBundlePath: input.inRepoBundlePath,
   });
   if (!releaseResult.ok)
     return formatToolOutput({

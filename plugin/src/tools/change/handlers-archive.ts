@@ -120,7 +120,7 @@ function hasPriorPhase9ArchiveEvidence(change: Change): boolean {
   return status === "failed" || status === "pending_merge";
 }
 
-export type ArchiveCleanupDisposition =
+type ArchiveCleanupDisposition =
   | {
       status: "deleted";
       branch: string;
@@ -144,7 +144,7 @@ type CompleteShippedChangeInput = {
   changeId: string;
   archiveMode: "direct" | "pr";
   archivePath: string;
-  inRepoBundlePath?: string;
+  trackedBundlePath?: string;
   archivedAt?: string;
   finalization: GitFinalizeOutcome;
   releaseGateCompletion?: Extract<ArchiveReleaseGateResult, { ok: true }>;
@@ -217,7 +217,7 @@ async function buildArchiveOwnedRecovery(input: {
   worktreePath: string;
   branch: string;
   archivePath: string;
-  inRepoBundlePath?: string;
+  trackedBundlePath?: string;
   finalization: GitFinalizeOutcome;
   terminalChange: Change;
 }): Promise<WorktreeDeletionArchiveRecovery | undefined> {
@@ -225,12 +225,11 @@ async function buildArchiveOwnedRecovery(input: {
     worktreePath,
     branch,
     archivePath,
-    inRepoBundlePath,
+    trackedBundlePath,
     finalization,
     terminalChange,
   } = input;
-  const trackedPath = inRepoBundlePath ?? archivePath;
-  const trackedRoot = relative(worktreePath, trackedPath);
+  const trackedRoot = relative(worktreePath, trackedBundlePath ?? archivePath);
   const normalizedRoot = trackedRoot.split(sep).join("/").replace(/\/$/, "");
   const bundleId = basename(normalizedRoot);
   const terminalStatus =
@@ -355,7 +354,7 @@ async function cleanupShippedChangeWorktree(input: {
   worktreePath?: string;
   branch: string;
   archivePath: string;
-  inRepoBundlePath?: string;
+  trackedBundlePath?: string;
   finalization: GitFinalizeOutcome;
   terminalChange: Change;
 }): Promise<ArchiveCleanupDisposition> {
@@ -581,23 +580,13 @@ export async function completeShippedChange(
       const refreshResults = await withArchiveProjectionLock(
         input.store.paths.root,
         async () => {
-          const results = [];
-          for (const archivePath of [
-            input.archivePath,
-            ...(input.inRepoBundlePath &&
-            input.inRepoBundlePath !== input.archivePath
-              ? [input.inRepoBundlePath]
-              : []),
-          ]) {
-            results.push(
-              await refreshArchiveBundleProjectionUnderLock({
-                change: terminalChange,
-                archivePath,
-                archivedAt,
-              }),
-            );
-          }
-          return results;
+          return [
+            await refreshArchiveBundleProjectionUnderLock({
+              change: terminalChange,
+              archivePath: input.archivePath,
+              archivedAt,
+            }),
+          ];
         },
       );
       const degradedRefresh = refreshResults.find(
@@ -642,7 +631,7 @@ export async function completeShippedChange(
     worktreePath: input.worktreePath,
     branch,
     archivePath: input.archivePath,
-    inRepoBundlePath: input.inRepoBundlePath,
+    trackedBundlePath: input.trackedBundlePath,
     finalization: input.finalization,
     terminalChange,
   });
@@ -927,7 +916,7 @@ export const advChangeArchiveHandler = async (
         changeId,
         archiveMode,
         archivePath: mergedReplay.existingBundlePath,
-        inRepoBundlePath: worktreePath
+        trackedBundlePath: worktreePath
           ? ((await findArchiveBundle(
               join(worktreePath, ".adv", "archive"),
               changeId,
@@ -1074,7 +1063,6 @@ export const advChangeArchiveHandler = async (
               archiveMode,
               phase9,
               existingBundlePath,
-              inRepoBundlePath: existingInRepoBundlePath ?? undefined,
               openOpsObligationsPayload,
               validationWarnings: validationResult.warnings,
             });
@@ -1299,7 +1287,6 @@ export const advChangeArchiveHandler = async (
           archiveMode,
           phase9,
           existingBundlePath,
-          inRepoBundlePath: existingInRepoBundlePath ?? undefined,
           openOpsObligationsPayload,
           validationWarnings: validationResult.warnings,
         });
@@ -1359,7 +1346,7 @@ export const advChangeArchiveHandler = async (
           : {}),
       });
 
-    const inRepoBundlePath = archiveResult.commitPaths.find((path) =>
+    const trackedBundlePath = archiveResult.commitPaths.find((path) =>
       relative(inRepoBase, path)
         .replaceAll("\\", "/")
         .startsWith(".adv/archive/"),
@@ -1463,7 +1450,6 @@ export const advChangeArchiveHandler = async (
         changeId,
         finalization,
         existingBundlePath: archiveResult.archivePath,
-        inRepoBundlePath,
       });
       if (!releaseResult.ok)
         return formatToolOutput({
@@ -1508,7 +1494,6 @@ export const advChangeArchiveHandler = async (
           archiveMode,
           phase9,
           existingBundlePath: archiveResult.archivePath,
-          inRepoBundlePath,
           openOpsObligationsPayload,
           validationWarnings: validationResult.warnings,
         });
@@ -1600,7 +1585,7 @@ export const advChangeArchiveHandler = async (
         changeId,
         archiveMode,
         archivePath: archiveResult.archivePath,
-        inRepoBundlePath,
+        trackedBundlePath,
         archivedAt: archiveResult.archivedAt,
         finalization,
         releaseGateCompletion,

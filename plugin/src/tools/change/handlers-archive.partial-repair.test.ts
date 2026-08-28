@@ -693,6 +693,21 @@ describe("adv_change_archive partial archive-delta repair", () => {
             expect.stringContaining("Branch cleanup warning"),
           ]),
         );
+      expect(
+        mocks.refreshArchiveBundleProjectionUnderLock,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        mocks.refreshArchiveBundleProjectionUnderLock,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ archivePath: BUNDLE_PATH }),
+      );
+      expect(
+        mocks.refreshArchiveBundleProjectionUnderLock.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(mocks.advWorktreeDelete.mock.invocationCallOrder[0]);
+      expect(mocks.advWorktreeDelete.mock.invocationCallOrder[1]).toBeLessThan(
+        mocks.deleteChangeBranch.mock.invocationCallOrder[0],
+      );
     },
   );
 
@@ -746,10 +761,10 @@ describe("adv_change_archive partial archive-delta repair", () => {
         ["worktree", "add", "-q", "-b", `change/${CHANGE_ID}`, worktree],
         { cwd: root },
       );
-      const inRepoBundlePath = join(worktree, ".adv", "archive", CHANGE_ID);
-      mkdirSync(inRepoBundlePath, { recursive: true });
+      const trackedBundlePath = join(worktree, ".adv", "archive", CHANGE_ID);
+      mkdirSync(trackedBundlePath, { recursive: true });
       mkdirSync(canonicalBundlePath, { recursive: true });
-      writeFileSync(join(inRepoBundlePath, "change.json"), '{"id":"test"}\n');
+      writeFileSync(join(trackedBundlePath, "change.json"), '{"id":"test"}\n');
       writeFileSync(
         join(canonicalBundlePath, "change.json"),
         '{"id":"test"}\n',
@@ -787,7 +802,7 @@ describe("adv_change_archive partial archive-delta repair", () => {
         changeId: CHANGE_ID,
         archiveMode: "pr",
         archivePath: canonicalBundlePath,
-        inRepoBundlePath,
+        trackedBundlePath,
         finalization: {
           status: "shipped",
           repoRoot: root,
@@ -955,7 +970,12 @@ describe("adv_change_archive partial archive-delta repair", () => {
         }),
       }),
     );
-    expect(mocks.refreshArchiveBundleProjectionUnderLock).toHaveBeenCalledWith(
+    expect(mocks.refreshArchiveBundleProjectionUnderLock).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      mocks.refreshArchiveBundleProjectionUnderLock,
+    ).not.toHaveBeenCalledWith(
       expect.objectContaining({
         archivePath: join(
           REPAIR_WORKTREE,
@@ -963,11 +983,13 @@ describe("adv_change_archive partial archive-delta repair", () => {
           "archive",
           `2026-08-08-${CHANGE_ID}`,
         ),
-        change: expect.objectContaining({
-          status: "archived",
-          phase9_status: expect.objectContaining({ status: "done" }),
-        }),
       }),
+    );
+    expect(mocks.reconcileInRepoArchive).toHaveBeenCalledWith(
+      change,
+      "/archive",
+      join(REPAIR_WORKTREE, ".adv", "archive"),
+      join("/repo/.adv/changes", CHANGE_ID),
     );
     expect(
       mocks.refreshArchiveBundleProjectionUnderLock.mock.invocationCallOrder[0],
