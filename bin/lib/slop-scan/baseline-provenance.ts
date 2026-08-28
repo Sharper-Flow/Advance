@@ -12,6 +12,7 @@ import type { SlopScanFinding } from "./schema";
 export const PROVENANCE_REFRESH_COMMAND = "dead-code:provenance:refresh";
 const REFRESH_TIMEOUT_MS = 120_000;
 const MAX_DIAGNOSTICS = 20;
+const MAX_ATOMIC_DIAGNOSTIC_CHARS = 2_000;
 
 export interface BaselineArtifact {
   schema_version: "dead_code_baseline.v1";
@@ -105,7 +106,8 @@ export interface RefreshOptions {
   writeAtomic?: (
     path: string,
     content: string,
-  ) => Promise<void | { durabilityWarning: string }>;
+    priorContent: string,
+  ) => Promise<void>;
   syncDirectory?: (path: string) => Promise<void>;
   cleanupTemporary?: (path: string) => Promise<void>;
 }
@@ -685,12 +687,36 @@ async function removeTemporary(path: string): Promise<void> {
   }
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function boundedAtomicDiagnostic(parts: string[]): string {
+  return parts.join("; ").slice(0, MAX_ATOMIC_DIAGNOSTIC_CHARS);
+}
+
+async function cleanupAtomicTemporaries(paths: string[]): Promise<string[]> {
+  const issues: string[] = [];
+  for (const path of paths) {
+    try {
+      await removeTemporary(path);
+    } catch (error) {
+      issues.push(
+        `temporary cleanup failed for ${path}: ${errorMessage(error)}`,
+      );
+    }
+  }
+  return issues;
+}
+
 async function defaultAtomicWrite(
   path: string,
   content: string,
+  priorContent: string,
   sync: (path: string) => Promise<void> = syncDirectory,
-): Promise<void | { durabilityWarning: string }> {
+): Promise<void> {
   const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
+  const rollbackPath = `${path}.${process.pid}.${randomUUID()}.rollback.tmp`;
   try {
     await writeFile(temporaryPath, content, "utf8");
     const file = await open(temporaryPath, "r");
@@ -699,25 +725,63 @@ async function defaultAtomicWrite(
     } finally {
       await file.close();
     }
+
+    await writeFile(rollbackPath, priorContent, "utf8");
+    const rollbackFile = await open(rollbackPath, "r");
+    try {
+      await rollbackFile.sync();
+    } finally {
+      await rollbackFile.close();
+    }
     await rename(temporaryPath, path);
   } catch (error) {
-    try {
-      await removeTemporary(temporaryPath);
-    } catch (cleanupError) {
-      throw new Error(
-        `atomic temporary file cleanup failed after ${error instanceof Error ? error.message : String(error)}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`,
-        { cause: cleanupError },
-      );
-    }
-    throw error;
+    const cleanupIssues = await cleanupAtomicTemporaries([
+      temporaryPath,
+      rollbackPath,
+    ]);
+    throw new Error(
+      boundedAtomicDiagnostic([
+        `atomic replacement failed before commit: ${errorMessage(error)}`,
+        ...cleanupIssues,
+      ]),
+      { cause: error },
+    );
   }
+
   try {
     await sync(path);
   } catch (error) {
-    return {
-      durabilityWarning: `directory durability check failed after replacement: ${error instanceof Error ? error.message : String(error)}`,
-    };
+    const issues = [
+      `directory synchronization failed after replacement: ${errorMessage(error)}`,
+    ];
+    try {
+      await rename(rollbackPath, path);
+    } catch (rollbackError) {
+      issues.push(
+        `rollback replacement failed: ${errorMessage(rollbackError)}`,
+      );
+    }
+    if (issues.length === 1) {
+      try {
+        await sync(path);
+      } catch (rollbackSyncError) {
+        issues.push(
+          `rollback directory synchronization failed after prior bytes were restored: ${errorMessage(rollbackSyncError)}`,
+        );
+      }
+    }
+    issues.push(
+      ...(await cleanupAtomicTemporaries([temporaryPath, rollbackPath])),
+    );
+    throw new Error(boundedAtomicDiagnostic(issues), { cause: error });
   }
+
+  const cleanupIssues = await cleanupAtomicTemporaries([
+    temporaryPath,
+    rollbackPath,
+  ]);
+  if (cleanupIssues.length > 0)
+    throw new Error(boundedAtomicDiagnostic(cleanupIssues));
 }
 
 function snapshotPath(pluginRoot: string, label: string): string {
@@ -931,17 +995,14 @@ export async function refreshDeadCodeBaselineProvenance(
         diagnostics: [],
         comparison: plan.comparison,
       });
-    const writeResult = await (
+    await (
       options.writeAtomic ??
-      ((path, content) =>
-        defaultAtomicWrite(path, content, options.syncDirectory))
-    )(options.baselinePath, output);
+      ((path, content, priorContent) =>
+        defaultAtomicWrite(path, content, priorContent, options.syncDirectory))
+    )(options.baselinePath, output, baselineRaw);
     return record({
       status: "refreshed",
-      diagnostics:
-        writeResult && "durabilityWarning" in writeResult
-          ? [writeResult.durabilityWarning]
-          : [],
+      diagnostics: [],
       comparison: plan.comparison,
     });
   } catch (error) {

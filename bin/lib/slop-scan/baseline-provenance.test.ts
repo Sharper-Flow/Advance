@@ -806,7 +806,7 @@ describe("dead-code baseline provenance", () => {
     }
   });
 
-  test("reports durability warnings as refreshed after replacement", async () => {
+  test("restores exact prior bytes and blocks when replacement directory sync fails", async () => {
     const root = await mkdtemp(join("/tmp/opencode", "provenance-"));
     try {
       const baselinePath = join(root, "baseline.json");
@@ -818,8 +818,10 @@ describe("dead-code baseline provenance", () => {
       };
       const artifact = baseline();
       artifact.provenance.knip_config_sha256 = knipConfigSha256(oldConfig);
-      await writeFile(baselinePath, JSON.stringify(artifact, null, 2));
+      const priorBytes = JSON.stringify(artifact, null, 2);
+      await writeFile(baselinePath, priorBytes);
       await writeFile(configPath, JSON.stringify(currentConfig));
+      let syncCalls = 0;
       const result = await refreshDeadCodeBaselineProvenance({
         baselinePath,
         configPath,
@@ -840,14 +842,73 @@ describe("dead-code baseline provenance", () => {
         },
         readGitHead: async () => "a".repeat(40),
         syncDirectory: async () => {
-          throw new Error("sync denied");
+          syncCalls += 1;
+          if (syncCalls === 1) throw new Error("sync denied");
         },
       });
-      expect(result.status).toBe("refreshed");
-      expect(result.diagnostics.join("\n")).toContain("after replacement");
-      expect(JSON.parse(await readFile(baselinePath, "utf8"))).toMatchObject({
-        provenance: { entry_roots: currentConfig.entry },
+      expect(result.status).toBe("blocked");
+      expect(result.diagnostics.join("\n")).toContain("sync denied");
+      expect(syncCalls).toBe(2);
+      expect(await readFile(baselinePath, "utf8")).toBe(priorBytes);
+      expect((await readdir(root)).sort()).toEqual([
+        "baseline.json",
+        "knip.json",
+      ]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("keeps restored prior bytes when rollback directory sync also fails", async () => {
+    const root = await mkdtemp(join("/tmp/opencode", "provenance-"));
+    try {
+      const baselinePath = join(root, "baseline.json");
+      const configPath = join(root, "knip.json");
+      const oldConfig = { entry: ["src/index.ts"], project: ["src/**/*.ts"] };
+      const currentConfig = {
+        entry: ["src/index.ts", "src/extra.ts"],
+        project: ["src/**/*.ts"],
+      };
+      const artifact = baseline();
+      artifact.provenance.knip_config_sha256 = knipConfigSha256(oldConfig);
+      const priorBytes = JSON.stringify(artifact, null, 2);
+      await writeFile(baselinePath, priorBytes);
+      await writeFile(configPath, JSON.stringify(currentConfig));
+      let syncCalls = 0;
+      const result = await refreshDeadCodeBaselineProvenance({
+        baselinePath,
+        configPath,
+        pluginRoot: root,
+        runner: {
+          run: async (request) => ({
+            ...request,
+            status: "success" as const,
+            exitCode: 0,
+            stdout: JSON.stringify({
+              issues: [
+                { file: "src/index.ts", exports: [{ name: "old", line: 1 }] },
+              ],
+            }),
+            stderr: "",
+            durationMs: 1,
+          }),
+        },
+        readGitHead: async () => "a".repeat(40),
+        syncDirectory: async () => {
+          syncCalls += 1;
+          throw new Error(
+            syncCalls === 1
+              ? "replacement sync denied"
+              : "rollback sync denied",
+          );
+        },
       });
+      expect(result.status).toBe("blocked");
+      expect(result.diagnostics).toHaveLength(1);
+      expect(result.diagnostics[0]).toContain("replacement sync denied");
+      expect(result.diagnostics[0]).toContain("rollback sync denied");
+      expect(syncCalls).toBe(2);
+      expect(await readFile(baselinePath, "utf8")).toBe(priorBytes);
       expect((await readdir(root)).sort()).toEqual([
         "baseline.json",
         "knip.json",
