@@ -2,6 +2,7 @@
 
 ### Changed
 
+- **Recommended rule P29 rewritten as `yagni-scope-discipline`** in `SETUP.md` and `skills/adv-rule-rationale`. YAGNI now leads the rule affirmatively (build only what the accepted request requires now; record plausible future needs as named follow-ups), a new `scope` field binds the rule to solution design during delivery — never to accepting, questioning, or renegotiating the request — and an explicit non-license clause bars under-building, narrowing approved scope, skipping research/tests/verification, and refusing user-requested work (challenges route through clarification P08). The clarity-over-smallest-diff substance is retained, subordinated to the YAGNI lead, and the `(see P41)` cross-reference is restored at the closer. Replaces the `clean-not-minimal` framing whose headline pulled opposite its buried YAGNI clause. Origin: toolbox corpus rewrite `promoteYagniP29` (PR #255, 2026-08-29, independent-validator approved). `rules.yaml` stays user-managed.
 - **Disk-only runtime persistence** — Removed the historical Temporal runtime architecture. Advance now keeps authoritative change, task, gate, and Epic state in per-project disk projections with per-change locking, atomic crash-safe writes, optimistic version checks for Epics, and fail-closed transaction verification. No external runtime service is required.
 
 ### Added

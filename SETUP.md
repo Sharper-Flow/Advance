@@ -391,12 +391,14 @@ cp -r /path/to/Advance/.opencode/command/* .opencode/command/
 
 ---
 
-## Clean-Not-Minimal Rule (P29)
+## YAGNI Scope-Discipline Rule (P29)
 
-ADV recommends a clarity-first design rule that explicitly counters the
-agent failure mode of "minimize touch / minimize blast radius at the cost
-of structural quality." Like P28, `rules.yaml` is **user-managed** so this
-rule must be added manually:
+ADV recommends a solutioning-scope rule that states YAGNI affirmatively:
+build only what the accepted request requires now, and never use YAGNI to
+contend with the request itself. Rewritten 2026-08-29 from the earlier
+`clean-not-minimal` framing, which carried YAGNI only as a mid-paragraph
+clause under a headline that pulled the opposite direction. Like P28,
+`rules.yaml` is **user-managed** so this rule must be added manually:
 
 1. Open `~/.config/opencode/instructions/rules.yaml`
 2. Add the following entry in the `rules:` map (P29 recommended):
@@ -406,16 +408,31 @@ rules:
   # ... existing rules ...
 
   P29:
-    name: clean-not-minimal
-    rule: Optimize for clarity and maintainability, not for the smallest
-      possible diff. When a wider architectural change produces a cleaner
-      result, surface it — do not suppress better ideas to minimize blast
-      radius or touch. Avoid speculative features and abstractions for
-      hypothetical future needs (YAGNI), but do not confuse YAGNI with
-      refusing necessary structural work or withholding stronger design
-      proposals.
-    tags: [clarity, design, simplicity, architecture, yagni]
-    hint: clean_not_minimal
+    name: yagni-scope-discipline
+    scope: >-
+      Solution design and implementation scope while delivering an accepted
+      request. Governs what you build, not whether to accept, question, or
+      renegotiate the request itself.
+    rule: >-
+      Build only what the accepted request requires now. Do not add unrequested
+      capability, configuration knobs, abstraction layers, extension points,
+      generality, or defensive breadth for anticipated future needs (YAGNI);
+      record a plausible future need as a named follow-up instead of building
+      it. YAGNI governs the solution, never the delivery: it does not license
+      under-building the request, narrowing approved scope, skipping research,
+      tests, or verification, or refusing user-requested work — challenge a
+      request through clarification (P08), not through silent omission. It
+      also does not license refusing necessary structural work or withholding
+      a stronger design proposal.
+
+      Within that boundary, optimize for clarity and maintainability, not for
+      the smallest possible diff: when a wider architectural change produces
+      a cleaner result, surface it — do not suppress better ideas to minimize
+      blast radius or touch. This rule governs scope ambition, not leftover
+      code: it never licenses retaining a construct the change supersedes
+      (see P41).
+    tags: [yagni, scope, clarity, design, simplicity]
+    hint: yagni_scope_discipline
     priority: 7
 ```
 
@@ -428,9 +445,12 @@ not at the priority-9/10 tier reserved for security and safety constraints.
 caused agents to pattern-match on "smallest" and "reversible," reading the
 rule as "minimize touch / avoid wider architectural changes." That suppressed
 legitimate proposals to refactor or restructure when the cleaner answer was
-larger. The rewrite keeps the YAGNI/anti-speculation intent but explicitly
-instructs agents to **surface** wider architectural changes when they
-produce a cleaner result.
+larger. The `clean-not-minimal` rewrite fixed that but buried YAGNI
+mid-paragraph; operators reaching for YAGNI as a core rule found no
+affirmative statement. The 2026-08-29 rewrite leads with YAGNI, adds a
+`scope` field binding the rule to solution design during delivery, and adds
+an explicit non-license clause so YAGNI can never justify under-building,
+narrowing approved scope, or refusing user-requested work.
 
 Restart OpenCode after editing.
 

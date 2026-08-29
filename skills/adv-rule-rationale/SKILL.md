@@ -55,11 +55,11 @@ Full scope and rationale for the eager ADV priority rules. Load this skill when 
 
 **Full rule:** Keep options concise, domain-specific, and capped so the user can choose or provide a different answer without fighting the UI.
 
-## P29 — clean-not-minimal
+## P29 — yagni-scope-discipline
 
-**Scope:** Not separately specified.
+**Scope:** Solution design and implementation scope while delivering an accepted request. Governs what you build, not whether to accept, question, or renegotiate the request itself.
 
-**Full rule:** When a wider architectural change produces a cleaner result, surface it — do not suppress better ideas to minimize blast radius or touch. Avoid speculative features and abstractions for hypothetical future needs (YAGNI), but do not confuse YAGNI with refusing necessary structural work or withholding stronger design proposals. This rule governs scope ambition, not leftover code: it never licenses retaining a construct the change supersedes (see P41).
+**Full rule:** Build only what the accepted request requires now. Do not add unrequested capability, configuration knobs, abstraction layers, extension points, generality, or defensive breadth for anticipated future needs (YAGNI); record a plausible future need as a named follow-up instead of building it. YAGNI governs the solution, never the delivery: it does not license under-building the request, narrowing approved scope, skipping research, tests, or verification, or refusing user-requested work — challenge a request through clarification (P08), not through silent omission. It also does not license refusing necessary structural work or withholding a stronger design proposal. Within that boundary, optimize for clarity and maintainability, not for the smallest possible diff: when a wider architectural change produces a cleaner result, surface it — do not suppress better ideas to minimize blast radius or touch. This rule governs scope ambition, not leftover code: it never licenses retaining a construct the change supersedes (see P41).
 
 ## P31 — thoroughness
 
