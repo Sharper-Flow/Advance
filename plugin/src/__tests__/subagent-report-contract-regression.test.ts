@@ -19,7 +19,7 @@ import {
   ResearcherSubagentReportSchema,
   RESEARCHER_FIELD_MAX,
 } from "../types/subagent-reports";
-import { compactToolPart, compactPromptMessages } from "../index";
+import { compactToolPart, compactPromptMessages } from "../prompt-compaction";
 
 const over = (n: number): string => "x".repeat(n);
 

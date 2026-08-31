@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { join } from "node:path";
 
-import { AdvancePlugin } from "./index";
+import AdvancePlugin from "./index";
 import { getStatus, resetStatusForTest } from "./events/status";
 import { createTempDir, cleanupTempDir } from "./__tests__/setup";
 import type { Store } from "./storage/store-types";

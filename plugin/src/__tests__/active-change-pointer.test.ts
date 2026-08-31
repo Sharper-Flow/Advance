@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { AdvancePlugin } from "../index";
+import AdvancePlugin from "../index";
 import { getDoctorPointerRepairProvider } from "../tools/doctor";
 import {
   getStatus,

@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 
-import { AdvancePlugin } from "../index";
+import AdvancePlugin from "../index";
 import { resetStatusForTest } from "../events/status";
 import {
   cleanupTempDir,

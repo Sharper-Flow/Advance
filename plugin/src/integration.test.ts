@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
-import { AdvancePlugin } from "./index";
+import AdvancePlugin from "./index";
 import { getStatus, resetStatusForTest } from "./events/status";
 import {
   createTempDir,

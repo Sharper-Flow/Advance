@@ -25,7 +25,7 @@ import {
   compactToolPart,
   persistFallbackContent,
   fallbackPersistedMarker,
-} from "../index";
+} from "../prompt-compaction";
 
 const THRESHOLD = 24_000;
 const oversized = (n: number): string => "x".repeat(n);

@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
-import { AdvancePlugin } from "../index";
+import AdvancePlugin from "../index";
 import { createTempDir, cleanupTempDir, createTestProject } from "./setup";
 import { createDiskStore } from "../storage/store-disk";
 
