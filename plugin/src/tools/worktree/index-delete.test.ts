@@ -177,6 +177,25 @@ function createPrGhExec(
   }));
 }
 
+/**
+ * Same gh mock as createPrGhExec, but `gh pr list` returns several PRs —
+ * the archive flow's own shape when a product squash is followed by a
+ * bundle-refresh PR from the same branch.
+ */
+function createPrListGhExec(
+  payloads: Record<string, unknown>[],
+  repository = "owner/repo",
+) {
+  return vi.fn(async (args: string[]) => ({
+    stdout:
+      args[0] === "repo"
+        ? JSON.stringify({ nameWithOwner: repository })
+        : JSON.stringify(payloads),
+    stderr: "",
+    exitCode: 0,
+  }));
+}
+
 // Captured from the live `gh pr list --json` shape for PR #407.
 const LIVE_PR_407_SHAPE = {
   number: 407,
@@ -1456,6 +1475,132 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         fixture.firstHead,
       );
       await refusal({}, "local_commits_after_pr_head");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("proves integration from the newest of two merged PRs on one branch", async () => {
+    const branch = "fix/multi-pr-proof";
+    // Product squash PR #407 merged the first commit's content.
+    const fixture = makeSquashPrFixture(branch, 407);
+    try {
+      git(
+        fixture.remote,
+        "update-ref",
+        "refs/pull/407/head",
+        fixture.firstHead,
+      );
+      // Bundle-refresh commit lands on the branch after the product squash,
+      // and unrelated trunk work lands on main so local ancestry, patch, and
+      // tree-equivalence proofs all fail — only PR evidence can prove it.
+      writeFileSync(join(fixture.worktree, "three.txt"), "three\n");
+      git(fixture.worktree, "add", "three.txt");
+      git(fixture.worktree, "commit", "-m", "bundle refresh commit");
+      const bundleTip = git(fixture.worktree, "rev-parse", "HEAD");
+      git(fixture.worktree, "push", "origin", branch);
+      git(fixture.remote, "update-ref", "refs/pull/409/head", bundleTip);
+
+      writeFileSync(join(fixture.root, "four.txt"), "four\n");
+      git(fixture.root, "add", "four.txt");
+      git(fixture.root, "commit", "-m", "unrelated trunk work");
+      git(fixture.root, "cherry-pick", "--no-commit", bundleTip);
+      git(fixture.root, "commit", "-m", "squash PR #409");
+      const bundleMergeCommit = git(fixture.root, "rev-parse", "HEAD");
+      git(fixture.root, "push", "origin", "main");
+
+      const payloadFor = (number: number, headRefOid: string, mergeCommitOid: string) => ({
+        number,
+        state: "MERGED" as const,
+        mergedAt: "2026-08-08T00:00:00Z",
+        headRefName: branch,
+        headRefOid,
+        baseRefName: "main",
+        headRepository: {
+          id: "R_kgDOQ-sRJg",
+          name: "repo",
+          nameWithOwner: "owner/repo",
+        },
+        headRepositoryOwner: { id: "O_kgDOBrdsJg", login: "owner" },
+        isCrossRepository: false,
+        mergeCommit: { oid: mergeCommitOid },
+        url: `https://github.com/owner/repo/pull/${number}`,
+      });
+      const ghExec = createPrListGhExec([
+        payloadFor(407, fixture.firstHead, fixture.mergeCommit),
+        payloadFor(409, bundleTip, bundleMergeCommit),
+      ]);
+      const deps = createMockDeps(fixture.root, fixture.worktree);
+      deps.integrationCheck = undefined;
+      deps.mergedBranches = async () => [];
+      deps.ghExec = ghExec;
+
+      const planned = await rawAdvWorktreeDelete(branch, { dryRun: true }, deps);
+      expect(planned).toMatchObject({ ok: true, status: "planned" });
+      if (planned.ok) {
+        expect(planned.plan.integration).toMatchObject({
+          kind: "pr_merged",
+          prNumber: 409,
+          prHeadOid: bundleTip,
+          mergeCommitOid: bundleMergeCommit,
+          headRepository: "owner/repo",
+          baseRepository: "owner/repo",
+          defaultBranch: "main",
+        });
+      }
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("refuses when neither of two merged PRs contains the local tip", async () => {
+    const branch = "fix/multi-pr-proof-unmerged-tip";
+    const fixture = makeSquashPrFixture(branch, 408);
+    try {
+      git(
+        fixture.remote,
+        "update-ref",
+        "refs/pull/407/head",
+        fixture.firstHead,
+      );
+      // Local tip moves past both PR heads after their merges.
+      writeFileSync(join(fixture.worktree, "three.txt"), "three\n");
+      git(fixture.worktree, "add", "three.txt");
+      git(fixture.worktree, "commit", "-m", "post-merge commit");
+      git(fixture.worktree, "push", "origin", branch);
+
+      const payloadFor = (number: number, headRefOid: string) => ({
+        number,
+        state: "MERGED" as const,
+        mergedAt: "2026-08-08T00:00:00Z",
+        headRefName: branch,
+        headRefOid,
+        baseRefName: "main",
+        headRepository: {
+          id: "R_kgDOQ-sRJg",
+          name: "repo",
+          nameWithOwner: "owner/repo",
+        },
+        headRepositoryOwner: { id: "O_kgDOBrdsJg", login: "owner" },
+        isCrossRepository: false,
+        mergeCommit: { oid: fixture.mergeCommit },
+        url: `https://github.com/owner/repo/pull/${number}`,
+      });
+      const ghExec = createPrListGhExec([
+        payloadFor(407, fixture.firstHead),
+        payloadFor(408, fixture.head),
+      ]);
+      const deps = createMockDeps(fixture.root, fixture.worktree);
+      deps.integrationCheck = undefined;
+      deps.mergedBranches = async () => [];
+      deps.ghExec = ghExec;
+
+      const result = await rawAdvWorktreeDelete(branch, { dryRun: true }, deps);
+      expect(result).toMatchObject({
+        ok: false,
+        error: "INTEGRATION_REQUIRED",
+        reason: "local_commits_after_pr_head",
+      });
     } finally {
       fixture.cleanup();
     }

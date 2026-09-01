@@ -1502,15 +1502,11 @@ async function getPrMergedBranchIntegration(
       hint: `Merged PR evidence for ${branch} did not match the exact repository/head/base proof; retaining worktree.`,
     };
   }
-  if (structuralCandidates.length > 1) {
-    return {
-      ok: false,
-      classification: "refusal",
-      reason: "pr_evidence_invalid",
-      hint: `Multiple merged PRs matched ${branch}; retaining worktree.`,
-      details: structuralCandidates.map((pr) => `PR #${pr.number}`),
-    };
-  }
+  // Multiple structural candidates are the archive flow's own shape: a product
+  // squash PR followed by a bundle-refresh PR from the same branch. Every
+  // candidate below runs the full per-candidate proof chain; the first that
+  // validates proves integration, and none validating falls through to
+  // local_has_commits_after_pr_head. No candidate is preselected.
 
   for (const pr of structuralCandidates) {
     if (!pr.number || !pr.headRefOid) continue;
