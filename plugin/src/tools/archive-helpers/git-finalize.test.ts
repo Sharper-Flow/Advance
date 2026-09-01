@@ -931,7 +931,7 @@ describe("git-finalize helpers", () => {
             "--repo",
             "Sharper-Flow/Advance",
             "--json",
-            "state,mergedAt,mergeCommit,autoMergeRequest",
+            "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue",
           ]);
           return {
             status: 0,
@@ -972,7 +972,7 @@ describe("git-finalize helpers", () => {
             "--repo",
             "Sharper-Flow/Advance",
             "--json",
-            "state,mergedAt,mergeCommit,autoMergeRequest",
+            "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue",
           ]);
           return { status: 0, stdout, stderr: "" };
         },
@@ -3300,6 +3300,244 @@ describe("git-finalize helpers", () => {
     expect(result.changeTipSha).toBe(
       git(main, ["rev-parse", "change/example"]),
     );
+  });
+
+  // Stall surfacing (AC5): an armed PR that cannot progress on its own must
+  // say so on the pending_merge outcome instead of returning a bare status.
+  it("pending_merge carries a stallWarning when the armed PR is BEHIND", async () => {
+    const main = join(tempRoot, "main-stall-behind");
+    const worktree = join(tempRoot, "wt-stall-behind");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, [
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/Sharper-Flow/Advance.git",
+    ]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    let branchViewCount = 0;
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "pr",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          if (args[0] === "fetch" && args[1] === "origin") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "reset" && args[1] === "--hard") {
+            return { status: 0, stdout: "reset", stderr: "" };
+          }
+          if (args[0] === "merge") {
+            return { status: 0, stdout: "merge", stderr: "" };
+          }
+          if (args[0] === "push" && args.includes("change/example")) {
+            return { status: 0, stdout: "remote: create PR...", stderr: "" };
+          }
+          return defaultRunGit(cwd, args);
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+            return { status: 0, stdout: "[]", stderr: "" };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            const selector = args[2];
+            if (selector === "change/example") {
+              branchViewCount += 1;
+              if (branchViewCount === 1) {
+                return {
+                  status: 1,
+                  stdout: "",
+                  stderr: "no pull requests found",
+                };
+              }
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  number: 42,
+                  url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                  state: "OPEN",
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            if (selector === "42") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                  mergeStateStatus: "BEHIND",
+                  isInMergeQueue: false,
+                }),
+                stderr: "",
+              };
+            }
+          }
+          if (args[0] === "pr" && args[1] === "create") {
+            return {
+              status: 0,
+              stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "merge") {
+            return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+          }
+          return {
+            status: 1,
+            stdout: "",
+            stderr: `unexpected gh ${args.join(" ")}`,
+          };
+        },
+      },
+    );
+
+    expect(result.status).toBe("pending_merge");
+    expect(result.autoMergeArmed).toBe(true);
+    expect(result.stallWarning).toBeDefined();
+    expect(result.stallWarning?.mergeStateStatus).toBe("BEHIND");
+    expect(result.stallWarning?.remediation).toContain("update the branch");
+  });
+
+  it("pending_merge omits stallWarning when the PR is MERGEABLE or unreported", async () => {
+    const scenarios: Array<{
+      name: string;
+      prViewPayload: Record<string, unknown>;
+    }> = [
+      {
+        name: "mergeable",
+        prViewPayload: { mergeStateStatus: "MERGEABLE", isInMergeQueue: false },
+      },
+      {
+        name: "no mergeStateStatus key (older gh / GHES)",
+        prViewPayload: {},
+      },
+      {
+        name: "behind but already queued",
+        prViewPayload: { mergeStateStatus: "BEHIND", isInMergeQueue: true },
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const main = join(
+        tempRoot,
+        `main-stall-${scenario.name.replace(/\W+/g, "-")}`,
+      );
+      const worktree = join(
+        tempRoot,
+        `wt-stall-${scenario.name.replace(/\W+/g, "-")}`,
+      );
+      await mkdir(main);
+      await initRepo(main);
+      git(main, [
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/Sharper-Flow/Advance.git",
+      ]);
+      git(main, ["worktree", "add", "-b", "change/example", worktree]);
+      await writeFile(join(worktree, "feature.txt"), "feature\n");
+      git(worktree, ["add", "feature.txt"]);
+      git(worktree, ["commit", "-m", "feature"]);
+
+      let branchViewCount = 0;
+      const result = await finalizeRelease(
+        {
+          changeId: "example",
+          workdir: worktree,
+          archiveMode: "pr",
+          autoPush: true,
+        },
+        {
+          runGit: (cwd, args) => {
+            if (args[0] === "fetch" && args[1] === "origin") {
+              return { status: 0, stdout: "", stderr: "" };
+            }
+            if (args[0] === "reset" && args[1] === "--hard") {
+              return { status: 0, stdout: "reset", stderr: "" };
+            }
+            if (args[0] === "merge") {
+              return { status: 0, stdout: "merge", stderr: "" };
+            }
+            if (args[0] === "push" && args.includes("change/example")) {
+              return { status: 0, stdout: "remote: create PR...", stderr: "" };
+            }
+            return defaultRunGit(cwd, args);
+          },
+          runGh: (_cwd, args) => {
+            if (args[0] === "api" && args[1].includes("/rules/branches/")) {
+              return { status: 0, stdout: "[]", stderr: "" };
+            }
+            if (args[0] === "pr" && args[1] === "view") {
+              const selector = args[2];
+              if (selector === "change/example") {
+                branchViewCount += 1;
+                if (branchViewCount === 1) {
+                  return {
+                    status: 1,
+                    stdout: "",
+                    stderr: "no pull requests found",
+                  };
+                }
+                return {
+                  status: 0,
+                  stdout: JSON.stringify({
+                    number: 42,
+                    url: "https://github.com/Sharper-Flow/Advance/pull/42",
+                    state: "OPEN",
+                    autoMergeRequest: null,
+                  }),
+                  stderr: "",
+                };
+              }
+              if (selector === "42") {
+                return {
+                  status: 0,
+                  stdout: JSON.stringify({
+                    state: "OPEN",
+                    mergedAt: null,
+                    mergeCommit: null,
+                    autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+                    ...scenario.prViewPayload,
+                  }),
+                  stderr: "",
+                };
+              }
+            }
+            if (args[0] === "pr" && args[1] === "create") {
+              return {
+                status: 0,
+                stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+                stderr: "",
+              };
+            }
+            if (args[0] === "pr" && args[1] === "merge") {
+              return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+            }
+            return {
+              status: 1,
+              stdout: "",
+              stderr: `unexpected gh ${args.join(" ")}`,
+            };
+          },
+        },
+      );
+
+      expect(result.status, scenario.name).toBe("pending_merge");
+      expect(result.stallWarning, scenario.name).toBeUndefined();
+    }
   });
 
   // rq-fixPhase9PostMergeFinalization (Defect B): when the change's PR is

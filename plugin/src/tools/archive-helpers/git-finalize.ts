@@ -41,6 +41,10 @@ export interface GitFinalizeOutcome {
   prNumber?: number;
   prUrl?: string;
   autoMergeArmed?: boolean;
+  /** Advisory-only: the armed PR cannot progress on its own and the operator
+   *  must update the branch. Surfaced on pending_merge outcomes; never
+   *  persisted and never mutated around. */
+  stallWarning?: { mergeStateStatus: string; remediation: string };
   blocked?: { reason: string; remediation: string; details?: string[] };
 }
 
@@ -248,6 +252,12 @@ export interface PullRequestMergeState {
   mergedAt?: string | null;
   mergeCommitOid?: string;
   autoMergeArmed: boolean;
+  /** GitHub merge readiness (BEHIND, DIRTY, BLOCKED, MERGEABLE...). Absent on
+   *  gh versions / servers that do not report it — treated as unknown. */
+  mergeStateStatus?: string;
+  /** True only when the server explicitly reports queue membership; absent
+   *  means unknown, never false. */
+  isInMergeQueue?: boolean;
   raw?: unknown;
 }
 
@@ -320,6 +330,8 @@ export type ReleaseReachabilityProof =
         | "blocked";
       prNumber?: number;
       autoMergeArmed?: boolean;
+      mergeStateStatus?: string;
+      isInMergeQueue?: boolean;
       details?: string[];
     };
 
@@ -1301,7 +1313,10 @@ export function readPrMergeState(
   const runGh = deps.runGh ?? defaultRunGh;
   const args = ["pr", "view", String(prNumber)];
   if (repo) args.push("--repo", repo);
-  args.push("--json", "state,mergedAt,mergeCommit,autoMergeRequest");
+  args.push(
+    "--json",
+    "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue",
+  );
   const result = runGh(repoRoot, args);
   if (result.status !== 0) {
     return {
@@ -1333,6 +1348,8 @@ export function readPrMergeState(
         mergedAt?: unknown;
         mergeCommit?: { oid?: unknown } | null;
         autoMergeRequest?: unknown;
+        mergeStateStatus?: unknown;
+        isInMergeQueue?: unknown;
       };
       return {
         state: typeof payload.state === "string" ? payload.state : "UNKNOWN",
@@ -1345,6 +1362,11 @@ export function readPrMergeState(
         autoMergeArmed:
           payload.autoMergeRequest !== null &&
           payload.autoMergeRequest !== undefined,
+        mergeStateStatus:
+          typeof payload.mergeStateStatus === "string"
+            ? payload.mergeStateStatus
+            : undefined,
+        isInMergeQueue: payload.isInMergeQueue === true ? true : undefined,
         raw: parsed.value,
       };
     }
@@ -2078,6 +2100,29 @@ export function armPullRequestAutoMerge(
   return { ok: true };
 }
 
+/**
+ * Advisory stall signal for an armed-but-not-progressing PR.
+ *
+ * Only states that cannot resolve on their own warn: BEHIND (base moved past
+ * the branch) and DIRTY (conflicts with base). BLOCKED is the healthy
+ * required-checks-pending steady state under auto-merge and stays silent, as
+ * does a PR the server already placed in a merge queue (the queue updates the
+ * branch).
+ * Read-only by construction — this only shapes the pending_merge payload.
+ */
+function stallWarningForReachability(
+  reachability: { mergeStateStatus?: string; isInMergeQueue?: boolean },
+  defaultBranch: string,
+): { mergeStateStatus: string; remediation: string } | undefined {
+  const status = reachability.mergeStateStatus;
+  if (status !== "BEHIND" && status !== "DIRTY") return undefined;
+  if (reachability.isInMergeQueue === true) return undefined;
+  return {
+    mergeStateStatus: status,
+    remediation: `Auto-merge is armed but the branch is ${status}; update the branch onto ${defaultBranch} and push, then rerun archive finalization.`,
+  };
+}
+
 export function executePullRequestHandoff(
   input: {
     repoRoot: string;
@@ -2225,6 +2270,10 @@ export function executePullRequestHandoff(
     };
   }
   if (!reachability.reachable && reachability.autoMergeArmed) {
+    const stallWarning = stallWarningForReachability(
+      reachability,
+      input.defaultBranch,
+    );
     return {
       status: "pending_merge",
       repoRoot: input.repoRoot,
@@ -2238,6 +2287,7 @@ export function executePullRequestHandoff(
       autoMergeArmed: true,
       changeTipSha: input.changeTipSha,
       preArchiveTipSha: input.preArchiveTipSha,
+      ...(stallWarning ? { stallWarning } : {}),
     };
   }
 
@@ -2902,6 +2952,10 @@ export function redriveArchivedUnmergedBranch(
     };
   }
   if (!reachability.reachable && reachability.autoMergeArmed) {
+    const stallWarning = stallWarningForReachability(
+      reachability,
+      input.defaultBranch,
+    );
     return {
       status: "pending_merge",
       repoRoot: input.repoRoot,
@@ -2912,6 +2966,7 @@ export function redriveArchivedUnmergedBranch(
       prNumber: pr.number,
       prUrl: pr.url,
       autoMergeArmed: true,
+      ...(stallWarning ? { stallWarning } : {}),
     };
   }
 
@@ -3160,6 +3215,8 @@ export function resolveReleaseReachability(
       proof: "pr_unmerged",
       prNumber: effectivePrNumber,
       autoMergeArmed: prState.autoMergeArmed,
+      mergeStateStatus: prState.mergeStateStatus,
+      isInMergeQueue: prState.isInMergeQueue,
       details: [`PR state is ${prState.state}`],
     };
   }
