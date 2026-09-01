@@ -1,0 +1,1 @@
+Production ops tasks cannot create their required durable ops run when the delivery change has no `ops_followup` profile. The only typed profile-seeding path, `adv_followup_promote`, exists in source but is absent from the canonical tool registry and invoke catalog.

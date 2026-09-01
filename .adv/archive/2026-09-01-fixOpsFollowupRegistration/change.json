@@ -1,0 +1,942 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixOpsFollowupRegistration",
+  "title": "Fix ops followup registration",
+  "status": "archived",
+  "created_at": "2026-09-01T18:31:59.723Z",
+  "tasks": [
+    {
+      "id": "tk-e27a91dbba4e",
+      "title": "Restore `adv_followup_promote` through the canonical runtime registry with regression coverage",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-09-01T18:50:06.037Z",
+      "started_at": "2026-09-01T19:13:31.064Z",
+      "completed_at": "2026-09-01T19:55:04.097Z",
+      "verification": "RED tr_mtj1wdly_0a4471e3 proved missing inventory, role, invoke, and title surfaces. GREEN tr_mtj24tfo_3beaafe6. Final focused verification tr_mtj2yibd_f2e986bb passed 76 tests. Typecheck, manifest check, lint, and format passed in tr_mtj353ch_5dae4146. Base lint reproduction proved four unused imports in index.ts pre-existing; removed them under the campsite rule.",
+      "summary": "RED tr_mtj1wdly_0a4471e3 proved missing inventory, role, invoke, and title surfaces. GREEN tr_mtj24tfo_3beaafe6. Final focused verification tr_mtj2yibd_f2e986bb passed 76 tests. Typecheck, manifest check, lint, and format passed in tr_mtj353ch_5dae4146. Base lint reproduction proved four unused imports in index.ts pre-existing; removed them under the campsite rule.",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/tool-catalog-entries.test.ts",
+        "plugin/src/tool-catalog-entries.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.test.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/adv-invoke.integration.test.ts",
+        "plugin/src/utils/tool-title.test.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "e9a0dad35f73b04fb188c49b63f7cb598cc9208d",
+      "completedAt": "2026-09-01T19:55:04.097Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "proof_target": "Targeted registry, role, title, catalog, and invoke tests prove the restored canonical follow-up surface and exclude retired tools.",
+        "delegation_hint": "inline_required"
+      }
+    },
+    {
+      "id": "tk-6e99fda2b1a1",
+      "title": "Verify the restored follow-up promotion surface and repository invariants",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e27a91dbba4e"
+        }
+      ],
+      "created_at": "2026-09-01T18:50:38.351Z",
+      "started_at": "2026-09-01T19:55:39.053Z",
+      "completed_at": "2026-09-01T20:08:46.991Z",
+      "verification": "Independent adv-verifier verdict PASS with 66 tests and source/diff audit. Recorded verification tr_mtj3hp11_2acf5916 passed 44 tests including latent removal, inventory, and invoke integration. Typecheck, manifests, lint, and format passed in tr_mtj353ch_5dae4146. `bin/oc-test smoke` reached the prompt budget guard and failed on an existing floorBytes regression; the identical failure reproduced on unchanged trunk at ed11ea17, proving it is not caused by this change.",
+      "summary": "Independent adv-verifier verdict PASS with 66 tests and source/diff audit. Recorded verification tr_mtj3hp11_2acf5916 passed 44 tests including latent removal, inventory, and invoke integration. Typecheck, manifests, lint, and format passed in tr_mtj353ch_5dae4146. `bin/oc-test smoke` reached the prompt budget guard and failed on an existing floorBytes regression; the identical failure reproduced on unchanged trunk at ed11ea17, proving it is not caused by this change.",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/tool-catalog-entries.test.ts",
+        "plugin/src/tool-catalog-entries.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.test.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/adv-invoke.integration.test.ts",
+        "plugin/src/utils/tool-title.test.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "e9a0dad35f73b04fb188c49b63f7cb598cc9208d",
+      "completedAt": "2026-09-01T20:08:46.991Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "proof_target": "Independent targeted and repository checks prove the canonical surface, unchanged follow-up semantics, generated-manifest parity, and retired-tool exclusions.",
+        "delegation_hint": "delegate_preferred"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOpsFollowupRegistration",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — restore adv_followup_promote registration (fixOpsFollowupRegistration)",
+      "sources": [
+        {
+          "label": "followup.ts implementation retained",
+          "locator": "plugin/src/tools/followup.ts:565-654",
+          "summary": "followupTools.adv_followup_promote exported; store-based execute(args, store); dryRun supported — bindGroup-compatible, no EXPLICITLY_BOUND entry needed."
+        },
+        {
+          "label": "registry exclusion",
+          "locator": "plugin/src/tool-registry.ts:72-91,949-969",
+          "summary": "No followupTools import; PUBLIC_TOOL_GROUPS lists 19 groups, followup absent; ADV_TOOL_NAMES derives from it (35 tools)."
+        },
+        {
+          "label": "registry internal guard",
+          "locator": "plugin/src/tool-registry.ts:711-729",
+          "summary": "createFullToolMap throws when a PUBLIC_TOOL_ENTRIES name lacks a baseToolMap binding — restore requires group membership AND binding together."
+        },
+        {
+          "label": "role policy exclusion + parity",
+          "locator": "plugin/src/tool-role-policy.ts:52-225; plugin/src/tool-role-policy.test.ts:57-61",
+          "summary": "No adv_followup_promote row; exact-key parity with ADV_TOOL_NAMES enforced by test, so both sides must change in lockstep (as designed)."
+        },
+        {
+          "label": "invoke/catalog omission mechanism",
+          "locator": "plugin/src/tool-registry.ts:749-757,871-887; plugin/src/tools/adv-invoke.ts:107-113",
+          "summary": "adv_tool_invoke resolves via PUBLIC_TOOL_ENTRIES + baseToolMap → TOOL_NOT_FOUND; adv_tool_catalog iterates PUBLIC_TOOL_ENTRIES → omitted. Matches observed runtime exactly."
+        },
+        {
+          "label": "NO_OPS_FOLLOWUP_PROFILE dead-end",
+          "locator": "plugin/src/tools/ops-evidence.ts:214-218,344-348",
+          "summary": "adv_ops_run_upsert/evidence_add require change.ops_followup; error text directs to promotion — the only sanctioned seeding path is the unreachable tool."
+        },
+        {
+          "label": "live spec law requires the tool",
+          "locator": ".adv/specs/subagent-reports/spec.json:147,376; .adv/specs/advance-workflow/spec.json:4969,4983; .adv/specs/advance-epics/spec.json:1669,1687",
+          "summary": "Three live typed specs MUST the typed adv_followup_promote path; subagent-reports names it the ONLY promotion path. Spec-law assessment 'no update required' is correct."
+        },
+        {
+          "label": "dc461d3a deliberate scope = four reads only",
+          "locator": "plugin/src/cli-surface-matrix.test.ts:69-83; .git/logs/refs/heads/trunk:445; plugin/src/mcp-server/tier4-tool-map.ts:30-51",
+          "summary": "In-repo note: dc461d3a retired adv_epic_list/show + adv_backlog_list/show to Tier-4 MCP bridge — adv_followup_promote not in the deliberate list, has no bridge, and is absent from the tombstone guard (latent-tool-removal.test.ts:33-47). Removal was collateral."
+        },
+        {
+          "label": "post-retirement intent keeps tool authoritative",
+          "locator": ".adv/archive/2026-08-28-fixReleaseValidationFailures/BRIEFING_DIGEST.md:121",
+          "summary": "Dated after dc461d3a: 'Named adv_followup_promote as the sole durable owner.' Confirms the tool remained the intended authority."
+        },
+        {
+          "label": "mandatory restore surfaces the design omits",
+          "locator": "plugin/src/utils/tool-title.ts:127-129; plugin/src/tool-registry.inventory.test.ts:238-245,261; plugin/src/tool-catalog-entries.ts:172,231-265,321",
+          "summary": "Title entry required (AC5 parity fails otherwise); pinned count 35→36 required; realm fallback yields 'change' while realm 'followup' + lifecycle sit dead — add REALM_OVERRIDES row."
+        },
+        {
+          "label": "docs already expect the tool",
+          "locator": "docs/tool-ownership.md:155; docs/cli-surface-matrix.md:109; plugin/src/utils/tool-arg-preflight.ts:271",
+          "summary": "Orchestrator-class row, CLI matrix row, and preflight policy all retained — restore resolves existing code/doc drift rather than creating it."
+        }
+      ],
+      "architecture_assessment": "Existing pattern: ADV derives catalog, invoke lookup, degraded map, and warrant surface from PUBLIC_TOOL_GROUPS (tool-registry.ts:949-1011); role policy is exact-key-locked to derived names (tool-role-policy.test.ts:57-61). dc461d3a removed followupTools from registry+policy; everything downstream (handler, tests, preflight, realm/lifecycle metadata, tool-ownership.md, cli-surface-matrix.md, three live spec laws) was retained, leaving the surface internally consistent (CI green) but externally law-breaking. Reference pattern: restore at the derive point (group membership + bindGroup binding + role row) is exactly how every other tool reaches catalog/invoke — no one-off paths needed. Deviation after restore: NONE. The design's 4 named steps are necessary but NOT sufficient: (1) tool-title.ts entry is mandatory or inventory AC5 fails (hasExplicitAdvToolTitle, tool-title.ts:127-129; test at tool-registry.inventory.test.ts:238-245); (2) pinned count 35→36 at tool-registry.inventory.test.ts:261 must be updated — this same assertion IS the AC3 removal-guard; (3) realm metadata: deriveToolRealm('adv_followup_promote') falls back to 'change' (tool-catalog-entries.ts:258-265) since REALM_OVERRIDES/PREFIXES lack a followup mapping while realm 'followup' (line 172) and its lifecycle (line 321) sit dead — add a REALM_OVERRIDES row or the catalog emits misleading metadata (not test-enforced). Regression homes: registry parity auto-enforced (DDC1 + throw at tool-registry.ts:721-729), role parity auto-enforced, invoke dry-run belongs in adv-invoke.integration.test.ts (production lookup closure), catalog membership via adv_tool_catalog output.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Verdict CONFIRMED. Root cause verified end-to-end from source; fix direction and avoidances correct; three additional implementation surfaces identified (title entry, count bump, realm override) — completeness items for planning, not disagreements. Scope key normalized to researcher:design-validation; packet anchor was change:researcher:design-validation."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Pinned inventory count must move 35→36 — acceptable because the same assertion is the requested removal guard (AC3).",
+          "Realm table edit is semantically needed but unenforced by tests; skip it and the catalog mislabels the tool as realm 'change'.",
+          "Restore does not fix the adjacent, pre-existing advance-epics/advance-workflow spec drift naming retired epic/backlog tools — surfaced as follow-up, not scope."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Restore registry+policy registration of existing handler",
+            "disposition": "preferred",
+            "rationale": "Minimal, uses the derive-everything architecture, makes current spec law executable; the 2026-08-28 post-retirement archive already named the tool sole durable owner."
+          },
+          {
+            "option": "Weaken adv_ops_run_upsert to seed profiles",
+            "disposition": "rejected",
+            "rationale": "Violates subagent-reports law (sole typed promotion path) and the change's avoidances; breaks child-link provenance."
+          },
+          {
+            "option": "Delete the followup subsystem and rewrite three spec laws",
+            "disposition": "rejected",
+            "rationale": "Large law rewrite destroying a working release-gate-integrated capability; consumption side (gate.ts:1542, ops-followup-reconciliation.ts) is live and correct."
+          },
+          {
+            "option": "Tier-4 MCP bridge like retired epic/backlog reads",
+            "disposition": "rejected",
+            "rationale": "Tier-4 is read-only; followup is a mutation. Host registry + invoke facade is the canonical orchestrator mutation route."
+          },
+          {
+            "option": "Restore retired Epic/backlog host tools",
+            "disposition": "deferred",
+            "rationale": "Out of scope and correctly excluded: reads have a deliberate Tier-4 bridge (cli-surface-matrix.test.ts:69-83 documents dc461d3a's four-tool scope); writes were rerouted to adv_change_create/update (fixEpicMembershipWritePath). Separate pre-existing spec drift (advance-epics spec.json:113 still names adv_epic_create) is its own follow-up."
+          }
+        ],
+        "recommendation": "Proceed. Expand design step list with three mandatory/should surfaces: tool-title.ts entry, inventory count 35→36 (the AC3 guard itself), REALM_OVERRIDES row for realm 'followup'. Land invoke regression in adv-invoke.integration.test.ts; keep handler and adv_ops_run_upsert untouched."
+      },
+      "recommendation": "CONFIRMED — implement the proposed restore. Verify against source: (1) tool-registry.ts import + bindGroup + PUBLIC_TOOL_GROUPS (design steps 1-3 correct; createFullToolMap throws if group membership lacks a binding, tool-registry.ts:721-729, so both are required together). (2) tool-role-policy.ts orchestrator row (step 4; parity test enforces). ADD three surfaces the design omits: (3) MANDATORY tool-title.ts TITLE_BUILDERS entry or inventory AC5 fails; (4) MANDATORY count bump 35→36 at tool-registry.inventory.test.ts:261 — record the restore rationale in that assertion's comment since growth is otherwise contracted to CONTRACTED_PUBLIC_ADDITIONS; (5) SHOULD-FIX REALM_OVERRIDES['adv_followup_promote']='followup' (or an adv_followup_ prefix) so deriveToolRealm stops falling back to 'change'. Add invoke regression to adv-invoke.integration.test.ts asserting the production lookup resolves the tool and a manual-source dryRun returns success/dryRun/would_create (AC4); followup.test.ts already covers handler behavior against the module directly. No manifest regeneration needed (TIER_1_ALLOWLIST unchanged; tool stays Tier-3 invoke-only). Do not touch ops-evidence.ts or followup.ts.",
+      "follow_ups": [
+        "Spec drift (pre-existing, separate change): live advance-epics spec still names adv_epic_create/adv_epic_show/adv_epic_link_change and advance-workflow names adv_backlog_add, all host-unregistered with compensating paths — decide spec rewrite vs doc note.",
+        "If CI can run a git show of dc461d3a during implementation, capture the diff as acceptance evidence; my attribution of followup removal as collateral is inferred from six independent in-repo signals, not the commit diff.",
+        "Optional hardening: add an assert-on-registration list (tools that MUST be in ADV_TOOL_NAMES) so future group-wide registry subtractions fail loudly for named capabilities."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOpsFollowupRegistration",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOpsFollowupRegistration",
+      "task_id": "tk-e27a91dbba4e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-e27a91dbba4e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/utils/tool-title.ts",
+        "plugin/src/tool-catalog-entries.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-role-policy.test.ts",
+        "plugin/src/tool-catalog-entries.test.ts",
+        "plugin/src/utils/tool-title.test.ts",
+        "plugin/src/tools/adv-invoke.integration.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mtj1wdly_0a4471e3",
+          "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 5 focused suites ran and failed on the missing inventory entry, role row, title builder, realm override, and invoke dispatch."
+        },
+        {
+          "test_run_id": "tr_mtj24tfo_3beaafe6",
+          "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 5 focused suites passed with 66 tests."
+        },
+        {
+          "test_run_id": "tr_mtj2cp3s_700939a0",
+          "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts src/tools/followup.test.ts",
+          "exit_code": 0,
+          "summary": "Verification: 6 focused suites passed with 76 tests, including existing follow-up promotion semantics."
+        },
+        {
+          "test_run_id": "tr_mtj2b9y7_adacbbc8",
+          "command": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Verification: TypeScript, generated manifest parity, and Prettier checks passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Restored the existing followupTools group through both runtime binding and PUBLIC_TOOL_GROUPS.",
+          "why": "This preserves one canonical source for runtime registration, inventory, catalog metadata, degraded registration, and invoke lookup."
+        },
+        {
+          "what": "Kept follow-up promotion orchestrator-owned and used the existing manual dry-run handler path.",
+          "why": "The handler already enforces typed provenance, target trust, idempotency, and child profile seeding."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned the follow-up references and registry parity surfaces. Retired Epic and backlog tools remain absent. Existing ops-evidence.ts and followup.ts behavior were not modified.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Restored adv_followup_promote registration, orchestrator policy, follow-up title, followup realm metadata, inventory count 36, and deterministic regression coverage. The invoke test reaches the existing manual dry-run handler and returns success, dryRun, and would_create.",
+        "suggested_next_action": "Run the independent verification task, then review the isolated diff."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-e27a91dbba4e",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer-tk-e27a91dbba4e-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixOpsFollowupRegistration",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOpsFollowupRegistration",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "The prompt-floor check measures user-level OpenCode instructions and skills outside the repository. A host configuration increase can fail an unchanged commit, so acceptance evidence must compare the same host state against the parent."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts src/tools/followup.test.ts src/tools/agenda-retirement.test.ts src/utils/tool-arg-preflight.test.ts",
+          "pnpm --dir plugin run check",
+          "pnpm --dir plugin run lint && pnpm --dir plugin run format:check",
+          "git diff --check HEAD^ HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Independent review found complete SC1-SC2 and AC1-AC5 traceability. The canonical group supplies one inventory entry, runtime binding, catalog metadata, orchestrator policy, explicit title, and invoke dispatch. Removing the group breaks runtime/inventory parity, while removing all registry wiring leaves the exhaustive role-policy key test red. The invoke test reaches the unchanged handler and proves success:true, dryRun:true, and bounded would_create. Existing handler tests cover target-path trust forwarding, idempotent duplicate detection, dry-run non-mutation, source validation, and retired agenda rejection. No epic/backlog registry tools returned. Eight focused files passed with 163 tests. Typecheck, schema check, and manifest check passed before the full check stopped at the host-dependent prompt-floor regression. The supplied base evidence reproduced that same failure on parent ed11ea17, and the check reads user-level OpenCode files outside the repository. Lint, format, diff hygiene, and clean-worktree checks passed. All 12 review dimensions passed: correctness, contract traceability, tests, security/trust, error handling, data integrity/idempotency, architecture, maintainability, performance, compatibility, scope, and release readiness."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The aggregate check remains red on this host because user-level OpenCode prompt inputs exceed the repository baseline. Parent reproduction establishes that this is not caused by commit e9a0dad3."
+      ],
+      "required_main_agent_actions": [
+        "Record this report as independent acceptance evidence and retain the parent-reproduction evidence for the prompt-floor limitation."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-e27a91dbba4e": [
+      {
+        "runId": "tr_mtj1vx38_c5aae024",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tool-registry.inventory.test.ts plugin/src/tool-role-policy.test.ts plugin/src/tool-catalog-entries.test.ts plugin/src/utils/tool-title.test.ts plugin/src/tools/adv-invoke.integration.test.ts",
+        "durationMs": 1369.3498679995537,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:18:44.279Z"
+      },
+      {
+        "runId": "tr_mtj1wdly_0a4471e3",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+        "durationMs": 6987.394659999758,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:19:05.662Z"
+      },
+      {
+        "runId": "tr_mtj1xh1t_64cc372e",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+        "durationMs": 6333.4760940000415,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:19:56.820Z"
+      },
+      {
+        "runId": "tr_mtj1yisi_4af1a019",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/adv-invoke.integration.test.ts",
+        "durationMs": 6084.724019000307,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:20:45.693Z"
+      },
+      {
+        "runId": "tr_mtj1zk9y_6ba171d5",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+        "durationMs": 5568.146608000621,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:21:34.345Z"
+      },
+      {
+        "runId": "tr_mtj20twy_30826884",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+        "durationMs": 30105.3424219992,
+        "evidence_kind": "other",
+        "recordedAt": "2026-09-01T19:22:33.569Z"
+      },
+      {
+        "runId": "tr_mtj225hm_afab4f8b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+        "durationMs": 27958.00636699982,
+        "evidence_kind": "other",
+        "recordedAt": "2026-09-01T19:23:35.230Z"
+      },
+      {
+        "runId": "tr_mtj24tfo_3beaafe6",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+        "durationMs": 7301.440423000604,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:25:39.638Z"
+      },
+      {
+        "runId": "tr_mtj26r15_f937e5d8",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+        "durationMs": 35689.32973800041,
+        "evidence_kind": "other",
+        "recordedAt": "2026-09-01T19:27:09.897Z"
+      },
+      {
+        "runId": "tr_mtj2b9y7_adacbbc8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+        "durationMs": 39819.30234900117,
+        "evidence_kind": "other",
+        "recordedAt": "2026-09-01T19:30:40.987Z"
+      },
+      {
+        "runId": "tr_mtj2cp3s_700939a0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts src/tools/followup.test.ts",
+        "durationMs": 9148.47946699895,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:31:47.247Z"
+      },
+      {
+        "runId": "tr_mtj2yibd_f2e986bb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts src/tools/followup.test.ts",
+        "durationMs": 10580.81856400147,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T19:48:45.119Z"
+      },
+      {
+        "runId": "tr_mtj30gz7_60852ad2",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run lint && pnpm run format:check",
+        "durationMs": 38301.975944999605,
+        "evidence_kind": "other",
+        "recordedAt": "2026-09-01T19:50:16.396Z"
+      },
+      {
+        "runId": "tr_mtj353ch_5dae4146",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run lint && pnpm run format:check",
+        "durationMs": 53926.659572999924,
+        "evidence_kind": "other",
+        "recordedAt": "2026-09-01T19:53:52.280Z"
+      }
+    ],
+    "tk-6e99fda2b1a1": [
+      {
+        "runId": "tr_mtj3eyj8_68024061",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test smoke",
+        "durationMs": 300042.367575001,
+        "evidence_kind": "other",
+        "recordedAt": "2026-09-01T20:01:32.560Z"
+      },
+      {
+        "runId": "tr_mtj3hp11_2acf5916",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/latent-tool-removal.test.ts src/tool-registry.inventory.test.ts src/tools/adv-invoke.integration.test.ts",
+        "durationMs": 9838.78839799948,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T20:03:40.254Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-09-01T18:32:14.040Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track quick contract approved: restore the missing canonical adv_followup_promote path without reviving retired Epic/backlog tools or weakening ops profile provenance."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-09-01T18:46:31.246Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved SC1-SC2, AC1-AC5, constraints, and avoidances. Root cause and spec-law impact are source-backed; no spec change is needed because existing law already requires the missing tool."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-09-01T18:47:06.269Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Independent adv-researcher validator returned CONFIRMED with high confidence and low risk. Design incorporates required title, realm, count, catalog, role, and invoke integration surfaces. No user-value tradeoff or contract-compromise risk remains."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-09-01T19:12:53.017Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the two-task graph: canonical tool restoration with RED/GREEN coverage, followed by independent repository verification. SC1-SC2 and AC1-AC5 have implementation and verification coverage."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-09-01T20:10:45.455Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Both approved tasks completed. RED/GREEN and independent verification prove SC1-SC2 and AC1-AC5. Focused suites passed 76 and 44 tests; typecheck, manifests, lint, and format passed. Smoke reached a prompt-budget failure reproduced unchanged on trunk, so it is base-proven and not caused by this change."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-09-01T20:23:54.513Z",
+      "completed_by": "user",
+      "approval_evidence": "User instructed ADV to continue. Independent reviewer verdict READY with no findings or remediation. All 12 review dimensions passed; 163 focused tests, typecheck, schemas, manifests, lint, format, and diff checks passed. The host prompt-floor failure was reproduced on the unchanged parent and does not come from this change.; User message: \"Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.\""
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge-web**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge-web |\n| Source path | `/home/jon/dev/pokeedge-web` |\n| Source change | fixPokedexFirstLoadSprite |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Proposal\n\n## Intent\nRestore `adv_followup_promote` to the canonical ADV tool surface so orchestrators can create typed linked ops follow-ups before recording production run evidence.\n\n## Root Cause Analysis\n\n### Observed behavior\n`adv_ops_run_upsert` returns `NO_OPS_FOLLOWUP_PROFILE` for a delivery change with an approved production ops task. `adv_tool_catalog` omits `adv_followup_promote`, and `adv_tool_invoke` returns `TOOL_NOT_FOUND` for that tool.\n\n### Causal path\n1. `adv_ops_run_upsert` correctly requires an existing child `ops_followup` profile.\n2. `adv_followup_promote` is the source-owned mechanism that creates the child change, seeds that profile, and links it to the delivery change.\n3. Commit `dc461d3a` removed `followupTools` from `createToolMap`, `PUBLIC_TOOL_GROUPS`, and `TOOL_ROLE_POLICY` during Epic/backlog/change unification.\n4. The follow-up implementation, tests, command contracts, and durable workflow law remained and still require this path.\n5. The removal therefore made valid production ops plans impossible to execute without prohibited direct state mutation.\n\n### Root cause\nA broad tool-surface subtraction removed an independent ops-follow-up capability with the retired Epic/backlog tools, without a replacement profile-seeding path or a regression guard.\n\n## Scope\n- Restore `followupTools` in the runtime registry and canonical public group list.\n- Restore orchestrator role policy for `adv_followup_promote`.\n- Add deterministic registration, catalog, role, and invoke-path regression coverage.\n- Regenerate derived manifests only if the role-policy generator requires changes.\n\n## User Outcomes\n- An orchestrator can discover and invoke `adv_followup_promote`.\n- An approved production ops task can create a typed child profile and then use `adv_ops_run_upsert`.\n- No direct ADV state edit or alternate profile-seeding path is needed.\n\n## Spec-Law Impact\nNo spec law update required. Existing workflow law already requires `adv_followup_promote`; this change restores implementation conformance.\n\n## Avoidances\n- Do not let `adv_ops_run_upsert` create self-referential profiles.\n- Do not bypass child-link provenance.\n- Do not restore retired Epic or backlog tools.\n- Do not change follow-up semantics beyond runtime registration.",
+    "problemStatement": "Production ops tasks cannot create their required durable ops run when the delivery change has no `ops_followup` profile. The only typed profile-seeding path, `adv_followup_promote`, exists in source but is absent from the canonical tool registry and invoke catalog.",
+    "agreement": "# Agreement\n\n## Objectives\n1. Restore the existing typed ops-follow-up promotion path to the canonical runtime surface.\n2. Keep the ops run evidence model and child-link authority unchanged.\n3. Prevent another registry subtraction from silently removing the tool.\n\n## Success Criteria\n- **SC1:** `adv_followup_promote` appears in the canonical registry, catalog, and orchestrator invoke surface.\n- **SC2:** A valid dry-run invocation reaches the existing handler and returns a promotion preview instead of `TOOL_NOT_FOUND`.\n\n## Acceptance Criteria\n- **AC1:** The public tool inventory contains `adv_followup_promote` exactly once.\n- **AC2:** `TOOL_ROLE_POLICY` classifies `adv_followup_promote` as orchestrator-owned.\n- **AC3:** Registry parity and role-policy tests fail if the follow-up group is removed.\n- **AC4:** A valid manual-source dry run returns `success: true`, `dryRun: true`, and a bounded `would_create` projection.\n- **AC5:** No retired Epic or backlog tool returns to the public registry.\n\n## Constraints\n- Keep the existing follow-up handler and profile model authoritative.\n- Preserve target-path trust checks and idempotent promotion behavior.\n- Keep the fix scoped to registry wiring, policy, and regression tests.\n\n## Avoidances\n- No direct state-file mutation.\n- No self-referential ops profile.\n- No duplicate promotion mechanism.\n- No durable spec-law change.",
+    "design": "# Design\n\n## Chosen Direction\nRestore the existing `followupTools` group through the canonical derived registry. Keep the current handler authoritative for child creation, profile seeding, target trust, idempotency, and parent linking.\n\n## Implementation\n1. Import `followupTools` in `plugin/src/tool-registry.ts`.\n2. Bind the group beside ops evidence tools in `createToolMap`.\n3. Add the group to `PUBLIC_TOOL_GROUPS` so catalog, invoke, degraded registration, and surface lookup derive it automatically.\n4. Restore the orchestrator role entry in `plugin/src/tool-role-policy.ts`.\n5. Restore the `TITLE_BUILDERS` entry for `adv_followup_promote`.\n6. Add `REALM_OVERRIDES.adv_followup_promote = \"followup\"` so catalog metadata uses the live follow-up realm.\n7. Update the contracted public inventory count from 35 to 36 with a restore rationale.\n8. Add regression assertions to inventory, role-policy, catalog, and invoke integration tests. Reuse existing handler tests for promotion semantics.\n9. Run manifest generation checks and regenerate only if generated files drift.\n\n## Independent Validation\nThe validator returned **CONFIRMED**, high confidence, low risk. It verified that commit `dc461d3a` removed the tool as collateral during Epic/backlog retirement while the handler, docs, tests, and durable law remained. It also identified the title builder, realm override, and contracted inventory count as required integration surfaces.\n\n## Least-Bad-Path Decisions\n- Restore the independent capability instead of weakening `adv_ops_run_upsert`. This keeps profile provenance structural.\n- Use `PUBLIC_TOOL_GROUPS` derivation instead of an invoke-only exception.\n- Keep retired Epic and backlog groups absent.\n- Make no spec-law change because the existing law already requires this tool.\n\n## Failure Handling\n- Registry parity tests fail if runtime binding and public inventory diverge.\n- Role-policy tests fail if the restored tool lacks explicit authority.\n- Invoke integration fails if catalog lookup cannot reach the handler.\n- If deploy or runtime verification fails, keep the originating production ops task in progress and do not publish R2 assets.\n\n## Rollback\nRemove the restored group, role, title, realm, and count changes together only if the tool causes a verified runtime regression. The originating production operation remains blocked until another typed profile-seeding path exists.\n\n## Verification\n- Targeted registry inventory, role-policy, follow-up, catalog, title, and invoke tests.\n- Typecheck, format, lint, and manifest generation check.\n- Runtime catalog and dry-run invoke verification after merge, deploy from default branch, and OpenCode restart.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nRestored `adv_followup_promote` to the canonical Advance tool registry, catalog, orchestrator policy, invoke path, title map, and follow-up realm.\n\n## Delivered\n- Canonical runtime and public inventory registration for the existing typed promotion handler.\n- Exact orchestrator authority without restoring retired Epic or backlog tools.\n- Regression coverage for inventory, policy, catalog metadata, title, and manual-source dry-run dispatch.\n- Preserved target trust, idempotency, child-link provenance, and ops profile requirements.\n\n## Evidence\n- RED evidence proved the missing registry, role, title, realm, and invoke surfaces.\n- Focused implementation and verification suites passed 76, 44, and 163 tests.\n- Typecheck, schemas, generated manifests, lint, format, and diff checks passed.\n- Independent design validation returned CONFIRMED.\n- Independent acceptance review returned READY with no findings.\n\n## Known Host Limitation\nThe aggregate smoke command stops at a prompt-floor regression. The same failure reproduces on unchanged parent commit `ed11ea17`, so this change does not cause it."
+  },
+  "cross_project_origin": {
+    "source_project": "pokeedge-web",
+    "source_path": "/home/jon/dev/pokeedge-web",
+    "source_change_id": "fixPokedexFirstLoadSprite",
+    "linked_at": "2026-09-01T18:31:57.363Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 33,
+  "projection_commits": [
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Fast-track quick contract approved: restore the missing canonical adv_followup_promote path without reviving retired Epic/backlog tools or weakening ops profile provenance.",
+      "operation_id": "mutation:gate_completion:fixOpsFollowupRegistration:1c77e729-82c4-4bae-8d3a-2b91022aa8c4",
+      "payload_hash": "f3817c392b3ffbc1b16386c3631aa731e5ee7dbdc7fc05be715e5699b1933e2a",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-09-01T18:32:14.329Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixOpsFollowupRegistration|change:researcher:design-validation|adv-researcher|1",
+      "operation_id": "mutation:subagent_report_submitted:fixOpsFollowupRegistration:d1d4b3a1-41d2-4967-a008-4994ce53f359",
+      "payload_hash": "160682d091d646c78f81d68bde63fbfcabc696ffeca81dda99f8c75f5a1b42f0",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-09-01T18:40:46.417Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "User replied `approve` after reviewing the problem, chosen direction, acceptance boundary, and independent CONFIRMED verdict.",
+      "operation_id": "mutation:artifact_update:fixOpsFollowupRegistration:2adcf521-3a38-415e-b11f-4337f8e42e3c",
+      "payload_hash": "2bf55ccb0c96d3dfd79533478e20af7f3653e244b3acca4b6a6a135b01f45efa",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-09-01T18:45:57.851Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User approved SC1-SC2, AC1-AC5, constraints, and avoidances. Root cause and spec-law impact are source-backed; no spec change is needed because existing law already requires the missing tool.",
+      "operation_id": "mutation:gate_completion:fixOpsFollowupRegistration:bb9a3e12-4c5a-463d-b04a-65c50d682778",
+      "payload_hash": "7fefc8e8dafc8c802244e278622302bdcae992f8e86d76868aa5043e50fc1c1a",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-09-01T18:46:31.791Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Independent adv-researcher validator returned CONFIRMED with high confidence and low risk. Design incorporates required title, realm, count, catalog, role, and invoke integration surfaces. No user-value tradeoff or contract-compromise risk remains.",
+      "operation_id": "mutation:gate_completion:fixOpsFollowupRegistration:587e2dbc-e745-489b-9c09-a5a2baf284d6",
+      "payload_hash": "e6840743f9dcccdf66dd633385fd11dad9e6bc53598c7375f8cfd27fd56f3869",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-09-01T18:47:06.287Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-e27a91dbba4e",
+      "operation_id": "mutation:task_add:fixOpsFollowupRegistration:e3194f77-6aa0-4576-ba35-d2156502763a",
+      "payload_hash": "36f537babf1e407ce5fbcc795d5f17cde2f7503d51ead19f6c7bff47bad0f34c",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-09-01T18:50:06.300Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-6e99fda2b1a1",
+      "operation_id": "mutation:task_add:fixOpsFollowupRegistration:0bdd09b1-81be-4ea1-9b15-6ea1394d035e",
+      "payload_hash": "5d4d7197d34b7160a34d554d970a54e4e4e578a5a20cacff3256643382f94c47",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-09-01T18:50:38.372Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User approved the two-task graph: canonical tool restoration with RED/GREEN coverage, followed by independent repository verification. SC1-SC2 and AC1-AC5 have implementation and verification coverage.",
+      "operation_id": "mutation:gate_completion:fixOpsFollowupRegistration:5c063b1f-4d60-44b2-83ef-f1a49a282110",
+      "payload_hash": "003f6ce70fa98d8a48a2daf6a6110fc8156698d831d5a2ff8be59e69602fe1a3",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-09-01T19:12:53.036Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixOpsFollowupRegistration:d6b1ce22-aa88-416a-a01f-272fe2ce3d79",
+      "payload_hash": "f3dd8f3147c1e5f88b650aeea0dc9ed5dfe9af33377ee07a6934d0bd6adcc3d7",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-09-01T19:13:31.758Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- plugin/src/tool-registry.inventory.test.ts plugin/src/tool-role-policy.test.ts plugin/src/tool-catalog-entries.test.ts plugin/src/utils/tool-title.test.ts plugin/src/tools/adv-invoke.integration.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:2112d901-6ba4-40cd-9d7e-b785c16f05fa",
+      "payload_hash": "777bf53611980a663e0d6cc70006f886c8097d3eb3e68f777fe90d44438c1df3",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-09-01T19:18:44.288Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:020b2b12-61f7-4fd7-91fb-8f722d3a8d5f",
+      "payload_hash": "a2a84b481f90327aa49b67900136c971f383762071be8336153559dff20b6973",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-09-01T19:19:05.667Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:0a74d645-f596-425f-8482-24249096afd9",
+      "payload_hash": "9309155a84ae24c12c7135b1ca6da2bfe2bed9c7a73fa60a4bca3b8d64b5436d",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-09-01T19:19:56.828Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tools/adv-invoke.integration.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:9a2c26ef-0fc7-488c-a7cc-2f1f67be74c0",
+      "payload_hash": "515da9be72ebb8f4946b3ec695a0c8fc49f711db519837f816dabea3573cd50a",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-09-01T19:20:45.699Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:328429aa-12c3-469a-898a-6e04e1c79181",
+      "payload_hash": "e197e51f334fc798a9605670d9ca1926336f1cce9ee79d2854474258044ad5ba",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-09-01T19:21:34.349Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:9819def1-9439-4abf-a0e9-8e7138d9f65d",
+      "payload_hash": "14dfa1d2a2292b02dd0b3334ab63d65b29dd0d4773542e71da608fe512ef53a4",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-09-01T19:22:33.600Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:15570d58-d650-4193-b850-d57b3ca9b0c0",
+      "payload_hash": "73f6a55b680c5ac31a58d582528b9166b65203f1b356aa807fa9962db21b510d",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-09-01T19:23:35.238Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:1253f812-0b7b-4c5c-95b0-68c8059da82d",
+      "payload_hash": "2c81f341724c7b1bb176efac0d670d013ae31a64047a273da675d664da6db2a5",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-09-01T19:25:39.641Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:a4f19bf2-7192-4a24-ae5c-d5c6db3787e0",
+      "payload_hash": "4a7427b27a9b150fa4eb204f248eba4a8c729af64f6d1a8785f337c2bf3ba623",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-09-01T19:27:09.903Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run format:check",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:ad7da960-a7ec-4ff9-8247-95e528cd621d",
+      "payload_hash": "cc68ca538c7c34555fdd99e8e86bb043ab75d122cce9dd4ea6c566e7f09ec3be",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-09-01T19:30:41.095Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts src/tools/followup.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:207749db-8732-457c-a21b-88bc23f64af3",
+      "payload_hash": "3c4afd912bac2a44ae2959b04c1f79c0c65f377e822eb226d3e2ca03f47005f3",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-09-01T19:31:47.253Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixOpsFollowupRegistration|tk-e27a91dbba4e|adv-engineer|1|cycle:ic_tk-e27a91dbba4e",
+      "operation_id": "mutation:subagent_report_submitted:fixOpsFollowupRegistration:2bf73551-b3d4-47da-ab1d-888ea5e99ed1",
+      "payload_hash": "fc45fbdf3f29a2fb173daa4c0a8e2955919fbd115b000719faed38f8bd5463ff",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-09-01T19:37:22.828Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts src/tools/adv-invoke.integration.test.ts src/tools/followup.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:031850a9-5a12-490f-8f07-692d8f3abcc0",
+      "payload_hash": "cedd531c17e62e850f9f865268c79f310240f7808362397f81ad0a65c6382091",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-09-01T19:48:45.126Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run lint && pnpm run format:check",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:f7918131-dd55-4ccc-88b5-379dc1136abe",
+      "payload_hash": "8bc22e714ff10d9b3430312a2188b4180cf4191871a348b0efb35397ccb6e050",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-09-01T19:50:16.443Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm run typecheck && pnpm run generate:manifests:check && pnpm run lint && pnpm run format:check",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:5fff3416-5185-4568-87ba-f9647430515b",
+      "payload_hash": "b05d82f3a1208742e70b311f67a916f500a5518f5ceb8fd5b435bd5b1ae5cffd",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-09-01T19:53:52.286Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "e9a0dad35f73b04fb188c49b63f7cb598cc9208d:RED tr_mtj1wdly_0a4471e3 proved missing inventory, role, invoke, and title surfaces. GREEN tr_mtj24tfo_3beaafe6. Final focused verification tr_mtj2yibd_f2e986bb passed 76 tests. Typecheck, manifest check, lint, and format passed in tr_mtj353ch_5dae4146. Base lint reproduction proved four unused imports in index.ts pre-existing; removed them under the campsite rule.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOpsFollowupRegistration:12935c78-65de-4bc7-8b81-72c31bca8a28",
+      "payload_hash": "3f73d2abb5d793df189f9aefb4ee89b9a613b0413384c54bd3e38b061e1ab2db",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-09-01T19:55:04.102Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixOpsFollowupRegistration:ffb4495b-2800-41c9-a6ec-b7599332d766",
+      "payload_hash": "84fed1b40b4727837ba8c769396b752613c33bfe0bd3c952ae3ebc0f4f2bea1f",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-09-01T19:55:39.517Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test smoke",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:16b263c8-d33d-4c0b-b9e3-30e6819fb12d",
+      "payload_hash": "2cf8e5eafd8bee45d326c0cc78b6d92b909a4109342f030bdc668f541718ab8c",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-09-01T20:01:32.578Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "bin/oc-test targeted -- src/latent-tool-removal.test.ts src/tool-registry.inventory.test.ts src/tools/adv-invoke.integration.test.ts",
+      "operation_id": "mutation:test_run_recorded:fixOpsFollowupRegistration:f2849dbc-3c59-4b58-b585-ef37b1766352",
+      "payload_hash": "af3f2093e01b1c616f53df3446e40236faa8ccde29dfd11f849feceb0d40bae1",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-09-01T20:03:40.265Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "e9a0dad35f73b04fb188c49b63f7cb598cc9208d:Independent adv-verifier verdict PASS with 66 tests and source/diff audit. Recorded verification tr_mtj3hp11_2acf5916 passed 44 tests including latent removal, inventory, and invoke integration. Typecheck, manifests, lint, and format passed in tr_mtj353ch_5dae4146. `bin/oc-test smoke` reached the prompt budget guard and failed on an existing floorBytes regression; the identical failure reproduced on unchanged trunk at ed11ea17, proving it is not caused by this change.",
+      "operation_id": "mutation:task_checkpoint_completed:fixOpsFollowupRegistration:6b1dccd5-bf64-4a13-b039-14e921949558",
+      "payload_hash": "0187c52fc0e0d6a8031e13aa8e81f6a5da8561b708f438c6c309cefe48e4dc8c",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-09-01T20:08:47.120Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Both approved tasks completed. RED/GREEN and independent verification prove SC1-SC2 and AC1-AC5. Focused suites passed 76 and 44 tests; typecheck, manifests, lint, and format passed. Smoke reached a prompt-budget failure reproduced unchanged on trunk, so it is base-proven and not caused by this change.",
+      "operation_id": "mutation:gate_completion:fixOpsFollowupRegistration:ce645bbf-ac49-4fac-a4da-17caaf45a502",
+      "payload_hash": "5710feaee1f666c216cbc8ea68eb0c3c881789e6085ac2324b3497d9c81d7c76",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-09-01T20:10:45.479Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixOpsFollowupRegistration|change:review:acceptance|adv-reviewer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixOpsFollowupRegistration:3125a8a7-d211-4672-90de-4b14c6706f2d",
+      "payload_hash": "010424f54840a7e366ce3ec5c2c67571dba8ce2605bd3e2eb65afc14ac20043d",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-09-01T20:19:51.345Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "User message: \"Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.\"",
+      "operation_id": "mutation:gate_completion:fixOpsFollowupRegistration:1dafec99-bd9a-462a-bf46-d023e4f95b42",
+      "payload_hash": "efcbe221aafebf8d3f98b476a6e2bb34a15e0314f64e60d005c5d8691b390a4c",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-09-01T20:23:54.567Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "User message: \"Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.\"",
+      "operation_id": "mutation:artifact_update:fixOpsFollowupRegistration:82656edd-f7ee-4231-b943-fd21d3e108b6",
+      "payload_hash": "15a5fbaeb43352fa8b76a21784333d2b2f71797a11ba76f499ce4063014357cb",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-09-01T20:24:20.030Z"
+    }
+  ]
+}
