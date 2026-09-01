@@ -1,0 +1,251 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixPluginEntryMultiExport",
+  "title": "Fix plugin entry multi-export factory break",
+  "status": "archived",
+  "created_at": "2026-08-31T23:40:27.125Z",
+  "tasks": [
+    {
+      "id": "tk-02c169113121",
+      "title": "Fix plugin entry multi-export factory break",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-31T23:41:45.085Z",
+      "completed_at": "2026-08-31T23:56:16.812Z",
+      "verification": "Entry now exports exactly one function (default): moved the compaction block (4 exported helpers + internal constants/dependencies) to new src/prompt-compaction.ts; removed resolveGitSessionContext re-export; un-exported AdvancePlugin const; re-pointed 6 test imports (3 helper-import files, 3 AdvancePlugin-by-name files) to the new module / default export. Evidence: RED runId tr_mthvung7_dd4fc93a (7 function exports listed); GREEN runId tr_mthvwylh_3223c9a2; verify runId tr_mthwcnvq_8dfb43d0 (5 files, 91 tests). Full plugin suite: 393 files / 5262 tests passed, 1 skipped, tsc --noEmit clean. Remaining: merge to trunk, build, deploy from trunk, live sharded-instance verification.",
+      "summary": "Entry now exports exactly one function (default): moved the compaction block (4 exported helpers + internal constants/dependencies) to new src/prompt-compaction.ts; removed resolveGitSessionContext re-export; un-exported AdvancePlugin const; re-pointed 6 test imports (3 helper-import files, 3 AdvancePlugin-by-name files) to the new module / default export. Evidence: RED runId tr_mthvung7_dd4fc93a (7 function exports listed); GREEN runId tr_mthvwylh_3223c9a2; verify runId tr_mthwcnvq_8dfb43d0 (5 files, 91 tests). Full plugin suite: 393 files / 5262 tests passed, 1 skipped, tsc --noEmit clean. Remaining: merge to trunk, build, deploy from trunk, live sharded-instance verification.",
+      "filesTouched": [
+        "plugin/src/__tests__/active-change-pointer.test.ts",
+        "plugin/src/__tests__/compaction.test.ts",
+        "plugin/src/__tests__/entry-factory-contract.test.ts",
+        "plugin/src/__tests__/prompt-compaction.test.ts",
+        "plugin/src/__tests__/subagent-report-contract-regression.test.ts",
+        "plugin/src/index.ts",
+        "plugin/src/integration.test.ts",
+        "plugin/src/prompt-compaction.ts",
+        "plugin/src/tool-role-firewall.test.ts",
+        "plugin/src/tools/trunk-write-firewall.regression.test.ts"
+      ],
+      "checkpointSha": "ed11ea17072b60208b053ba21a921ff1174b6ed8",
+      "completedAt": "2026-08-31T23:56:16.812Z",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-02c169113121": [
+      {
+        "runId": "tr_mthvung7_dd4fc93a",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run src/__tests__/entry-factory-contract.test.ts --maxWorkers=4",
+        "durationMs": 5488.620421999949,
+        "recordedAt": "2026-08-31T23:42:02.378Z"
+      },
+      {
+        "runId": "tr_mthvwylh_3223c9a2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/__tests__/entry-factory-contract.test.ts --maxWorkers=4",
+        "durationMs": 4344.517909000046,
+        "recordedAt": "2026-08-31T23:43:50.008Z"
+      },
+      {
+        "runId": "tr_mthwcnvq_8dfb43d0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/__tests__/entry-factory-contract.test.ts src/__tests__/prompt-compaction.test.ts src/integration.test.ts src/tool-role-firewall.test.ts src/__tests__/subagent-report-contract-regression.test.ts --maxWorkers=4",
+        "durationMs": 20877.793023000006,
+        "recordedAt": "2026-08-31T23:56:03.016Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-31T23:59:38.965Z",
+      "completed_by": "user",
+      "approval_evidence": "Problem statement + RCA (multi-factory invocation trap on fallbackPersistedMarker) confirmed by executable reproduction."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-31T23:59:46.712Z",
+      "completed_by": "agent",
+      "approval_evidence": "Root cause fully established before fix; no open research questions."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-31T23:59:55.394Z",
+      "completed_by": "agent",
+      "approval_evidence": "No product tradeoff; mechanical contract alignment. Validator scope: the entry-factory-contract test IS the machine-checked design invariant."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-09-01T00:00:05.130Z",
+      "completed_by": "user",
+      "approval_evidence": "One code task (tk-02c169113121) with inline TDD; worktree change/fixPluginEntryMultiExport."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-09-01T00:00:16.308Z",
+      "completed_by": "agent",
+      "approval_evidence": "Merged to trunk bdffe6f4..ed11ea17, pushed; built and deployed from trunk (generation 8a3e88faddbf); deployed dist exports exactly one function (default)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-09-01T00:00:28.538Z",
+      "completed_by": "agent",
+      "approval_evidence": "AC: fresh OpenCode instances load the Advance plugin; entry contract pinned by permanent regression test."
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "# Fix plugin entry multi-export factory break\n\n## Why\n\n<!-- What problem does this change solve? Why is it needed now? -->\n\n## What Changes\n\n<!-- Describe the specific modifications: new files, modified APIs, changed behavior -->\n\n## User Outcomes\n\n<!-- What user-perspective outcomes should this change deliver? Keep these implementation-free; discovery firms AC/SC. -->\n\n- [ ] User outcome 1\n- [ ] User outcome 2\n- [ ] Discovery will firm acceptance criteria and success criteria\n\n## Affected Code\n\n<!-- List files, modules, or subsystems that will be modified -->\n\n- `path/to/file.ts` — description of change\n- `path/to/other.ts` — description of change\n\n## Constraints\n\n<!-- Technical, time, or resource constraints that shape the solution -->\n\n## Impact\n\n<!-- Who/what is affected? Breaking changes? Migration needed? -->\n\n## Risks\n\n<!-- What could go wrong? Dependencies on external systems? -->\n\n## Validation Plan\n\n<!-- How will correctness be verified? TDD: write tests first (red → green → refactor) -->\n\n- Write failing tests for new behavior (red phase)\n- Implement to make tests pass (green phase)\n- Run full test suite to verify no regressions\n",
+    "problemStatement": "## Problem\n\nEvery fresh OpenCode 1.18.x instance fails to load the Advance plugin:\n\n```\nlevel=ERROR message=\"failed to load plugin\" path=file:///home/jon/.local/share/Advance/plugin\nerror=\"undefined is not an object (evaluating 'content.length')\"\n```\n\nBlast radius (shard logs): 189 failures in one project shard, 184/165/157/92 in\nothers — host-wide, ongoing since at least 2026-08-30. Sessions still start, so\nthe loss is silent: no adv_* tools, no tool.execute.before firewalls, no\ncompaction/prompt hooks in any new session. Only long-lived pre-upgrade\ninstances retain the plugin.\n\n## Root Cause Analysis\n\nOpenCode 1.18.4+ invokes **every function-valued export** of a plugin entry\nmodule as a plugin factory, passing `PluginInput`. The Concord adapter entry\ndocuments this contract in its header (\"the loader iterates Object.values and\ncalls each export with PluginInput; therefore this entry module exports\nEXACTLY ONE thing: default\").\n\nThe Advance entry (`plugin/src/index.ts`) exports six function-valued\nsymbols: `AdvancePlugin`, `default`, `compactPromptMessages`, `compactToolPart`,\n`fallbackPersistedMarker`, `persistFallbackContent`, `resolveGitSessionContext`.\n\n`fallbackPersistedMarker(source, content, …)` invoked as a factory receives\n`{directory}` as `source` and `undefined` as `content`; evaluating\n`content.length` throws. OpenCode logs \"failed to load plugin\" and drops the\nentire plugin.\n\nExecutable reproduction (verified 2026-08-31):\n\n```js\nawait import(\".../Advance/plugin/dist/index.js\").fallbackPersistedMarker({directory:\"...\"})\n// → throws: undefined is not an object (evaluating 'content.length')\n```\n\nEvery other export survives the same one-arg call; `fallbackPersistedMarker`\nalone rejects, matching the logged message exactly.\n\n## Fix direction\n\nEntry module exports exactly one function-valued symbol (`default`). Helpers\nmove to a non-entry module; internal callers import from there; tests re-point.\nVerify by: import probe shows a single export; fresh sharded `opencode run`\nlogs no plugin failure.\n"
+  },
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-08-31T23:40:25.529Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 11,
+  "projection_commits": [
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-02c169113121",
+      "operation_id": "mutation:task_add:fixPluginEntryMultiExport:3eb165d2-5098-4b90-ba4b-a5d8e5514054",
+      "payload_hash": "959dd016682e296cc76075a8b5d7af65d1aa8eef19e32f004f25a5b441b8c4e6",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-31T23:41:45.250Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "npx vitest run src/__tests__/entry-factory-contract.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixPluginEntryMultiExport:619d002b-0804-4763-9179-03a6a9a379d6",
+      "payload_hash": "e8080617deb68a3a829a87ca1e3d8530614bce9dde8b0a41317c07c9b2e03a7a",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-31T23:42:02.380Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "npx vitest run src/__tests__/entry-factory-contract.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixPluginEntryMultiExport:e8a69788-52d7-4380-9fc0-4c93272dc041",
+      "payload_hash": "357edb8b86eefad13cbe5cda8f153b2bc498d7d10731448fd758bed0a66aabba",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-31T23:43:50.018Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "npx vitest run src/__tests__/entry-factory-contract.test.ts src/__tests__/prompt-compaction.test.ts src/integration.test.ts src/tool-role-firewall.test.ts src/__tests__/subagent-report-contract-regression.test.ts --maxWorkers=4",
+      "operation_id": "mutation:test_run_recorded:fixPluginEntryMultiExport:0b400efe-1e9a-4c3e-b4b4-655ca701d4f4",
+      "payload_hash": "df0ac463e210202497fa8253391bb35261242095dfd42bbcee4e2bf35c26d688",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-31T23:56:03.019Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "ed11ea17072b60208b053ba21a921ff1174b6ed8:Entry now exports exactly one function (default): moved the compaction block (4 exported helpers + internal constants/dependencies) to new src/prompt-compaction.ts; removed resolveGitSessionContext re-export; un-exported AdvancePlugin const; re-pointed 6 test imports (3 helper-import files, 3 AdvancePlugin-by-name files) to the new module / default export. Evidence: RED runId tr_mthvung7_dd4fc93a (7 function exports listed); GREEN runId tr_mthvwylh_3223c9a2; verify runId tr_mthwcnvq_8dfb43d0 (5 files, 91 tests). Full plugin suite: 393 files / 5262 tests passed, 1 skipped, tsc --noEmit clean. Remaining: merge to trunk, build, deploy from trunk, live sharded-instance verification.",
+      "operation_id": "mutation:task_checkpoint_completed:fixPluginEntryMultiExport:54d2b055-1e2c-43c5-9407-d9809dd84215",
+      "payload_hash": "b3f84361f19ca026680422db6b4a39d6dd19f1fc1852b9dce2344e0aae045f90",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-31T23:56:16.883Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Problem statement + RCA (multi-factory invocation trap on fallbackPersistedMarker) confirmed by executable reproduction.",
+      "operation_id": "mutation:gate_completion:fixPluginEntryMultiExport:7797f037-b227-49fe-adc1-b8b4eb168d62",
+      "payload_hash": "807cde0f9c7ac42e5770bc4fa6b1b8265a7b234adb055f1d4346eeea59cc9d4f",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-31T23:59:38.980Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Root cause fully established before fix; no open research questions.",
+      "operation_id": "mutation:gate_completion:fixPluginEntryMultiExport:1d1bc782-e564-4d79-befa-e3883bb7e9fa",
+      "payload_hash": "938fa5dad3d9c356ca9420e4e647738414cfdee3dc71c328d346b3514aedd4eb",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-31T23:59:46.724Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "No product tradeoff; mechanical contract alignment. Validator scope: the entry-factory-contract test IS the machine-checked design invariant.",
+      "operation_id": "mutation:gate_completion:fixPluginEntryMultiExport:025070e3-9dce-4f03-86dc-4b75260b6ecc",
+      "payload_hash": "3a81686a0fbd6830eeba6172d1334cb5d758b6808b7146a4861ff264316f0793",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-31T23:59:55.398Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "One code task (tk-02c169113121) with inline TDD; worktree change/fixPluginEntryMultiExport.",
+      "operation_id": "mutation:gate_completion:fixPluginEntryMultiExport:d5f7dc49-572d-483d-9a57-8b754de5e6ec",
+      "payload_hash": "4bd054b8d740b2dbefaf26180905bd539f4c5245e4793e5c2aced7261d7ff646",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-09-01T00:00:05.194Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Merged to trunk bdffe6f4..ed11ea17, pushed; built and deployed from trunk (generation 8a3e88faddbf); deployed dist exports exactly one function (default).",
+      "operation_id": "mutation:gate_completion:fixPluginEntryMultiExport:1a399ae1-a95c-42b2-9eca-6c393af86bc1",
+      "payload_hash": "3e9d845b2b8e9e9b2e9b7277a88a3786e87bbce7f3152ac38cd90d300f87aabc",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-09-01T00:00:16.325Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "AC: fresh OpenCode instances load the Advance plugin; entry contract pinned by permanent regression test.",
+      "operation_id": "mutation:gate_completion:fixPluginEntryMultiExport:a7356d6a-2e58-44c9-9f81-8be821445b29",
+      "payload_hash": "b325af2fde5a5805fd307c1affb18c6f60c60789fae0031b14d8de1de9c381f1",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-09-01T00:00:28.570Z"
+    }
+  ]
+}
