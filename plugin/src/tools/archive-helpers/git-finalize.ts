@@ -269,6 +269,7 @@ interface PullRequestSummary {
   state: string;
   autoMergeArmed: boolean;
   title?: string;
+  headRefOid?: string;
 }
 
 export interface ReleaseReachabilityInput {
@@ -1757,6 +1758,7 @@ function parsePullRequestSummary(
     state?: unknown;
     title?: unknown;
     autoMergeRequest?: unknown;
+    headRefOid?: unknown;
   };
   if (typeof payload.number !== "number" || !Number.isInteger(payload.number)) {
     return { error: "PR_NUMBER_MISSING" };
@@ -1772,6 +1774,8 @@ function parsePullRequestSummary(
     autoMergeArmed:
       payload.autoMergeRequest !== null &&
       payload.autoMergeRequest !== undefined,
+    headRefOid:
+      typeof payload.headRefOid === "string" ? payload.headRefOid : undefined,
   };
 }
 
@@ -1789,7 +1793,7 @@ function readPullRequestByBranch(
     "--repo",
     repo,
     "--json",
-    "number,url,state,title,autoMergeRequest",
+    "number,url,state,title,autoMergeRequest,headRefOid",
   ]);
   if (result.status !== 0) {
     return {
@@ -1886,6 +1890,8 @@ function ensureArchivePullRequest(
     changeTitle?: string;
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
+    changeTipSha?: string;
+    preArchiveTipSha?: string;
   },
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ): PullRequestSummary | { error: string; details?: string[] } {
@@ -1901,6 +1907,25 @@ function ensureArchivePullRequest(
         error: "PR_CLOSED",
         details: [`Existing PR ${existing.url} is closed`],
       };
+    }
+    if (
+      existing.state === "MERGED" &&
+      (input.changeTipSha !== undefined || input.preArchiveTipSha !== undefined)
+    ) {
+      const savedTips = [input.changeTipSha, input.preArchiveTipSha].filter(
+        (tip): tip is string => tip !== undefined,
+      );
+      if (
+        existing.headRefOid === undefined ||
+        !savedTips.includes(existing.headRefOid)
+      ) {
+        return {
+          error: "MERGED_PR_HEAD_MISMATCH",
+          details: [
+            `Merged PR ${existing.url} head ${existing.headRefOid ?? "unknown"} does not match a saved change tip`,
+          ],
+        };
+      }
     }
     return existing;
   }
@@ -1932,9 +1957,7 @@ export function armPullRequestAutoMerge(
   repoRoot: string,
   repo: string,
   prNumber: number,
-  changeTitle: string,
   prTitle?: string,
-  prTitleType?: string,
   prTitlePolicy?: PrTitlePolicy,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ): { ok: true } | { ok: false; reason: string; details?: string[] } {
@@ -1942,16 +1965,6 @@ export function armPullRequestAutoMerge(
 
   const policy = prTitlePolicy;
   if (policy?.format === "conventional") {
-    if (prTitleType === undefined) {
-      return {
-        ok: false,
-        reason: "PR_TITLE_TYPE_UNRESOLVED",
-        details: [
-          "Conventional PR title policy requires a prTitleType, but none was provided.",
-        ],
-      };
-    }
-
     let liveTitle = prTitle;
     if (liveTitle === undefined) {
       const titleResult = runGh(repoRoot, [
@@ -2003,39 +2016,40 @@ export function armPullRequestAutoMerge(
       }
     }
 
-    const expectedPrefix = `${prTitleType}:`;
-    if (!liveTitle.startsWith(expectedPrefix)) {
+    const typeMatch = /^([A-Za-z0-9][A-Za-z0-9-]*):(?:\s|$)/.exec(liveTitle);
+    const parsedType = typeMatch?.[1];
+    if (parsedType === undefined) {
       return {
         ok: false,
         reason: "PR_TITLE_POLICY_VIOLATION",
         details: [
-          `Live PR title '${liveTitle}' does not conform to policy: must start with '${expectedPrefix}'.`,
+          `Live PR title '${liveTitle}' does not conform to policy: no conventional '<type>:' prefix found.`,
         ],
       };
     }
 
     if (
       policy.allowed_types !== undefined &&
-      !policy.allowed_types.includes(prTitleType)
+      !policy.allowed_types.includes(parsedType)
     ) {
       return {
         ok: false,
         reason: "PR_TITLE_POLICY_VIOLATION",
         details: [
-          `Live PR title '${liveTitle}' does not conform to policy: type '${prTitleType}' is not in allowed_types.`,
+          `Live PR title '${liveTitle}' does not conform to policy: type '${parsedType}' is not in allowed_types.`,
         ],
       };
     }
 
     if (
       policy.release_types !== undefined &&
-      !policy.release_types.includes(prTitleType)
+      !policy.release_types.includes(parsedType)
     ) {
       return {
         ok: false,
         reason: "PR_TITLE_POLICY_VIOLATION",
         details: [
-          `type '${prTitleType}' is not in release_types [${policy.release_types
+          `type '${parsedType}' is not in release_types [${policy.release_types
             .map((t) => `'${t}'`)
             .join(",")}]; archive would merge without producing a release tag`,
         ],
@@ -2118,6 +2132,8 @@ export function executePullRequestHandoff(
       changeTitle: input.changeTitle,
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
+      changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
     },
     deps,
   );
@@ -2138,16 +2154,17 @@ export function executePullRequestHandoff(
     };
   }
 
-  const armed = armPullRequestAutoMerge(
-    input.repoRoot,
-    input.repo,
-    pr.number,
-    input.changeTitle,
-    pr.title,
-    input.prTitleType,
-    input.prTitlePolicy,
-    deps,
-  );
+  const armed =
+    pr.state === "MERGED"
+      ? { ok: true as const }
+      : armPullRequestAutoMerge(
+          input.repoRoot,
+          input.repo,
+          pr.number,
+          pr.title,
+          input.prTitlePolicy,
+          deps,
+        );
   if (!armed.ok) {
     return {
       status: "blocked",
@@ -2175,6 +2192,8 @@ export function executePullRequestHandoff(
       route: input.route,
       prNumber: pr.number,
       sourceBranch: input.sourceBranch,
+      changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
     },
     deps,
   );
@@ -2737,6 +2756,8 @@ export function redriveArchivedUnmergedBranch(
     changeTitle: string;
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
+    changeTipSha?: string;
+    preArchiveTipSha?: string;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -2794,6 +2815,8 @@ export function redriveArchivedUnmergedBranch(
       changeTitle: input.changeTitle,
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
+      changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
     },
     deps,
   );
@@ -2813,16 +2836,17 @@ export function redriveArchivedUnmergedBranch(
     };
   }
 
-  const armed = armPullRequestAutoMerge(
-    input.repoRoot,
-    route.repo,
-    pr.number,
-    input.changeTitle,
-    pr.title,
-    input.prTitleType,
-    input.prTitlePolicy,
-    deps,
-  );
+  const armed =
+    pr.state === "MERGED"
+      ? { ok: true as const }
+      : armPullRequestAutoMerge(
+          input.repoRoot,
+          route.repo,
+          pr.number,
+          pr.title,
+          input.prTitlePolicy,
+          deps,
+        );
   if (!armed.ok) {
     return {
       status: "blocked",
@@ -2848,6 +2872,8 @@ export function redriveArchivedUnmergedBranch(
       changeId: input.changeId,
       route,
       prNumber: pr.number,
+      changeTipSha: input.changeTipSha,
+      preArchiveTipSha: input.preArchiveTipSha,
     },
     deps,
   );

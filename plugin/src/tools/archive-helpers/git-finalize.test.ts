@@ -5458,9 +5458,7 @@ describe("git-finalize helpers", () => {
         "/main",
         "Sharper-Flow/Advance",
         42,
-        "Remove external artist resolvers",
         options.prTitle,
-        options.prTitleType,
         policy,
         { runGh },
       );
@@ -5508,6 +5506,40 @@ describe("git-finalize helpers", () => {
       expect(mergeCalls).toHaveLength(1);
     });
 
+    it("conventional + parsed live type arms even when caller type differs", () => {
+      const { result, mergeCalls } = runArm(
+        {
+          format: "conventional",
+          allowed_types: ["feat", "chore"],
+          release_types: ["feat", "chore"],
+        },
+        {
+          prTitleType: "chore",
+          prTitle: "feat: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({ ok: true });
+      expect(mergeCalls).toHaveLength(1);
+    });
+
+    it("conventional + live title without a type prefix returns PR_TITLE_POLICY_VIOLATION", () => {
+      const { result, mergeCalls } = runArm(
+        { format: "conventional" },
+        {
+          prTitleType: "fix",
+          prTitle: "Update stuff",
+        },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          "Live PR title 'Update stuff' does not conform to policy: no conventional '<type>:' prefix found.",
+        ],
+      });
+      expect(mergeCalls).toHaveLength(0);
+    });
+
     it("conventional + allowed but non-releasing type returns PR_TITLE_POLICY_VIOLATION and does not arm", () => {
       const { result, mergeCalls } = runArm(
         {
@@ -5546,6 +5578,28 @@ describe("git-finalize helpers", () => {
       expect(mergeCalls).toHaveLength(1);
     });
 
+    it("conventional + parsed non-releasing live type blocks", () => {
+      const { result, mergeCalls } = runArm(
+        {
+          format: "conventional",
+          allowed_types: ["feat", "fix", "chore"],
+          release_types: ["feat", "fix"],
+        },
+        {
+          prTitleType: "fix",
+          prTitle: "chore: Update stuff",
+        },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          "type 'chore' is not in release_types ['feat','fix']; archive would merge without producing a release tag",
+        ],
+      });
+      expect(mergeCalls).toHaveLength(0);
+    });
+
     it("conventional + empty release_types blocks defensively", () => {
       const { result, mergeCalls } = runArm(
         {
@@ -5563,23 +5617,6 @@ describe("git-finalize helpers", () => {
         reason: "PR_TITLE_POLICY_VIOLATION",
         details: [
           "type 'fix' is not in release_types []; archive would merge without producing a release tag",
-        ],
-      });
-      expect(mergeCalls).toHaveLength(0);
-    });
-
-    it("conventional + missing type returns PR_TITLE_TYPE_UNRESOLVED and does not arm", () => {
-      const { result, mergeCalls } = runArm(
-        { format: "conventional" },
-        {
-          prTitle: "fix: Remove external artist resolvers",
-        },
-      );
-      expect(result).toEqual({
-        ok: false,
-        reason: "PR_TITLE_TYPE_UNRESOLVED",
-        details: [
-          "Conventional PR title policy requires a prTitleType, but none was provided.",
         ],
       });
       expect(mergeCalls).toHaveLength(0);
@@ -5615,7 +5652,7 @@ describe("git-finalize helpers", () => {
         ok: false,
         reason: "PR_TITLE_POLICY_VIOLATION",
         details: [
-          "Live PR title 'Remove external artist resolvers' does not conform to policy: must start with 'fix:'.",
+          "Live PR title 'Remove external artist resolvers' does not conform to policy: no conventional '<type>:' prefix found.",
         ],
       });
       expect(mergeCalls).toHaveLength(0);
@@ -5641,9 +5678,7 @@ describe("git-finalize helpers", () => {
         "/main",
         "Sharper-Flow/Advance",
         42,
-        "Remove external artist resolvers",
         undefined,
-        "fix",
         { format: "conventional" },
         { runGh },
       );
@@ -5679,9 +5714,7 @@ describe("git-finalize helpers", () => {
         "/main",
         "Sharper-Flow/Advance",
         42,
-        "Remove external artist resolvers",
         undefined,
-        "fix",
         {
           format: "conventional",
           allowed_types: ["feat", "fix", "perf", "chore"],
@@ -5692,7 +5725,7 @@ describe("git-finalize helpers", () => {
         ok: false,
         reason: "PR_TITLE_POLICY_VIOLATION",
         details: [
-          "Live PR title 'Archive someOldChange' does not conform to policy: must start with 'fix:'.",
+          "Live PR title 'Archive someOldChange' does not conform to policy: no conventional '<type>:' prefix found.",
         ],
       });
       expect(mergeCalls).toHaveLength(0);
@@ -6192,6 +6225,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
       existingPr?: boolean;
       prTitle?: string;
       prState?: "OPEN" | "MERGED";
+      headRefOid?: string;
     } = {},
   ) {
     const gitCalls: string[][] = [];
@@ -6223,6 +6257,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
               state: opts.prState ?? "OPEN",
               title: opts.prTitle ?? "fix: Remove external artist resolvers",
               autoMergeRequest: null,
+              headRefOid: opts.headRefOid,
             }),
             stderr: "",
           };
@@ -6304,6 +6339,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
       existingPr?: boolean;
       prTitle?: string;
       existingPrState?: "OPEN" | "MERGED";
+      headRefOid?: string;
     } = {},
   ) {
     const gitCalls: string[][] = [];
@@ -6367,6 +6403,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
               state: opts.existingPrState ?? "OPEN",
               title: opts.prTitle ?? "fix: Remove external artist resolvers",
               autoMergeRequest: null,
+              headRefOid: opts.headRefOid,
             }),
             stderr: "",
           };
@@ -6391,15 +6428,24 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
         args[0] === "pr" &&
         args[1] === "view" &&
         args[2] === "42" &&
-        args.includes("state")
+        args.some((arg) => arg.includes("state"))
       ) {
         return {
           status: 0,
           stdout: JSON.stringify({
-            state: "OPEN",
-            mergedAt: null,
-            mergeCommit: null,
-            autoMergeRequest: { enabledAt: "2026-06-07T00:00:00Z" },
+            state: opts.existingPrState ?? "OPEN",
+            mergedAt:
+              (opts.existingPrState ?? "OPEN") === "MERGED"
+                ? "2026-06-07T00:00:00Z"
+                : null,
+            mergeCommit:
+              (opts.existingPrState ?? "OPEN") === "MERGED"
+                ? { oid: "merge-sha" }
+                : null,
+            autoMergeRequest:
+              (opts.existingPrState ?? "OPEN") === "OPEN"
+                ? { enabledAt: "2026-06-07T00:00:00Z" }
+                : null,
           }),
           stderr: "",
         };
@@ -6413,6 +6459,113 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
 
     return { runGit, runGh, gitCalls, ghCalls };
   }
+
+  it("reused MERGED PR ships through pr_merged without arming auto-merge", () => {
+    const mocks = makeHandoffMocks({
+      existingPr: true,
+      prState: "MERGED",
+      headRefOid: "tip-sha",
+    });
+    const result = executePullRequestHandoff(
+      {
+        repoRoot: "/main",
+        workdir: "/workdir",
+        repo,
+        branch,
+        defaultBranch: "trunk",
+        changeId,
+        route: {
+          route: "pr_auto_merge",
+          repo,
+          protected: true,
+          autoMergeAllowed: true,
+        },
+        pushFailureReason: "n/a",
+        changeTitle,
+        prTitleType: "fix",
+        prTitlePolicy: conventionalPolicy,
+        changeTipSha: "tip-sha",
+      },
+      mocks,
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      prNumber: 42,
+      mergeCommitSha: "merge-sha",
+      autoMergeArmed: false,
+    });
+    expect(
+      mocks.ghCalls.filter((args) => args[0] === "pr" && args[1] === "merge"),
+    ).toHaveLength(0);
+  });
+
+  it("reused MERGED PR blocks when its head does not match either saved tip", () => {
+    const mocks = makeHandoffMocks({
+      existingPr: true,
+      prState: "MERGED",
+      headRefOid: "other-tip",
+    });
+    const result = executePullRequestHandoff(
+      {
+        repoRoot: "/main",
+        workdir: "/workdir",
+        repo,
+        branch,
+        defaultBranch: "trunk",
+        changeId,
+        route: {
+          route: "pr_auto_merge",
+          repo,
+          protected: true,
+          autoMergeAllowed: true,
+        },
+        pushFailureReason: "n/a",
+        changeTitle,
+        prTitleType: "fix",
+        prTitlePolicy: conventionalPolicy,
+        changeTipSha: "tip-sha",
+        preArchiveTipSha: "pre-archive-tip-sha",
+      },
+      mocks,
+    );
+
+    expect(result.status).toBe("blocked");
+    expect(result.blocked?.reason).toBe("MERGED_PR_HEAD_MISMATCH");
+    expect(
+      mocks.ghCalls.filter((args) => args[0] === "pr" && args[1] === "merge"),
+    ).toHaveLength(0);
+  });
+
+  it("redrive skips auto-merge for a reused MERGED PR", () => {
+    const mocks = makeRedriveMocks({
+      existingPr: true,
+      existingPrState: "MERGED",
+      headRefOid: "tip-sha",
+    });
+    const result = redriveArchivedUnmergedBranch(
+      {
+        repoRoot: "/main",
+        defaultBranch: "trunk",
+        changeId,
+        changeTitle,
+        prTitleType: "fix",
+        prTitlePolicy: conventionalPolicy,
+        changeTipSha: "tip-sha",
+      },
+      mocks,
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      prNumber: 42,
+      mergeCommitSha: "merge-sha",
+      autoMergeArmed: false,
+    });
+    expect(
+      mocks.ghCalls.filter((args) => args[0] === "pr" && args[1] === "merge"),
+    ).toHaveLength(0);
+  });
 
   /**
    * AC4 / PokeEdge #1020 repro: a conventional target policy plus an explicit

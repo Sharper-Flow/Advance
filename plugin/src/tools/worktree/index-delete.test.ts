@@ -1509,7 +1509,11 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       const bundleMergeCommit = git(fixture.root, "rev-parse", "HEAD");
       git(fixture.root, "push", "origin", "main");
 
-      const payloadFor = (number: number, headRefOid: string, mergeCommitOid: string) => ({
+      const payloadFor = (
+        number: number,
+        headRefOid: string,
+        mergeCommitOid: string,
+      ) => ({
         number,
         state: "MERGED" as const,
         mergedAt: "2026-08-08T00:00:00Z",
@@ -1535,7 +1539,11 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       deps.mergedBranches = async () => [];
       deps.ghExec = ghExec;
 
-      const planned = await rawAdvWorktreeDelete(branch, { dryRun: true }, deps);
+      const planned = await rawAdvWorktreeDelete(
+        branch,
+        { dryRun: true },
+        deps,
+      );
       expect(planned).toMatchObject({ ok: true, status: "planned" });
       if (planned.ok) {
         expect(planned.plan.integration).toMatchObject({
