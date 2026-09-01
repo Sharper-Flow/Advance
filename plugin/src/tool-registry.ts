@@ -72,6 +72,7 @@ import {
 import { specTools } from "./tools/spec";
 import { backlogTools, WIP_CALLER_TIMEOUT_MS } from "./tools/backlog";
 import { changeTools } from "./tools/change";
+import { followupTools } from "./tools/followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractPublicTools } from "./tools/contract";
 import { verificationEvidenceTools } from "./tools/verification-evidence";
@@ -463,6 +464,9 @@ export function createFullToolMap(
         ),
       ),
     ),
+
+    // Ops Follow-up Promotion Tool
+    ...bindGroup(followupTools, store),
 
     // Ops Evidence Append Tool
     ...bindGroup(opsEvidenceTools, store),
@@ -950,6 +954,7 @@ const PUBLIC_TOOL_GROUPS = [
   specTools,
   backlogTools,
   changeTools,
+  followupTools,
   opsEvidenceTools,
   verificationEvidenceTools,
   taskTools,

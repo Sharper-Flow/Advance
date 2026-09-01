@@ -86,6 +86,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     read(`Show gate status${suffix(args, "changeId")}`),
   adv_gate_complete: (args) => write(`Complete gate${suffix(args, "gateId")}`),
   adv_run_test: (args) => execute(`Run test${suffix(args, "command")}`),
+  adv_followup_promote: (args) =>
+    write(`Promote follow-up${suffix(args, "source_change_id")}`),
   adv_task_checkpoint: (args) =>
     execute(`Checkpoint task${suffix(args, "taskId")}`),
   adv_reflection_list: (args) =>

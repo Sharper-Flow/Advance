@@ -86,8 +86,7 @@ import {
   getPluginBundleFreshness,
   PluginBundleGenerationMismatchError,
 } from "./plugin-bundle-manifest";
-import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { createHash } from "node:crypto";
+import { existsSync } from "fs";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveTargetProject } from "./tools/target-project";
 import { resolveGitSessionContext } from "./utils/git-session";
@@ -105,11 +104,7 @@ import { buildAdvWorktreeAdapter } from "./utils/workspace-adapter";
 import { authorizeMorphWorktree } from "./utils/morph-worktree-authorization";
 import { worktreeExistsForChange } from "./tools/worktree/state";
 
-import {
-  compactPromptMessages,
-  compactToolPart,
-  isRecord,
-} from "./prompt-compaction";
+import { compactPromptMessages, isRecord } from "./prompt-compaction";
 
 const isDiskChangeReachable = async (changesDir: string, changeId: string) =>
   existsSync(join(changesDir, changeId, "change.json"));

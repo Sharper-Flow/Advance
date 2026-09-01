@@ -50,11 +50,7 @@ export interface ToolRoleEntry {
  * tool-role-policy.test.ts — a registry change without a policy row fails CI.
  */
 export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
-  // ── Operator-only (9) ────────────────────────────────────────────────
-  // Maintenance/recovery tools with destructive, wedged-state, or store-level
-  // blast radius. Grantable only to the ADV orchestrator, which invokes them
-  // solely on explicit operator instruction with approval evidence (C6).
-  // ── Dual (8) ─────────────────────────────────────────────────────────
+  // ── Dual ─────────────────────────────────────────────────────────────
   // Read actions agent-reachable; mutation/refresh surfaces operator-owned.
   // Action-level distinctions mirror docs/tool-ownership.md, including the
   // action-qualified operator-only rows for snapshot_health (#repair) and
@@ -79,7 +75,7 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     operatorActions: [],
   },
 
-  // ── Orchestrator (63) ────────────────────────────────────────────────
+  // ── Orchestrator ─────────────────────────────────────────────────────
   // Routine ADV command-workflow and agent tools. Several mutations remain
   // approval-gated, driven by the orchestrator through gate/command workflows
   // with human checkpoints. Safety-distinct families (archive/purge/repair,
@@ -112,6 +108,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_change_update: {
     class: "orchestrator",
     rationale: "Change update.",
+  },
+  adv_followup_promote: {
+    class: "orchestrator",
+    rationale: "Ops follow-up promotion to child change.",
   },
   adv_gate_complete: {
     class: "orchestrator",

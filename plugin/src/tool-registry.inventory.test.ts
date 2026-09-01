@@ -8,6 +8,7 @@ import {
   createFullToolMap,
   DIRECT_TOOL_NAMES,
   getToolSurface,
+  PUBLIC_TOOL_ENTRIES,
 } from "./tool-registry";
 import { hasExplicitAdvToolTitle } from "./utils/tool-title";
 import { createDiskStore } from "./storage/store";
@@ -63,6 +64,9 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_tool_catalog",
   "adv_tool_describe",
   "adv_tool_invoke",
+  // The follow-up promotion tool stays public because ops runs require a
+  // typed child change with an ops_followup profile.
+  "adv_followup_promote",
   // resume-projection Phase E added the resume-projection MCP tool + bin
   // adapter (feat 9f39317e); a legitimate registered public tool that was
   // never recorded in this reintroduction-guard accounting.
@@ -244,6 +248,25 @@ describe("public tool inventory — title parity (AC5)", () => {
   });
 });
 
+describe("public tool inventory — follow-up registration", () => {
+  test("registers adv_followup_promote exactly once and keeps retired tools absent", () => {
+    expect(
+      ADV_TOOL_NAMES.filter((name) => name === "adv_followup_promote"),
+    ).toHaveLength(1);
+    expect(
+      PUBLIC_TOOL_ENTRIES.filter(
+        (entry) => entry.name === "adv_followup_promote",
+      ),
+    ).toHaveLength(1);
+    expect(
+      ADV_TOOL_NAMES.filter(
+        (name) =>
+          name.startsWith("adv_epic_") || name.startsWith("adv_backlog_"),
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("public tool inventory — SC1 baseline/final counts", () => {
   test("final canonical count equals recorded baseline minus landed contracted removals", async () => {
     const mod = (await import("./tool-registry")) as unknown as Record<
@@ -255,10 +278,10 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // registered public ADV tools prior to this change's contracted removals.
     expect(baseline, "recorded SC1 source baseline").toBe(80);
 
-    // The current source surface contains 53 tools after the contracted
-    // removals and dead-wrapper removals in this branch. Pin the observable
-    // registry count directly.
-    expect(ADV_TOOL_NAMES.length).toBe(35);
+    // The current source surface contains 36 tools after the contracted
+    // removals, dead-wrapper removals, and follow-up registration restore.
+    // Pin the observable registry count directly.
+    expect(ADV_TOOL_NAMES.length).toBe(36);
     expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
       (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
     );

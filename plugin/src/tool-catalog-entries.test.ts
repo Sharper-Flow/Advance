@@ -91,6 +91,11 @@ describe("tool-catalog-entries — exported API", () => {
     expect(meta.risk).toBe("low");
     expect(meta.recoveryOnly).toBe(false);
   });
+
+  it("classifies adv_followup_promote in the followup realm", async () => {
+    const { deriveToolMetadata } = await import("./tool-catalog-entries");
+    expect(deriveToolMetadata("adv_followup_promote").realm).toBe("followup");
+  });
 });
 
 describe("tool-registry re-exports — parity preserved", () => {

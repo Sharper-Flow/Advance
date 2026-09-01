@@ -229,6 +229,7 @@ export interface ToolMetadataV1 {
 // =============================================================================
 
 export const REALM_OVERRIDES: Readonly<Record<string, ToolRealm>> = {
+  adv_followup_promote: "followup",
   adv_subagent_report_submit: "report",
   adv_run_test: "test",
   adv_spec: "spec",
