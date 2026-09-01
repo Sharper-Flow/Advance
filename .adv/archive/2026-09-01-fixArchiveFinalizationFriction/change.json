@@ -1,0 +1,965 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchiveFinalizationFriction",
+  "title": "Fix archive finalization friction",
+  "status": "archived",
+  "created_at": "2026-09-01T21:52:13.943Z",
+  "tasks": [
+    {
+      "id": "tk-bf475a306598",
+      "title": "Evaluate all merged-PR candidates in worktree deletion proof",
+      "type": "code",
+      "section": "Worktree deletion proof",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-09-01T22:31:03.137Z",
+      "started_at": "2026-09-01T22:42:52.863Z",
+      "completed_at": "2026-09-01T22:48:48.873Z",
+      "verification": "Red run tr_mtj9aol3_ed03cc41 failed both multi-candidate tests on the pr_evidence_invalid guard (after fixture correction tr_mtj98k16_22dbc766 exposed the local patch_equivalent tier winning). Guard removed. Green run tr_mtj9c4ji_fd3d7780 passed 67/67 in index-delete.test.ts. Verify run tr_mtj9dad9_297435c8 passed 219/219 across all 22 worktree tool test files.",
+      "summary": "Red run tr_mtj9aol3_ed03cc41 failed both multi-candidate tests on the pr_evidence_invalid guard (after fixture correction tr_mtj98k16_22dbc766 exposed the local patch_equivalent tier winning). Guard removed. Green run tr_mtj9c4ji_fd3d7780 passed 67/67 in index-delete.test.ts. Verify run tr_mtj9dad9_297435c8 passed 219/219 across all 22 worktree tool test files.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "013ea04c8296b0987e68f64aced35134db2bdccd",
+      "completedAt": "2026-09-01T22:48:48.873Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "touched_files": "plugin/src/tools/worktree/index.ts, plugin/src/tools/worktree/index-delete.test.ts"
+      }
+    },
+    {
+      "id": "tk-dbc2efff4425",
+      "title": "Make finalization retries idempotent on existing PRs",
+      "type": "code",
+      "section": "Finalize reuse semantics",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-09-01T22:31:19.158Z",
+      "started_at": "2026-09-01T22:49:14.369Z",
+      "completed_at": "2026-09-01T23:12:33.164Z",
+      "verification": "Engineer RED tr_mtj9mgqs_6a41af5f (exit 1), GREEN tr_mtj9q7z8_005b55b5 (exit 0), targeted suite tr_mtja0ma3_fb8c1d60 (185 passed), spec suite tr_mtja13o5_7daf7f9d (98 passed), typecheck/lint/format exit 0. Orchestrator independently verified: diff review confirms headRefOid field + parse + gh list, MERGED_PR_HEAD_MISMATCH guard in ensureArchivePullRequest, parsed-type armer with dropped params, MERGED skip at both call sites (2158, 2840), spec delta on rq-approvedPrAutoMerge01 body + scenario .4 in spec.json and docs mirror. Independent verify run tr_mtja7z28_fc402291 passed 185/185.",
+      "summary": "Engineer RED tr_mtj9mgqs_6a41af5f (exit 1), GREEN tr_mtj9q7z8_005b55b5 (exit 0), targeted suite tr_mtja0ma3_fb8c1d60 (185 passed), spec suite tr_mtja13o5_7daf7f9d (98 passed), typecheck/lint/format exit 0. Orchestrator independently verified: diff review confirms headRefOid field + parse + gh list, MERGED_PR_HEAD_MISMATCH guard in ensureArchivePullRequest, parsed-type armer with dropped params, MERGED skip at both call sites (2158, 2840), spec delta on rq-approvedPrAutoMerge01 body + scenario .4 in spec.json and docs mirror. Independent verify run tr_mtja7z28_fc402291 passed 185/185.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts"
+      ],
+      "checkpointSha": "882dacac33369ed2f58c330fc0456db8e77b0a73",
+      "completedAt": "2026-09-01T23:12:33.164Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C4",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "touched_files": "plugin/src/tools/archive-helpers/git-finalize.ts, plugin/src/tools/archive-helpers/git-finalize.test.ts, docs/specs/advance-workflow.md, .adv/specs/advance-workflow/spec.json, docs/specs/.mirror-lock.json"
+      }
+    },
+    {
+      "id": "tk-47cfa9c59734",
+      "title": "Surface stalled auto-merge status on pending_merge outcomes",
+      "type": "code",
+      "section": "Stall surfacing",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dbc2efff4425"
+        }
+      ],
+      "created_at": "2026-09-01T22:31:34.205Z",
+      "started_at": "2026-09-01T23:12:53.781Z",
+      "completed_at": "2026-09-01T23:20:49.621Z",
+      "verification": "Red run tr_mtjabqsd_1fb2d218 failed the BEHIND stallWarning assertion. Green run tr_mtjah7be_1d844456 passed 166/166 after extending readPrMergeState field list (state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue), parsing absent isInMergeQueue as undefined-never-false, threading mergeStateStatus/isInMergeQueue through the reachability unmerged variant, adding GitFinalizeOutcome.stallWarning and stallWarningForReachability (warns only on BEHIND/DIRTY, silent for BLOCKED and queued), and attaching it at both pending_merge sites. Two verbatim field-list assertions updated; a doc comment reworded after the repo ci-wait no-leak guard caught \"CI-waiting\". pnpm typecheck, format, lint all exit 0.",
+      "summary": "Red run tr_mtjabqsd_1fb2d218 failed the BEHIND stallWarning assertion. Green run tr_mtjah7be_1d844456 passed 166/166 after extending readPrMergeState field list (state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue), parsing absent isInMergeQueue as undefined-never-false, threading mergeStateStatus/isInMergeQueue through the reachability unmerged variant, adding GitFinalizeOutcome.stallWarning and stallWarningForReachability (warns only on BEHIND/DIRTY, silent for BLOCKED and queued), and attaching it at both pending_merge sites. Two verbatim field-list assertions updated; a doc comment reworded after the repo ci-wait no-leak guard caught \"CI-waiting\". pnpm typecheck, format, lint all exit 0.",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "1cfa70ad99e5b0247ef4c83832e16e07eb1012fd",
+      "completedAt": "2026-09-01T23:20:49.621Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "touched_files": "plugin/src/tools/archive-helpers/git-finalize.ts, plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      }
+    },
+    {
+      "id": "tk-97e06b48d45f",
+      "title": "Verify the full plugin suite after all three fixes",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bf475a306598"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dbc2efff4425"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-47cfa9c59734"
+        }
+      ],
+      "created_at": "2026-09-01T22:31:51.082Z",
+      "started_at": "2026-09-01T23:21:07.970Z",
+      "completed_at": "2026-09-01T23:26:32.184Z",
+      "verification": "Full suite on the change branch: pnpm test exit 1 with exactly one failure — cli-bridge-contract.test.ts frozen ADV_TOOL_NAMES snapshot (36 vs 35, adv_followup_promote) — plus pnpm run check failing at prompt-budget (+11255 bytes). Both reproduced identically on the base checkout /home/jon/dev/advance at trunk bd520d1f (same snapshot failure; same floorBytes 244708 +11255 message), proving them pre-existing and unrelated to this change. Everything else passed: 392 test files, 5274 tests passed, 12 todo, 1 skipped; spec projection and spec citation mirror tests green; typecheck green. The change's own suites (worktree 219/219, finalize/gate/phase9 185/185 + stall cases 166/166) all green under red/green/verify evidence recorded in tasks 1-3.",
+      "summary": "Full suite on the change branch: pnpm test exit 1 with exactly one failure — cli-bridge-contract.test.ts frozen ADV_TOOL_NAMES snapshot (36 vs 35, adv_followup_promote) — plus pnpm run check failing at prompt-budget (+11255 bytes). Both reproduced identically on the base checkout /home/jon/dev/advance at trunk bd520d1f (same snapshot failure; same floorBytes 244708 +11255 message), proving them pre-existing and unrelated to this change. Everything else passed: 392 test files, 5274 tests passed, 12 todo, 1 skipped; spec projection and spec citation mirror tests green; typecheck green. The change's own suites (worktree 219/219, finalize/gate/phase9 185/185 + stall cases 166/166) all green under red/green/verify evidence recorded in tasks 1-3.",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "1cfa70ad99e5b0247ef4c83832e16e07eb1012fd",
+      "completedAt": "2026-09-01T23:26:32.184Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "touched_files": "No source files; verification evidence only"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveFinalizationFriction",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveFinalizationFriction/plugin",
+      "task_id": "tk-dbc2efff4425",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dbc2efff4425"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "docs/specs/advance-workflow.md",
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mtj9mgqs_6a41af5f",
+          "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+          "exit_code": 1,
+          "summary": "RED failed before implementation, exposing merged-PR skip, head mismatch, and parsed-title behavior gaps."
+        },
+        {
+          "test_run_id": "tr_mtj9q7z8_005b55b5",
+          "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+          "exit_code": 0,
+          "summary": "GREEN passed 163 tests after implementation."
+        },
+        {
+          "test_run_id": "tr_mtja0ma3_fb8c1d60",
+          "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts --typecheck.enabled=false",
+          "exit_code": 0,
+          "summary": "Final targeted suite passed 185 tests in 3 files."
+        },
+        {
+          "test_run_id": "tr_mtja13o5_7daf7f9d",
+          "command": "pnpm vitest run src/handoff-footer-drift.test.ts src/__tests__/spec-id-shape-invariant.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts src/deploy-local.test.ts --typecheck.enabled=false",
+          "exit_code": 0,
+          "summary": "Spec artifact and mirror checks passed 98 tests in 4 files."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Skip auto-merge only for strict MERGED summaries.",
+          "why": "UNKNOWN and other states must continue through title validation and arming."
+        },
+        {
+          "what": "Validate a merged PR head against supplied change tips before skipping arming.",
+          "why": "This prevents a merged PR for unrelated content from producing a shipped result."
+        },
+        {
+          "what": "Parse the live title type inside the armer.",
+          "why": "A reused PR's live title, not caller metadata, controls allowed and release policy."
+        },
+        {
+          "what": "Keep the creation-path unresolved-title blocker.",
+          "why": "New conventional PRs still require a caller type, while reused PRs use their live title."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "The worktree contains pre-existing changes in plugin/src/tools/worktree/index-delete.test.ts from the sibling task. I did not modify that file.",
+        "No specs:mirrors script or root package manifest exists in this worktree. The docs and .adv spec mirror were updated directly. docs/specs/.mirror-lock.json is not tracked or present."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all armPullRequestAutoMerge call sites and title-policy assertions in the touched test file. Updated both production callers and all affected assertions.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented merged-PR skip with headRefOid safety and parsed live conventional title validation. Final targeted and spec artifact tests passed. pnpm typecheck, pnpm lint, and pnpm format passed. No mirror generator exists in the worktree, so docs and .adv spec files were updated directly.",
+        "suggested_next_action": "Review the diff and let the orchestrator checkpoint the task."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-dbc2efff4425",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-dbc2efff4425-attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveFinalizationFriction",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveFinalizationFriction",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 1505,
+          "what": "The change removes only the multi-candidate refusal and preserves the full proof loop.",
+          "why": "Each candidate still receives repository, head, ancestry, and merge-commit checks before deletion proof succeeds."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 1933,
+          "what": "Merged PR reuse now skips arming only after saved-tip identity checks.",
+          "why": "Both handoff paths share this guard, and reachability still supplies the shipped proof."
+        },
+        {
+          "id": "review-praise-3",
+          "label": "praise",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 2041,
+          "what": "Auto-merge policy uses the parsed live title type.",
+          "why": "Missing, disallowed, and non-releasing types fail closed without weakening creation-path validation."
+        },
+        {
+          "id": "review-praise-4",
+          "label": "praise",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 2113,
+          "what": "The stall warning remains advisory and output-only.",
+          "why": "Only BEHIND and DIRTY warn, queued and BLOCKED states stay silent, and Phase 9 persistence does not include the warning."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "pnpm vitest run src/tools/worktree/index-delete.test.ts src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+          "pnpm vitest run src/handoff-footer-drift.test.ts src/__tests__/spec-id-shape-invariant.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts src/deploy-local.test.ts --typecheck.enabled=false",
+          "pnpm typecheck",
+          "git diff --check origin/trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "The focused suites passed 233 tests. The specification artifact suites passed 98 tests. TypeScript compilation and diff checks passed. The branch is clean and changes only the six expected files."
+      },
+      "scope_drift": null,
+      "risks": [
+        "DIRTY and BLOCKED stall branches have direct source coverage but no dedicated new test cases. The helper condition is small and the BEHIND, queued, and absent-field cases passed."
+      ],
+      "required_main_agent_actions": [
+        "Use this READY report as acceptance-review evidence. Do not revisit the cleanup scanner, Phase 9 persistence schema, branch mutation behavior, or auto-merge authority law."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-bf475a306598": [
+      {
+        "runId": "tr_mtj98k16_22dbc766",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/worktree/index-delete.test.ts -t \"two merged PRs\" --typecheck.enabled=false",
+        "durationMs": 4403.262835999951,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T22:44:34.649Z"
+      },
+      {
+        "runId": "tr_mtj9aol3_ed03cc41",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/worktree/index-delete.test.ts -t \"two merged PRs\" --typecheck.enabled=false",
+        "durationMs": 4723.410543998703,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T22:46:14.113Z"
+      },
+      {
+        "runId": "tr_mtj9c4ji_fd3d7780",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/worktree/index-delete.test.ts --typecheck.enabled=false",
+        "durationMs": 32581.182137999684,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T22:47:21.287Z"
+      },
+      {
+        "runId": "tr_mtj9dad9_297435c8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/worktree/ --typecheck.enabled=false",
+        "durationMs": 34010.72580499947,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T22:48:14.054Z"
+      }
+    ],
+    "tk-dbc2efff4425": [
+      {
+        "runId": "tr_mtj9mgqs_6a41af5f",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+        "durationMs": 11375.794447999448,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T22:55:21.735Z"
+      },
+      {
+        "runId": "tr_mtj9q7z8_005b55b5",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+        "durationMs": 11137.339424001053,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T22:58:17.680Z"
+      },
+      {
+        "runId": "tr_mtj9za8z_c64db91d",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts --typecheck.enabled=false",
+        "durationMs": 13141.819105999544,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T23:05:21.361Z"
+      },
+      {
+        "runId": "tr_mtja0ma3_fb8c1d60",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts --typecheck.enabled=false",
+        "durationMs": 12416.311583999544,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T23:06:22.471Z"
+      },
+      {
+        "runId": "tr_mtja13o5_7daf7f9d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/handoff-footer-drift.test.ts src/__tests__/spec-id-shape-invariant.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts src/deploy-local.test.ts --typecheck.enabled=false",
+        "durationMs": 3107.948064001277,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T23:06:44.713Z"
+      },
+      {
+        "runId": "tr_mtja7z28_fc402291",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts --typecheck.enabled=false",
+        "durationMs": 15094.28790999949,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T23:12:06.107Z"
+      }
+    ],
+    "tk-47cfa9c59734": [
+      {
+        "runId": "tr_mtjabqsd_1fb2d218",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"stallWarning\" --typecheck.enabled=false",
+        "durationMs": 2829.6739109996706,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T23:15:01.491Z"
+      },
+      {
+        "runId": "tr_mtjaf2fu_f671d14c",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+        "durationMs": 13199.463711000979,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T23:17:36.376Z"
+      },
+      {
+        "runId": "tr_mtjah7be_1d844456",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+        "durationMs": 11957.140645999461,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-09-01T23:19:16.662Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-09-01T22:19:06.996Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-09-01T22:19:30.499Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fix sites confirmed by source read: (1) worktree/index.ts getPrMergedBranchIntegration line 1505 length>1 refusal; helper shared by both delete verification paths (verifyPrMergedChangeBranchIntegration line 1669 and deletion planner feed line 1885); proof is third tier after proveLocalBranchIntegration (ancestry/patch) and git branch --merged. (2) git-finalize.ts armPullRequestAutoMerge line 1931 validates live title against fresh caller prTitleType; callers executePullRequestHandoff line 2141 and redriveArchivedUnmergedBranch line 2816 arm before reachability; PullRequestSummary already carries state (CLOSED checked at line 1899). (3) pending_merge outcome built at lines 2208-2219/2888 from resolveReleaseReachability; no mergeStateStatus read anywhere in finalize (grep BEHIND: no matches). Test surfaces to extend: index-delete.test.ts 1398-1423 refusal cases; git-finalize.test.ts title-policy guard 5416+, redrive 2754+, handoff sequence 5178+. Cleanup scanner uses its own tree-identical model — out of scope per proposal."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-09-01T22:30:31.757Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator (adv-researcher) returned PASS_WITH_NOTES, high confidence, source-cited. Design amended to resolve all four notes: (1) modify-delta on rq-approvedPrAutoMerge01 required and included in D2; (2) no-prefix maps to PR_TITLE_POLICY_VIOLATION; (3) MERGED skip compares PR headRefOid against changeTipSha/preArchiveTipSha with a new MERGED_PR_HEAD_MISMATCH refusal; (4) D3 folds into readPrMergeState field list, stallWarning is output-only, BLOCKED deliberately not warned (healthy CI steady state). Validator corrections adopted: keep merge-commit-unreachable terminal; drop dead changeTitle param; multi-candidate tests are new (no existing test asserts the refusal)."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-09-01T22:42:21.412Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-09-01T23:26:45.017Z",
+      "completed_by": "agent",
+      "approval_evidence": "Tasks: multi-candidate PR proof (219/219 worktree suite), finalize idempotency + spec delta (185/185), stall surfacing (166/166), full-suite verification (392 files green, two base-reproduced pre-existing failures unrelated to this change)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-09-01T23:37:39.554Z",
+      "completed_by": "user"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge |\n| Source path | `/home/jon/dev/pokeedge` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Fix archive finalization friction\n\n## Why\n\nArchiving `preserveGalleryImageSelection` (pokeedge-web, PRs #786 + #789, 2026-09-01) hit three plugin defects that required manual workarounds. Every future archive that lands a refreshed bundle PR, retries finalization, or races base-branch movement will hit the same three.\n\n## Root Cause Analysis\n\n### RCA-1 — multi-PR merge proof refuses a state the plugin itself creates\n\n`plugin/src/tools/worktree/index.ts` `getPrMergedBranchIntegration` lists merged PRs for a branch, filters structurally valid candidates (same repo, head=branch, base=default, non-cross-repo, merge commit present), and refuses when `structuralCandidates.length > 1` (reason `pr_evidence_invalid`, hint \"Multiple merged PRs matched\"). The archive flow itself creates this state: the product squash (PR A) merges, finalization then refreshes the archive bundle on the branch, and the follow-up bundle PR (PR B) merges. Both are structurally valid merged PRs for the same head branch. The refusal is pure ambiguity-guard: the loop immediately below the guard already iterates every candidate and validates a full proof chain per candidate (fetch refs/pull/N/head, verify head sha, ancestor check, merge-commit reachability from default). Two candidates cannot weaken a proof that any one of them fully validates. Removal of the guard lets the existing loop prove integration; the fall-through refusal (`local_has_commits_after_pr_head`) still protects the unmerged case.\n\n### RCA-2 — retry re-validates a fresh caller argument against an already-merged PR\n\n`plugin/src/tools/archive-helpers/git-finalize.ts`: `redriveArchivedUnmergedBranch` (and `executePullRequestHandoff`) reuse the existing PR via `ensureArchivePullRequest`, then unconditionally call `armPullRequestAutoMerge` with the caller's fresh `prTitleType` before ever checking PR state. `armPullRequestAutoMerge` validates the live PR title against that fresh argument (must start with `<prTitleType>:`) and blocks with `PR_TITLE_POLICY_VIOLATION` / `AUTO_MERGE_ARM_FAILED`. In the incident, the recorded PR was already MERGED; arming a merged PR is meaningless, and `resolveReleaseReachability` — which would have returned `pr_merged` → shipped — never ran. The title was policy-valid when the PR was created on the first call; a retry supplying a different type argument cannot make the merged PR invalid.\n\n### RCA-3 — pending_merge outcome carries no stall reason\n\nAfter a successful arm, the finalize path returns `pending_merge`. When the PR is BEHIND and the branch is non-rebaseable (`maintainerCanModify: false` makes GitHub unable to auto-update it), auto-merge never fires and the outcome gives the operator no signal: no mergeStateStatus, no remediation. The incident required an external watcher to notice, then a manual `oc-fresh sync` + force-push to unblock.\n\n## Scope\n\n### In Scope\n\n- Remove the `structuralCandidates.length > 1` refusal; let the per-candidate proof loop decide. Keep all per-candidate validations unchanged.\n- Guard the two arm call sites: when the reused PR state is MERGED, skip arming and proceed directly to reachability.\n- On reuse of an OPEN PR whose live title already carries a conventional type in `allowed_types`, arm without requiring the prefix to equal the fresh `prTitleType` argument; still block non-conventional or disallowed titles. Keep the strict prefix requirement for PRs the plugin creates this call.\n- After arming, read PR `mergeStateStatus` once and, when the branch cannot progress on its own (BEHIND, DIRTY, or BLOCKED with auto-merge enabled and not in a merge queue), attach that status and an actionable remediation (update branch + rerun finalization) to the pending_merge outcome. Detection and surfacing only — no automatic branch mutation.\n\n### Out of Scope\n\n- Automatic branch updates, force-pushes, or merge-queue manipulation by the plugin.\n- Changing how the archive flow creates or labels the follow-up bundle PR.\n- adv_worktree_cleanup scanner behavior beyond what the shared proof helper fixes.\n\n### Must Not\n\n- Must not weaken any per-candidate proof check in the delete planner.\n- Must not arm auto-merge on a closed PR, or bypass the release_types guard for non-releasing titles.\n- Must not remove the pending_merge polling contract; only enrich its payload.\n\n## Evidence\n\n- Incident record: pokeedge-web PRs #786 (merged 21:12:39Z) and #789 (merged 21:31:45Z); adv_worktree_delete refusals `PLAN_REQUIRED` → `INTEGRATION_REQUIRED` (pr_evidence_invalid: multiple merged PRs matched), including with force; adv_worktree_cleanup mode=archived_branches found 0 candidates (same proof model).\n- Retry block: `AUTO_MERGE_ARM_FAILED` with `PR_TITLE_POLICY_VIOLATION` — live title 'feat: Preserve gallery image selection' vs supplied 'chore:'.\n- Stall: PR #786 armed at 20:26:14Z, mergeStateStatus BEHIND, rebaseable false, merged only after manual rebase + force-push at ~21:0xZ.",
+    "problemStatement": "Archiving preserveGalleryImageSelection in pokeedge-web surfaced three plugin defects. The archive flow landed the change through two squash-merged PRs from one branch, and adv_worktree_delete refused cleanup forever with pr_evidence_invalid: multiple merged PRs matched. A finalization retry re-validated the caller-supplied prTitleType against the already-merged PR's live title and blocked with AUTO_MERGE_ARM_FAILED. And after a successful arm, the PR sat BEHIND and non-rebaseable under pending_merge with no surfaced reason.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make worktree deletion prove integration for branches whose content landed through multiple squash-merged PRs from one head branch.\n2. Make finalization retries idempotent: a recorded PR that is already merged completes as shipped without re-arming or re-validating its title against a fresh argument.\n3. Surface why an armed PR is not progressing instead of returning a bare pending_merge.\n\n## Success Criteria\n\n- **SC1.** A branch with two merged structural PR candidates deletes cleanly when any one candidate's proof chain validates, and still refuses when no candidate validates.\n- **SC2.** Re-driving finalization whose recorded PR is MERGED returns shipped and never invokes `gh pr merge`.\n- **SC3.** Reusing an OPEN PR whose live title is conventional with an allowed type arms successfully regardless of the retry's `prTitleType` argument; non-conventional or disallowed titles still block.\n- **SC4.** A pending_merge outcome whose PR is BEHIND/DIRTY/BLOCKED-with-auto-merge carries `mergeStateStatus` and a remediation naming the branch update step.\n\n## Acceptance Criteria\n\n- **AC1.** Given two structurally valid MERGED PRs for `change/<id>` where the local head equals the newer PR's head and its merge commit is reachable from default, when worktree deletion runs, then integration is proven with proof `pr-head-exact` and deletion proceeds to plan issuance.\n- **AC2.** Given two merged candidates where neither head contains the local branch tip, when deletion runs, then it refuses with `local_has_commits_after_pr_head`.\n- **AC3.** Given a reused PR with `state === \"MERGED\"` and its merge commit reachable, when either handoff path runs, then the outcome is `shipped` via `pr_merged` proof and `armPullRequestAutoMerge` is not called.\n- **AC4.** Given a reused OPEN PR titled `feat: X` and a retry argument `prTitleType: \"chore\"` under a conventional policy allowing both, when arming runs, then it arms; given a reused OPEN PR titled `Update stuff` (no conventional prefix), then it blocks with `PR_TITLE_POLICY_VIOLATION`.\n- **AC5.** Given an armed OPEN PR with `mergeStateStatus: BEHIND`, when the finalize path returns pending_merge, then the blocked/pending payload includes `BEHIND` and a remediation containing the words \"update the branch\".\n\n## Constraints\n\n- **C1.** Per-candidate proof checks (head sha verify, ancestor check, merge-commit reachability, repo/base/head structural match) are unchanged.\n- **C2.** `armPullRequestAutoMerge` never passes `-d`/`--delete-branch`; unchanged.\n- **C3.** The stall signal is read-only: one `gh pr view` after arming; no branch mutation, no force-push, no merge-queue manipulation.\n- **C4.** Strict prefix requirement for PRs created by the current call remains.\n\n## Avoidances\n\n- **DONT1.** Do not pick a single candidate deterministically (by number, date, or head sha) and discard the others — evaluate all.\n- **DONT2.** Do not skip the release_types guard or arm closed PRs.\n- **DONT3.** Do not mutate the PR or branch to resolve a stall automatically.\n- **DONT4.** Do not change the cleanup scanner's tree-identical model or the pending_merge polling contract beyond payload enrichment.\n\n## Coordination\n\n- Incident evidence: pokeedge-web PRs #786/#789, archive of `preserveGalleryImageSelection`, 2026-09-01.\n- Deploy of the fixed plugin follows the repo's normal plugin release path; no coordinated downstream rollout needed.",
+    "design": "# Design\n\n## Architecture\n\nThree fixes at their traced sites, plus the spec-law delta that legalizes the second. No schema migrations, no new tools.\n\n### D1 — evaluate all merged-PR candidates (worktree/index.ts)\n\nDelete the `structuralCandidates.length > 1` refusal (index.ts:1505-1513) in `getPrMergedBranchIntegration`. The per-candidate loop that follows (1515-1646) is self-contained per iteration — fetch `refs/pull/N/head`, verify `FETCH_HEAD == pr.headRefOid`, `merge-base --is-ancestor`, merge-commit reachability — with soft failures `continue`ing and no shared mutable state. First fully-validating candidate wins; no validating candidate falls through to the existing `local_has_commits_after_pr_head` refusal. Candidates stay in GitHub's return order; no preselection (DONT1). One terminal exception stays exactly as is: an unreachable merge commit (1621-1627) returns a refusal rather than continuing, because a merged PR whose merge commit is off the default branch is a defect worth refusing on, and planner mapping (`pr_merge_commit_unreachable`) depends on it. No test currently asserts the multi-PR refusal — the `pr_evidence_invalid` tests at index-delete.test.ts:1393-1424 are single-candidate structural failures and stay green; D1 adds the multi-candidate positive and negative cases.\n\n### D2 — arm against the live title; skip arming when merged (git-finalize.ts + spec delta)\n\n1. **MERGED skip.** In `executePullRequestHandoff` (covers `completeMergeQueueHandoff` and `completeProtectedBranchViaPullRequest`, which delegate to it) and `redriveArchivedUnmergedBranch`, when `ensureArchivePullRequest` returns `state === \"MERGED\"` (strict equality; `UNKNOWN` does not skip), skip `armPullRequestAutoMerge` and go straight to `resolveReleaseReachability`, which independently proves `pr_merged` from `gh pr view` state (`readPrMergeState`, 1301-1304, 3104-3131) and maps to `shipped`. Safety on the skip: `readPullRequestByBranch`'s field list (1792) gains `headRefOid`, and when the caller supplied `changeTipSha`/`preArchiveTipSha`, the PR head must match one of them — otherwise the skip refuses with a new `MERGED_PR_HEAD_MISMATCH` block, so local commits pushed after the merge cannot silently ship. Note `gh pr merge --squash --auto` on a merged PR is a no-op success on current gh; the skip removes the pointless title guard + API call, and the guard was the actual incident blocker.\n\n2. **Validate the parsed title, not the caller's claim.** In `armPullRequestAutoMerge`, replace `liveTitle.startsWith(\"<prTitleType>:\")` with parsing the live title's own conventional type: no conventional prefix → block `PR_TITLE_POLICY_VIOLATION`; parsed type outside `allowed_types` → block `PR_TITLE_POLICY_VIOLATION`; `release_types` guard applies to the parsed type (message wording keyed to parsed type). The armer's `prTitleType` and the already-dead `changeTitle` parameters are dropped — its only two call sites pass nothing the armer needs. `PR_TITLE_TYPE_UNRESOLVED` becomes creation-path-only, where `createArchivePullRequest` already enforces it (1841-1849); `prTitleType` threading through handlers-archive/finalizeRelease stays for creation.\n\n3. **Spec delta.** Law `rq-approvedPrAutoMerge01` (docs/specs/advance-workflow.md:388,444; .adv/specs/advance-workflow/spec.json:428,490) enumerates `PR_TITLE_TYPE_UNRESOLVED` as an armer blocker. This change ships a modify-delta on that law covering both the parsed-type semantics and the armer no longer returning `PR_TITLE_TYPE_UNRESOLVED`, following the `dl-archivePrTitlePolicyException` precedent from `fixArchivePrTitles` (2026-07-25). Docs mirror regenerates in the same commit; spec artifact tests must pass with the delta.\n\n### D3 — surface the stall inside the existing read (git-finalize.ts)\n\nNo separate probe. `readPrMergeState` already runs `gh pr view`; its field list (1303) gains `mergeStateStatus` and `isInMergeQueue`. When either handoff path is about to return `pending_merge` (inline literals at 2209-2222 and 2879-2889 — both get the field, or a small shared constructor), and the PR reports `mergeStateStatus` `BEHIND` or `DIRTY`, attach optional `stallWarning: { mergeStateStatus, remediation }` to `GitFinalizeOutcome`, where the remediation names the operator step: update the branch onto the base and re-run archive finalization. `isInMergeQueue` absent means unknown, never false (gh feature-detects the field). BLOCKED is deliberately not warned on — it is the healthy CI-waiting steady state and warning would be noise; only states that cannot self-resolve warn. Zero extra gh calls (C3); no mutation (DONT3). `stallWarning` is output-only — surfaced via the `finalization` passthrough in handlers-archive.ts:1435-1442 — and is NOT persisted into `phase9_status`; no zod schema or carry-forward change, keeping `buildPendingMergePhase9Status` untouched.\n\n## Implementation Strategy\n\n1. D1: remove the guard; add multi-candidate tests (two candidates, newer validates → `pr-head-exact`; older unreachable-merge-commit stays terminal; none validate → refusal).\n2. D2: MERGED skip + `headRefOid` field + tip-match guard in both handoffs; parsed-type armer with dropped params; spec modify-delta on `rq-approvedPrAutoMerge01` + mirror regen; update title-policy test block (5571 armer-UNRESOLVED test moves to creation-path suite; 5606/5618/5695/6578 string updates; new mismatch-arms and merged-skip cases asserting `runGh` never receives `pr merge`).\n3. D3: field-list extension + `stallWarning` on both pending literals; tests: BEHIND attaches, MERGEABLE attaches nothing, absent isInMergeQueue tolerated.\n4. Full verification: repo suite, typecheck, lint, spec artifact tests.\n\n## Testing\n\nRed/green per fix at the existing surfaces — `plugin/src/tools/worktree/index-delete.test.ts`, `plugin/src/tools/archive-helpers/git-finalize.test.ts` — using the existing gh/git mock harness. Spec delta validated by the repo's spec artifact tests.\n\n## Risks\n\n- Title-policy message strings asserted verbatim; wording changes land in the same commits as the test updates.\n- Spec deltas are law changes; the delta must ship with the code or spec tests fail — enforced by putting both in one task.\n- BLOCKED-wait noise avoided by design (only BEHIND/DIRTY warn).\n\n## Release\n\nNormal plugin path. Fixes only loosen false refusals, add an optional output field, and tighten one safety check (tip-match on MERGED skip).",
+    "executiveSummary": "# Fix archive finalization friction\n\n## Outcome\n\nThe plugin now proves integration for branches landed through multiple squash\nPRs, completes finalization retries against already-merged PRs without\nre-validating titles against a fresh caller argument, and tells the operator\nwhy an armed PR is not progressing.\n\n## What changed\n\nThree defects traced from the pokeedge-web archive of\n`preserveGalleryImageSelection` (PRs #786 + #789, 2026-09-01):\n\n1. `getPrMergedBranchIntegration` refused deletion whenever more than one\n   structurally valid merged PR matched a branch — the archive flow's own\n   shape after a product squash plus a bundle-refresh PR. The refusal is gone;\n   the per-candidate proof loop that already followed it decides, and its\n   per-candidate checks are unchanged.\n\n2. Retries re-validated the caller's fresh `prTitleType` against the recorded\n   PR's live title before arming, so a merged PR blocked finalization on an\n   argument mismatch. Reused MERGED PRs now skip arming and ship straight\n   through reachability — guarded by a new `MERGED_PR_HEAD_MISMATCH` check\n   that the PR head matches a saved change tip, so post-merge local commits\n   cannot silently ship. On reused OPEN PRs the armer parses the live title's\n   own conventional type instead of trusting the caller's claim; bad titles\n   still block. `PR_TITLE_TYPE_UNRESOLVED` is creation-path-only.\n\n3. `pending_merge` outcomes were mute while an armed PR sat BEHIND and\n   non-rebaseable. The reachability read now carries `mergeStateStatus` and\n   `isInMergeQueue`; BEHIND and DIRTY attach an advisory `stallWarning` with\n   the branch-update remediation. BLOCKED and queued stay silent. One gh call,\n   zero mutations, output-only.\n\nThe behavior change to arming legality shipped as a modify-delta on\n`rq-approvedPrAutoMerge01` in both the spec and its docs mirror.\n\n## Evidence\n\n- Red/green/verify per task: worktree suite 219/219, finalize/gate/phase9\n  185/185, stall suite 166/166.\n- Full plugin suite: 392 files green; two remaining failures\n  (`adv_followup_promote` frozen-snapshot, prompt-budget +11255) reproduce\n  identically on base trunk and are pre-existing.\n- Independent acceptance reviewer: READY, no findings, six expected files.\n\n## Open items\n\nThe two pre-existing trunk failures above need an owner; this change did not\ntouch the tool registry or prompt surfaces.\n"
+  },
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "linked_at": "2026-09-01T21:52:09.601Z"
+  },
+  "same_project_dependencies": [],
+  "projection_revision": 38,
+  "projection_commits": [
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate proposal completion",
+      "operation_id": "mutation:gate_completion:fixArchiveFinalizationFriction:8731718f-9793-4bd4-9f61-ca304865086a",
+      "payload_hash": "2d72f62c98de252df3a7bcb8dc7fc0e3794f8534e836f628e6017a8305ef164b",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-09-01T22:19:06.998Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Fix sites confirmed by source read: (1) worktree/index.ts getPrMergedBranchIntegration line 1505 length>1 refusal; helper shared by both delete verification paths (verifyPrMergedChangeBranchIntegration line 1669 and deletion planner feed line 1885); proof is third tier after proveLocalBranchIntegration (ancestry/patch) and git branch --merged. (2) git-finalize.ts armPullRequestAutoMerge line 1931 validates live title against fresh caller prTitleType; callers executePullRequestHandoff line 2141 and redriveArchivedUnmergedBranch line 2816 arm before reachability; PullRequestSummary already carries state (CLOSED checked at line 1899). (3) pending_merge outcome built at lines 2208-2219/2888 from resolveReleaseReachability; no mergeStateStatus read anywhere in finalize (grep BEHIND: no matches). Test surfaces to extend: index-delete.test.ts 1398-1423 refusal cases; git-finalize.test.ts title-policy guard 5416+, redrive 2754+, handoff sequence 5178+. Cleanup scanner uses its own tree-identical model — out of scope per proposal.",
+      "operation_id": "mutation:gate_completion:fixArchiveFinalizationFriction:beb03c51-1175-43f9-b219-4a64eb270afb",
+      "payload_hash": "eb3b4075b95e81a6557f02e72839654963265acc2eb94d5bfe5fbe7ab3f9bd34",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-09-01T22:19:30.504Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchiveFinalizationFriction:86b35bc7-616c-44fb-a869-7467088371c0",
+      "payload_hash": "05d11ba442cc95734bdc779e8390821168593e5f015dd55393c5bf181c5f4bde",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-09-01T22:20:02.088Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchiveFinalizationFriction:b98cc4f8-bb7b-4f88-8831-0cca47007858",
+      "payload_hash": "100718f47c3477924df79d4dd764e5b64494e95465482e288673fc3e86032d48",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-09-01T22:21:58.199Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "operator-requested artifact update",
+      "operation_id": "mutation:artifact_update:fixArchiveFinalizationFriction:befc902f-ee48-4cab-9c07-d70ba7a03749",
+      "payload_hash": "e26cec957922799eef92b982c15151dabe192f389594e66ee8e0430450995bc6",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-09-01T22:30:18.158Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Independent validator (adv-researcher) returned PASS_WITH_NOTES, high confidence, source-cited. Design amended to resolve all four notes: (1) modify-delta on rq-approvedPrAutoMerge01 required and included in D2; (2) no-prefix maps to PR_TITLE_POLICY_VIOLATION; (3) MERGED skip compares PR headRefOid against changeTipSha/preArchiveTipSha with a new MERGED_PR_HEAD_MISMATCH refusal; (4) D3 folds into readPrMergeState field list, stallWarning is output-only, BLOCKED deliberately not warned (healthy CI steady state). Validator corrections adopted: keep merge-commit-unreachable terminal; drop dead changeTitle param; multi-candidate tests are new (no existing test asserts the refusal).",
+      "operation_id": "mutation:gate_completion:fixArchiveFinalizationFriction:e321a0b5-0938-46e1-aaff-d4782942b676",
+      "payload_hash": "08664456fefa3484508bba3e74f846d93ad0c7c69197458f22b9ca9ccdf17752",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-09-01T22:30:31.762Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-bf475a306598",
+      "operation_id": "mutation:task_add:fixArchiveFinalizationFriction:a2d4a7a2-06a7-496a-bb50-44c48b0c73cb",
+      "payload_hash": "53a294f5f299a057fcab56933a6bc0b2af0ef1811b25630d590648e344f95782",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-09-01T22:31:03.148Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-dbc2efff4425",
+      "operation_id": "mutation:task_add:fixArchiveFinalizationFriction:417abdbb-6e08-4356-a83c-497492f35c27",
+      "payload_hash": "1b4c002ee2c4d562dd0fc1b599c7463b3df584e1ce9b11bb3b462bd952d0f9a3",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-09-01T22:31:19.169Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-47cfa9c59734",
+      "operation_id": "mutation:task_add:fixArchiveFinalizationFriction:958d6fd1-4f79-40fd-81b3-e24ba3ebe4aa",
+      "payload_hash": "9157a2adba16ebcaeb2c238a97d8ab43b6524952a1f35bd276df05ae28094a90",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-09-01T22:31:34.210Z"
+    },
+    {
+      "mutation_kind": "task_add",
+      "authority_kind": "mutation",
+      "authority_reason": "add task",
+      "authority_evidence": "tk-97e06b48d45f",
+      "operation_id": "mutation:task_add:fixArchiveFinalizationFriction:6d9f8faa-9cff-4350-9a8a-01189a33d7f9",
+      "payload_hash": "286a136d176cd1ad28cd9fb2d74175abc938febfa7bea34e80e65ea6a2426632",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-09-01T22:31:51.095Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate planning completed by agent",
+      "operation_id": "mutation:gate_completion:fixArchiveFinalizationFriction:b510ecb6-8d75-45e7-afc3-e3a22151f758",
+      "payload_hash": "aac55700af6fb470862b075ad5db391ac55428ccde89961271588f097f475ce4",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-09-01T22:42:21.427Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchiveFinalizationFriction:03fab421-df23-4be9-85e6-204c4bccbda6",
+      "payload_hash": "525e5c2683a2dd02f27546c9338ea2de1a3c6fa76f95bd61a627dc8f99eb54eb",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-09-01T22:42:54.767Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/worktree/index-delete.test.ts -t \"two merged PRs\" --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:4657052a-c475-45c9-859e-c8c159a27bcf",
+      "payload_hash": "fb20a2c1f96b377609574f9d99509b7dcb416a13e58643e207a46d527a1245e6",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-09-01T22:44:34.652Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/worktree/index-delete.test.ts -t \"two merged PRs\" --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:0c09c969-6ebc-41b4-af10-eabbd6073513",
+      "payload_hash": "728fe59c3eb279e4e0c85e404086853237c9ecb27673646e5a8afd9695ede3e3",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-09-01T22:46:14.118Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/worktree/index-delete.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:c9fca3cc-a9ab-459f-b66b-0cbec8c40d38",
+      "payload_hash": "35941f10912d8d7943f8c59df749228c75db611bf3a8af7d55a3226ff0c40cd2",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-09-01T22:47:21.294Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/worktree/ --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:97e3396c-3583-4e13-bb8f-b0a5d38ff72b",
+      "payload_hash": "e8a0eecc4f371b071533d779d1a51edc3100a25d615ae24aeb718e9571ffea2d",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-09-01T22:48:14.074Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "013ea04c8296b0987e68f64aced35134db2bdccd:Red run tr_mtj9aol3_ed03cc41 failed both multi-candidate tests on the pr_evidence_invalid guard (after fixture correction tr_mtj98k16_22dbc766 exposed the local patch_equivalent tier winning). Guard removed. Green run tr_mtj9c4ji_fd3d7780 passed 67/67 in index-delete.test.ts. Verify run tr_mtj9dad9_297435c8 passed 219/219 across all 22 worktree tool test files.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchiveFinalizationFriction:98f461d0-2c2f-478a-a9bc-315e045dd9f3",
+      "payload_hash": "e6f79fb029bc734f45ea18391275a78ce353cdf0593b527c5316923e8f9e217e",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-09-01T22:48:48.878Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchiveFinalizationFriction:6d19a57d-3305-48c0-b570-1882e8d795d6",
+      "payload_hash": "1c19bdbac3e45c4082366d509a85f21e9873a83c2afca9a99413f860d9b27765",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-09-01T22:49:24.050Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchiveFinalizationFriction:bf872287-df23-461d-85a5-5db0cf73c024",
+      "payload_hash": "91ee373f82db53ac6c01e0205e6956759cfe5f1fcc0074ec988d2e49a6bf3025",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-09-01T22:50:01.606Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:4ee8143b-f2e9-4d12-820d-178adaf3079a",
+      "payload_hash": "3158b06a45019390f929f64436bb4b6b97f5b57938fd2b94da446d936c1a00ba",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-09-01T22:55:21.738Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:dc57ea3c-4d12-43bb-8707-2cea986dd329",
+      "payload_hash": "d5fd39beae5060b4a88f9e026440388bba5ccfccc7ed090115a05ac83bf65a20",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-09-01T22:58:17.787Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:67bfd5fc-eb19-43b6-b19c-6b711ddb291f",
+      "payload_hash": "7eada2ae5eed70939c96b6626d3019cd15bea8a7047c85d3759e3da6a95d093b",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-09-01T23:05:21.365Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:5b58a10f-40e5-4134-be9e-98ebdab04201",
+      "payload_hash": "17dda42ef675c95e04684c11e6bdbd439199264d9f80cb2e3ad99c0bca2610f1",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-09-01T23:06:22.474Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/handoff-footer-drift.test.ts src/__tests__/spec-id-shape-invariant.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts src/deploy-local.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:3bea6f35-ce9c-4c75-a6cb-3d6c2bdbcf3e",
+      "payload_hash": "ca1d62f1c329806e09cee7b61a2f137a081d5c3f8df5f9d2df8404c27bf9ca6e",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-09-01T23:06:44.727Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchiveFinalizationFriction|tk-dbc2efff4425|adv-engineer|1|cycle:ic_tk-dbc2efff4425",
+      "operation_id": "mutation:subagent_report_submitted:fixArchiveFinalizationFriction:7d85e7ac-c701-474e-864f-4e06c9af9e6f",
+      "payload_hash": "845bccfdc0915ee565aed19e947b80f739bb1e76e1bd16d8f8243bfdd4ee463e",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-09-01T23:10:37.116Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:f49e4a8d-93b3-4f33-a2ad-7827047666c2",
+      "payload_hash": "01594afe03368d8f6f8793f0a7276c48627cf8666017acabcf0ce440eb1f2410",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-09-01T23:12:06.116Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "882dacac33369ed2f58c330fc0456db8e77b0a73:Engineer RED tr_mtj9mgqs_6a41af5f (exit 1), GREEN tr_mtj9q7z8_005b55b5 (exit 0), targeted suite tr_mtja0ma3_fb8c1d60 (185 passed), spec suite tr_mtja13o5_7daf7f9d (98 passed), typecheck/lint/format exit 0. Orchestrator independently verified: diff review confirms headRefOid field + parse + gh list, MERGED_PR_HEAD_MISMATCH guard in ensureArchivePullRequest, parsed-type armer with dropped params, MERGED skip at both call sites (2158, 2840), spec delta on rq-approvedPrAutoMerge01 body + scenario .4 in spec.json and docs mirror. Independent verify run tr_mtja7z28_fc402291 passed 185/185.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchiveFinalizationFriction:fdbbaf09-3143-463a-8014-681d55ddfa46",
+      "payload_hash": "31ccd6c1980834f0c4028a3dcc6546a6164dd476e3d9bced9b0dab1ced7fe76f",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-09-01T23:12:33.174Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchiveFinalizationFriction:06156fe8-a60d-4624-b92a-df93570d5897",
+      "payload_hash": "5ab6887187feb03d0401f9147fbc5fe25a786ea9bf1c2c47e6c15dde626e03db",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-09-01T23:12:57.071Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"stallWarning\" --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:3cac477e-0644-44e2-abe7-401a843f6d61",
+      "payload_hash": "254aefe34c14d82dbbd211c5b049b6b67bf457993f1331af7662a7552601964a",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-09-01T23:15:01.497Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:9de0c0a2-b40f-43d2-b509-b2f4876a8f75",
+      "payload_hash": "16bb5bd2a1f82f54724bc3575cb9c9a7f2b3d88667665f2bebdae11a4125cb39",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-09-01T23:17:36.460Z"
+    },
+    {
+      "mutation_kind": "test_run_recorded",
+      "authority_kind": "mutation",
+      "authority_reason": "record test-run evidence",
+      "authority_evidence": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts --typecheck.enabled=false",
+      "operation_id": "mutation:test_run_recorded:fixArchiveFinalizationFriction:1fe41bf3-fc7e-45d1-a6ca-7ccca8087d1c",
+      "payload_hash": "b240cb321880369ec06b78c9c4e1beb6805b8b8834bcc495be120fdb299cf227",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-09-01T23:19:16.670Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "1cfa70ad99e5b0247ef4c83832e16e07eb1012fd:Red run tr_mtjabqsd_1fb2d218 failed the BEHIND stallWarning assertion. Green run tr_mtjah7be_1d844456 passed 166/166 after extending readPrMergeState field list (state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue), parsing absent isInMergeQueue as undefined-never-false, threading mergeStateStatus/isInMergeQueue through the reachability unmerged variant, adding GitFinalizeOutcome.stallWarning and stallWarningForReachability (warns only on BEHIND/DIRTY, silent for BLOCKED and queued), and attaching it at both pending_merge sites. Two verbatim field-list assertions updated; a doc comment reworded after the repo ci-wait no-leak guard caught \"CI-waiting\". pnpm typecheck, format, lint all exit 0.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchiveFinalizationFriction:c7199d93-85f8-43cb-b753-f541e7a2832b",
+      "payload_hash": "9103178142e14e0581a365ec4ccc73e59b4191917010ee9a20750168b0314324",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-09-01T23:20:49.627Z"
+    },
+    {
+      "mutation_kind": "task_mutation",
+      "authority_kind": "mutation",
+      "authority_reason": "task_mutation",
+      "authority_evidence": "in_progress",
+      "operation_id": "mutation:task_mutation:fixArchiveFinalizationFriction:a1490f73-14ab-4369-aa27-4527a4a4eea7",
+      "payload_hash": "2f15769131f33f050cc805a3923bf3f0e2e7199347fd26682ff1fd15ef2c134c",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-09-01T23:21:10.227Z"
+    },
+    {
+      "mutation_kind": "task_checkpoint_completed",
+      "authority_kind": "mutation",
+      "authority_reason": "record task checkpoint completion",
+      "authority_evidence": "1cfa70ad99e5b0247ef4c83832e16e07eb1012fd:Full suite on the change branch: pnpm test exit 1 with exactly one failure — cli-bridge-contract.test.ts frozen ADV_TOOL_NAMES snapshot (36 vs 35, adv_followup_promote) — plus pnpm run check failing at prompt-budget (+11255 bytes). Both reproduced identically on the base checkout /home/jon/dev/advance at trunk bd520d1f (same snapshot failure; same floorBytes 244708 +11255 message), proving them pre-existing and unrelated to this change. Everything else passed: 392 test files, 5274 tests passed, 12 todo, 1 skipped; spec projection and spec citation mirror tests green; typecheck green. The change's own suites (worktree 219/219, finalize/gate/phase9 185/185 + stall cases 166/166) all green under red/green/verify evidence recorded in tasks 1-3.",
+      "operation_id": "mutation:task_checkpoint_completed:fixArchiveFinalizationFriction:f79f584a-dee9-408d-92c0-a67316e359c4",
+      "payload_hash": "aa8b3d61b966c4c923235b90d2aa7ef0ae1b54c6e48845d6bacf0540585c40b0",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-09-01T23:26:32.189Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "Tasks: multi-candidate PR proof (219/219 worktree suite), finalize idempotency + spec delta (185/185), stall surfacing (166/166), full-suite verification (392 files green, two base-reproduced pre-existing failures unrelated to this change).",
+      "operation_id": "mutation:gate_completion:fixArchiveFinalizationFriction:087290e9-7553-4da9-82a0-e6cf78786a14",
+      "payload_hash": "f7e2c94664525fbf06fe3df0efc458621eff9f20e74199b8b0abedc5c6bee922",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-09-01T23:26:45.025Z"
+    },
+    {
+      "mutation_kind": "subagent_report_submitted",
+      "authority_kind": "mutation",
+      "authority_reason": "persist sub-agent report",
+      "authority_evidence": "fixArchiveFinalizationFriction|change:review:acceptance|adv-reviewer|1",
+      "operation_id": "mutation:subagent_report_submitted:fixArchiveFinalizationFriction:1b44d307-755b-4f57-9e96-67166d23ff4f",
+      "payload_hash": "1ac9baa65db04b94953059c6206970686ad8fd1fee6e01fee6e1e23cc8ea0345",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-09-01T23:32:45.404Z"
+    },
+    {
+      "mutation_kind": "gate_completion",
+      "authority_kind": "mutation",
+      "authority_reason": "complete gate",
+      "authority_evidence": "gate acceptance completion",
+      "operation_id": "mutation:gate_completion:fixArchiveFinalizationFriction:9a5e89ec-314c-4051-9869-30990e3c9502",
+      "payload_hash": "7eac7ee014757a162f80647cce2058ce4429d0367f05576611a119a318f7d5ca",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-09-01T23:37:39.600Z"
+    },
+    {
+      "mutation_kind": "artifact_update",
+      "authority_kind": "mutation",
+      "authority_reason": "change artifact update",
+      "authority_evidence": "User replied `accept` at the acceptance checkpoint.",
+      "operation_id": "mutation:artifact_update:fixArchiveFinalizationFriction:a32f7171-b6cc-482e-a0dc-59fccef12c10",
+      "payload_hash": "a7ec66f4a0f84115bff99998c6f7e13d3a13157bbabed31bf3eb9215050d76a3",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-09-01T23:37:58.293Z"
+    }
+  ]
+}
