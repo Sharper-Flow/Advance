@@ -72,6 +72,13 @@ describe("tool role policy — exhaustive classification (AC5/AC7, DDC8)", () =>
     }
   });
 
+  test("classifies adv_followup_promote as orchestrator-owned", () => {
+    expect(TOOL_ROLE_POLICY.adv_followup_promote).toEqual({
+      class: "orchestrator",
+      rationale: "Ops follow-up promotion to child change.",
+    });
+  });
+
   test("dual entries model action-level distinctions; non-dual entries do not", () => {
     for (const [tool, entry] of Object.entries(TOOL_ROLE_POLICY)) {
       if (entry.class === "dual") {

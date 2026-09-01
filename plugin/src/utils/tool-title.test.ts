@@ -20,6 +20,11 @@ describe("formatAdvToolTitle", () => {
         runId: "run-1",
       }).title,
     ).toBe("Upsert ops run: run-1");
+    expect(
+      formatAdvToolTitle("adv_followup_promote", {
+        source_change_id: "source-change",
+      }).title,
+    ).toBe("Promote follow-up: source-change");
     expect(formatAdvToolTitle("adv_status", {}).title).toBe("Show ADV status");
   });
 

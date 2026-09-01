@@ -125,6 +125,45 @@ describe("adv_tool_invoke integration — real createToolMap dispatch", () => {
     }
   });
 
+  test("dispatches a manual follow-up dry-run through the canonical registry", async () => {
+    const store = await createDiskStore(tempDir);
+    await store.init();
+    try {
+      const map = createToolMap(store, tempDir, store.paths.agenda) as Record<
+        string,
+        unknown
+      >;
+      const result = await invokeFacade(map, {
+        name: "adv_followup_promote",
+        args: {
+          source_change_id: "addFeature",
+          source_kind: "manual",
+          relationship: "follows_release",
+          kind: "backfill",
+          summary: "Backfill prod data",
+          dryRun: true,
+        },
+      });
+      const envelope = parseToolOutput(result) as {
+        output?: string;
+      };
+      const parsed = parseToolOutput(envelope.output ?? result) as {
+        success?: boolean;
+        dryRun?: boolean;
+        would_create?: { title?: string };
+        code?: string;
+      };
+      expect(parsed.code).not.toBe("TOOL_NOT_FOUND");
+      expect(parsed).toMatchObject({
+        success: true,
+        dryRun: true,
+        would_create: { title: "Backfill prod data" },
+      });
+    } finally {
+      store.close();
+    }
+  });
+
   test("AC2: unknown name returns typed TOOL_NOT_FOUND before any handler runs", async () => {
     const store = await createDiskStore(tempDir);
     await store.init();
