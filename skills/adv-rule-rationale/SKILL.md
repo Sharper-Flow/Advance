@@ -1,6 +1,6 @@
 ---
 name: adv-rule-rationale
-description: Full scope, rationale, and examples for ADV priority rules (P04-P41). Load when you need the WHY behind a rule, edge cases, or the complete enforcement context.
+description: Full scope, rationale, and examples for ADV priority rules (P04-P43). Load when you need the WHY behind a rule, edge cases, or the complete enforcement context.
 ---
 
 # ADV Rule Rationale
@@ -24,6 +24,12 @@ Full scope and rationale for the eager ADV priority rules. Load this skill when 
 **Scope:** Not separately specified.
 
 **Full rule:** Continue autonomously only when the ambiguity does not change the requested end-state or safety boundary.
+
+## P16 — docs-hygiene
+
+**Scope:** Durable documentation. Consulting docs before acting is governed by P34, not here.
+
+**Full rule:** Keep durable documentation only when it carries information that code, types, schemas, tests, or generated contracts cannot reliably convey — rationale, cross-cutting contracts, operational procedures, or user guidance. Delete stale, duplicated, superseded, or incorrect documentation rather than patching it into correctness; write a replacement only when the need is real. Never write a tombstone into a durable document: a struck-through entry, a retired-on-date note, or a renamed-from note records only what a surface used to contain, and version control already holds that. Do not create parallel prose for derivable implementation details.
 
 ## P19 — simplicity
 
@@ -127,3 +133,21 @@ Trigger phrases for stop-and-look-up: "I think", "should be", "typically", "usua
 **Scope:** Editing existing code. Governs removal of constructs a change supersedes and demonstrably dead code in the touched subsystem. Complements P40, which covers causal repair of observed defects.
 
 **Full rule:** Remove other dead code in the touched subsystem only when structural evidence establishes no static or configured caller, dynamic, reflective, registry, public API, generated-entry, test-only, or plugin-discovered use; analyzer findings are leads, never sole authority, and uncertainty means retain and surface. Never delete tests, validation, error handling, or observability merely to reduce code. This is not a line-count target.
+
+## P42 — comment-hygiene
+
+**Scope:** Comments in code.
+
+**Full rule:** Comments state current behavior, intent, and non-obvious constraints only. Do not write change-history narration ("previously", "was moved from", "no longer", "used to be"), diff labels ("NEW:", "ADDED:", "REMOVED:"), or conversation/provenance references (change IDs, task IDs, AC citations, review or requester dialogue) into comments — that record belongs in commits, PRs, ADRs, and ADV artifacts. When touching code that carries such narration, rewrite it as current-state documentation or delete it. Allowed: TODO/FIXME with a stable external reference, and why-notes that stay true regardless of which change introduced them.
+
+## P43 — guards-detect-not-decide
+
+**Scope:** Guards — type checks, linters, validators, schemas, assertions, tests, CI gates, guard clauses, precondition checks, and try/catch blocks. Governs the relationship between a guard and the code it reports on. Complements P40, which covers causal repair of an observed defect. This rule also binds when no defect exists.
+
+**Full rule:** A guard detects. It does not decide. When a guard reports a problem, repair the condition it reports. Do not make a guard pass with a cast, a skip, or a suppression comment. Do not widen an assertion, loosen a schema, lower a threshold, or narrow a test input for this purpose. Before you change a guard, state and prove that the guard is wrong. When null checks, early returns, and flags decide the program flow, the domain model is missing. Build the domain model (P33). A guard admits or refuses at a boundary. The owning code decides what happens next. A passed guard is evidence of correctness. It is not the definition of correctness.
+
+**Boundary against P40 and P41.** P40 bans suppression and masking, but binds only while "correcting observed unintended behavior" — it does not reach a loosened assertion or a cast written on green code. P41's Guard-and-Go prohibition covers hiding *superseded* code behind a guard, which is a deletion concern. P33 argues *for* machine-checkable guards and is silent on what a guard may decide.
+
+**What this does not prohibit.** It does not discourage guard clauses as a control-flow idiom; an early return that selects a business outcome is ordinary refactoring. The target is a guard that carries the decision the domain model should own. It does not revoke P40's defense-in-depth allowance either: defense-in-depth adds a control, whereas suppression removes a report.
+
+**Common violations.** Adding `as any`, `# noqa`, `@ts-expect-error`, or an `eslint-disable` to clear a report instead of fixing what it found. Deleting or widening a failing assertion. Lowering a coverage or performance threshold to green a gate. Narrowing a test input until the case that failed is no longer exercised. Resolving a validator complaint by editing the validator.
