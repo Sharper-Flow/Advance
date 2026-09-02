@@ -1,4 +1,5 @@
 import { existsSync } from "fs";
+import { homedir } from "os";
 import { dirname, isAbsolute, relative, resolve, sep } from "path";
 import { pathToFileURL } from "url";
 import { isSameOrChildPath } from "../utils/path.js";
@@ -376,8 +377,37 @@ function extractRedirectTargets(tokens: string[]): string[] {
   return targets;
 }
 
-function resolveCommandPath(pathValue: string, workdir: string): string {
-  return normalizeTargetPath(unquote(pathValue), workdir);
+/**
+ * Resolve a bash token to an absolute path, or `null` when the token cannot be
+ * resolved without running a shell.
+ *
+ * A token carrying `$VAR`, `${VAR}`, `$(…)`, or a backtick expands only at
+ * shell runtime. Treating such a token as a relative path resolves it under
+ * `workdir` and blocks writes that never targeted the trunk — a false positive
+ * on evidence the firewall does not have. Unresolvable tokens are skipped
+ * instead, which matches the indirection gap already accepted in
+ * `classifyDestructiveBash` (`rq-twf01.7`).
+ *
+ * A leading `~` is different: it is statically resolvable, so it is expanded
+ * rather than skipped, and `~/x` no longer reads as `${workdir}/~/x`.
+ */
+function resolveCommandPath(pathValue: string, workdir: string): string | null {
+  const raw = unquote(pathValue);
+  if (/[$`]/.test(raw)) return null;
+  if (raw === "~") return homedir();
+  const expanded = raw.startsWith("~/")
+    ? resolve(homedir(), raw.slice(2))
+    : raw;
+  return normalizeTargetPath(expanded, workdir);
+}
+
+function pushResolved(
+  targets: string[],
+  pathValue: string,
+  workdir: string,
+): void {
+  const resolved = resolveCommandPath(pathValue, workdir);
+  if (resolved) targets.push(resolved);
 }
 
 /**
@@ -396,6 +426,11 @@ function resolveCommandPath(pathValue: string, workdir: string): string {
  * script-internal writes may evade string parsing"). Do not re-flag the
  * uncovered indirection forms as a security bug without first revising that
  * spec decision.
+ *
+ * That accepted risk is about false negatives. A token the shell would expand
+ * (`$VAR`, `$(…)`, a backtick) is therefore skipped rather than resolved under
+ * `workdir`, which would otherwise block writes that never targeted the trunk.
+ * See `resolveCommandPath`.
  */
 export function classifyDestructiveBash(
   command: string,
@@ -405,7 +440,7 @@ export function classifyDestructiveBash(
   for (const segment of splitShellSegments(command)) {
     const tokens = tokenize(segment);
     for (const target of extractRedirectTargets(tokens)) {
-      targets.push(resolveCommandPath(target, workdir));
+      pushResolved(targets, target, workdir);
     }
 
     const commandName = tokens[0];
@@ -415,7 +450,7 @@ export function classifyDestructiveBash(
       for (const token of tokens
         .slice(1)
         .filter((token) => !token.startsWith("-"))) {
-        targets.push(resolveCommandPath(token, workdir));
+        pushResolved(targets, token, workdir);
       }
     }
 
@@ -427,7 +462,7 @@ export function classifyDestructiveBash(
         .slice(1)
         .filter((token) => !token.startsWith("-"));
       const target = positional.at(-1);
-      if (target) targets.push(resolveCommandPath(target, workdir));
+      if (target) pushResolved(targets, target, workdir);
     }
 
     if (commandName === "cp" || commandName === "mv") {
@@ -435,14 +470,14 @@ export function classifyDestructiveBash(
         .slice(1)
         .filter((token) => !token.startsWith("-"));
       const target = positional.at(-1);
-      if (target) targets.push(resolveCommandPath(target, workdir));
+      if (target) pushResolved(targets, target, workdir);
     }
 
     if (commandName === "rm") {
       for (const token of tokens
         .slice(1)
         .filter((token) => !token.startsWith("-"))) {
-        targets.push(resolveCommandPath(token, workdir));
+        pushResolved(targets, token, workdir);
       }
     }
   }
