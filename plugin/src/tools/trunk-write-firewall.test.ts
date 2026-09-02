@@ -1,3 +1,5 @@
+import { homedir } from "os";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -219,6 +221,46 @@ describe("classifyDestructiveBash", () => {
       "cat <<'EOF'\ngit reset --hard\necho x > /repo/file.txt\nEOF\n";
     expect(stripHeredocs(command)).not.toContain("/repo/file.txt");
     expect(classifyDestructiveBash(command)).toEqual([]);
+  });
+
+  it("expands a leading tilde against the home directory", () => {
+    const home = homedir();
+    expect(classifyDestructiveBash("cp /tmp/a ~/.config/app/file.txt")).toEqual(
+      [`${home}/.config/app/file.txt`],
+    );
+    expect(classifyDestructiveBash("rm ~/scratch/file.txt")).toEqual([
+      `${home}/scratch/file.txt`,
+    ]);
+  });
+
+  it("does not treat a tilde target as relative to the workdir", () => {
+    const targets = classifyDestructiveBash(
+      "cp /tmp/a ~/.config/app/file.txt",
+      "/repo",
+    );
+    expect(targets).not.toContain("/repo/~/.config/app/file.txt");
+  });
+
+  it("skips targets it cannot statically resolve", () => {
+    expect(classifyDestructiveBash("cp /tmp/a $DEST", "/repo")).toEqual([]);
+    expect(classifyDestructiveBash("cp /tmp/a ${DEST}/x", "/repo")).toEqual([]);
+    expect(classifyDestructiveBash("rm $(mktemp)", "/repo")).toEqual([]);
+    expect(classifyDestructiveBash("echo x > `mktemp`", "/repo")).toEqual([]);
+  });
+
+  it("still resolves genuine relative targets against the workdir", () => {
+    expect(classifyDestructiveBash("cp /tmp/a file.txt", "/repo")).toEqual([
+      "/repo/file.txt",
+    ]);
+    expect(classifyDestructiveBash("rm ./nested/file.txt", "/repo")).toEqual([
+      "/repo/nested/file.txt",
+    ]);
+  });
+
+  it("keeps scanning sibling targets when one is unresolvable", () => {
+    expect(classifyDestructiveBash("rm $DEST /repo/file.txt", "/repo")).toEqual(
+      ["/repo/file.txt"],
+    );
   });
 });
 
