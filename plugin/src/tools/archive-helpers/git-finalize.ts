@@ -1315,7 +1315,12 @@ export function readPrMergeState(
   if (repo) args.push("--repo", repo);
   args.push(
     "--json",
-    "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue",
+    // isInMergeQueue is deliberately NOT requested: gh (verified on 2.98.0)
+    // rejects the whole query with "Unknown JSON field" for it, which made
+    // every merge-state probe fail as GITHUB_API_UNAVAILABLE. Queue
+    // membership only silenced advisory BEHIND/DIRTY stall warnings, so its
+    // absence degrades to a warning rather than blocking finalization.
+    "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus",
   );
   const result = runGh(repoRoot, args);
   if (result.status !== 0) {
@@ -1902,6 +1907,31 @@ export function createArchivePullRequest(
   return { ok: true, url: splitLines(result.stdout)[0] };
 }
 
+/**
+ * A reused MERGED PR proves release when its head is still contained in the
+ * change branch. Exact tip equality covers the steady path; the ancestor
+ * check converges after earlier finalization attempts appended regenerated
+ * bundle commits past the merged head (otherwise the guard can never pass
+ * again). Containment preserves the guard's purpose: the released content
+ * must be a subset of the branch, so foreign or rewritten heads stay
+ * rejected. Any merge-base failure falls back to tip equality (fail closed).
+ */
+function mergedHeadAcceptedByBranch(
+  repoRoot: string,
+  branch: string,
+  headRefOid: string,
+  deps: Pick<GitFinalizeDeps, "runGit">,
+): boolean {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const result = runGit(repoRoot, [
+    "merge-base",
+    "--is-ancestor",
+    headRefOid,
+    branch,
+  ]);
+  return result.status === 0;
+}
+
 function ensureArchivePullRequest(
   input: {
     repoRoot: string;
@@ -1915,7 +1945,7 @@ function ensureArchivePullRequest(
     changeTipSha?: string;
     preArchiveTipSha?: string;
   },
-  deps: Pick<GitFinalizeDeps, "runGh"> = {},
+  deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
 ): PullRequestSummary | { error: string; details?: string[] } {
   const existing = readPullRequestByBranch(
     input.repoRoot,
@@ -1937,14 +1967,16 @@ function ensureArchivePullRequest(
       const savedTips = [input.changeTipSha, input.preArchiveTipSha].filter(
         (tip): tip is string => tip !== undefined,
       );
-      if (
-        existing.headRefOid === undefined ||
-        !savedTips.includes(existing.headRefOid)
-      ) {
+      const head = existing.headRefOid;
+      const accepted =
+        head !== undefined &&
+        (savedTips.includes(head) ||
+          mergedHeadAcceptedByBranch(input.repoRoot, input.branch, head, deps));
+      if (!accepted) {
         return {
           error: "MERGED_PR_HEAD_MISMATCH",
           details: [
-            `Merged PR ${existing.url} head ${existing.headRefOid ?? "unknown"} does not match a saved change tip`,
+            `Merged PR ${existing.url} head ${head ?? "unknown"} does not match a saved change tip`,
           ],
         };
       }

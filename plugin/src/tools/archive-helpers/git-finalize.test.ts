@@ -931,7 +931,7 @@ describe("git-finalize helpers", () => {
             "--repo",
             "Sharper-Flow/Advance",
             "--json",
-            "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue",
+            "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus",
           ]);
           return {
             status: 0,
@@ -972,7 +972,7 @@ describe("git-finalize helpers", () => {
             "--repo",
             "Sharper-Flow/Advance",
             "--json",
-            "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus,isInMergeQueue",
+            "state,mergedAt,mergeCommit,autoMergeRequest,mergeStateStatus",
           ]);
           return { status: 0, stdout, stderr: "" };
         },
@@ -6464,6 +6464,8 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
       prTitle?: string;
       prState?: "OPEN" | "MERGED";
       headRefOid?: string;
+      /** Treat any merge-base --is-ancestor probe as contained (exit 0). */
+      containedHead?: boolean;
     } = {},
   ) {
     const gitCalls: string[][] = [];
@@ -6474,6 +6476,13 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
       gitCalls.push(args);
       if (args[0] === "push" && args.includes(branch)) {
         return { status: 0, stdout: "pushed branch", stderr: "" };
+      }
+      if (
+        opts.containedHead === true &&
+        args[0] === "merge-base" &&
+        args[1] === "--is-ancestor"
+      ) {
+        return { status: 0, stdout: "", stderr: "" };
       }
       return {
         status: 1,
@@ -6770,6 +6779,61 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
 
     expect(result.status).toBe("blocked");
     expect(result.blocked?.reason).toBe("MERGED_PR_HEAD_MISMATCH");
+    expect(
+      mocks.ghCalls.filter((args) => args[0] === "pr" && args[1] === "merge"),
+    ).toHaveLength(0);
+  });
+
+  it("reused MERGED PR ships when its head is contained in the change branch", () => {
+    // Post-churn convergence: a prior finalization attempt appended bundle
+    // commits after the PR merged, so the merged head matches no saved tip,
+    // but it is still an ancestor of the change branch — the released
+    // content is a subset of the branch and the proof must hold.
+    const mocks = makeHandoffMocks({
+      existingPr: true,
+      prState: "MERGED",
+      headRefOid: "ancestor-tip",
+      containedHead: true,
+    });
+    const result = executePullRequestHandoff(
+      {
+        repoRoot: "/main",
+        workdir: "/workdir",
+        repo,
+        branch,
+        defaultBranch: "trunk",
+        changeId,
+        route: {
+          route: "pr_auto_merge",
+          repo,
+          protected: true,
+          autoMergeAllowed: true,
+        },
+        pushFailureReason: "n/a",
+        changeTitle,
+        prTitleType: "fix",
+        prTitlePolicy: conventionalPolicy,
+        changeTipSha: "newer-bundle-tip",
+        preArchiveTipSha: "pre-archive-tip-sha",
+      },
+      mocks,
+    );
+
+    expect(result).toMatchObject({
+      status: "shipped",
+      prNumber: 42,
+      mergeCommitSha: "merge-sha",
+      autoMergeArmed: false,
+    });
+    expect(
+      mocks.gitCalls.some(
+        (args) =>
+          args[0] === "merge-base" &&
+          args[1] === "--is-ancestor" &&
+          args[2] === "ancestor-tip" &&
+          args[3] === branch,
+      ),
+    ).toBe(true);
     expect(
       mocks.ghCalls.filter((args) => args[0] === "pr" && args[1] === "merge"),
     ).toHaveLength(0);
