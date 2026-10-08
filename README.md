@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **Advance has a successor: [Concord](https://github.com/Sharper-Flow/concord).**
+> Concord brings product-first planning and coordination for one operator and many local AI coding agents.
+> If you are starting a new project, check out [Concord](https://github.com/Sharper-Flow/concord) first.
+
 <h1 align="center">Advance</h1>
 
 <p align="center">
